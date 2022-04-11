@@ -13,13 +13,40 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('markdown-image-manage.helloWorld', () => {
+	/*let disposable0 = vscode.commands.registerCommand('markdown-image-manage.helloWorld', () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from markdown image manage!');
+		vscode.window.showInformationMessage('Hello World2222 from markdown image manage!');
 	});
-
-	context.subscriptions.push(disposable);
+	let disposable = vscode.commands.registerCommand("markdown-image-manage.helloWorld", async () => {
+		let answer = await vscode.window.showInformationMessage("How was your day ?", "good", "bad",)
+		if (answer === "bad") {
+			vscode.window.showErrorMessage("sorry to hear it", "1", "2","3","4")
+		} else {
+			console.log({ answer })
+			vscode.window.showWarningMessage("sorry to hear it")
+		}
+	})*/
+	let dispAnalyze = vscode.commands.registerCommand("markdown-image-manage.analyze", async () => {
+		await vscode.window.showInformationMessage("analyze ?")
+	})
+	let dispClean = vscode.commands.registerCommand("markdown-image-manage.clean", async () => {
+		await vscode.window.showInformationMessage("clean ?")
+	})
+	let dispDownload = vscode.commands.registerCommand("markdown-image-manage.download", async () => {
+		await vscode.window.showInformationMessage("download ?")
+	})
+	let dispUpload = vscode.commands.registerCommand("markdown-image-manage.upload", async () => {
+		await vscode.window.showInformationMessage("upload ?")
+	})
+	let dispMove = vscode.commands.registerCommand("markdown-image-manage.move", async () => {
+		await vscode.window.showInformationMessage("move ?")
+	})
+	context.subscriptions.push(dispAnalyze);
+	context.subscriptions.push(dispClean);
+	context.subscriptions.push(dispDownload);
+	context.subscriptions.push(dispUpload);
+	context.subscriptions.push(dispMove);
 }
 
 // this method is called when your extension is deactivated

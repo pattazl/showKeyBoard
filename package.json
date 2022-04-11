@@ -1,45 +1,104 @@
 {
   "name": "markdown-image-manage",
-	"displayName": "markdown image manage",
-	"description": "download ,clean,upload the markdown image",
-	"version": "0.0.1",
-	"engines": {
-		"vscode": "^1.66.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-        "onCommand:markdown-image-manage.helloWorld"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "markdown-image-manage.helloWorld",
-				"title": "Hello World"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile && npm run lint",
-		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.66.0",
-		"@types/glob": "^7.2.0",
-		"@types/mocha": "^9.1.0",
-		"@types/node": "14.x",
-		"@typescript-eslint/eslint-plugin": "^5.16.0",
-		"@typescript-eslint/parser": "^5.16.0",
-		"eslint": "^8.11.0",
-		"glob": "^7.2.0",
-		"mocha": "^9.2.2",
-		"typescript": "^4.5.5",
-		"@vscode/test-electron": "^2.1.3"
-	}
+  "displayName": "markdown image manage",
+  "description": "download ,clean,upload the markdown image",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.66.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:markdown-image-manage.helloWorld"
+  ],
+  "repository": {
+    "url": "https://gitee.com/pattazl/markdown-image-manage"
+  },
+  "main": "./out/extension.js",
+  "contributes": {
+    "submenus": [
+      {
+        "id": "markdown-image-manage.menulist",
+        "label": "%extension.helloWorld.title%"
+      }
+    ],
+    "commands": [
+      {
+        "command": "markdown-image-manage.analyze",
+        "title": "Analyze"
+      },
+      {
+        "command": "markdown-image-manage.clean",
+        "title": "Clean"
+      },
+      {
+        "command": "markdown-image-manage.download",
+        "title": "Download"
+      },
+      {
+        "command": "markdown-image-manage.upload",
+        "title": "Upload"
+      },
+      {
+        "command": "markdown-image-manage.move",
+        "title": "Move"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorFocus && resourceLangId == markdown ",
+          "submenu": "markdown-image-manage.menulist",
+          "group": "navigation"
+        }
+      ],
+      "markdown-image-manage.menulist": [
+        {
+          "command": "markdown-image-manage.analyze",
+          "group": "2_workspace"
+        },{
+          "command": "markdown-image-manage.clean",
+          "group": "2_workspace"
+        },
+        {
+          "command": "markdown-image-manage.download",
+          "group": "2_workspace"
+        },
+        {
+          "command": "markdown-image-manage.upload",
+          "group": "2_workspace"
+        },
+        {
+          "command": "markdown-image-manage.move",
+          "group": "2_workspace"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/glob": "^7.2.0",
+    "@types/mocha": "^9.1.0",
+    "@types/node": "14.x",
+    "@types/vscode": "^1.66.0",
+    "@typescript-eslint/eslint-plugin": "^5.16.0",
+    "@typescript-eslint/parser": "^5.16.0",
+    "@vscode/test-electron": "^2.1.3",
+    "eslint": "^8.11.0",
+    "glob": "^7.2.0",
+    "mocha": "^9.2.2",
+    "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "fs-extra": "^10.0.1"
+  }
 }

@@ -1,6 +1,7 @@
 # markdown-image-manage
-
 markdown图片管理工具 "markdown-image-manage" 是VSCode的插件，用于管理markdown文件中的图片，包括jpg,png,jpeg等
+
+
 
 ## 功能
 
@@ -34,6 +35,5 @@ markdown图片管理工具 "markdown-image-manage" 是VSCode的插件，用于�
 第一个版本
 
 ## 仓库地址
-
 
 **使用愉快!**
