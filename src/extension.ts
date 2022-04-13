@@ -1,24 +1,20 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload,vscUploadAll}  from './index';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
+
 export function activate(context: vscode.ExtensionContext) {
-	
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "markdown-image-manage" is now active!');
+	console.log('Congratulations, extension "markdown-image-manage" is now active!');
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	/*let disposable0 = vscode.commands.registerCommand('markdown-image-manage.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World2222 from markdown image manage!');
-	});
-	let disposable = vscode.commands.registerCommand("markdown-image-manage.helloWorld", async () => {
+	/*let disposable = vscode.commands.registerCommand("markdown-image-manage.helloWorld", async () => {
 		let answer = await vscode.window.showInformationMessage("How was your day ?", "good", "bad",)
 		if (answer === "bad") {
 			vscode.window.showErrorMessage("sorry to hear it", "1", "2","3","4")
@@ -27,25 +23,41 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showWarningMessage("sorry to hear it")
 		}
 	})*/
-	let dispAnalyze = vscode.commands.registerCommand("markdown-image-manage.analyze", async () => {
-		await vscode.window.showInformationMessage("analyze ?")
+	//let obj2 = vscode.workspace.getConfiguration('markdown-image-manage');
+	//console.log('globalState',context.globalState.get('markdown-image-manage.hasBracket'));
+	if(!initPara()){return;} // 从配置中获取初始化参数
+	let dispAnalyze = vscode.commands.registerCommand("markdown-image-manage.analyze", async (textEditor: vscode.TextEditor) => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		vscAnalyze();
 	})
 	let dispClean = vscode.commands.registerCommand("markdown-image-manage.clean", async () => {
-		await vscode.window.showInformationMessage("clean ?")
+		//await vscode.window.showInformationMessage(process.env['VSCODE_NLS_CONFIG']||'')
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		vscClean();
 	})
 	let dispDownload = vscode.commands.registerCommand("markdown-image-manage.download", async () => {
-		await vscode.window.showInformationMessage("download ?")
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		vscDownload();
 	})
 	let dispUpload = vscode.commands.registerCommand("markdown-image-manage.upload", async () => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		//vscUpload();
 		await vscode.window.showInformationMessage("upload ?")
 	})
+	let dispUploadAll = vscode.commands.registerCommand("markdown-image-manage.uploadall", async () => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		//vscUploadAll();
+		await vscode.window.showInformationMessage("upload all?")
+	})
 	let dispMove = vscode.commands.registerCommand("markdown-image-manage.move", async () => {
-		await vscode.window.showInformationMessage("move ?")
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		await vscMove();
 	})
 	context.subscriptions.push(dispAnalyze);
 	context.subscriptions.push(dispClean);
 	context.subscriptions.push(dispDownload);
 	context.subscriptions.push(dispUpload);
+	context.subscriptions.push(dispUploadAll);
 	context.subscriptions.push(dispMove);
 }
 

@@ -1,0 +1,16 @@
+{
+    "markdown-image-manage.menuName": "Image Manage",
+    "markdown-image-manage.menuAnalyze": "Analyze",
+    "markdown-image-manage.menuClean": "Clean",
+    "markdown-image-manage.menuDownload": "Download",
+    "markdown-image-manage.menuUpload": "Upload Select",
+    "markdown-image-manage.menuUploadAll": "Upload All",
+    "markdown-image-manage.menuMove": "Move",
+
+    "markdown-image-manage.removeFolder": "The folder where image will move to when clean",
+    "markdown-image-manage.hasBracket": "whether the image path include right brackets",
+    "markdown-image-manage.imageSaveFolder": "local folder which the images will save,support absolute or relative path. default is [./markdown file name.assets]",
+    "markdown-image-manage.updateLink": "whether update the picture link in md file",
+    "markdown-image-manage.rename": "whether rename the image files",
+    "markdown-image-manage.remotePath": "which be added at beginning of PicBed path, default is empty. When empty, it will add with md file name. When '/' or \\ it will not add anymore. It is used for separate the images by md file name. "
+}
