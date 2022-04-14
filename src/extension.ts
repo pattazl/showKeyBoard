@@ -1,8 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload,vscUploadAll}  from './index';
-
+import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload}  from './index';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 
@@ -31,7 +30,6 @@ export function activate(context: vscode.ExtensionContext) {
 		vscAnalyze();
 	})
 	let dispClean = vscode.commands.registerCommand("markdown-image-manage.clean", async () => {
-		//await vscode.window.showInformationMessage(process.env['VSCODE_NLS_CONFIG']||'')
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
 		vscClean();
 	})
@@ -41,23 +39,21 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 	let dispUpload = vscode.commands.registerCommand("markdown-image-manage.upload", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
-		//vscUpload();
-		await vscode.window.showInformationMessage("upload ?")
+		vscUpload();
 	})
-	let dispUploadAll = vscode.commands.registerCommand("markdown-image-manage.uploadall", async () => {
+	let dispUploadClip = vscode.commands.registerCommand("markdown-image-manage.uploadclip", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
-		//vscUploadAll();
-		await vscode.window.showInformationMessage("upload all?")
+		vscUpload(true);
 	})
 	let dispMove = vscode.commands.registerCommand("markdown-image-manage.move", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
-		await vscMove();
+		vscMove();
 	})
 	context.subscriptions.push(dispAnalyze);
 	context.subscriptions.push(dispClean);
 	context.subscriptions.push(dispDownload);
 	context.subscriptions.push(dispUpload);
-	context.subscriptions.push(dispUploadAll);
+	context.subscriptions.push(dispUploadClip);
 	context.subscriptions.push(dispMove);
 }
 

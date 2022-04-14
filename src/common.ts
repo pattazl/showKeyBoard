@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getLang } from './lang';
+import * as dayjs from 'dayjs';
 // import * as chalk from 'chalk' 可以不必用chalk 库
 export let mdFile = ''; // 需要处理的文件
 export let localFolder = ''; // 目标文件夹
@@ -14,31 +15,41 @@ export let removeFolder = ''; // 移入的文件夹
 let imagePathBracket = false; // 文件名中包含括号
 
 
-export function getImages(): { local: string[], net: string[], mapping: {}, content: string } {
-    var picArrLocal:string[] = [];
-    var oriMapping= {};
-    var picArrWarn:string[] = [];
-    var picArrNet:string[] = [];
+export function getImages(selectFlag: boolean = false): { local: string[], net: string[], mapping: {}, content: string } {
+    var picArrLocal: string[] = [];
+    var oriMapping = {};
+    var picArrWarn: string[] = [];
+    var picArrNet: string[] = [];
     var str = '';
     let retObj = { local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 
-    let document = vscode.window.activeTextEditor?.document; // 当前编辑内容
-    if(document==null)
-    {
+    let editContent = '';
+    const currentEditor = vscode.window.activeTextEditor;
+    if (currentEditor == null) {
         logger.error(getLang('md-img.docAct'))
-            return retObj;
+        return retObj;
     }
-    let editContent = document?.getText(); // 当前编辑内容
-
+    if (selectFlag) {
+        // 只获取编辑的字符串内容 
+        let r = currentEditor.selection;// 选中的内容
+        editContent = currentEditor.document.getText(r);
+        if (r == null || editContent == '') {
+            // 没有选中任何内容
+            return retObj;
+        }
+    } else {
+        // 对整个文件内容操作
+        let document = currentEditor.document; // 当前编辑内容
+        if (document.isDirty) {
+            logger.error(getLang('md-img.docDirty'))
+            return retObj;
+        }
+        editContent = document?.getText(); // 当前编辑内容
+    }
     try {
         //var mdfileName = fs.realpathSync(mdFile);
         var mdfilePath = path.dirname(mdFile); //arr.join('/'); // 获取文件路径
         // str = fs.readFileSync(mdfileName).toString();
-        if(document.isDirty)
-        {
-            logger.error(getLang('md-img.docDirty'))
-            return retObj;
-        }
         str = editContent; // 文本内容覆盖过去
         // 正则格式
         // var reg = /!\[[^\]]*\]\((.*\.png|.*\.jpg|.*\.gif|.*\.jpeg)\)/ig;
@@ -72,7 +83,7 @@ export function getImages(): { local: string[], net: string[], mapping: {}, cont
         console.log(e.message);
     }
     if (picArrWarn.length > 0) {
-        logger.error(getLang('md-img.errorimage',picArrWarn.length));
+        logger.error(getLang('md-img.errorimage', picArrWarn.length));
         logger.error(`${picArrWarn.join('\n')}`);
     }
     retObj.content = str;
@@ -121,59 +132,62 @@ let msgHash = {
     'error': [] as string[],
     'info': [] as string[],
 }
-export function showInVscode(modal:boolean=false) {
+export function clearMsg()
+{
+    msgHash.info = [];
+    msgHash.warn = [];
+    msgHash.error = [];
+}
+export function showInVscode(modal: boolean = false) {
     if (msgHash.warn.length > 0) {
         let msg = msgHash.warn.join('\n');
-        if(!modal){
-            msg = msg.replace(/\n+/g,'|');
+        if (!modal) {
+            msg = msg.replace(/\n+/g, '|');
         }
-        vscode.window.showWarningMessage(msg , { modal });
-        msgHash.warn = [];
+        vscode.window.showWarningMessage(msg, { modal });
     }
     if (msgHash.error.length > 0) {
         let msg = msgHash.error.join('\n');
-        if(!modal){
-            msg = msg.replace(/\n+/g,'|');
+        if (!modal) {
+            msg = msg.replace(/\n+/g, '|');
         }
         vscode.window.showErrorMessage(msg, { modal });
-        msgHash.error = [];
     }
     if (msgHash.info.length > 0) {
         let msg = msgHash.info.join('\n');
-        if(!modal){
-            msg = msg.replace(/\n+/g,'|');
+        if (!modal) {
+            msg = msg.replace(/\n+/g, '|');
         }
-        vscode.window.showInformationMessage(msg, { modal});
-        msgHash.info = [];
+        vscode.window.showInformationMessage(msg, { modal });
     }
+    clearMsg();
 }
 export let logger = {
-    warn: function (msg: string,popFlag:boolean=true) {
+    warn: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.yellow(...msg))
         console.log(colorDict.yellow, msg, colorDict.reset);
-        if(popFlag){msgHash.warn.push(msg.toString());}
+        if (popFlag) { msgHash.warn.push(msg.toString()); }
     },
-    success: function (msg: string,popFlag:boolean=true) {
+    success: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.green(...msg))
         console.log(colorDict.green, msg, colorDict.reset);
-        if(popFlag){msgHash.info.push(msg.toString());}
+        if (popFlag) { msgHash.info.push(msg.toString()); }
     },
-    error: function (msg: string,popFlag:boolean=true) {
+    error: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.red(...msg))
         console.log(colorDict.red, msg, colorDict.reset);
-        if(popFlag){msgHash.error.push(msg.toString());}
+        if (popFlag) { msgHash.error.push(msg.toString()); }
     },
-    info: function (msg: string,popFlag:boolean=true) {
+    info: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.blue(...msg))
         console.log(colorDict.cyan, msg, colorDict.reset);
-        if(popFlag)
-        {
+        if (popFlag) {
             msgHash.info.push(msg.toString());
         }
     },
 };
 // 设置相关内部变量
-export function setPara(bracket:boolean,ren:boolean,read:boolean,local:string,remote:string,rem:string){
+export function setPara(bracket: boolean, ren: boolean, read: boolean, local: string, remote: string, rem: string) {
     imagePathBracket = bracket;
     rename = ren;
     readonly = !read; // 含义相反
@@ -201,15 +215,15 @@ export function mdCheck(file: string): boolean {
 export function localCheck() {
     let parentPath = path.dirname(mdFile);
     // 目标保存
-    let targetFolder = path.resolve(parentPath, convertPath(localFolder.trim()||''));
+    let targetFolder = path.resolve(parentPath, convertPath(localFolder.trim() || ''));
 
     if (!fs.existsSync(targetFolder)) {
         logger.info(`local Folder[${targetFolder}] is not exists, will create`);
         try {
             fs.mkdirSync(targetFolder);
         } catch (e) {
+            console.log(e)
             logger.error(`create [${targetFolder}] fail!!!`);
-
             return false;
         }
     } else {
@@ -242,38 +256,52 @@ export function getAutoPath(dir: string, newfile: string) {
     }
     return newfile;
 }
-// 备份
-export function saveFile(content: string, count: number) {
-    if(count == 0 )
-    {
-        logger.success(getLang('md-img.uptSucc3'));
+// 在当前光标处插入内容
+export function insertText(content: string) {
+    let editor = vscode.window.activeTextEditor;
+    if (content.length == 0 && editor == null) {
         return;
     }
-    if(readonly)
-    {
-        logger.warn(getLang('md-img.uptSucc2',count));
+    const position = editor?.selection.active;
+    if (position == null) {
+        logger.error('!position error!')
+        return;
+    }
+    editor?.edit(textEditorEdit => {
+        textEditorEdit.insert(position, content);
+    });
+    console.log('insertText:' + content)
+}
+// 保存内容
+export function saveFile(content: string, count: number, selectFlag: boolean = false) {
+    if (count == 0) {
+        logger.warn(getLang('md-img.uptSucc3'));
+        return;
+    }
+    if (readonly) {
+        logger.warn(getLang('md-img.uptSucc2', count));
         return;
     }
     let textEditor = vscode.window.activeTextEditor;
-    if(!readonly && content.length>0&&textEditor !=null){
+    if (!readonly && content.length > 0 && textEditor != null) {
         textEditor.edit((editBuilder: vscode.TextEditorEdit) => {
-            const end = new vscode.Position(textEditor?.document.lineCount||0 + 1, 0);
-            editBuilder.replace(new vscode.Range(new vscode.Position(0, 0), end), content);
+            let rang: vscode.Range;
+            if (selectFlag) {
+                // 替换选中的内容
+                let r = textEditor?.selection;
+                if (r == null) {
+                    logger.error(getLang('md-img.docSelect'))
+                    return;
+                }
+                rang = r;
+            } else {
+                const end = new vscode.Position(textEditor?.document.lineCount || 0 + 1, 0);
+                rang = new vscode.Range(new vscode.Position(0, 0), end)
+            }
+            editBuilder.replace(rang, content);
         });
     }
-    /*
-    if (count == 0) {
-        logger.info(`There are no link changed in [${mdFile}],skip save !`);
-        return;
-    }
-    let ofile = path.parse(mdFile);
-    if (!overwriteFile) {
-        let newFilename = path.join(ofile.dir, ofile.name + suffix + ofile.ext);
-        fs.copyFileSync(mdFile, newFilename); // 原文件备份
-    }
-    fs.writeFileSync(mdFile, content);
-    */
-    logger.success(getLang('md-img.uptSucc',count,mdFile));
+    logger.success(getLang('md-img.uptSucc', count, path.basename(mdFile)));
 }
 // 输入需要写入的文件名，如果发现重复，增加(序号) ，序号最大999 ，如果成功返回真实路径，否则返回空字符串
 export function getAntiSameFileName(dest: string, filename: string): string {
@@ -298,13 +326,31 @@ export function getAntiSameFileName(dest: string, filename: string): string {
     }
     return filePath;
 }
-// 识别 <filename> 路径
-export function convertPath(p:string):string
-{
-    if(mdFile == '')
-    {
+// 识别 路径 上代码转换，包括 <filename>  <yyyy> <mm> <dd>
+export function convertPath(p: string): string {
+    if (mdFile == '') {
         return '';
     }
     let oMdFile = path.parse(mdFile);
-    return  p.replace(/<filename>/ig,oMdFile.name);
+    let date = dayjs(new Date());
+    return p.replace(/<filename>/ig, oMdFile.name)
+    .replace(/<(.+?)>/ig,function(a,b)  // 支持各种日期格式字符串
+    {
+        return ( date.format(b));
+    });
+}
+// 超时控制
+export async function timeoutPromise(promise:Promise<unknown>, ms:number,msg:string){
+    function delayPromise(ms:number){
+        return new Promise(function(resolve){
+            setTimeout(function(){resolve('timeoutPromise')},ms,'aaaaaa');
+        })
+    }
+    var timeout = delayPromise(ms);
+    let res = await Promise.race([promise, timeout]);
+    if( res == 'timeoutPromise')
+    {
+        logger.error(msg);
+    }
+    return;
 }

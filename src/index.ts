@@ -1,11 +1,9 @@
-import { logger, mdCheck, showInVscode, setPara, readonly } from './common';
+import { mdCheck, showInVscode, setPara, timeoutPromise,clearMsg } from './common';
 import { cleanMD, analyze } from './clean';
 import { download } from './download';
-import { upload, upCheck, linkPicgo } from './upload';
+import { upload, upCheck } from './upload';
 import { move } from './move';
 import { getLang } from './lang';
-import * as fs from 'fs';
-
 import * as vscode from 'vscode';
 /*
 import * as nls from 'vscode-nls';
@@ -35,26 +33,21 @@ export async function vscClean() {
     showInVscode();
 }
 export async function vscDownload() {
-    download();
+    await timeoutPromise(download(), 90000,getLang('md-img.dltimeout'));
+    showInVscode();
 }
-// 上传所选图片
-export async function vscUpload() {
-    if (upCheck()) {
+// 上传所选图片/剪切板图片
+export async function vscUpload(clip:boolean=false) {
+    if (!upCheck()) {
         showInVscode();
         return;
     }
-    //upload();
-}
-// 上传全部图片
-export async function vscUploadAll() {
-    if (upCheck()) {
-        showInVscode();
-        return;
-    }
-    //upload();
+    await timeoutPromise(upload(clip), 90000,getLang('md-img.uptimeout'));
+    showInVscode();
 }
 // 初始化参数，参数保存于 common模块中
 export function initPara() {
+    clearMsg();
     let extendName = 'markdown-image-manage';
     let hasBracket: boolean = vscode.workspace.getConfiguration(extendName).get('hasBracket') as boolean;
     let updateLink: boolean = vscode.workspace.getConfiguration(extendName).get('updateLink') as boolean;

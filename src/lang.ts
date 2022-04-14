@@ -17,6 +17,16 @@ let defaultLang = {
     ,'md-img.uptSucc': 'The image links[%d] in [%s] has been updated'
     ,'md-img.uptSucc2': 'Images[%d] have been changed,but not update content,because the setting of update link'
     ,'md-img.uptSucc3': 'No image link changed'
+    ,'md-img.docSelect': 'No image link in selected text'
+    ,'md-img.installPicgo': '!!Please global install picgo-cli first,exec [npm install picgo -g] in cli'
+    ,'md-img.dltimeout': '!!download timeout!!'
+    ,'md-img.dling': 'downloading'
+    ,'md-img.dling2': ' [%s], %d/%d'
+    ,'md-img.dlerror': '!download [%s] error!'
+    ,'md-img.uptimeout': '!!upload timeout!!'
+    ,'md-img.uping': 'uploading'
+    ,'md-img.uping2': ' [%s], %d/%d'
+    ,'md-img.uperror': '!upload [%s] error!'
 }
 // 中文需要填写的
 let zhcnLang = {
@@ -32,6 +42,16 @@ let zhcnLang = {
    ,'md-img.uptSucc': '已经更新图片链接[%d]个,在[%s]中'
    ,'md-img.uptSucc2': '图片已经改变[%d]个,因update link设置,不更新内容'
    ,'md-img.uptSucc3': '没有链接变化，无需更新'
+   ,'md-img.docSelect': '选中的文本中没有本地图片'
+   ,'md-img.installPicgo': '请先全局安装和配置PicGo-Cli,命令行执行[npm install picgo -g]'
+   ,'md-img.dltimeout': '!!下载超时!!'
+   ,'md-img.dling': '下载中'
+   ,'md-img.dling2': '当前 [%s], %d/%d'
+   ,'md-img.dlerror': '!下载 [%s] 异常!'
+   ,'md-img.uptimeout': '!!上传超时!!'
+   ,'md-img.uping': '上传中'
+   ,'md-img.uping2': '当前 [%s], %d/%d'
+   ,'md-img.uperror': '!上传 [%s] 失败!'
 }
 // 语言包汇总
 let lang = {

@@ -14,7 +14,7 @@
     "onCommand:markdown-image-manage.clean",
     "onCommand:markdown-image-manage.download",
     "onCommand:markdown-image-manage.upload",
-    "onCommand:markdown-image-manage.uploadall",
+    "onCommand:markdown-image-manage.uploadclip",
     "onCommand:markdown-image-manage.move"
   ],
   "repository": {
@@ -45,8 +45,8 @@
         "command": "markdown-image-manage.upload",
         "title": "%markdown-image-manage.menuUpload%"
       },{
-        "command": "markdown-image-manage.uploadall",
-        "title": "%markdown-image-manage.menuUploadAll%"
+        "command": "markdown-image-manage.uploadclip",
+        "title": "%markdown-image-manage.menuUploadClip%"
       },
       {
         "command": "markdown-image-manage.move",
@@ -79,7 +79,7 @@
           "group": "2_workspace"
         },
         {
-          "command": "markdown-image-manage.uploadall",
+          "command": "markdown-image-manage.uploadclip",
           "group": "2_workspace"
         },
         {
@@ -156,6 +156,8 @@
   },
   "dependencies": {
     "fs-extra": "^10.0.1",
-    "vscode-nls": "^5.0.0"
+    "vscode-nls": "^5.0.0",
+    "picgo": "1.5.0-alpha.0",
+    "dayjs": "^1.7.4"
   }
 }

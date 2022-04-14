@@ -4,8 +4,9 @@ import downloadCore from "./downloadcore.js";
 import {
     getImages, escapeStringRegexp, logger,
     mdFile, localFolder, rename,
-    getAutoPath, saveFile, localCheck,showInVscode
+    getAutoPath, saveFile, localCheck
 } from './common'
+import { getLang } from './lang.js';
 // 主要内部变量
 //var downThread = 1;
 
@@ -25,13 +26,17 @@ export async function download() // ,thread:number
     let downArr: string[] = Array.from(set) as string[];
     let count = 0, len = downArr.length;
     let successCount = 0;
-    //startProgress('aaaaaa',0)
 
-    window.withProgress({ title: 'downloading', location: ProgressLocation.Notification }, async (progress, token) => {
+    // 一直等着下载完毕，超时100秒
+    let rres:any;
+    var p = new Promise((resolve,reject) => {
+        rres = resolve;
+    });
+    window.withProgress({ title: getLang('md-img.dling'), location: ProgressLocation.Notification }, async (progress, token) => {
         for (let file of downArr) {
             count++;
             logger.info(`downloading [${file}], ${count}/${len}`, false);
-            progress.report({ increment: count / len * 100, message: `downloading [${file}], ${count}/${len}` });
+            progress.report({ increment: count / len * 100, message: getLang('md-img.dling2',path.basename(file),count,len) });
             try {
                 let obj = { rename, localFolder };
                 let res = await downloadCore(file, localFolder, rename);
@@ -44,28 +49,14 @@ export async function download() // ,thread:number
                 successCount++;
             } catch (e) {
                 console.log(e)
+                logger.error( getLang('md-img.dlerror', path.basename(file)) );
+                rres('error')
                 return Promise.reject()
             }
         }
         saveFile(content, successCount);
-        showInVscode();
+        rres('finish')
         return Promise.resolve()
-        //else return Promise.reject()
     });
-}
-
-function startProgress(message: string, process: number) {
-
-    window.withProgress({ title: message, location: ProgressLocation.Notification }, async (progress, token) => {
-        progress.report({ increment: 10, message: "I am long running! - still going..." });
-        let retries = 60;
-        //return Promise.resolve('aaaa')
-        var p = new Promise(resolve => {
-            setTimeout(() => {
-                resolve('0');
-            }, 5000);
-        });
-        return p;
-        //else return Promise.reject()
-    });
+    return p;
 }

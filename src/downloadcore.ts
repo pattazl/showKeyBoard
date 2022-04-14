@@ -71,7 +71,6 @@ export default async (url: any, dest: any, re: boolean) => {
     })
     return filePath;
   } catch (e) {
-    logger.error('download error:');
     console.log(e);
     return '';
   }
