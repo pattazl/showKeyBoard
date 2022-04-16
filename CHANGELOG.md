@@ -1,9 +1,26 @@
-# Change Log
-
-All notable changes to the "markdown-image-manage" extension will be documented in this file.
-
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+# Changelog
+All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Initial release
+## [0.0.1] - 2022-04-15
+
+### Added
+
+- Analysis: analyze the resource images in the MD file, list the network and local , and alarm if the local does not exist
+- Clean up: Check all the images in the directory where the MD file's local images are located . If they are not linked in the MD file, they will be moved to the "md-img-remove" directory
+
+- Download: Download all network images in the MD file to the defined directory
+
+- Upload: Automatically upload all local images in the MD file to the PicBed through picgo tool
+
+- Move: move all local images in the MD file to the defined directory
+
+## [0.0.2] - 2022-04-16
+
+### Added
+- Clean up the invalid local image in the MD file
+
+### Removed
+
+- remove the  PicGo package and will link global PicGo when use

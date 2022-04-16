@@ -1,39 +1,85 @@
 # markdown-image-manage
-markdown图片管理工具 "markdown-image-manage" 是VSCode的插件，用于管理markdown文件中的图片，包括jpg,png,jpeg等
+
+> The VSCode extension of  [markdown-image-manage](https://gitee.com/pattazl/markdown-image-manage/).
+
+[![installs](https://img.shields.io/vscode-marketplace/d/AustinYoung.markdown-image-manage.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Spades.vs-picgo)
+[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fpattazl%2Fmarkdown-image-manage%2Fbadge%3Fref%3Ddev&style=flat-square)](https://actions-badge.atrox.dev/pattazl/markdown-image-manage/goto?ref=dev)
+[![GitHub stars](https://img.shields.io/github/stars/pattazl/markdown-image-manage.svg?style=flat-square&label=github%20stars)](https://github.com/pattazl/markdown-image-manage)
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg?style=flat-square)](https://standardjs.com)
+
+## Overview
+
+ "markdown-image-manage"  is the VSCdoe extension, manage the images of MD(Markdown) File by menu, and have another npm cli tool( markdown-image-manage-npm )
+
+ [中文文档 Gitee ](https://gitee.com/pattazl/markdown-image-manage)
+ [中文文档 Github](https://github.com/pattazl/markdown-image-manage/blob/main/README_ZH.md)
+
+## Features
+
+The Menu show :
+
+![cn](E:\Code\ts\vscode\markdown-image-manage\images\cn.png)
+
+![en](E:\Code\ts\vscode\markdown-image-manage\images\en.png)
+
+Functions as following :
 
 
+1. Analysis: analyze the resource images in the MD file, list the network and local , and alarm if the local does not exist
+2. Clean up: Check all the images in the directory where the MD file's local images are located , make sure the local image's folder is the same, if not same you can use **move local image** to make them same. If they are not linked in the MD file, they will be moved to the "md-img-remove" directory, the local images include .png,.jpg,.bmp,.gif,.jpeg,.ico,.tga,.rle,.tif,.cur,.ani,.iff 
+3. Clean up the invalid local image:  Remove the link that the local image not exist.
+4. Download: Download all network images in the MD file to the defined directory
+5. Upload: Automatically upload all local images in the MD file to the PicBed (Depend on picgo )
+6. Upload Clipboard: Upload the clipboard's image and insert the image  (Depend on picgo )
+7. Move: move all local images in the MD file to the defined directory
+8. The local and remote path support the variable ,  "<filename>" , "<YYYYMMDD>"  datetime format string by dayjs ，such as <DDHHmm> and so on.
+9. Support multiple languages
 
-## 功能
+## Requirements
 
-可以实现如下功能
-1. 将文中的所有的图片下载到指定目录
-2. 清理指定目录中的图片，文章中如果未引用则转移
-3. 将本地所有图片自动上传到图床中
+Need global install PicGo tool when upload image
 
-## 依赖项
+For make the install package smaller, markdown-image-manage haven't package the Picgo inside ，and link the global PicGo 
 
-如果需要实现自动上传，则需要安装 picgo 插件，相关的图床帐号和配置信息请在picgo中设置
+Step of install PicGo：
 
-## 插件配置
+1.  Install node.js 12 and above
+2.  Cli  `npm install picgo -g`，使用方法见  https://picgo.github.io/PicGo-Core-Doc/ 相关的仓库为 https://github.com/PicGo/PicGo-Core 
 
-主要配置如下:
+Picgo's introduction in  https://picgo.github.io/PicGo-Core-Doc/  and  https://github.com/PicGo/PicGo-Core 
 
-1. 保存的本地目录路径或名称，支持相对名称
-2. 同时下载的图片数量
+After install Picgo , you should set the PicBed's account, and could use cli `picgo u /x/xxx.png` for test upload images
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+Picgo support several PicBed and  FTP server( PASV mode) by plugin.
 
-## 已知问题
+##  Extension Settings
+
+1. removeFolder: The folder where image will move to when clean local image folder
+2. hasBracket: Whether the image path include right bracket
+3. imageSaveFolder: Local folder which the images will save to, support absolute or relative path. support <filename> and date format<YYYYMMDD> variable (dayjs)
+4. updateLink: Whether update the picture link in md file(Clean,Download,Upload,Move)
+5. rename: Whether rename the image files(Download,Upload,Move
+6. remotePath: Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)
+
+##  Known Issues
+
+None
 
 
-## 变更记录
+## Release Notes
 
+ [CHANGELOG.md](CHANGELOG.md)
 
-### 1.0.0
+## Repository
 
-第一个版本
+https://github.com/pattazl/markdown-image-manage
 
-## 仓库地址
+https://gitee.com/pattazl/markdown-image-manage
+the related npm cli tool : markdown-image-manage-npm 
 
-**使用愉快!**
+https://github.com/pattazl/markdown-image-manage-npm
+
+https://gitee.com/pattazl/markdown-image-manage-npm
+
+**Enjoy!**
+

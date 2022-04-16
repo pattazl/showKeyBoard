@@ -4,7 +4,7 @@
   "description": "Download,Move,Clean,Upload markdown images.下载,移动,清理,分析,上传MD文件中的图片",
   "version": "0.0.2",
   "publisher": "AustinYoung",
-  "icon": "images/icon.png",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.66.0"
   },
@@ -100,7 +100,6 @@
         }
       ]
     },
-    "icon": "images/icon.png",
     "configuration": {
 			"type": "object",
 			"title": "Markdown Image Manage",
