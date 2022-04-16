@@ -10,3 +10,8 @@ vsc-extension-quickstart.md
 **/*.ts
 others/**
 out/test/**
+gulpfile.js
+i18n/**
+*.zip
+*.bak
+*.bat

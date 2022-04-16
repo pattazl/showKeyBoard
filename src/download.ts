@@ -32,11 +32,11 @@ export async function download() // ,thread:number
     var p = new Promise((resolve,reject) => {
         rres = resolve;
     });
-    window.withProgress({ title: getLang('md-img.dling'), location: ProgressLocation.Notification }, async (progress, token) => {
+    window.withProgress({ title: getLang('dling'), location: ProgressLocation.Notification }, async (progress, token) => {
         for (let file of downArr) {
             count++;
             logger.info(`downloading [${file}], ${count}/${len}`, false);
-            progress.report({ increment: count / len * 100, message: getLang('md-img.dling2',path.basename(file),count,len) });
+            progress.report({ increment: count / len * 100, message: getLang('dling2',path.basename(file),count,len) });
             try {
                 let obj = { rename, localFolder };
                 let res = await downloadCore(file, localFolder, rename);
@@ -49,7 +49,7 @@ export async function download() // ,thread:number
                 successCount++;
             } catch (e) {
                 console.log(e)
-                logger.error( getLang('md-img.dlerror', path.basename(file)) );
+                logger.error( getLang('dlerror', path.basename(file)) );
                 rres('error')
                 return Promise.reject()
             }

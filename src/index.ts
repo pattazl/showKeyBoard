@@ -1,4 +1,4 @@
-import { mdCheck, showInVscode, setPara, timeoutPromise,clearMsg } from './common';
+import { mdCheck, showInVscode, setPara, timeoutPromise,clearMsg, logger } from './common';
 import { cleanMD, analyze } from './clean';
 import { download } from './download';
 import { upload, upCheck } from './upload';
@@ -24,7 +24,7 @@ const localize = nls.config({
 */
 
 export async function vscAnalyze() {
-    // vscode.window.showInformationMessage(getLang('md-img.hello'))
+    // vscode.window.showInformationMessage(getLang('hello'))
     analyze();
     showInVscode();
 }
@@ -33,16 +33,16 @@ export async function vscClean() {
     showInVscode();
 }
 export async function vscDownload() {
-    await timeoutPromise(download(), 90000,getLang('md-img.dltimeout'));
+    await timeoutPromise(download(), 90000,getLang('dltimeout'));
     showInVscode();
 }
 // 上传所选图片/剪切板图片
 export async function vscUpload(clip:boolean=false) {
-    if (!upCheck()) {
+    if (!await upCheck()) {
         showInVscode();
         return;
     }
-    await timeoutPromise(upload(clip), 90000,getLang('md-img.uptimeout'));
+    await timeoutPromise(upload(clip), 90000,getLang('uptimeout'));
     showInVscode();
 }
 // 初始化参数，参数保存于 common模块中
@@ -72,7 +72,7 @@ export async function vscMove() {
         canSelectFiles: false,
         canSelectFolders: true,
         canSelectMany: false,
-        openLabel: getLang('md-img.moveHint')
+        openLabel: getLang('moveHint')
     });
 
     if (!result || result.length === 0) {

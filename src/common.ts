@@ -26,7 +26,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     let editContent = '';
     const currentEditor = vscode.window.activeTextEditor;
     if (currentEditor == null) {
-        logger.error(getLang('md-img.docAct'))
+        logger.error(getLang('docAct'))
         return retObj;
     }
     if (selectFlag) {
@@ -41,7 +41,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         // 对整个文件内容操作
         let document = currentEditor.document; // 当前编辑内容
         if (document.isDirty) {
-            logger.error(getLang('md-img.docDirty'))
+            logger.error(getLang('docDirty'))
             return retObj;
         }
         editContent = document?.getText(); // 当前编辑内容
@@ -83,7 +83,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         console.log(e.message);
     }
     if (picArrWarn.length > 0) {
-        logger.error(getLang('md-img.errorimage', picArrWarn.length));
+        logger.error(getLang('errorimage', picArrWarn.length));
         logger.error(`${picArrWarn.join('\n')}`);
     }
     retObj.content = str;
@@ -126,6 +126,8 @@ const colorDict =
     'cyanBG': '\x1B[46m', // 背景色为青色
     'whiteBG': '\x1B[47m' // 背景色为白色
 };
+// VSCode 输出控制台
+let out:vscode.OutputChannel = vscode.window.createOutputChannel("Mardown Image Manage");
 // 提示框同一时刻最多显示3个，所以短时间内多个相同输入，进行合并
 let msgHash = {
     'warn': [] as string[],
@@ -137,8 +139,11 @@ export function clearMsg()
     msgHash.info = [];
     msgHash.warn = [];
     msgHash.error = [];
+    out.clear();
+    out.show();
 }
 export function showInVscode(modal: boolean = false) {
+    out.show();
     if (msgHash.warn.length > 0) {
         let msg = msgHash.warn.join('\n');
         if (!modal) {
@@ -160,27 +165,30 @@ export function showInVscode(modal: boolean = false) {
         }
         vscode.window.showInformationMessage(msg, { modal });
     }
-    clearMsg();
 }
 export let logger = {
     warn: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.yellow(...msg))
         console.log(colorDict.yellow, msg, colorDict.reset);
+        out.appendLine('[Warn]'+msg);
         if (popFlag) { msgHash.warn.push(msg.toString()); }
     },
     success: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.green(...msg))
         console.log(colorDict.green, msg, colorDict.reset);
+        out.appendLine(msg);
         if (popFlag) { msgHash.info.push(msg.toString()); }
     },
     error: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.red(...msg))
         console.log(colorDict.red, msg, colorDict.reset);
+        out.appendLine('[Err]'+msg);
         if (popFlag) { msgHash.error.push(msg.toString()); }
     },
     info: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.blue(...msg))
         console.log(colorDict.cyan, msg, colorDict.reset);
+        out.appendLine(msg);
         if (popFlag) {
             msgHash.info.push(msg.toString());
         }
@@ -199,7 +207,13 @@ export function setPara(bracket: boolean, ren: boolean, read: boolean, local: st
 export function mdCheck(file: string): boolean {
     // md文件路径
     if (!fs.existsSync(file)) {
-        logger.error(`file[${file}] is not exists!`);
+        if(file.indexOf('markdown-image-manage') > -1 )
+        {
+            // 可能是插件未启动和安装完毕
+            logger.warn(getLang('extension'));
+        }else{
+            logger.error(`file[${file}] is not exists!`);
+        }
         return false;
     } else {
         var stat = fs.statSync(file);
@@ -218,18 +232,18 @@ export function localCheck() {
     let targetFolder = path.resolve(parentPath, convertPath(localFolder.trim() || ''));
 
     if (!fs.existsSync(targetFolder)) {
-        logger.info(`local Folder[${targetFolder}] is not exists, will create`);
+        logger.info(getLang('localfolder',targetFolder));
         try {
             fs.mkdirSync(targetFolder);
         } catch (e) {
             console.log(e)
-            logger.error(`create [${targetFolder}] fail!!!`);
+            logger.error(getLang('createf',targetFolder));
             return false;
         }
     } else {
         var stat = fs.statSync(targetFolder);
         if (!stat.isDirectory()) {
-            logger.error(`[${targetFolder}] is not directory!!!`);
+            logger.error(getLang('notf',targetFolder));
             return false;
         }
     }
@@ -275,11 +289,11 @@ export function insertText(content: string) {
 // 保存内容
 export function saveFile(content: string, count: number, selectFlag: boolean = false) {
     if (count == 0) {
-        logger.warn(getLang('md-img.uptSucc3'));
+        logger.warn(getLang('uptSucc3'));
         return;
     }
     if (readonly) {
-        logger.warn(getLang('md-img.uptSucc2', count));
+        logger.warn(getLang('uptSucc2', count));
         return;
     }
     let textEditor = vscode.window.activeTextEditor;
@@ -290,7 +304,7 @@ export function saveFile(content: string, count: number, selectFlag: boolean = f
                 // 替换选中的内容
                 let r = textEditor?.selection;
                 if (r == null) {
-                    logger.error(getLang('md-img.docSelect'))
+                    logger.error(getLang('docSelect'))
                     return;
                 }
                 rang = r;
@@ -301,7 +315,7 @@ export function saveFile(content: string, count: number, selectFlag: boolean = f
             editBuilder.replace(rang, content);
         });
     }
-    logger.success(getLang('md-img.uptSucc', count, path.basename(mdFile)));
+    logger.success(getLang('uptSucc', count, path.basename(mdFile)));
 }
 // 输入需要写入的文件名，如果发现重复，增加(序号) ，序号最大999 ，如果成功返回真实路径，否则返回空字符串
 export function getAntiSameFileName(dest: string, filename: string): string {

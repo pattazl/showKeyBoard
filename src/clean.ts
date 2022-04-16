@@ -22,9 +22,9 @@ function analyzeCore(flag:boolean = false)
         if(flag){
             doFile( obj.local );
         }else{
-            logger.info(getLang('md-img.localimage',obj.local.length));
+            logger.info(getLang('localimage',obj.local.length));
             logger.info(`${obj.local.join('\n')}`);
-            logger.info(getLang('md-img.netimage',obj.net.length));
+            logger.info(getLang('netimage',obj.net.length));
             logger.info(`${obj.net.join('\n')}`);
         }
     }catch(e:any)
@@ -44,7 +44,7 @@ function doFile(picArr:string[])
         if(parentPath ===''){ parentPath = currpath;}
         if( parentPath !== currpath )
         {
-            logger.error(getLang('md-img.removeFolderHint')); // 图片文件夹不一样！
+            logger.error(getLang('removeFolderHint')); // 图片文件夹不一样！
             return;
         }
         mdFile.push(path.basename(picArr[i]));
@@ -76,5 +76,5 @@ function doFile(picArr:string[])
         } else if (stat.isDirectory()) {
         }
     });
-    logger.info(getLang('md-img.removeResult',removeArr.length,removeFolder,removeArr.join('\n')));
+    logger.info(getLang('removeResult',removeArr.length,removeFolder,removeArr.join('\n')));
 }

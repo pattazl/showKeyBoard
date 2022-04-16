@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { window, ProgressLocation } from 'vscode'
 import * as path from 'path';
 import {
@@ -5,19 +6,74 @@ import {
     rename, convertPath, insertText
 } from './common';
 import { getLang } from './lang';
+let {execSync,exec} = require('child_process');
+import {promisify} from 'util';
+import  * as fs from 'fs';
 // 主要内部变量
 //var downThread = 1;
 let myPicgo: any = null; // picgo对象
 let remote = ''; // 是否路径中不增加md文件名的文件夹，默认会自动增加文件夹以将不同md文件的图片分离开
 
+let myExec = promisify(exec);
+async function installPicgo() {
+    //logger.info('check picgo installation...')
+    //console.log(__dirname)
+    // console.log(__filename)
+    let runPath = path.resolve(__dirname +'/../'); // 上一级目录
+    console.log(runPath)
+    try {
+        execSync('picgo -v', { cwd: runPath });  // 尝试执行 PicGo命令
+    } catch (e) {
+        logger.error(getLang('installPicgo'));
+        return 'error';
+    }
+    let rres: any;
+    var p = new Promise((resolve, reject) => {
+        rres = resolve;
+    });
+    let answer = await window.showInformationMessage(getLang('link'), "YES", "NO")
+    if (answer === "YES") {
+        window.withProgress({ title: 'linking picgo...', location: ProgressLocation.Notification }, async (progress, token) => {
+            let count =0;
+            setInterval(function(){
+                count ++;
+                progress.report({ increment: count%100, message: "..." });
+            },100)
+            try{
+                // 先改名 package.json
+                fs.renameSync(runPath + '/package.json',runPath + '/ori-package.json');
+                // copy package.json
+                fs.copyFileSync(runPath + '/package-linkpicgo.json', runPath + '/package.json')
+                await myExec('npm link picgo', { cwd: runPath });  // 通过命令进行关联 npm link picgo --omit dev ping 127.0.0.1 -n 7
+            }catch(e)
+            {
+                rres('error')
+                logger.error(e as any);
+            }finally{
+                // 原来配置文件还原
+                fs.unlinkSync(runPath + '/package.json');
+                fs.renameSync(runPath + '/ori-package.json',runPath + '/package.json');
+            }
+            rres('ok')
+            return Promise.resolve();
+        }).then(()=>{});
+    } else {
+        rres('error')
+    }
+    return p;
+}
 export async function upCheck() {
     try {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         const { PicGo } = require('picgo');
         myPicgo = PicGo;
     } catch (e) {
-        console.log(e);
-        logger.error(getLang('md-img.installPicgo'));
+        let res = await installPicgo()
+        if( res == 'ok')
+        {
+            logger.warn(getLang('picgotry'))
+        }else{
+            logger.error(getLang('picgofail'))
+        }
         return false;
     }
     // 需要处理的文件
@@ -53,7 +109,7 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
         fileMapping = fileObj.mapping; // 本地原始信息
         content = fileObj.content;
         if (fileArr.length == 0) {
-            logger.error(getLang('md-img.docSelect'))
+            logger.error(getLang('docSelect'))
             return;
         }
     }
@@ -70,14 +126,14 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
     var p = new Promise((resolve, reject) => {
         rres = resolve;
     });
-    window.withProgress({ title: getLang('md-img.uping'), location: ProgressLocation.Notification }, async (progress, token) => {
+    window.withProgress({ title: getLang('uping'), location: ProgressLocation.Notification }, async (progress, token) => {
         for (let file of upArr) {
             count++;
             if (clipBoard) {
                 file = 'clipboard';
             }
             logger.info(`uploading [${file}], ${count}/${len}`, false);
-            progress.report({ increment: count / len * 100, message: getLang('md-img.uping2',path.basename(file),count,len) });
+            progress.report({ increment: count / len * 100, message: getLang('uping2', path.basename(file), count, len) });
             try {
                 let upList: string[] = [];
                 if (!clipBoard) {
@@ -99,9 +155,9 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
                 }
             } catch (e) {
                 console.log(e);
-                logger.error(getLang('md-img.uperror',path.basename(file)));
+                logger.error(getLang('uperror', path.basename(file), (e as any).message || ''));
                 rres('error')
-                return Promise.reject()
+                return Promise.resolve()
             }
         }
         if (clipBoard) {
