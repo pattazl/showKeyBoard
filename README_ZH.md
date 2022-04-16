@@ -1,8 +1,7 @@
 # markdown-image-manage
-> VSCode 插件  [markdown-image-manage](https://gitee.com/pattazl/markdown-image-manage/).
+> VSCode 插件  [markdown-image-manage@gitee](https://gitee.com/pattazl/markdown-image-manage/).
 
 [![installs](https://img.shields.io/vscode-marketplace/d/AustinYoung.markdown-image-manage.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Spades.vs-picgo)
-[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fpattazl%2Fmarkdown-image-manage%2Fbadge%3Fref%3Ddev&style=flat-square)](https://actions-badge.atrox.dev/pattazl/markdown-image-manage/goto?ref=dev)
 [![GitHub stars](https://img.shields.io/github/stars/pattazl/markdown-image-manage.svg?style=flat-square&label=github%20stars)](https://github.com/pattazl/markdown-image-manage)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg?style=flat-square)](https://standardjs.com)
 
@@ -14,9 +13,9 @@ Markdown图片管理工具 "markdown-image-manage" 在VSCdoe中用菜单管理ma
 
 通过菜单操作
 
-![cn](E:\Code\ts\vscode\markdown-image-manage\images\cn.png)
+![cn menu](https://raw.githubusercontent.com/pattazl/markdown-image-manage/main/images/cn.png)
 
-![en](E:\Code\ts\vscode\markdown-image-manage\images\en.png)
+![en menu](https://raw.githubusercontent.com/pattazl/markdown-image-manage/main/images/en.png)
 
 可以实现如下功能
 
