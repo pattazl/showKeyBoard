@@ -9,7 +9,7 @@ let locale = config['locale'] || 'en';
 type langGroup = 'hello'
 |'localimage'
 |'netimage'
-|'errorimage'
+|'invaldimage'
 |'removeFolderHint'
 |'removeResult'
 |'moveHint'
@@ -35,12 +35,13 @@ type langGroup = 'hello'
 |'picgotry'
 |'link'
 |'picgofail'
+|'insertTxt'
 // 英文字典清单
 let defaultLang:Record<langGroup, string>= {
     hello: 'default hello'
     ,localimage:'----local images total[%d]----'
     ,netimage:'----net images total[%d]----'
-    ,errorimage:'----error message total[%d]----'
+    ,invaldimage:'----invalid local images total[%d]----'
     ,removeFolderHint: "local image path is diff, must be the same, move first!"
     ,removeResult: '----removed images total[%d] to [%s]----\n%s'
     ,moveHint: 'Choose the folder the images move to'
@@ -63,16 +64,17 @@ let defaultLang:Record<langGroup, string>= {
     ,localfolder: 'local Folder[%s] is not exists, will create'
     ,createf: 'create [%s] fail!!!'
     ,notf: '[%s] is not directory!!!'
-    ,picgotry: 'Restart VSC and test, please try extension markdown-image-manage-picgo'
+    ,picgotry: 'Link succ, please restart VSCode and use it!'
     ,link: 'whether link Picgo?'
     ,picgofail: 'link Picgo fail!'
+    ,insertTxt: 'Insert image succ: '
 }
 // 中文需要填写的
 let zhcnLang:Record<langGroup, string>= {
     hello: '你好'
     ,localimage:'----本地图片数[%d]----'
     ,netimage:'----网络图片数[%d]----'
-    ,errorimage:'----错误消息共[%d]----'
+    ,invaldimage:'----本地无效图片共[%d]----'
     ,removeFolderHint: "本地资源文件路径必须一样，可以先移动到一个目录下!"
     ,removeResult: '----移动图片总共[%d] 到 [%s]----\n%s'
     ,moveHint: '请选择图片移动的目标目录'
@@ -95,9 +97,10 @@ let zhcnLang:Record<langGroup, string>= {
     ,localfolder: '本地文件夹[%s]不存在，将创建'
     ,createf: '创建本地文件夹[%s]失败!'
     ,notf: `[%s]不是目录!`
-    ,picgotry: '请重启VSCode验证，可尝试安装markdown-image-manage-picgo插件'
+    ,picgotry: '关联成功,请重启VSCode后使用'
     ,link: '是否关联Picgo?'
     ,picgofail: '关联Picgo失败'
+    ,insertTxt: '成功插入图片 '
 }
 // 语言包汇总
 let lang = {

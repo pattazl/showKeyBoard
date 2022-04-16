@@ -28,8 +28,8 @@ export async function vscAnalyze() {
     analyze();
     showInVscode();
 }
-export async function vscClean() {
-    cleanMD();
+export async function vscClean(flag:boolean=false) {
+    cleanMD(flag);
     showInVscode();
 }
 export async function vscDownload() {

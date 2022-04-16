@@ -1,7 +1,7 @@
 {
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
-  "description": "Download,Move,Clean,Upload markdown images.下载,移动,清理,上传MD文件的图片",
+  "description": "Download,Move,Clean,Upload markdown images.涓嬭浇,绉诲姩,娓呯悊,鍒嗘瀽,涓婁紶MD鏂囦欢涓殑鍥剧墖",
   "version": "0.0.2",
   "publisher": "AustinYoung",
   "icon": "images/icon.png",
@@ -14,6 +14,7 @@
   "activationEvents": [
     "onCommand:markdown-image-manage.analyze",
     "onCommand:markdown-image-manage.clean",
+    "onCommand:markdown-image-manage.cleanlink",
     "onCommand:markdown-image-manage.download",
     "onCommand:markdown-image-manage.upload",
     "onCommand:markdown-image-manage.uploadclip",
@@ -54,6 +55,10 @@
       {
         "command": "markdown-image-manage.move",
         "title": "%markdown-image-manage.menuMove%"
+      },
+      {
+        "command": "markdown-image-manage.cleanlink",
+        "title": "%markdown-image-manage.menuCleanLink%"
       }
     ],
     "menus": {
@@ -74,6 +79,14 @@
           "group": "1_workspace"
         },
         {
+          "command": "markdown-image-manage.cleanlink",
+          "group": "1_workspace"
+        },
+        {
+          "command": "markdown-image-manage.move",
+          "group": "1_workspace"
+        },
+        {
           "command": "markdown-image-manage.download",
           "group": "2_workspace"
         },
@@ -83,10 +96,6 @@
         },
         {
           "command": "markdown-image-manage.uploadclip",
-          "group": "2_workspace"
-        },
-        {
-          "command": "markdown-image-manage.move",
           "group": "2_workspace"
         }
       ]
@@ -137,6 +146,19 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js"
   },
+  "keywords": [
+    "markdown",
+    "image",
+    "manage",
+    "picture",
+    "analyze",
+    "download",
+    "upload",
+    "move file",
+    "clean",
+    "picgo",
+    "pic bed"
+  ],
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
     "@types/glob": "^7.2.0",

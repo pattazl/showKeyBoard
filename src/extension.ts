@@ -33,6 +33,10 @@ export function activate(context: vscode.ExtensionContext) {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
 		vscClean();
 	})
+	let dispCleanLink = vscode.commands.registerCommand("markdown-image-manage.cleanlink", async () => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		vscClean(true);
+	})
 	let dispDownload = vscode.commands.registerCommand("markdown-image-manage.download", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
 		vscDownload();

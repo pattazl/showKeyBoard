@@ -12,19 +12,20 @@ export let rename = false; // 是否下载的图片重新命名
 export let remotePath = ''; // 远程路径
 export let removeFolder = ''; // 移入的文件夹
 
+let docTextEditor:vscode.TextEditor|undefined; // 选择的MD文件
 let imagePathBracket = false; // 文件名中包含括号
 
 
-export function getImages(selectFlag: boolean = false): { local: string[], net: string[], mapping: {}, content: string } {
+export function getImages(selectFlag: boolean = false): { local: string[], net: string[],invalid:string[], mapping: {}, content: string } {
     var picArrLocal: string[] = [];
     var oriMapping = {};
-    var picArrWarn: string[] = [];
+    var picArrInvalid: string[] = [];
     var picArrNet: string[] = [];
     var str = '';
-    let retObj = { local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
+    let retObj = { local: picArrLocal, net: picArrNet, invalid: picArrInvalid, mapping: oriMapping, content: str };
 
     let editContent = '';
-    const currentEditor = vscode.window.activeTextEditor;
+    const currentEditor = docTextEditor;
     if (currentEditor == null) {
         logger.error(getLang('docAct'))
         return retObj;
@@ -38,13 +39,17 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
             return retObj;
         }
     } else {
+        if (currentEditor == null) {
+            logger.error(getLang('docAct'))
+            return retObj;
+        }
+        let document = currentEditor.document; // 当前编辑内容 ，可能因选择文件等导致不是当前文件
         // 对整个文件内容操作
-        let document = currentEditor.document; // 当前编辑内容
-        if (document.isDirty) {
+        if (document.isDirty) { // 文件是否被修改过
             logger.error(getLang('docDirty'))
             return retObj;
         }
-        editContent = document?.getText(); // 当前编辑内容
+        editContent = document?.getText(); // 当前编辑内容;
     }
     try {
         //var mdfileName = fs.realpathSync(mdFile);
@@ -75,16 +80,16 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
                     picArrLocal.push(tmpFilePath);
                     oriMapping[tmpFilePath] = oriFlepath; // 原始的本地路径地址
                 } else {
-                    picArrWarn.push(filepath + ' | not exist');
+                    picArrInvalid.push(filepath);
                 }
             }
         }
     } catch (e: any) {
         console.log(e.message);
     }
-    if (picArrWarn.length > 0) {
-        logger.error(getLang('errorimage', picArrWarn.length));
-        logger.error(`${picArrWarn.join('\n')}`);
+    if (picArrInvalid.length > 0) {
+        logger.error(getLang('invaldimage', picArrInvalid.length));
+        logger.error(`${picArrInvalid.join('\n')}`);
     }
     retObj.content = str;
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
@@ -203,7 +208,7 @@ export function setPara(bracket: boolean, ren: boolean, read: boolean, local: st
     remotePath = remote;
     removeFolder = rem;
 }
-// 本地文件的通用检查 , 检查后导出相关变量
+// 本地文件的通用检查 , 检查后备份相关相关变量
 export function mdCheck(file: string): boolean {
     // md文件路径
     if (!fs.existsSync(file)) {
@@ -223,6 +228,7 @@ export function mdCheck(file: string): boolean {
         }
     }
     mdFile = file; // 内部对象赋值，多个模块共用
+    docTextEditor = vscode.window.activeTextEditor;
     return true;
 }
 // 有本地lcoal路径的检查程序
@@ -272,7 +278,7 @@ export function getAutoPath(dir: string, newfile: string) {
 }
 // 在当前光标处插入内容
 export function insertText(content: string) {
-    let editor = vscode.window.activeTextEditor;
+    let editor = docTextEditor;
     if (content.length == 0 && editor == null) {
         return;
     }
@@ -284,7 +290,7 @@ export function insertText(content: string) {
     editor?.edit(textEditorEdit => {
         textEditorEdit.insert(position, content);
     });
-    console.log('insertText:' + content)
+    logger.success( getLang('insertTxt')+content)
 }
 // 保存内容
 export function saveFile(content: string, count: number, selectFlag: boolean = false) {
@@ -296,7 +302,7 @@ export function saveFile(content: string, count: number, selectFlag: boolean = f
         logger.warn(getLang('uptSucc2', count));
         return;
     }
-    let textEditor = vscode.window.activeTextEditor;
+    let textEditor = docTextEditor;
     if (!readonly && content.length > 0 && textEditor != null) {
         textEditor.edit((editBuilder: vscode.TextEditorEdit) => {
             let rang: vscode.Range;

@@ -26,10 +26,8 @@ export function move(lf:string) // ,thread:number
     fileArr.forEach((item)=> set.add(item)); 
     let uniArr:string[] = Array.from(set) as string[];
     let count=0,len = uniArr.length;
-    let successCount = 0;
     for(let file of uniArr)
     {
-        count++;
         let newFileName = '';
         // 转移到目标路径 
         let imageFile = path.parse(file);
@@ -51,7 +49,7 @@ export function move(lf:string) // ,thread:number
             fs.renameSync(file,newFile);
             var reg = new RegExp( '!\\[([^\\]]*)\\]\\('+ escapeStringRegexp(fileMapping[file]) +'\\)','ig');
             content =  content.replace(reg,'![$1]('+ getAutoPath(ofile.dir, newFile) +')'); // 内容替换
-            successCount++;
+            count++;
         }catch(e)
         {
             logger.error('move error:');
