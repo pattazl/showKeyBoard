@@ -57,8 +57,9 @@ Picgo support several PicBed and  FTP server( PASV mode) by plugin.
 2. hasBracket: Whether the image path include right bracket
 3. imageSaveFolder: Local folder which the images will save to, support absolute or relative path. support <filename> and date format<YYYYMMDD> variable (dayjs)
 4. updateLink: Whether update the picture link in md file(Clean,Download,Upload,Move)
-5. rename: Whether rename the image files(Download,Upload,Move
-6. remotePath: Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)
+5. skipSelectChange: Whether still update picture link when selection/position changed
+6. rename: Whether rename the image files(Download,Upload,Move
+7. remotePath: Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)
 
 ##  Known Issues
 

@@ -52,8 +52,9 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 2. hasBracket: 图片路径中是否包括右括号
 3. imageSaveFolder: 图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)
 4. updateLink: 上传/下载/移动时是否需要更新md文件的图片链接
-5. rename: 上传/下载/移动图片时是否需要重命名图片
-6. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。
+5. skipSelectChange: 当光标或选择范围改变后是否依然更新图片链接
+6. rename: 上传/下载/移动图片时是否需要重命名图片
+7. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。
 
 ## 已知问题
 
@@ -76,6 +77,14 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 #### 移除
 
 安装包中去掉PicGo，减小大小，通过执行上传时动态关联全局PicGo实现上传
+
+### 0.0.3
+
+#### 增加
+
+增加开关，解决上传过程中光标或选择范围改变是否更新链接
+
+解决Picgo上传阿里云的图床后图片无法更新的问题
 
 ## 仓库地址
 

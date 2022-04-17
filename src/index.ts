@@ -51,13 +51,14 @@ export function initPara() {
     let extendName = 'markdown-image-manage';
     let hasBracket: boolean = vscode.workspace.getConfiguration(extendName).get('hasBracket') as boolean;
     let updateLink: boolean = vscode.workspace.getConfiguration(extendName).get('updateLink') as boolean;
+    let skipSelectChange: boolean = vscode.workspace.getConfiguration(extendName).get('skipSelectChange') as boolean;
     let rename: boolean = vscode.workspace.getConfiguration(extendName).get('rename') as boolean;
     let remotePath: string = vscode.workspace.getConfiguration(extendName).get('remotePath') || '<filename>';
     let imageSaveFolder: string = vscode.workspace.getConfiguration(extendName).get('imageSaveFolder') || '<filename>.assets';
     let removeFolder: string = vscode.workspace.getConfiguration(extendName).get('removeFolder') || 'md-img-remove';
 
     //const isAsync: boolean = vscode.workspace.getConfiguration().get('downloadImageInMarkdown.isAsync') as boolean;
-    setPara(hasBracket, rename, updateLink, imageSaveFolder, remotePath, removeFolder);
+    setPara(hasBracket, rename, updateLink,skipSelectChange, imageSaveFolder, remotePath, removeFolder);
 
     let file = vscode.window.activeTextEditor?.document.uri.fsPath || '';
     if (!mdCheck(file)) {

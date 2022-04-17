@@ -7,16 +7,18 @@ import * as dayjs from 'dayjs';
 export let mdFile = ''; // 需要处理的文件
 export let localFolder = ''; // 目标文件夹
 export let readonly = false; // 是否只读，默认修改内容
+export let skipSelectChange = false; // 是否只读，默认修改内容
 export let overwriteFile = false; // 是否覆盖原先的md文件，此选项不用
 export let rename = false; // 是否下载的图片重新命名
 export let remotePath = ''; // 远程路径
 export let removeFolder = ''; // 移入的文件夹
 
-let docTextEditor:vscode.TextEditor|undefined; // 选择的MD文件
+let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
+let docPreSelection: vscode.Selection | undefined; // 选择的范围
 let imagePathBracket = false; // 文件名中包含括号
 
 
-export function getImages(selectFlag: boolean = false): { local: string[], net: string[],invalid:string[], mapping: {}, content: string } {
+export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: {}, content: string } {
     var picArrLocal: string[] = [];
     var oriMapping = {};
     var picArrInvalid: string[] = [];
@@ -132,15 +134,14 @@ const colorDict =
     'whiteBG': '\x1B[47m' // 背景色为白色
 };
 // VSCode 输出控制台
-let out:vscode.OutputChannel = vscode.window.createOutputChannel("Mardown Image Manage");
+let out: vscode.OutputChannel = vscode.window.createOutputChannel("Mardown Image Manage");
 // 提示框同一时刻最多显示3个，所以短时间内多个相同输入，进行合并
 let msgHash = {
     'warn': [] as string[],
     'error': [] as string[],
     'info': [] as string[],
 }
-export function clearMsg()
-{
+export function clearMsg() {
     msgHash.info = [];
     msgHash.warn = [];
     msgHash.error = [];
@@ -175,7 +176,7 @@ export let logger = {
     warn: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.yellow(...msg))
         console.log(colorDict.yellow, msg, colorDict.reset);
-        out.appendLine('[Warn]'+msg);
+        out.appendLine('[Warn]' + msg);
         if (popFlag) { msgHash.warn.push(msg.toString()); }
     },
     success: function (msg: string, popFlag: boolean = true) {
@@ -187,7 +188,7 @@ export let logger = {
     error: function (msg: string, popFlag: boolean = true) {
         //console.log( chalk.red(...msg))
         console.log(colorDict.red, msg, colorDict.reset);
-        out.appendLine('[Err]'+msg);
+        out.appendLine('[Err]' + msg);
         if (popFlag) { msgHash.error.push(msg.toString()); }
     },
     info: function (msg: string, popFlag: boolean = true) {
@@ -200,9 +201,10 @@ export let logger = {
     },
 };
 // 设置相关内部变量
-export function setPara(bracket: boolean, ren: boolean, read: boolean, local: string, remote: string, rem: string) {
+export function setPara(bracket: boolean, ren: boolean, read: boolean,skip:boolean, local: string, remote: string, rem: string) {
     imagePathBracket = bracket;
     rename = ren;
+    skipSelectChange = skip;
     readonly = !read; // 含义相反
     localFolder = local;
     remotePath = remote;
@@ -212,11 +214,10 @@ export function setPara(bracket: boolean, ren: boolean, read: boolean, local: st
 export function mdCheck(file: string): boolean {
     // md文件路径
     if (!fs.existsSync(file)) {
-        if(file.indexOf('markdown-image-manage') > -1 )
-        {
+        if (file.indexOf('markdown-image-manage') > -1) {
             // 可能是插件未启动和安装完毕
             logger.warn(getLang('extension'));
-        }else{
+        } else {
             logger.error(`file[${file}] is not exists!`);
         }
         return false;
@@ -229,6 +230,7 @@ export function mdCheck(file: string): boolean {
     }
     mdFile = file; // 内部对象赋值，多个模块共用
     docTextEditor = vscode.window.activeTextEditor;
+    docPreSelection = docTextEditor?.selection; // 光标位置
     return true;
 }
 // 有本地lcoal路径的检查程序
@@ -238,18 +240,18 @@ export function localCheck() {
     let targetFolder = path.resolve(parentPath, convertPath(localFolder.trim() || ''));
 
     if (!fs.existsSync(targetFolder)) {
-        logger.info(getLang('localfolder',targetFolder));
+        logger.info(getLang('localfolder', targetFolder));
         try {
             fs.mkdirSync(targetFolder);
         } catch (e) {
             console.log(e)
-            logger.error(getLang('createf',targetFolder));
+            logger.error(getLang('createf', targetFolder));
             return false;
         }
     } else {
         var stat = fs.statSync(targetFolder);
         if (!stat.isDirectory()) {
-            logger.error(getLang('notf',targetFolder));
+            logger.error(getLang('notf', targetFolder));
             return false;
         }
     }
@@ -276,24 +278,78 @@ export function getAutoPath(dir: string, newfile: string) {
     }
     return newfile;
 }
-// 在当前光标处插入内容
-export function insertText(content: string) {
-    let editor = docTextEditor;
-    if (content.length == 0 && editor == null) {
-        return;
-    }
-    const position = editor?.selection.active;
-    if (position == null) {
+
+// 检测位置是否改变了
+function checkSamePos(pos1:vscode.Position|undefined,pos2:vscode.Position|undefined) {
+    if (pos1 == null || pos2 == null) {
         logger.error('!position error!')
+        return false;
+    }
+    return (pos1?.character == pos2.character && pos1?.line == pos2?.line)
+}
+// 检测编辑器是否改变了 active = true 表示点否则表示范围
+async function checkEditor(active:boolean) {
+    let editor = docTextEditor;
+    if (editor == null || editor.document.isClosed) {
+        logger.error(getLang('closed'))
         return;
     }
-    editor?.edit(textEditorEdit => {
-        textEditorEdit.insert(position, content);
-    });
-    logger.success( getLang('insertTxt')+content)
+    let uri = editor.document.uri;
+    //vscode.commands.executeCommand<vscode.TextDocumentShowOptions>("vscode.open",uri);
+    let editor2 = await vscode.window.showTextDocument(uri)
+    // .then( editor => { 
+    //     let same = docPreSelection?.active == editor.selection.active
+    //     console.log('opened.....');
+    //  },
+    //error => { console.log(error) });
+    //let now = vscode.window.activeTextEditor;
+    // editor.document.isClosed , 文件可能切换或关闭了 now != editor
+    if(active)
+    {
+        if (!checkSamePos(docPreSelection?.active,editor2.selection.active)) {
+            if(skipSelectChange){
+                logger.warn(getLang('posChg'))
+            }else{
+                logger.error(getLang('posChg')+','+getLang('notChg'))
+                return;
+            }
+        }
+    }else{
+        if (!checkSamePos(docPreSelection?.start,editor2.selection.start) || !checkSamePos(docPreSelection?.end,editor2.selection.end)) {
+            if(skipSelectChange){
+                logger.warn(getLang('rangChg'))
+            }else{
+                logger.error(getLang('rangChg')+','+getLang('notChg'))
+                return;
+            }
+        }
+    }
+    return editor2;
+}
+// 在当前光标处插入内容
+export async function insertText(content: string) {
+    let editor = docTextEditor;
+    if (content.length == 0 || editor == null) {
+        logger.error(getLang('insertEmpty'))
+        return;
+    }
+    try {
+        logger.info(getLang('inserting') + content, false)
+        let editor2 = await checkEditor(true)
+        if (editor2 == null) { return; }
+        const position = editor2?.selection.active;
+        editor2?.edit(textEditorEdit => {
+            textEditorEdit.insert(position, content);
+        });
+    } catch (error) {
+        console.log(error)
+        logger.error('insert fail 222')
+        return;
+    }
+    logger.success(getLang('insertTxt') + content)
 }
 // 保存内容
-export function saveFile(content: string, count: number, selectFlag: boolean = false) {
+export async function saveFile(content: string, count: number, selectFlag: boolean = false) {
     if (count == 0) {
         logger.warn(getLang('uptSucc3'));
         return;
@@ -302,8 +358,9 @@ export function saveFile(content: string, count: number, selectFlag: boolean = f
         logger.warn(getLang('uptSucc2', count));
         return;
     }
-    let textEditor = docTextEditor;
-    if (!readonly && content.length > 0 && textEditor != null) {
+    let textEditor = await checkEditor(false)
+    if (textEditor == null) { return; }
+    if (content.length > 0 && textEditor != null) {
         textEditor.edit((editBuilder: vscode.TextEditorEdit) => {
             let rang: vscode.Range;
             if (selectFlag) {
@@ -354,22 +411,21 @@ export function convertPath(p: string): string {
     let oMdFile = path.parse(mdFile);
     let date = dayjs(new Date());
     return p.replace(/<filename>/ig, oMdFile.name)
-    .replace(/<(.+?)>/ig,function(a,b)  // 支持各种日期格式字符串
-    {
-        return ( date.format(b));
-    });
+        .replace(/<(.+?)>/ig, function (a, b)  // 支持各种日期格式字符串
+        {
+            return (date.format(b));
+        });
 }
 // 超时控制
-export async function timeoutPromise(promise:Promise<unknown>, ms:number,msg:string){
-    function delayPromise(ms:number){
-        return new Promise(function(resolve){
-            setTimeout(function(){resolve('timeoutPromise')},ms,'aaaaaa');
+export async function timeoutPromise(promise: Promise<unknown>, ms: number, msg: string) {
+    function delayPromise(ms: number) {
+        return new Promise(function (resolve) {
+            setTimeout(function () { resolve('timeoutPromise') }, ms, 'aaaaaa');
         })
     }
     var timeout = delayPromise(ms);
     let res = await Promise.race([promise, timeout]);
-    if( res == 'timeoutPromise')
-    {
+    if (res == 'timeoutPromise') {
         logger.error(msg);
     }
     return;

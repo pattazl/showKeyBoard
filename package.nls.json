@@ -12,6 +12,7 @@
     "markdown-image-manage.hasBracket": "Whether the image path include right bracket",
     "markdown-image-manage.imageSaveFolder": "Local folder which the images will save to, support absolute or relative path. support <filename> and date format<YYYYMMDD> variable (dayjs)",
     "markdown-image-manage.updateLink": "Whether update the picture link in md file(Clean,Download,Upload,Move)",
+    "markdown-image-manage.skipSelectChange": "Whether still update picture link when selection/position changed",
     "markdown-image-manage.rename": "Whether rename the image files(Download,Upload,Move)",
     "markdown-image-manage.remotePath": "Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)"
 }

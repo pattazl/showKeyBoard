@@ -2,7 +2,7 @@
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
   "description": "Download,Move,Clean,Upload markdown images.下载,移动,清理,分析,上传MD文件中的图片",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {
@@ -123,6 +123,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "%markdown-image-manage.updateLink%"
+				},
+        "markdown-image-manage.skipSelectChange": {
+					"type": "boolean",
+					"default": false,
+					"description": "%markdown-image-manage.skipSelectChange%"
 				},
         "markdown-image-manage.rename": {
 					"type": "boolean",

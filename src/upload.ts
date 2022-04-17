@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { window, ProgressLocation } from 'vscode'
+import * as vscode from 'vscode'
 import * as path from 'path';
 import {
     getImages, escapeStringRegexp, logger, saveFile, remotePath,
@@ -62,6 +63,17 @@ async function installPicgo() {
     }
     return p;
 }
+/** Prompts user to reload editor window in order for configuration change to take effect. */
+function promptToReloadWindow(msg:string) {
+const action1 = getLang('picgotryNow');
+const action2 = getLang('picgotryLater');
+window.showWarningMessage(msg,action1,action2)
+    .then(selectedAction => {
+    if (selectedAction === action1) {
+        vscode.commands.executeCommand('workbench.action.reloadWindow');
+    }
+    });
+}
 export async function upCheck() {
     try {
         const { PicGo } = require('picgo');
@@ -70,7 +82,7 @@ export async function upCheck() {
         let res = await installPicgo()
         if( res == 'ok')
         {
-            logger.warn(getLang('picgotry'))
+            promptToReloadWindow(getLang('picgotry'))
         }else{
             logger.error(getLang('picgofail'))
         }
@@ -100,7 +112,7 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
     });
     let fileMapping: {};
     let fileArr;
-    let content: string;
+    let content = '';
     if (clipBoard) {
         fileArr = [''];
     } else {
@@ -143,15 +155,25 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
                 // 成功上传返回结果
                 if (netFile.length > 0) {
                     let first = netFile[0];
-                    if (first.url == null) { continue; }
+                    let imgPath = first.imgUrl||first.url;
+                    if(imgPath==null || imgPath =='')
+                    {
+                        logger.error(getLang('uploadFail',file));
+                        console.log(first)
+                        continue; 
+                    }
                     if (clipBoard) {
-                        content = '![](' + first.url + ')';
+                        content = '![](' + imgPath + ')';
                     } else {
                         // 适配图片的格式
                         var reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(fileMapping[file]) + '\\)', 'ig');
-                        content = content.replace(reg, '![$1](' + first.url + ')'); // 内容替换
+                        content = content.replace(reg, '![$1](' + imgPath + ')'); // 内容替换
                     }
                     successCount++;
+                }else{
+                    logger.error(getLang('uploadFail',file)+'-2');
+                    console.log(netFile)
+                    continue; 
                 }
             } catch (e) {
                 console.log(e);
@@ -161,9 +183,9 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
             }
         }
         if (clipBoard) {
-            insertText(content);
+            await insertText(content);
         } else {
-            saveFile(content, successCount, true);
+            await saveFile(content, successCount, true);
         }
         rres('finish')
         return Promise.resolve()

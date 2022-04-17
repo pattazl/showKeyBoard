@@ -33,9 +33,18 @@ type langGroup = 'hello'
 |'createf'
 |'notf'
 |'picgotry'
+|'picgotryNow'
+|'picgotryLater'
 |'link'
 |'picgofail'
 |'insertTxt'
+|'inserting'
+|'insertEmpty'
+|'uploadFail'
+|'closed'
+|'posChg'
+|'rangChg'
+|'notChg'
 // 英文字典清单
 let defaultLang:Record<langGroup, string>= {
     hello: 'default hello'
@@ -64,10 +73,19 @@ let defaultLang:Record<langGroup, string>= {
     ,localfolder: 'local Folder[%s] is not exists, will create'
     ,createf: 'create [%s] fail!!!'
     ,notf: '[%s] is not directory!!!'
-    ,picgotry: 'Link succ, please restart VSCode and use it!'
+    ,picgotry: 'Link succ, please restart VSCode to take effect!'
+    ,picgotryNow: 'Restart'
+    ,picgotryLater: 'Later'
     ,link: 'whether link Picgo?'
     ,picgofail: 'link Picgo fail!'
     ,insertTxt: 'Insert image succ: '
+    ,insertEmpty: "Can't get remote image, Insert image fail"
+    ,uploadFail: "Upload [%s] fail"
+    ,inserting: "Inserting Image: "
+    ,closed: "The active editor is closed! Fail"
+    ,posChg: "Cursor position changed"
+    ,rangChg: "Select Range changed"
+    ,notChg: "not update link by setting"
 }
 // 中文需要填写的
 let zhcnLang:Record<langGroup, string>= {
@@ -98,9 +116,18 @@ let zhcnLang:Record<langGroup, string>= {
     ,createf: '创建本地文件夹[%s]失败!'
     ,notf: `[%s]不是目录!`
     ,picgotry: '关联成功,请重启VSCode后使用'
+    ,picgotryNow: '立刻重启'
+    ,picgotryLater: '稍后重启'
     ,link: '是否关联Picgo?'
     ,picgofail: '关联Picgo失败'
     ,insertTxt: '成功插入图片 '
+    ,insertEmpty: '未获取到远程图片，插入失败'
+    ,uploadFail: "上传 [%s] 失败"
+    ,inserting: "插入图片: "
+    ,closed: "编辑器已经关闭，操作失败"
+    ,posChg: "光标位置已改变"
+    ,rangChg: "选择范围已经改变"
+    ,notChg: "因设置不更新内容"
 }
 // 语言包汇总
 let lang = {

@@ -24,3 +24,11 @@ All notable changes to this project will be documented in this file.
 ### Removed
 
 - remove the  PicGo package and will link global PicGo when use
+
+## [0.0.3] - 2022-04-17
+
+### Added
+
+- Fix the bug when upload to aliyun by Picgo
+- Add the switch , whether still update picture link when selection/position changed
+
