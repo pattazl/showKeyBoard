@@ -86,6 +86,12 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 
 解决Picgo上传阿里云的图床后图片无法更新的问题
 
+### 0.0.4
+
+#### 增加
+
+修正创建MD文件时的提示和异常
+
 ## 仓库地址
 
 https://github.com/pattazl/markdown-image-manage

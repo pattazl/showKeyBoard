@@ -32,3 +32,8 @@ All notable changes to this project will be documented in this file.
 - Fix the bug when upload to aliyun by Picgo
 - Add the switch , whether still update picture link when selection/position changed
 
+## [0.0.4] - 2022-04-17
+
+### Added
+
+- Fix the bug when create MD file

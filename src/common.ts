@@ -218,7 +218,7 @@ export function mdCheck(file: string): boolean {
             // 可能是插件未启动和安装完毕
             logger.warn(getLang('extension'));
         } else {
-            logger.error(`file[${file}] is not exists!`);
+            logger.error(getLang('fileExist',file));
         }
         return false;
     } else {

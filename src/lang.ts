@@ -45,6 +45,7 @@ type langGroup = 'hello'
 |'posChg'
 |'rangChg'
 |'notChg'
+|'fileExist'
 // 英文字典清单
 let defaultLang:Record<langGroup, string>= {
     hello: 'default hello'
@@ -86,6 +87,7 @@ let defaultLang:Record<langGroup, string>= {
     ,posChg: "Cursor position changed"
     ,rangChg: "Select Range changed"
     ,notChg: "not update link by setting"
+    ,fileExist: "file[%s]not exist, please save first!"
 }
 // 中文需要填写的
 let zhcnLang:Record<langGroup, string>= {
@@ -128,6 +130,7 @@ let zhcnLang:Record<langGroup, string>= {
     ,posChg: "光标位置已改变"
     ,rangChg: "选择范围已经改变"
     ,notChg: "因设置不更新内容"
+    ,fileExist: "文件[%s]不存在，请先保存"
 }
 // 语言包汇总
 let lang = {

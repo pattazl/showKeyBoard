@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 	})*/
 	//let obj2 = vscode.workspace.getConfiguration('markdown-image-manage');
 	//console.log('globalState',context.globalState.get('markdown-image-manage.hasBracket'));
-	if(!initPara()){return;} // 从配置中获取初始化参数
+	// if(!initPara()){return;} // 从配置中获取初始化参数
 	let dispAnalyze = vscode.commands.registerCommand("markdown-image-manage.analyze", async (textEditor: vscode.TextEditor) => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
 		vscAnalyze();
