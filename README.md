@@ -10,16 +10,15 @@
 
  "markdown-image-manage"  is the VSCdoe extension, manage the images of MD(Markdown) File by menu, and have another npm cli tool( markdown-image-manage-npm )
 
- [中文文档 Gitee ](https://gitee.com/pattazl/markdown-image-manage)
- [中文文档 Github](https://github.com/pattazl/markdown-image-manage/blob/main/README_ZH.md)
+ [中文文档 Gitee ](https://gitee.com/pattazl/markdown-image-manage)  [中文文档 Github](https://github.com/pattazl/markdown-image-manage/blob/main/README_ZH.md)
 
 ## Features
 
 The Menu show :
 
-![cn menu](https://raw.githubusercontent.com/pattazl/markdown-image-manage/main/images/cn.png)
+![cn menu](https://s2.loli.net/2022/04/19/EK1YlQPZeM7zDNc.png)
 
-![en menu](https://raw.githubusercontent.com/pattazl/markdown-image-manage/main/images/en.png)
+![en menu](https://s2.loli.net/2022/04/19/XpqtGoASJw6iCW4.png)
 
 Functions as following :
 
@@ -68,13 +67,14 @@ None
 
 ## Release Notes
 
- CHANGELOG.md
+Refer to CHANGELOG.md
 
 ## Repository
 
 https://github.com/pattazl/markdown-image-manage
 
 https://gitee.com/pattazl/markdown-image-manage
+
 the related npm cli tool : markdown-image-manage-npm 
 
 https://github.com/pattazl/markdown-image-manage-npm

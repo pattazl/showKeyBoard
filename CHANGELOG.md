@@ -37,3 +37,10 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Fix the bug when create MD file
+
+## [0.0.5] - 2022-04-19
+
+### Added
+
+- Update the image in readme.md
+- Add the 'Marndown MIM' in command for search more easily

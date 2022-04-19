@@ -13,9 +13,8 @@ Markdown图片管理工具 "markdown-image-manage" 在VSCdoe中用菜单管理ma
 
 通过菜单操作
 
-![cn menu](https://raw.githubusercontent.com/pattazl/markdown-image-manage/main/images/cn.png)
-
-![en menu](https://raw.githubusercontent.com/pattazl/markdown-image-manage/main/images/en.png)
+![cn menu](https://s2.loli.net/2022/04/19/EK1YlQPZeM7zDNc.png)
+![en menu](https://s2.loli.net/2022/04/19/XpqtGoASJw6iCW4.png)
 
 可以实现如下功能
 
@@ -97,6 +96,7 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 https://github.com/pattazl/markdown-image-manage
 
 https://gitee.com/pattazl/markdown-image-manage
+
 相关 markdown-image-manage-npm 仓库地址
 
 https://github.com/pattazl/markdown-image-manage-npm
