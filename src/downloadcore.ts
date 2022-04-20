@@ -62,7 +62,7 @@ export default async (url: any, dest: any, re: boolean) => {
   try {
     rename = re;
     const filePath = await download(url, dest, options);
-    logger.success(filePath + "is downloaded",false);
+    logger.success(filePath + " is downloaded",false);
     // 等下
     await new Promise(resolve => {
         setTimeout(() => {
