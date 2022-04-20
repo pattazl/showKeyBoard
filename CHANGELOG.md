@@ -51,3 +51,9 @@ All notable changes to this project will be documented in this file.
 
 - Add timeout of download and upload
 - Fix the invalid filename when download some URL
+
+## [0.0.7] - 2022-04-20
+
+### Added
+
+- The limit of VSCode change to 1.46.0

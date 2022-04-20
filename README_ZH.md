@@ -106,6 +106,12 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 - 修复下载文件时候有异常文件名无法保存
 - 修复本地文件重名时用[序号]标记
 
+### 0.0.7
+
+#### 增加
+
+- VSCode限制改为 1.46.0
+
 ## 仓库地址
 
 https://github.com/pattazl/markdown-image-manage

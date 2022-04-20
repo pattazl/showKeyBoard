@@ -2,11 +2,11 @@
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
   "description": "Download,Move,Clean,Upload markdown's images(MIM)下载,移动,清理,分析,上传MD文件中的图片",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {
-    "vscode": "^1.66.0"
+    "vscode": "^1.46.0"
   },
   "categories": [
     "Other"
