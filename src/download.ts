@@ -4,7 +4,8 @@ import downloadCore from "./downloadcore.js";
 import {
     getImages, escapeStringRegexp, logger,
     mdFile, localFolder, rename,
-    getAutoPath, saveFile, localCheck
+    getAutoPath, saveFile, localCheck, 
+    timeoutPromise,dlTimeout
 } from './common'
 import { getLang } from './lang.js';
 // 主要内部变量
@@ -36,10 +37,11 @@ export async function download() // ,thread:number
         for (let file of downArr) {
             count++;
             logger.info(`downloading [${file}], ${count}/${len}`, false);
-            progress.report({ increment: count / len * 100, message: getLang('dling2',path.basename(file),count,len) });
+            let fileBasename = path.basename(file)
+            progress.report({ increment: count / len * 100, message: getLang('dling2',fileBasename,count,len) });
             try {
-                let obj = { rename, localFolder };
-                let res = await downloadCore(file, localFolder, rename);
+                // 此处需要配置超时，不应该在外面超时
+                let res = await timeoutPromise(downloadCore(file, localFolder, rename), dlTimeout*1000 ,getLang('dltimeout',fileBasename,dlTimeout));
                 let resfile = res as string;
                 if (resfile == '') { continue; }
                 let newfile = getAutoPath(ofile.dir, resfile);
@@ -49,12 +51,12 @@ export async function download() // ,thread:number
                 successCount++;
             } catch (e) {
                 console.log(e)
-                logger.error( getLang('dlerror', path.basename(file)) );
+                logger.error( getLang('dlerror', fileBasename) );
                 rres('error')
                 return Promise.reject()
             }
         }
-        saveFile(content, successCount);
+        await saveFile(content, successCount);
         rres('finish')
         return Promise.resolve()
     });

@@ -44,3 +44,10 @@ All notable changes to this project will be documented in this file.
 
 - Update the image in readme.md
 - Add the 'Marndown MIM' in command for search more easily
+
+## [0.0.6] - 2022-04-20
+
+### Added
+
+- Add timeout of download and upload
+- Fix the invalid filename when download some URL

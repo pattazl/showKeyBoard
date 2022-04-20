@@ -12,6 +12,8 @@ export let overwriteFile = false; // 是否覆盖原先的md文件，此选项�
 export let rename = false; // 是否下载的图片重新命名
 export let remotePath = ''; // 远程路径
 export let removeFolder = ''; // 移入的文件夹
+export let dlTimeout = 10; // 下载超时
+export let ulTimeout = 10; // 上传超时
 
 let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
@@ -201,7 +203,8 @@ export let logger = {
     },
 };
 // 设置相关内部变量
-export function setPara(bracket: boolean, ren: boolean, read: boolean,skip:boolean, local: string, remote: string, rem: string) {
+export function setPara(bracket: boolean, ren: boolean, read: boolean,skip:boolean, local: string, remote: string, rem: string
+    ,dl:number,ul:number) {
     imagePathBracket = bracket;
     rename = ren;
     skipSelectChange = skip;
@@ -209,6 +212,8 @@ export function setPara(bracket: boolean, ren: boolean, read: boolean,skip:boole
     localFolder = local;
     remotePath = remote;
     removeFolder = rem;
+    dlTimeout = dl;
+    ulTimeout = ul;
 }
 // 本地文件的通用检查 , 检查后备份相关相关变量
 export function mdCheck(file: string): boolean {
@@ -380,24 +385,33 @@ export async function saveFile(content: string, count: number, selectFlag: boole
     }
     logger.success(getLang('uptSucc', count, path.basename(mdFile)));
 }
+// 获取本地有效的文件名
+export function getValidFileName(dest: string, filename: string): string {
+    let pos1= filename.search(/[\/:*\?\"<>|]/); // 找到第一个不合法字符位置截断
+    if(pos1>-1)
+    {
+        filename = filename.substring(0,pos1);
+    }
+    return getAntiSameFileName(dest, filename); // 防止文件重复
+}
 // 输入需要写入的文件名，如果发现重复，增加(序号) ，序号最大999 ，如果成功返回真实路径，否则返回空字符串
-export function getAntiSameFileName(dest: string, filename: string): string {
+function getAntiSameFileName(dest: string, filename: string): string {
     let filePath = path.join(dest, filename);
     while (fs.existsSync(filePath)) // 同名文件数量最多1000
     {
-        // 如果存在，则需要改名,格式为 文件名(数字递增).后缀 返回最新的文件名
+        // 如果存在，则需要改名,格式为 文件名[数字递增].后缀 返回最新的文件名,不建议用() 因为和链接定义可能重复
         let f = path.parse(filePath);
-        var re = /\((\d+)\)$/;
+        var re = /\[(\d+)\]$/;
         if (re.test(f.name)) {
             let num = parseInt(RegExp.$1, 10);
             if (num > 999) {
                 logger.error(`file num[${num}] >999`);
                 return '';
             }
-            let newName = f.name.replace(re, '(' + (++num) + ')') + f.ext;
+            let newName = f.name.replace(re, '[' + (++num) + ']') + f.ext;
             filePath = path.join(dest, newName);
         } else {
-            let newName = f.name + '(1)' + f.ext; // 重复时初始化的文件
+            let newName = f.name + '[1]' + f.ext; // 重复时初始化的文件
             filePath = path.join(dest, newName);
         }
     }
@@ -417,16 +431,17 @@ export function convertPath(p: string): string {
         });
 }
 // 超时控制
-export async function timeoutPromise(promise: Promise<unknown>, ms: number, msg: string) {
+export async function timeoutPromise(promise: Promise<unknown>, ms: number, msg: string):Promise<any> {
     function delayPromise(ms: number) {
         return new Promise(function (resolve) {
-            setTimeout(function () { resolve('timeoutPromise') }, ms, 'aaaaaa');
+            setTimeout(function () { resolve('timeoutPromise') }, ms);
         })
     }
     var timeout = delayPromise(ms);
     let res = await Promise.race([promise, timeout]);
     if (res == 'timeoutPromise') {
         logger.error(msg);
+        return '';
     }
-    return;
+    return res;
 }

@@ -1,14 +1,14 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { getImages,escapeStringRegexp,logger,mdFile,rename,
-    newName ,getAutoPath,saveFile,getAntiSameFileName} from './common'
+    newName ,getAutoPath,saveFile,getValidFileName} from './common'
 // 主要内部变量
 // let mdFile = ''; // 需要处理的文件
 // let localFolder = ''; // 新的文件夹
 // let overwriteFile = false; // 是否覆盖原先的md文件
 // let rename = false; // 是否对所有的图片重新命名
 
-export function move(lf:string) // ,thread:number
+export async function move(lf:string) // ,thread:number
 {
     let localFolder = lf;
     let ofile = path.parse(mdFile);
@@ -39,7 +39,7 @@ export function move(lf:string) // ,thread:number
             // 仅仅更换目录
             newFileName = imageFile.base;
         }
-        let newFile = getAntiSameFileName(localFolder,newFileName);
+        let newFile = getValidFileName(localFolder,newFileName);
         if( newFile == ''){
             logger.error(`get new image file name[${newFile}] fail!`);
             return '';
@@ -56,6 +56,6 @@ export function move(lf:string) // ,thread:number
             console.log(e);
         }
     }
-    saveFile(content,count);
+    await saveFile(content,count);
 }
 

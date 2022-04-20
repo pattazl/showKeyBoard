@@ -1,8 +1,8 @@
 {
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
-  "description": "Download,Move,Clean,Upload markdown's images(Markdown MIM)下载,移动,清理,分析,上传MD文件中的图片",
-  "version": "0.0.5",
+  "description": "Download,Move,Clean,Upload markdown's images(MIM)下载,移动,清理,分析,上传MD文件中的图片",
+  "version": "0.0.6",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {
@@ -138,6 +138,16 @@
 					"type": "string",
 					"default": "<filename>",
 					"description": "%markdown-image-manage.remotePath%"
+				},
+        "markdown-image-manage.timeoutDownload": {
+					"type": "number",
+					"default": 10,
+					"description": "%markdown-image-manage.downloadTimeout%"
+				},
+        "markdown-image-manage.timeoutUpload": {
+					"type": "number",
+					"default": 10,
+					"description": "%markdown-image-manage.uploadTimeout%"
 				}
 			}
 		}

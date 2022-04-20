@@ -1,12 +1,12 @@
 {
     "markdown-image-manage.menuName": "Image Manage",
-    "markdown-image-manage.menuAnalyze": "Markdown MIM:Analyze Image Links",
-    "markdown-image-manage.menuClean": "Markdown MIM:Clean Local Image Folder",
-    "markdown-image-manage.menuCleanLink": "Markdown MIM:Clean Invalid Image links",
-    "markdown-image-manage.menuDownload": "Markdown MIM:Download All",
-    "markdown-image-manage.menuUpload": "Markdown MIM:Upload Select",
-    "markdown-image-manage.menuUploadClip": "Markdown MIM:Upload Clipboard",
-    "markdown-image-manage.menuMove": "Markdown MIM:Move Local Image",
+    "markdown-image-manage.menuAnalyze": "MIM:Analyze Image Links",
+    "markdown-image-manage.menuClean": "MIM:Clean Local Image Folder",
+    "markdown-image-manage.menuCleanLink": "MIM:Clean Invalid Image links",
+    "markdown-image-manage.menuDownload": "MIM:Download All",
+    "markdown-image-manage.menuUpload": "MIM:Upload Select",
+    "markdown-image-manage.menuUploadClip": "MIM:Upload Clipboard",
+    "markdown-image-manage.menuMove": "MIM:Move Local Image",
 
     "markdown-image-manage.removeFolder": "The folder where image will move to when clean local image folder",
     "markdown-image-manage.hasBracket": "Whether the image path include right bracket",
@@ -14,5 +14,7 @@
     "markdown-image-manage.updateLink": "Whether update the picture link in md file(Clean,Download,Upload,Move)",
     "markdown-image-manage.skipSelectChange": "Whether still update picture link when selection/position changed",
     "markdown-image-manage.rename": "Whether rename the image files(Download,Upload,Move)",
-    "markdown-image-manage.remotePath": "Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)"
+    "markdown-image-manage.remotePath": "Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)",
+    "markdown-image-manage.downloadTimeout": "Timeout seconds for download each image",
+    "markdown-image-manage.uploadTimeout": "Timeout seconds for upload each image"
 }

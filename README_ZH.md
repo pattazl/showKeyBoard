@@ -1,7 +1,7 @@
 # markdown-image-manage
 > VSCode 插件  [markdown-image-manage@gitee](https://gitee.com/pattazl/markdown-image-manage/).
 
-[![installs](https://img.shields.io/vscode-marketplace/d/AustinYoung.markdown-image-manage.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Spades.vs-picgo)
+[![installs](https://img.shields.io/vscode-marketplace/d/AustinYoung.markdown-image-manage.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=AustinYoung.markdown-image-manage)
 [![GitHub stars](https://img.shields.io/github/stars/pattazl/markdown-image-manage.svg?style=flat-square&label=github%20stars)](https://github.com/pattazl/markdown-image-manage)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg?style=flat-square)](https://standardjs.com)
 
@@ -90,6 +90,21 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 #### 增加
 
 修正创建MD文件时的提示和异常
+
+### 0.0.5
+
+#### 增加
+
+- 更新readme中的图片来源为SMMS
+- 添加 Marndown MIM 前缀到命令中更方便查找
+
+### 0.0.6
+
+#### 增加
+
+- 添加下载和上传的超时
+- 修复下载文件时候有异常文件名无法保存
+- 修复本地文件重名时用[序号]标记
 
 ## 仓库地址
 

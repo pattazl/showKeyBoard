@@ -33,7 +33,7 @@ export async function vscClean(flag:boolean=false) {
     showInVscode();
 }
 export async function vscDownload() {
-    await timeoutPromise(download(), 90000,getLang('dltimeout'));
+    await download()
     showInVscode();
 }
 // 上传所选图片/剪切板图片
@@ -42,7 +42,7 @@ export async function vscUpload(clip:boolean=false) {
         showInVscode();
         return;
     }
-    await timeoutPromise(upload(clip), 90000,getLang('uptimeout'));
+    await upload(clip);
     showInVscode();
 }
 // 初始化参数，参数保存于 common模块中
@@ -56,9 +56,12 @@ export function initPara() {
     let remotePath: string = vscode.workspace.getConfiguration(extendName).get('remotePath') || '<filename>';
     let imageSaveFolder: string = vscode.workspace.getConfiguration(extendName).get('imageSaveFolder') || '<filename>.assets';
     let removeFolder: string = vscode.workspace.getConfiguration(extendName).get('removeFolder') || 'md-img-remove';
-
+    let dlTimeout: number = vscode.workspace.getConfiguration(extendName).get('timeoutDownload') || 10;
+    let ulTimeout: number = vscode.workspace.getConfiguration(extendName).get('timeoutUpload') || 10;
+    if(dlTimeout<=0) {dlTimeout =10;}
+    if(ulTimeout<=0) {ulTimeout =10;}
     //const isAsync: boolean = vscode.workspace.getConfiguration().get('downloadImageInMarkdown.isAsync') as boolean;
-    setPara(hasBracket, rename, updateLink,skipSelectChange, imageSaveFolder, remotePath, removeFolder);
+    setPara(hasBracket, rename, updateLink,skipSelectChange, imageSaveFolder, remotePath, removeFolder,dlTimeout,ulTimeout);
 
     let file = vscode.window.activeTextEditor?.document.uri.fsPath || '';
     if (!mdCheck(file)) {
@@ -82,6 +85,6 @@ export async function vscMove() {
 
     let localFolder: string = result[0].fsPath;
     console.log(`Will Move images to localFolder[${localFolder}]`)
-    move(localFolder);
+    await move(localFolder);
     showInVscode();
 }

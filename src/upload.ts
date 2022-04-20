@@ -4,7 +4,8 @@ import * as vscode from 'vscode'
 import * as path from 'path';
 import {
     getImages, escapeStringRegexp, logger, saveFile, remotePath,
-    rename, convertPath, insertText
+    rename, convertPath, insertText,
+    timeoutPromise,ulTimeout
 } from './common';
 import { getLang } from './lang';
 let {execSync,exec} = require('child_process');
@@ -145,15 +146,22 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
                 file = 'clipboard';
             }
             logger.info(`uploading [${file}], ${count}/${len}`, false);
-            progress.report({ increment: count / len * 100, message: getLang('uping2', path.basename(file), count, len) });
+            let fileBasename = path.basename(file)
+            progress.report({ increment: count / len * 100, message: getLang('uping2', fileBasename , count, len) });
             try {
                 let upList: string[] = [];
                 if (!clipBoard) {
                     upList = [file];
                 }
-                let netFile = await picgo1.upload(upList);// 一次上传一个
+                // 一次上传一个
+                let netFile = await timeoutPromise(picgo1.upload(upList), ulTimeout*1000 ,getLang('uptimeout',fileBasename,ulTimeout));
                 // 成功上传返回结果
-                if (netFile.length > 0) {
+                if(netFile == '')
+                {
+                    // 超时
+                    console.log('timeout continue')
+                    continue; 
+                }else if (netFile.length > 0) {
                     let first = netFile[0];
                     let imgPath = first.imgUrl||first.url;
                     if(imgPath==null || imgPath =='')
@@ -177,7 +185,7 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
                 }
             } catch (e) {
                 console.log(e);
-                logger.error(getLang('uperror', path.basename(file), (e as any).message || ''));
+                logger.error(getLang('uperror', fileBasename, (e as any).message || ''));
                 rres('error')
                 return Promise.resolve()
             }
