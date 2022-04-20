@@ -25,7 +25,7 @@ Markdown图片管理工具 "markdown-image-manage" 在VSCdoe中用菜单管理ma
 5. 分析文中的图片哪些是网络，哪些是本地，本地哪些失效
 6. 将本地所有图片自动上传到图床的指定目录中（基于PicGo）
 7. 上传剪切板中的图片（基于PicGo）
-8. 本地下载路径和远端上传路径，均可设置文件名和日期变量， "<filename>" 表示文件名, "<YYYYMMDD>" 表示日期按(dayjs)模块格式化，比如<DDHHmm>等
+8. 本地下载路径和远端上传路径，均可设置文件名和日期变量， `<filename>` 表示文件名, `<YYYYMMDD>` 表示日期按(dayjs)模块格式化，比如`<DDHHmm>`等
 9. 支持多语言
 
 ## 依赖项
@@ -49,11 +49,11 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 
 1. removeFolder: 本地图片目录清理时，其他图片移动的目标文件夹
 2. hasBracket: 图片路径中是否包括右括号
-3. imageSaveFolder: 图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)
+3. imageSaveFolder: 图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名`<filename>`和日期`<YYYYMMDD>`变量(dayjs)
 4. updateLink: 上传/下载/移动时是否需要更新md文件的图片链接
 5. skipSelectChange: 当光标或选择范围改变后是否依然更新图片链接
 6. rename: 上传/下载/移动图片时是否需要重命名图片
-7. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。
+7. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名`<filename>`和日期`<YYYYMMDD>`变量(dayjs)。
 
 ## 已知问题
 
