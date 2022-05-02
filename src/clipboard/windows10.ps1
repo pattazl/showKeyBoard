@@ -36,7 +36,10 @@ try {
     # For WIN10
     $file = Get-Clipboard -Format FileDropList
     if ($file -ne $null) {
-        Convert-Path $file
+        $tmp = Convert-Path $file
+        # need copy to new file
+        Copy-Item -Path $tmp -Destination $imagePath -Force
+        $imagePath
         Exit 1
     }
 } catch {
