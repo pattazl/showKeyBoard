@@ -7,6 +7,8 @@
 	"markdown-image-manage.menuUpload": "MIM:上传所选图片",
 	"markdown-image-manage.menuUploadClip": "MIM:上传剪切板",
 	"markdown-image-manage.menuMove": "MIM:移动本地图片",
+	"markdown-image-manage.menuClipImage": "MIM:插入剪切板图片",
+	"markdown-image-manage.menuConvertFormat": "MIM:转变所选格式",
 	"markdown-image-manage.removeFolder": "本地图片目录清理时，其他图片移动的目标文件夹",
 	"markdown-image-manage.hasBracket": "图片路径中是否包括右括号",
 	"markdown-image-manage.imageSaveFolder": "图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)",
@@ -15,5 +17,7 @@
 	"markdown-image-manage.rename": "上传/下载/移动图片时是否需要重命名图片",
 	"markdown-image-manage.remotePath": "图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。 ",
 	"markdown-image-manage.downloadTimeout": "每张图片下载的超时秒数",
-	"markdown-image-manage.uploadTimeout": "每张图片上传的超时秒数"
+	"markdown-image-manage.uploadTimeout": "每张图片上传的超时秒数",
+	"markdown-image-manage.clipboardPath": "剪切板图片的路径和名称，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。",
+	"markdown-image-manage.urlFormatted": "图片URL格式是否转义，转义后兼容性强可读性弱，插入图片或转变URL格式时生效"
 }

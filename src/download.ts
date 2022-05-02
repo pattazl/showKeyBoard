@@ -17,7 +17,6 @@ export async function download() // ,thread:number
         return;
     }
     let fileObj = getImages();
-    let ofile = path.parse(mdFile);
     let fileArr = fileObj.net;
     let content = fileObj.content;
     //downThread = thread;
@@ -44,7 +43,7 @@ export async function download() // ,thread:number
                 let res = await timeoutPromise(downloadCore(file, localFolder, rename), dlTimeout*1000 ,getLang('dltimeout',fileBasename,dlTimeout));
                 let resfile = res as string;
                 if (resfile == '') { continue; }
-                let newfile = getAutoPath(ofile.dir, resfile);
+                let newfile = getAutoPath(resfile);
                 // 适配图片的格式
                 var reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(file) + '\\)', 'ig');
                 content = content.replace(reg, '![$1](' + newfile + ')'); // 内容替换

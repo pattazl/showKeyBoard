@@ -15,6 +15,11 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "CopyScript", // 将脚本复制到输出目录中
+            "type": "shell",
+            "command": "xcopy .\\src\\clipboard\\* .\\out\\clipboard\\ /y", // 基于 tsconfig.josn 调用全局的tsc进行编译，会编译整个目录
 		}
 	]
 }

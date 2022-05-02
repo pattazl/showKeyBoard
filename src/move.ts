@@ -11,7 +11,6 @@ import { getImages,escapeStringRegexp,logger,mdFile,rename,
 export async function move(lf:string) // ,thread:number
 {
     let localFolder = lf;
-    let ofile = path.parse(mdFile);
     let fileObj = getImages();
     if(fileObj.content == '')
     {
@@ -48,7 +47,7 @@ export async function move(lf:string) // ,thread:number
         try{
             fs.renameSync(file,newFile);
             var reg = new RegExp( '!\\[([^\\]]*)\\]\\('+ escapeStringRegexp(fileMapping[file]) +'\\)','ig');
-            content =  content.replace(reg,'![$1]('+ getAutoPath(ofile.dir, newFile) +')'); // 内容替换
+            content =  content.replace(reg,'![$1]('+ getAutoPath( newFile) +')'); // 内容替换
             count++;
         }catch(e)
         {

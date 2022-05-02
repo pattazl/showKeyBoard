@@ -18,6 +18,8 @@
     "onCommand:markdown-image-manage.download",
     "onCommand:markdown-image-manage.upload",
     "onCommand:markdown-image-manage.uploadclip",
+    "onCommand:markdown-image-manage.clipboardImage",
+    "onCommand:markdown-image-manage.convertImageFormat",
     "onCommand:markdown-image-manage.move",
     "onLanguage:markdown"
   ],
@@ -59,6 +61,14 @@
       {
         "command": "markdown-image-manage.cleanlink",
         "title": "%markdown-image-manage.menuCleanLink%"
+      },
+      {
+        "command": "markdown-image-manage.clipboardImage",
+        "title": "%markdown-image-manage.menuClipImage%"
+      },
+      {
+        "command": "markdown-image-manage.convertImageFormat",
+        "title": "%markdown-image-manage.menuConvertFormat%"
       }
     ],
     "menus": {
@@ -72,31 +82,39 @@
       "markdown-image-manage.menulist": [
         {
           "command": "markdown-image-manage.analyze",
-          "group": "1_workspace"
+          "group": "2_workspace"
         },
         {
           "command": "markdown-image-manage.clean",
-          "group": "1_workspace"
+          "group": "2_workspace"
         },
         {
           "command": "markdown-image-manage.cleanlink",
-          "group": "1_workspace"
+          "group": "2_workspace"
         },
         {
           "command": "markdown-image-manage.move",
+          "group": "2_workspace"
+        },
+        {
+          "command": "markdown-image-manage.clipboardImage",
+          "group": "1_workspace"
+        },
+        {
+          "command": "markdown-image-manage.convertImageFormat",
           "group": "1_workspace"
         },
         {
           "command": "markdown-image-manage.download",
-          "group": "2_workspace"
+          "group": "3_workspace"
         },
         {
           "command": "markdown-image-manage.upload",
-          "group": "2_workspace"
+          "group": "3_workspace"
         },
         {
           "command": "markdown-image-manage.uploadclip",
-          "group": "2_workspace"
+          "group": "3_workspace"
         }
       ]
     },
@@ -110,8 +128,9 @@
 					"description": "%markdown-image-manage.removeFolder%"
 				},
 				"markdown-image-manage.hasBracket": {
-					"type": "boolean",
-					"default": false,
+					"type": "string",
+					"default": "auto",
+					"enum": ["auto", "yes", "no"],
 					"description": "%markdown-image-manage.hasBracket%"
 				},
         "markdown-image-manage.imageSaveFolder": {
@@ -148,6 +167,16 @@
 					"type": "number",
 					"default": 10,
 					"description": "%markdown-image-manage.uploadTimeout%"
+				},
+        "markdown-image-manage.clipboardPath": {
+					"type": "string",
+					"default": "<filename>.assets/<YYMMDDHHmmss>.png",
+					"description": "%markdown-image-manage.clipboardPath%"
+				},
+        "markdown-image-manage.urlFormatted": {
+					"type": "boolean",
+					"default": true,
+					"description": "%markdown-image-manage.urlFormatted%"
 				}
 			}
 		}
@@ -178,6 +207,7 @@
   "dependencies": {
     "fs-extra": "^10.0.1",
     "vscode-nls": "^5.0.0",
-    "dayjs": "^1.7.4"
+    "dayjs": "^1.7.4",
+    "is-wsl": "^2.2.0"
   }
 }

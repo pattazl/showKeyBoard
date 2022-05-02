@@ -46,6 +46,8 @@ type langGroup = 'hello'
 |'rangChg'
 |'notChg'
 |'fileExist'
+|'notfoundscript'
+|'noCBimage'
 // 英文字典清单
 let defaultLang:Record<langGroup, string>= {
     hello: 'default hello'
@@ -88,6 +90,8 @@ let defaultLang:Record<langGroup, string>= {
     ,rangChg: "Select Range changed"
     ,notChg: "not update link by setting"
     ,fileExist: "file[%s]not exist, please save first!"
+    ,notfoundscript: "!!Can not find the clipborad script[%s]!!"
+    ,noCBimage: "Image not found in clipboard!"
 }
 // 中文需要填写的
 let zhcnLang:Record<langGroup, string>= {
@@ -131,6 +135,8 @@ let zhcnLang:Record<langGroup, string>= {
     ,rangChg: "选择范围已经改变"
     ,notChg: "因设置不更新内容"
     ,fileExist: "文件[%s]不存在，请先保存"
+    ,notfoundscript: "不能找到对应的脚本文件[%s]"
+    ,noCBimage: "剪切板中没图片!"
 }
 // 语言包汇总
 let lang = {

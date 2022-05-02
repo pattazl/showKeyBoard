@@ -7,6 +7,8 @@
     "markdown-image-manage.menuUpload": "MIM:Upload Select",
     "markdown-image-manage.menuUploadClip": "MIM:Upload Clipboard",
     "markdown-image-manage.menuMove": "MIM:Move Local Image",
+    "markdown-image-manage.menuClipImage": "MIM:Insert Clipboard Image",
+    "markdown-image-manage.menuConvertFormat": "MIM:Convert Selected Format",
 
     "markdown-image-manage.removeFolder": "The folder where image will move to when clean local image folder",
     "markdown-image-manage.hasBracket": "Whether the image path include right bracket",
@@ -16,5 +18,7 @@
     "markdown-image-manage.rename": "Whether rename the image files(Download,Upload,Move)",
     "markdown-image-manage.remotePath": "Which be added at beginning of PicBed path, support <filename> and date format<YYYYMMDD> variable (dayjs)",
     "markdown-image-manage.downloadTimeout": "Timeout seconds for download each image",
-    "markdown-image-manage.uploadTimeout": "Timeout seconds for upload each image"
+    "markdown-image-manage.uploadTimeout": "Timeout seconds for upload each image",
+    "markdown-image-manage.clipboardPath": "Clipboard image's path and name, support <filename> and date format<YYYYMMDD> variable (dayjs)"
+    ,"markdown-image-manage.urlFormatted": "Whether escape image URL when insert or convert selected format"
 }

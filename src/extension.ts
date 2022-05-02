@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload}  from './index';
+import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload,vscInsertClip}  from './index';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 
@@ -49,6 +49,14 @@ export function activate(context: vscode.ExtensionContext) {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
 		vscUpload(true);
 	})
+	let dispInsertClip = vscode.commands.registerCommand("markdown-image-manage.clipboardImage", async () => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		vscInsertClip();
+	})
+	let dispConvertImageFormat = vscode.commands.registerCommand("markdown-image-manage.convertImageFormat", async () => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		//vscConvertImageFormat(); encodeURI 
+	})
 	let dispMove = vscode.commands.registerCommand("markdown-image-manage.move", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
 		vscMove();
@@ -58,6 +66,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(dispDownload);
 	context.subscriptions.push(dispUpload);
 	context.subscriptions.push(dispUploadClip);
+	context.subscriptions.push(dispInsertClip);
+	context.subscriptions.push(dispConvertImageFormat);
 	context.subscriptions.push(dispMove);
 }
 
