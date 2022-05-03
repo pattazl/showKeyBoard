@@ -20,5 +20,5 @@
     "markdown-image-manage.downloadTimeout": "Timeout seconds for download each image",
     "markdown-image-manage.uploadTimeout": "Timeout seconds for upload each image",
     "markdown-image-manage.clipboardPath": "Clipboard image's path and name, support <filename> and date format<YYYYMMDD> variable (dayjs)"
-    ,"markdown-image-manage.urlFormatted": "Whether escape image URL when insert or convert selected format"
+    ,"markdown-image-manage.urlFormatted": "Whether escape image URL when insert local image"
 }

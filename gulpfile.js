@@ -49,8 +49,12 @@ const packageNls = function() {
                 .pipe(nls.createAdditionalLanguageFiles(languages, 'i18n'))
                 .pipe(gulp.dest('.'));
 };
-
-const nlsTask = gulp.series(cleanTask, sourcesNsl, packageNls);
+// clipboard scripts
+const clipboard = function() {
+        return gulp.src('src/clipboard/*')
+                .pipe(gulp.dest('out/clipboard'));
+};
+const nlsTask = gulp.series(cleanTask, sourcesNsl, packageNls, clipboard);
 
 gulp.task('clean', cleanTask);
 

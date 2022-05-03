@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload,vscInsertClip}  from './index';
+import {vscAnalyze,initPara,vscClean,vscMove,vscDownload, vscUpload,vscInsertClip,vscConvertImageFormat}  from './index';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 
@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 	let dispConvertImageFormat = vscode.commands.registerCommand("markdown-image-manage.convertImageFormat", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
-		//vscConvertImageFormat(); encodeURI 
+		vscConvertImageFormat(); // encodeURI 
 	})
 	let dispMove = vscode.commands.registerCommand("markdown-image-manage.move", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数

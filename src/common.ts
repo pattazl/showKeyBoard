@@ -16,6 +16,7 @@ export let removeFolder = ''; // 移入的文件夹
 export let dlTimeout = 10; // 下载超时
 export let ulTimeout = 10; // 上传超时
 export let clipboardPath = ''; // 剪切板图片默认路径
+export let urlFormatted = true; // URL格式神需要转义
 
 let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
@@ -117,6 +118,7 @@ function findImage(reg:any,str:string,auto:boolean,tmpPicArrNet:string[],tmpPicA
         } else {
             var tmpFilePath; //全路径
             tmpFilePath = path.resolve(mdfilePath, filepath); // 支持相对目录和绝对路径
+            tmpFilePath = decodeURI(tmpFilePath); // 地址可能被转义,需要还原
             if (fs.existsSync(tmpFilePath)) {
                 tmpPicArrLocal.push(tmpFilePath);
                 tmpOriMapping[tmpFilePath] = oriFlepath; // 原始的本地路径地址
@@ -256,8 +258,9 @@ export let logger = {
     }
 };
 // 设置相关内部变量
-export function setPara(bracket: string, ren: boolean, read: boolean, skip: boolean, local: string, remote: string, rem: string
-    , dl: number, ul: number,cb:string) {
+export function setPara(bracket: string, ren: boolean, read: boolean, skip: boolean
+    , local: string, remote: string, rem: string
+    , dl: number, ul: number,cb:string ,urlf:boolean) {
     imagePathBracket = bracket;
     rename = ren;
     skipSelectChange = skip;
@@ -268,6 +271,7 @@ export function setPara(bracket: string, ren: boolean, read: boolean, skip: bool
     dlTimeout = dl;
     ulTimeout = ul;
     clipboardPath = cb;
+    urlFormatted = urlf;
 }
 // 本地文件的通用检查 , 检查后备份相关相关变量
 export function mdCheck(file: string): boolean {
@@ -330,10 +334,19 @@ export function newName() {
     let num = Math.random().toString().slice(2, 4);// 增加2位随机数防止时间冲突
     return new Date().getTime().toString(36) + num;
 }
+// 将URL地址进行转义和还原
+export function myEncodeURI(url: string , flag:boolean) {
+    // 默认以 md文件为默认路径
+    let newPath = url.replace(/\\/g,'/'); // 转换为 / 格式 path.sep 格式不一样
+    newPath = decodeURI(newPath); // 防止重复encode，先decode
+    newPath = flag?encodeURI(newPath):decodeURI(newPath);
+    return newPath;
+}
 // 转换为相对路径,第一个参数为相对路径，第二个为新的文件全路径
 export function getAutoPath(newfile: string) {
     // 默认以 md文件为默认路径
-    return getAutoPathCore(oMdFile.dir,newfile);
+    let newPath = getAutoPathCore(oMdFile.dir,newfile);
+    return myEncodeURI(newPath,urlFormatted);
 }
 function getAutoPathCore(dir: string, newfile: string) {
     let relativeFile = path.relative(dir, newfile);

@@ -57,3 +57,13 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - The limit of VSCode change to 1.46.0
+
+## [0.0.8] - 2022-05-03
+
+### Added
+
+1. can paste clipboard image and define image's path
+2. fix the bug, can download images when HTTPS is unauthorized
+3. optimize the analysis of images mark
+3. support the  escaped image URL
+3. convert the format of selected image URL escape or not

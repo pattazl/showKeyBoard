@@ -1,8 +1,8 @@
 {
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
-  "description": "Download,Move,Clean,Upload markdown's images(MIM)下载,移动,清理,分析,上传MD文件中的图片",
-  "version": "0.0.7",
+  "description": "Download,Move,Clean,Upload,Paste,Covert markdown's images(MIM)下载,移动,清理,分析,上传,粘帖,转换MD文件中的图片",
+  "version": "0.0.8",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {
@@ -199,6 +199,7 @@
     "upload",
     "move file",
     "clean",
+    "covert","paste","clipboard",
     "picgo",
     "pic bed"
   ],

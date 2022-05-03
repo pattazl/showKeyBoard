@@ -4,6 +4,7 @@ import { download } from './download';
 import { upload, upCheck } from './upload';
 import { move } from './move';
 import { insertClipImage } from './insertclipImage';
+import { convert } from './convert';
 import { getLang } from './lang';
 import * as vscode from 'vscode';
 /*
@@ -51,6 +52,12 @@ export async function vscInsertClip(clip:boolean=false) {
     await insertClipImage();
     showInVscode();
 }
+// 根据参数，转变图片格式
+export async function vscConvertImageFormat() {
+    await convert()
+    showInVscode();
+}
+
 
 // 初始化参数，参数保存于 common模块中
 export function initPara() {
@@ -66,10 +73,12 @@ export function initPara() {
     let dlTimeout: number = vscode.workspace.getConfiguration(extendName).get('timeoutDownload') || 10;
     let ulTimeout: number = vscode.workspace.getConfiguration(extendName).get('timeoutUpload') || 10;
     let clipboardPath: string = vscode.workspace.getConfiguration(extendName).get('clipboardPath') || '<filename>.assets/<YYMMDDHHmmss>.png';
+    let urlFormatted: boolean = vscode.workspace.getConfiguration(extendName).get('urlFormatted') || true;
     if(dlTimeout<=0) {dlTimeout =10;}
     if(ulTimeout<=0) {ulTimeout =10;}
     //const isAsync: boolean = vscode.workspace.getConfiguration().get('downloadImageInMarkdown.isAsync') as boolean;
-    setPara(hasBracket, rename, updateLink,skipSelectChange, imageSaveFolder, remotePath, removeFolder,dlTimeout,ulTimeout,clipboardPath);
+    setPara(hasBracket, rename, updateLink,skipSelectChange, imageSaveFolder, remotePath
+        , removeFolder,dlTimeout,ulTimeout,clipboardPath,urlFormatted);
 
     let file = vscode.window.activeTextEditor?.document.uri.fsPath || '';
     if (!mdCheck(file)) {

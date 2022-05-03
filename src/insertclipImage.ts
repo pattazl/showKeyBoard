@@ -26,7 +26,7 @@ export async function insertClipImage() // ,thread:number
   let validPath = getValidFileName(oTargetPath.dir, oTargetPath.base);
   let imagePath = '';
   try {
-    imagePath = await uploadClibBoard(validPath);
+    imagePath = await insertClibBoard(validPath);
   } catch (e: any) {
     logger.error(e.toString())
     return;
@@ -46,7 +46,7 @@ interface IImgInfo {
   imgUrl?: string
   [propName: string]: any
 }
-async function uploadClibBoard(input: string): Promise<string> {
+async function insertClibBoard(input: string): Promise<string> {
   // upload from clipboard
   try {
     if(input == 'no image')
