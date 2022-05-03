@@ -26,7 +26,10 @@ Markdown图片管理工具 "markdown-image-manage" 在VSCdoe中用菜单管理ma
 6. 将本地所有图片自动上传到图床的指定目录中（基于PicGo）
 7. 上传剪切板中的图片（基于PicGo）
 8. 本地下载路径和远端上传路径，均可设置文件名和日期变量， `<filename>` 表示文件名, `<YYYYMMDD>` 表示日期按(dayjs)模块格式化，比如`<DDHHmm>`等
-9. 支持多语言
+9. 支持从剪切板复制图片，并可自定义图片路径
+10. 支持设置图片地址的是否转义
+11. 可以对所选图片是否转义进行切换
+12. 支持多语言
 
 ## 依赖项
 
@@ -45,7 +48,7 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 
 ## 插件配置
 
-可配置参数如下:
+详情见插件中的参数说明，部分参数如下:
 
 1. removeFolder: 本地图片目录清理时，其他图片移动的目标文件夹
 2. hasBracket: 图片路径中是否包括右括号
@@ -54,6 +57,8 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 5. skipSelectChange: 当光标或选择范围改变后是否依然更新图片链接
 6. rename: 上传/下载/移动图片时是否需要重命名图片
 7. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名`<filename>`和日期`<YYYYMMDD>`变量(dayjs)。
+7. clipboardPath: 剪切板图片的路径和名称，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。
+7. urlFormatted: 图片URL格式是否转义，转义后有兼容性强可读性弱，插入本地图片时生效
 
 ## 已知问题
 

@@ -62,7 +62,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-1. can paste clipboard image and define image's path
+1. support paste clipboard image and define image's path
 2. fix the bug, can download images when HTTPS is unauthorized
 3. optimize the analysis of images mark
 3. support the  escaped image URL

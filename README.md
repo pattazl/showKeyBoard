@@ -31,7 +31,10 @@ Functions as following :
 6. Upload Clipboard: Upload the clipboard's image and insert the image  (Depend on picgo )
 7. Move: move all local images in the MD file to the defined directory
 8. The local and remote path support the variable ,  `<filename>` , `<YYYYMMDD>`  datetime format string by dayjs ，such as `<DDHHmm>` and so on.
-9. Support multiple languages
+9. Support paste clipboard image and define image's path
+10. Support the escaped/unescaped image URL
+11. Convert the format of selected image URL escape or unescape
+12. Support multiple languages
 
 ## Requirements
 
@@ -52,6 +55,8 @@ Picgo support several PicBed and  FTP server( PASV mode) by plugin.
 
 ##  Extension Settings
 
+Get details in the extension, some of setting as below:
+
 1. removeFolder: The folder where image will move to when clean local image folder
 2. hasBracket: Whether the image path include right bracket
 3. imageSaveFolder: Local folder which the images will save to, support absolute or relative path. support `<filename>` and date format`<YYYYMMDD>` variable (dayjs)
@@ -59,6 +64,8 @@ Picgo support several PicBed and  FTP server( PASV mode) by plugin.
 5. skipSelectChange: Whether still update picture link when selection/position changed
 6. rename: Whether rename the image files(Download,Upload,Move
 7. remotePath: Which be added at beginning of PicBed path, support `<filename>` and date format`<YYYYMMDD>` variable (dayjs)
+8. clipboardPath: Clipboard image's path and name, support <filename> and date format<YYYYMMDD> variable (dayjs)
+9. urlFormatted: Whether escape image URL when insert local image
 
 ##  Known Issues
 
