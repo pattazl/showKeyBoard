@@ -7,7 +7,7 @@
 
 ## 总览
 
-Markdown图片管理工具 "markdown-image-manage" 在VSCdoe中用菜单管理markdown文件中的图片，另有相似功能的npm包 markdown-image-manage-npm 可供命令行中使用
+Markdown图片管理工具 "markdown-image-manage" 在VSCode中用菜单管理markdown文件中的图片，另有相似功能的npm包 markdown-image-manage-npm 可供命令行中使用
 
 ## 功能
 

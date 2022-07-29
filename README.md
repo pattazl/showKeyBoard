@@ -8,7 +8,7 @@
 
 ## Overview
 
- "markdown-image-manage"  is the VSCdoe extension, manage the images of MD(Markdown) File by menu, and have another npm cli tool( markdown-image-manage-npm )
+ "markdown-image-manage"  is the VSCode extension, manage the images of MD(Markdown) File by menu, and have another npm cli tool( markdown-image-manage-npm )
 
  [中文文档 Gitee ](https://gitee.com/pattazl/markdown-image-manage)  [中文文档 Github](https://github.com/pattazl/markdown-image-manage/blob/main/README_ZH.md)
 
