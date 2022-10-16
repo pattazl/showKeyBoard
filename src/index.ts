@@ -57,7 +57,12 @@ export async function vscConvertImageFormat() {
     await convert()
     showInVscode();
 }
-
+// 根据参数，转变图片路径，相对，绝对互相转换
+export async function vscConvertImageLink() {
+    await convert(false)
+    showInVscode();
+}
+vscConvertImageLink
 
 // 初始化参数，参数保存于 common模块中
 export function initPara() {

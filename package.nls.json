@@ -8,7 +8,8 @@
     "markdown-image-manage.menuUploadClip": "MIM:Upload Clipboard",
     "markdown-image-manage.menuMove": "MIM:Move Local Image",
     "markdown-image-manage.menuClipImage": "MIM:Insert Clipboard Image",
-    "markdown-image-manage.menuConvertFormat": "MIM:Convert Selected Format",
+    "markdown-image-manage.menuConvertFormat": "MIM:Convert Selected Path Format",
+    "markdown-image-manage.menuConvertLink": "MIM:Convert Path Relative<->Absolute",
 
     "markdown-image-manage.removeFolder": "The folder where image will move to when clean local image folder",
     "markdown-image-manage.hasBracket": "Whether the image path include right bracket",

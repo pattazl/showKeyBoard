@@ -343,13 +343,15 @@ export function myEncodeURI(url: string , flag:boolean) {
     return newPath;
 }
 // 转换为相对路径,第一个参数为相对路径，第二个为新的文件全路径
-export function getAutoPath(newfile: string) {
+export function getAutoPath(newfile: string,relativeFlag :boolean = true) {
     // 默认以 md文件为默认路径
-    let newPath = getAutoPathCore(oMdFile.dir,newfile);
+    let newPath = getAutoPathCore(oMdFile.dir,newfile,relativeFlag);
     return myEncodeURI(newPath,urlFormatted);
 }
-function getAutoPathCore(dir: string, newfile: string) {
+// 转换为路径 path.resolve('c:/aa/b','相对路径')
+function getAutoPathCore(dir: string, newfile: string,relativeFlag:boolean) {
     let relativeFile = path.relative(dir, newfile);
+    // 如果不是上级目录的文件
     if (relativeFile.indexOf('..\\') == -1) {
         newfile = relativeFile;
     }

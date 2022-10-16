@@ -1,10 +1,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { getImages,escapeStringRegexp,logger,
-    getAutoPath,saveFile,myEncodeURI} from './common'
+import {
+    getImages, escapeStringRegexp, logger,
+    getAutoPath, saveFile, myEncodeURI
+} from './common'
 import { getLang } from './lang';
 
-export async function convert() // ,thread:number
+export async function convert(formatFlag: boolean = true) // ,thread:number
 {
     let fileMapping: {};
     let fileArr;
@@ -18,31 +20,39 @@ export async function convert() // ,thread:number
         logger.error(getLang('docSelect'))
         return;
     }
-    let set = new Set(); 
-    fileArr.forEach((item)=> set.add(item)); 
-    let uniArr:string[] = Array.from(set) as string[];
-    let count=0,len = uniArr.length;
-    for(let file of uniArr)
-    {
+    let set = new Set();
+    fileArr.forEach((item) => set.add(item));
+    let uniArr: string[] = Array.from(set) as string[];
+    let count = 0, len = uniArr.length;
+    for (let file of uniArr) {
         // 判断原来的格式是否为转义的
         let oriFile = fileMapping[file];
         let flag = false
-        if( decodeURI(oriFile)==oriFile)
-        {
-            flag =  true
+        let newFile = ''
+        if (formatFlag) {
+            if (decodeURI(oriFile) == oriFile) {
+                flag = true
+            }
+            newFile = myEncodeURI(oriFile, flag);
+            logger.info(`[${oriFile}] convert to [${newFile}], ${count + 1}/${len}`, false);
+        } else {
+            // 是否原先
+            //path.resolve()
+            //path.relative()
+            if (path.isAbsolute(oriFile) ) {
+                flag = true
+            }
+            newFile = getAutoPath(oriFile);
         }
-        let newFile = myEncodeURI(oriFile,flag);
-        logger.info(`[${oriFile}] convert to [${newFile}], ${count+1}/${len}`,false);
-        try{
-            var reg = new RegExp( '!\\[([^\\]]*)\\]\\('+ escapeStringRegexp(oriFile) +'\\)','ig');
-            content =  content.replace(reg,'![$1]('+ newFile +')'); // 内容替换
+        try {
+            var reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(oriFile) + '\\)', 'ig');
+            content = content.replace(reg, '![$1](' + newFile + ')'); // 内容替换
             count++;
-        }catch(e)
-        {
+        } catch (e) {
             logger.error('convert error:');
             console.log(e);
         }
     }
-    await saveFile(content,count,true);
+    await saveFile(content, count, true);
 }
 

@@ -20,6 +20,7 @@
     "onCommand:markdown-image-manage.uploadclip",
     "onCommand:markdown-image-manage.clipboardImage",
     "onCommand:markdown-image-manage.convertImageFormat",
+    "onCommand:markdown-image-manage.convertImageLink",
     "onCommand:markdown-image-manage.move",
     "onLanguage:markdown"
   ],
@@ -69,6 +70,10 @@
       {
         "command": "markdown-image-manage.convertImageFormat",
         "title": "%markdown-image-manage.menuConvertFormat%"
+      },
+      {
+        "command": "markdown-image-manage.convertImageLink",
+        "title": "%markdown-image-manage.menuConvertLink%"
       }
     ],
     "menus": {
@@ -102,6 +107,10 @@
         },
         {
           "command": "markdown-image-manage.convertImageFormat",
+          "group": "1_workspace"
+        },
+        {
+          "command": "markdown-image-manage.convertImageLink",
           "group": "1_workspace"
         },
         {

@@ -9,6 +9,7 @@
     "markdown-image-manage.menuMove": "MIM:移动本地图片",
     "markdown-image-manage.menuClipImage":  "MIM:插入剪切板图片",
     "markdown-image-manage.menuConvertFormat": "MIM:转变所选格式",
+    "markdown-image-manage.menuConvertLink": "MIM:所选路径相对<->绝对",
     
     "markdown-image-manage.removeFolder": "本地图片目录清理时，其他图片移动的目标文件夹",
     "markdown-image-manage.hasBracket": "图片路径中是否包括右括号",
