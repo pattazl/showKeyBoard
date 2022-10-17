@@ -2,7 +2,7 @@
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
   "description": "Download,Move,Clean,Upload,Paste,Covert markdown's images(MIM)下载,移动,清理,分析,上传,粘帖,转换MD文件中的图片",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {
@@ -20,6 +20,7 @@
     "onCommand:markdown-image-manage.uploadclip",
     "onCommand:markdown-image-manage.clipboardImage",
     "onCommand:markdown-image-manage.convertImageFormat",
+    "onCommand:markdown-image-manage.convertImageLink",
     "onCommand:markdown-image-manage.move",
     "onLanguage:markdown"
   ],
@@ -69,6 +70,10 @@
       {
         "command": "markdown-image-manage.convertImageFormat",
         "title": "%markdown-image-manage.menuConvertFormat%"
+      },
+      {
+        "command": "markdown-image-manage.convertImageLink",
+        "title": "%markdown-image-manage.menuConvertLink%"
       }
     ],
     "menus": {
@@ -102,6 +107,10 @@
         },
         {
           "command": "markdown-image-manage.convertImageFormat",
+          "group": "1_workspace"
+        },
+        {
+          "command": "markdown-image-manage.convertImageLink",
           "group": "1_workspace"
         },
         {

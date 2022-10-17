@@ -1,4 +1,5 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
@@ -9,16 +10,14 @@ All notable changes to this project will be documented in this file.
 
 - Analysis: analyze the resource images in the MD file, list the network and local , and alarm if the local does not exist
 - Clean up: Check all the images in the directory where the MD file's local images are located . If they are not linked in the MD file, they will be moved to the "md-img-remove" directory
-
 - Download: Download all network images in the MD file to the defined directory
-
 - Upload: Automatically upload all local images in the MD file to the PicBed through picgo tool
-
 - Move: move all local images in the MD file to the defined directory
 
 ## [0.0.2] - 2022-04-16
 
 ### Added
+
 - Clean up the invalid local image in the MD file
 
 ### Removed
@@ -65,5 +64,11 @@ All notable changes to this project will be documented in this file.
 1. support paste clipboard image and define image's path
 2. fix the bug, can download images when HTTPS is unauthorized
 3. optimize the analysis of images mark
-3. support the  escaped image URL
-3. convert the format of selected image URL escape or not
+4. support the  escaped image URL
+5. convert the format of selected image URL escape or not
+
+## [0.0.8] - 2022-10-18
+
+### Added
+
+1. convert local image URL relative to absolute / absolute to relative

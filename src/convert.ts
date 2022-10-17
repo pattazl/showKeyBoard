@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import {
     getImages, escapeStringRegexp, logger,
-    getAutoPath, saveFile, myEncodeURI
+    getAutoPath, saveFile, myEncodeURI,switchPath
 } from './common'
 import { getLang } from './lang';
 
@@ -24,25 +24,31 @@ export async function convert(formatFlag: boolean = true) // ,thread:number
     fileArr.forEach((item) => set.add(item));
     let uniArr: string[] = Array.from(set) as string[];
     let count = 0, len = uniArr.length;
+    enum PathFlag {unknown, isAbs, isRelative}
+    let pathFlag:PathFlag = PathFlag.unknown
+
     for (let file of uniArr) {
         // 判断原来的格式是否为转义的
         let oriFile = fileMapping[file];
-        let flag = false
         let newFile = ''
+        let flag = false
         if (formatFlag) {
             if (decodeURI(oriFile) == oriFile) {
                 flag = true
             }
             newFile = myEncodeURI(oriFile, flag);
-            logger.info(`[${oriFile}] convert to [${newFile}], ${count + 1}/${len}`, false);
+            logger.info(`format[${oriFile}] convert to [${newFile}], ${count + 1}/${len}`, false);
         } else {
-            // 是否原先
-            //path.resolve()
-            //path.relative()
-            if (path.isAbsolute(oriFile) ) {
-                flag = true
+            // 根据第一个路径格式来判断，相对和绝对路径转换
+            if(pathFlag ==PathFlag.unknown){
+                if (path.isAbsolute(oriFile) ) {
+                    pathFlag = PathFlag.isAbs
+                }else{
+                    pathFlag = PathFlag.isRelative
+                }
             }
-            newFile = getAutoPath(oriFile);
+            newFile = switchPath(oriFile,pathFlag == PathFlag.isAbs);
+            logger.info(`path[${oriFile}] convert to [${newFile}], ${count + 1}/${len}`, false);
         }
         try {
             var reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(oriFile) + '\\)', 'ig');

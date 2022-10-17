@@ -5,7 +5,7 @@ import { getLang } from './lang';
 import * as dayjs from 'dayjs';
 // import * as chalk from 'chalk' 可以不必用chalk 库
 export let mdFile = ''; // 需要处理的文件
-let oMdFile:path.ParsedPath ; // mdFile的对象结构
+let oMdFile: path.ParsedPath; // mdFile的对象结构
 export let localFolder = ''; // 目标文件夹
 export let readonly = false; // 是否只读，默认修改内容
 export let skipSelectChange = false; // 是否只读，默认修改内容
@@ -63,16 +63,16 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         str = editContent; // 文本内容覆盖过去
         // 正则格式
         var reg;
-        if (imagePathBracket =='yes') {
+        if (imagePathBracket == 'yes') {
             reg = /!\[[^\]]*\]\((.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含
-        } else{
+        } else {
             // imagePathBracket =='no' or auto
             reg = /!\[[^\]]*\]\((.*?)\)/g; // 图片路径中没括号，非贪婪匹配
         }
         //const pattern = /!\[(.*?)\]\((.*?)\)/gm // 匹配图片正则
         // const imgList = str.match(pattern) || [] // ![img](http://hello.com/image.png)
         // let tmpPicArrNet: string[] = [],tmpPicArrLocal: string[]=[],tmpPicArrInvalid: string[]=[],tmpOriMapping={};
-        findImage(reg,str,imagePathBracket =='auto',picArrNet,picArrLocal,picArrInvalid,oriMapping);
+        findImage(reg, str, imagePathBracket == 'auto', picArrNet, picArrLocal, picArrInvalid, oriMapping);
         /*if(picArrInvalid.length>0 && )
         {
             // 尝试有括号重新查找
@@ -93,24 +93,22 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     retObj = { local: picArrLocal, net: picArrNet, invalid: picArrInvalid, mapping: oriMapping, content: str };
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 }
-function findImage(reg:any,str:string,auto:boolean,tmpPicArrNet:string[],tmpPicArrLocal:string[],tmpPicArrInvalid:string[],tmpOriMapping:{})
-{
+function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: {}) {
     //var mdfileName = fs.realpathSync(mdFile);
     var mdfilePath = path.dirname(mdFile); //arr.join('/'); // 获取文件路径
     while (true) {
-        let matched=reg.exec(str);
-        if(matched == null){break;}
+        let matched = reg.exec(str);
+        if (matched == null) { break; }
         let oriFlepath: string = matched[1];
         // 自动抵消匹配括号
-        if(auto&&oriFlepath.indexOf('(')>0)
-        {
+        if (auto && oriFlepath.indexOf('(') > 0) {
             var reg2 = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(oriFlepath) + '\\)', 'ig');
-            str = str.replace(reg2, '![$1](' + oriFlepath.replace('(','<LB>') + '<RB>'); // 内容替换<RB>
+            str = str.replace(reg2, '![$1](' + oriFlepath.replace('(', '<LB>') + '<RB>'); // 内容替换<RB>
             reg.lastIndex = matched.index; // 动态调整，重新正则匹配
             continue;
         }
         // 首先要判断文件路径，对于http https 路径忽略，对于没有写盘符的路径，加上 targetFile 的路径
-        oriFlepath = oriFlepath.replace(/<LB>/g,'(').replace(/<RB>/g,')');
+        oriFlepath = oriFlepath.replace(/<LB>/g, '(').replace(/<RB>/g, ')');
         let filepath = oriFlepath.trim();
         // 首先要判断文件路径，对于http https 路径忽略，对于没有写盘符的路径，加上 targetFile 的路径
         if (/^http:|https:/.test(filepath)) {
@@ -209,7 +207,7 @@ type MsgType = 'err' | 'warn' | 'info' | 'succ';
 export let logger = {
     core: function (msgType: MsgType, msg: string, popFlag: boolean = true, immediately: boolean = false) {
         // 核心模块显示
-        let color='', hint='', arr=[];
+        let color = '', hint = '', arr = [];
         switch (msgType) {
             case 'warn':
                 color = colorDict.yellow
@@ -240,7 +238,7 @@ export let logger = {
             }
         }
     },
-    warn: function (msg: string, popFlag : boolean = true, immediately: boolean = false) {
+    warn: function (msg: string, popFlag: boolean = true, immediately: boolean = false) {
         //console.log( chalk.yellow(...msg))
         this.core('warn', msg, popFlag, immediately);
     },
@@ -260,7 +258,7 @@ export let logger = {
 // 设置相关内部变量
 export function setPara(bracket: string, ren: boolean, read: boolean, skip: boolean
     , local: string, remote: string, rem: string
-    , dl: number, ul: number,cb:string ,urlf:boolean) {
+    , dl: number, ul: number, cb: string, urlf: boolean) {
     imagePathBracket = bracket;
     rename = ren;
     skipSelectChange = skip;
@@ -292,7 +290,7 @@ export function mdCheck(file: string): boolean {
         }
     }
     mdFile = file; // 内部对象赋值，多个模块共用
-    oMdFile= path.parse(mdFile)
+    oMdFile = path.parse(mdFile)
     docTextEditor = vscode.window.activeTextEditor;
     docPreSelection = docTextEditor?.selection; // 光标位置
     return true;
@@ -304,7 +302,7 @@ export function localCheck() {
     let targetFolder = path.resolve(parentPath, convertPath(localFolder.trim() || ''));
 
     if (!fs.existsSync(targetFolder)) {
-        logger.info(getLang('localfolder', targetFolder),true,true);
+        logger.info(getLang('localfolder', targetFolder), true, true);
         try {
             fs.mkdirSync(targetFolder);
         } catch (e) {
@@ -335,29 +333,40 @@ export function newName() {
     return new Date().getTime().toString(36) + num;
 }
 // 将URL地址进行转义和还原
-export function myEncodeURI(url: string , flag:boolean) {
+export function myEncodeURI(url: string, flag: boolean) {
     // 默认以 md文件为默认路径
-    let newPath = url.replace(/\\/g,'/'); // 转换为 / 格式 path.sep 格式不一样
+    let newPath = url.replace(/\\/g, '/'); // 转换为 / 格式 path.sep 格式不一样
     newPath = decodeURI(newPath); // 防止重复encode，先decode
-    newPath = flag?encodeURI(newPath):decodeURI(newPath);
+    newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
     return newPath;
 }
 // 转换为相对路径,第一个参数为相对路径，第二个为新的文件全路径
-export function getAutoPath(newfile: string,relativeFlag :boolean = true) {
+export function getAutoPath(newfile: string) {
     // 默认以 md文件为默认路径
-    let newPath = getAutoPathCore(oMdFile.dir,newfile,relativeFlag);
-    return myEncodeURI(newPath,urlFormatted);
+    let newPath = getAutoPathCore(oMdFile.dir, newfile);
+    return myEncodeURI(newPath, urlFormatted);
 }
 // 转换为路径 path.resolve('c:/aa/b','相对路径')
-function getAutoPathCore(dir: string, newfile: string,relativeFlag:boolean) {
-    let relativeFile = path.relative(dir, newfile);
-    // 如果不是上级目录的文件
-    if (relativeFile.indexOf('..\\') == -1) {
-        newfile = relativeFile;
-    }
-    return newfile;
-}
+function getAutoPathCore(dir: string, newfile: string) {
 
+        let relativeFile = path.relative(dir, newfile);
+        // 如果不是上级目录的文件
+        if (relativeFile.indexOf('..\\') == -1) {
+            newfile = relativeFile;
+        }
+        return newfile;
+}
+// 进行绝对路径和相对路径转换
+export function switchPath(strPath:string,relativeFlag: boolean = true)
+{
+    if(relativeFlag){
+        // 转相对路径
+        return path.relative(oMdFile.dir, strPath);
+    } else {
+        // 转换为绝对路径
+        return path.resolve(oMdFile.dir, strPath)
+    }
+}
 // 检测位置是否改变了
 function checkSamePos(pos1: vscode.Position | undefined, pos2: vscode.Position | undefined) {
     if (pos1 == null || pos2 == null) {
