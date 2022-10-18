@@ -67,7 +67,7 @@ All notable changes to this project will be documented in this file.
 4. support the  escaped image URL
 5. convert the format of selected image URL escape or not
 
-## [0.0.8] - 2022-10-18
+## [0.0.9] - 2022-10-18
 
 ### Added
 
