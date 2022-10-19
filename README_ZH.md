@@ -14,8 +14,9 @@ Markdown图片管理工具 "markdown-image-manage" 在VSCode中用菜单管理ma
 
 通过菜单操作
 
-![cn menu](https://s2.loli.net/2022/04/19/EK1YlQPZeM7zDNc.png)
-![en menu](https://s2.loli.net/2022/04/19/XpqtGoASJw6iCW4.png)
+![cn menu](https://s2.loli.net/2022/10/19/YoX2rpUWaHgezPi.png)
+
+![en.png](https://s2.loli.net/2022/10/19/jqBMm62zShfPHex.png)
 
 可以实现如下功能
 
@@ -59,7 +60,7 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 5. skipSelectChange: 当光标或选择范围改变后是否依然更新图片链接
 6. rename: 上传/下载/移动图片时是否需要重命名图片
 7. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)。
-8. clipboardPath: 剪切板图片的路径和名称，支持文件名`<filename>`和日期`<YYYYMMDD>`变量(dayjs)。
+8. clipboardPath: 剪切板图片的路径和名称，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)。
 9. urlFormatted: 图片URL格式是否转义，转义后有兼容性强可读性弱，插入本地图片时生效
 
 ## 已知问题
@@ -126,6 +127,12 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 3. 优化图片识别算法，图片路径中支持智能识别括号
 4. 支持插入图片图片时设置是否转义
 5. 支持对所选图片进行是否转义的切换
+
+## 0.0.9
+
+#### 增加
+
+1. 支持绝对路径和相对路径的切换（参考第一个路径）
 
 ## 仓库地址
 

@@ -72,3 +72,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 1. convert local image URL relative to absolute / absolute to relative
+
+## [0.1.0] - 2022-10-19
+
+Use esbuild

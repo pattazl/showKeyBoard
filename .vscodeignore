@@ -10,10 +10,11 @@ vsc-extension-quickstart.md
 **/*.ts
 others/**
 out/test/**
-gulpfile.js
+*.js
 i18n/**
 *.zip
 *.bak
 *.bat
 images/**
+node_modules/**
 README_ZH.md

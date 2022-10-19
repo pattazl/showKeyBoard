@@ -2,7 +2,7 @@
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
   "description": "Download,Move,Clean,Upload,Paste,Covert markdown's images(MIM)下载,移动,清理,分析,上传,粘帖,转换MD文件中的图片",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {
@@ -192,7 +192,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile-old": "tsc -p ./",
+    "compile": "node ./esbuild.config.js",
+    "build": "node ./esbuild.config.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -230,12 +232,14 @@
     "gulp-rename": "^2.0.0",
     "gulp-sourcemaps": "^3.0.0",
     "gulp-typescript": "^6.0.0-alpha.1",
-    "vscode-nls-dev": "^4.0.0"
-  },
-  "dependencies": {
+    "vscode-nls-dev": "^4.0.0",
+    "esbuild": "^0.15.1",
     "fs-extra": "^10.0.1",
     "vscode-nls": "^5.0.0",
     "dayjs": "^1.7.4",
     "is-wsl": "^2.2.0"
+  },
+  "dependencies": {
+
   }
 }

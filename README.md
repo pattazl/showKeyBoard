@@ -15,10 +15,10 @@
 ## Features
 
 The Menu show :
+![en.png](https://s2.loli.net/2022/10/19/jqBMm62zShfPHex.png)
 
-![cn menu](https://s2.loli.net/2022/04/19/EK1YlQPZeM7zDNc.png)
+![cn menu](https://s2.loli.net/2022/10/19/YoX2rpUWaHgezPi.png)
 
-![en menu](https://s2.loli.net/2022/04/19/XpqtGoASJw6iCW4.png)
 
 Functions as following :
 

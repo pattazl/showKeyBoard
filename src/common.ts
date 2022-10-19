@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getLang } from './lang';
-import * as dayjs from 'dayjs';
+let dayjs = require('dayjs');
 // import * as chalk from 'chalk' 可以不必用chalk 库
 export let mdFile = ''; // 需要处理的文件
 let oMdFile: path.ParsedPath; // mdFile的对象结构
