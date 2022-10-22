@@ -62,7 +62,6 @@ export async function vscConvertImageLink() {
     await convert(false)
     showInVscode();
 }
-vscConvertImageLink
 
 // 初始化参数，参数保存于 common模块中
 export function initPara() {
