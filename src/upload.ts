@@ -111,7 +111,7 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
         }
         // console.log(ctx.output) // [{ base64Image, fileName, width, height, extname }]
     });
-    let fileMapping: {};
+    let fileMapping: Record<string, any>;
     let fileArr;
     let content = '';
     if (clipBoard) {

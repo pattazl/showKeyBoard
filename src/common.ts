@@ -23,7 +23,7 @@ let docPreSelection: vscode.Selection | undefined; // 选择的范围
 let imagePathBracket = 'auto'; // 文件名中包含括号
 
 
-export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: {}, content: string } {
+export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: Record<string, any>, content: string } {
     var picArrLocal: string[] = [];
     var oriMapping = {};
     var picArrInvalid: string[] = [];
@@ -93,7 +93,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     retObj = { local: picArrLocal, net: picArrNet, invalid: picArrInvalid, mapping: oriMapping, content: str };
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 }
-function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: {}) {
+function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
     //var mdfileName = fs.realpathSync(mdFile);
     var mdfilePath = path.dirname(mdFile); //arr.join('/'); // 获取文件路径
     while (true) {
@@ -114,7 +114,7 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         if (/^http:|https:/.test(filepath)) {
             tmpPicArrNet.push(filepath);
         } else {
-            var tmpFilePath; //全路径
+            var tmpFilePath = ""; //全路径
             tmpFilePath = path.resolve(mdfilePath, filepath); // 支持相对目录和绝对路径
             tmpFilePath = decodeURI(tmpFilePath); // 地址可能被转义,需要还原
             if (fs.existsSync(tmpFilePath)) {
