@@ -22,6 +22,15 @@ let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
 let imagePathBracket = 'auto'; // 文件名中包含括号
 
+// 递归创建文件夹，保证在中间多个层级目录不存在时能创建成功
+function mkdirsSync(dirPath: string) {
+    if (fs.existsSync(dirPath)) {
+        return true;
+    } else if (mkdirsSync(path.dirname(dirPath))) {
+        fs.mkdirSync(dirPath);
+        return true;
+    }
+}
 
 export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: Record<string, any>, content: string } {
     var picArrLocal: string[] = [];
@@ -304,7 +313,7 @@ export function localCheck() {
     if (!fs.existsSync(targetFolder)) {
         logger.info(getLang('localfolder', targetFolder), true, true);
         try {
-            fs.mkdirSync(targetFolder);
+            mkdirsSync(targetFolder);
         } catch (e) {
             console.log(e)
             logger.error(getLang('createf', targetFolder));
