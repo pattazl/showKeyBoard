@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { fromBuffer } from 'file-type';
 import { getLang } from './lang';
 let dayjs = require('dayjs');
 // import * as chalk from 'chalk' 可以不必用chalk 库
@@ -477,10 +478,18 @@ export async function saveFile(content: string, count: number, selectFlag: boole
     logger.success(getLang('uptSucc', count, path.basename(mdFile)));
 }
 // 获取本地有效的文件名
-export function getValidFileName(dest: string, filename: string): string {
+export async function getValidFileName(dest: string, filename: string, content?: Buffer): Promise<string> {
     let pos1 = filename.search(/[\/:*\?\"<>|]/); // 找到第一个不合法字符位置截断
     if (pos1 > -1) {
         filename = filename.substring(0, pos1);
+    }
+    const imageExtensionRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg|ico)$/i;
+    // 若剔除不合法字符后文件名已不包含图片拓展名，则通过文件内容获取后补回
+    if (content && !imageExtensionRegex.test(filename)) {
+        const fileInfo = await fromBuffer(content);
+        if (fileInfo?.ext) {
+            filename = `${filename}.${fileInfo.ext}`
+        }
     }
     return getAntiSameFileName(dest, filename); // 防止文件重复
 }
