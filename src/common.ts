@@ -346,8 +346,12 @@ export function newName() {
 export function myEncodeURI(url: string, flag: boolean) {
     // 默认以 md文件为默认路径
     let newPath = url.replace(/\\/g, '/'); // 转换为 / 格式 path.sep 格式不一样
-    newPath = decodeURI(newPath); // 防止重复encode，先decode
-    newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
+    try {
+        newPath = decodeURI(newPath); // 防止重复encode，先decode
+        newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
+    } catch(e) {
+        console.log(e);
+    }
     return newPath;
 }
 // 转换为相对路径,第一个参数为相对路径，第二个为新的文件全路径
