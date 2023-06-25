@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { fromBuffer } from 'file-type';
+import * as fsExt from "fs-extra";
 import { getLang } from './lang';
 let dayjs = require('dayjs');
 // import * as chalk from 'chalk' 可以不必用chalk 库
@@ -22,16 +23,6 @@ export let urlFormatted = true; // URL格式神需要转义
 let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
 let imagePathBracket = 'auto'; // 文件名中包含括号
-
-// 递归创建文件夹，保证在中间多个层级目录不存在时能创建成功
-function mkdirsSync(dirPath: string) {
-    if (fs.existsSync(dirPath)) {
-        return true;
-    } else if (mkdirsSync(path.dirname(dirPath))) {
-        fs.mkdirSync(dirPath);
-        return true;
-    }
-}
 
 export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: Record<string, any>, content: string } {
     var picArrLocal: string[] = [];
@@ -313,13 +304,7 @@ export function localCheck() {
 
     if (!fs.existsSync(targetFolder)) {
         logger.info(getLang('localfolder', targetFolder), true, true);
-        try {
-            mkdirsSync(targetFolder);
-        } catch (e) {
-            console.log(e)
-            logger.error(getLang('createf', targetFolder));
-            return false;
-        }
+        fsExt.ensureDirSync(targetFolder);
     } else {
         var stat = fs.statSync(targetFolder);
         if (!stat.isDirectory()) {
