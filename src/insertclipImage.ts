@@ -23,7 +23,7 @@ export async function insertClipImage() // ,thread:number
   let oTargetPath = path.parse(targetPath);
   // 自动创建目录
   fs.ensureDirSync(oTargetPath.dir);
-  let validPath = getValidFileName(oTargetPath.dir, oTargetPath.base);
+  let validPath = await getValidFileName(oTargetPath.dir, oTargetPath.base);
   let imagePath = '';
   try {
     imagePath = await insertClibBoard(validPath);

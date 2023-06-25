@@ -38,7 +38,7 @@ export async function move(lf:string) // ,thread:number
             // 仅仅更换目录
             newFileName = imageFile.base;
         }
-        let newFile = getValidFileName(localFolder,newFileName);
+        let newFile = await getValidFileName(localFolder,newFileName);
         if( newFile == ''){
             logger.error(`get new image file name[${newFile}] fail!`);
             return '';

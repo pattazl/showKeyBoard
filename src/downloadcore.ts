@@ -3,6 +3,7 @@ import * as https from "https";
 import * as http from "http";
 import * as path from "path";
 import { URL } from "url";
+import { Buffer } from 'buffer';
 import { logger, newName ,getValidFileName } from './common';
 // 伪装成浏览器
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -24,26 +25,28 @@ async function download(url: string, dest: string, options:{}) {
         filename = newName() + path.extname(filename); // 36 进制
       }
 
-      let filePath = getValidFileName(dest, filename);
-      if (filePath == '') {
-        reject('get file path fail!');
-        return;
-      }
       if (res.statusCode === 200) {
-        const file = fs.createWriteStream(filePath);
+        const chunks: any[] = [];
         let num = 0;
         res
           .on("data", (chunk:any) => {
             num = chunk.length + num;
+            chunks.push(chunk);
             //console.log(chunk.length, num, chunk);
           })
-          .on("end", () => {
+          .on("end", async () => {
+            const content = Buffer.concat(chunks);
+            let filePath = await getValidFileName(dest, filename, content);
+            if (filePath == '') {
+              reject('get file path fail!');
+              return;
+            }
+            fs.writeFileSync(filePath, content);
             resolve(filePath);
           })
           .on("error", (err:any) => {
             reject(err);
-          })
-          .pipe(file);
+          });
       } else if (res.statusCode === 302 || res.statusCode === 301) {
         // Recursively follow redirects, only a 200 will resolve.
         download(res.headers.location||'', dest, options).then((val) =>

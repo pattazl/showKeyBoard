@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { fromBuffer } from 'file-type';
+import * as fsExt from "fs-extra";
 import { getLang } from './lang';
 let dayjs = require('dayjs');
 // import * as chalk from 'chalk' 可以不必用chalk 库
@@ -22,8 +24,7 @@ let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
 let imagePathBracket = 'auto'; // 文件名中包含括号
 
-
-export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: {}, content: string } {
+export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: Record<string, any>, content: string } {
     var picArrLocal: string[] = [];
     var oriMapping = {};
     var picArrInvalid: string[] = [];
@@ -93,7 +94,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     retObj = { local: picArrLocal, net: picArrNet, invalid: picArrInvalid, mapping: oriMapping, content: str };
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 }
-function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: {}) {
+function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
     //var mdfileName = fs.realpathSync(mdFile);
     var mdfilePath = path.dirname(mdFile); //arr.join('/'); // 获取文件路径
     while (true) {
@@ -114,7 +115,7 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         if (/^http:|https:/.test(filepath)) {
             tmpPicArrNet.push(filepath);
         } else {
-            var tmpFilePath; //全路径
+            var tmpFilePath = ""; //全路径
             tmpFilePath = path.resolve(mdfilePath, filepath); // 支持相对目录和绝对路径
             tmpFilePath = decodeURI(tmpFilePath); // 地址可能被转义,需要还原
             if (fs.existsSync(tmpFilePath)) {
@@ -303,13 +304,7 @@ export function localCheck() {
 
     if (!fs.existsSync(targetFolder)) {
         logger.info(getLang('localfolder', targetFolder), true, true);
-        try {
-            fs.mkdirSync(targetFolder);
-        } catch (e) {
-            console.log(e)
-            logger.error(getLang('createf', targetFolder));
-            return false;
-        }
+        fsExt.ensureDirSync(targetFolder);
     } else {
         var stat = fs.statSync(targetFolder);
         if (!stat.isDirectory()) {
@@ -336,8 +331,12 @@ export function newName() {
 export function myEncodeURI(url: string, flag: boolean) {
     // 默认以 md文件为默认路径
     let newPath = url.replace(/\\/g, '/'); // 转换为 / 格式 path.sep 格式不一样
-    newPath = decodeURI(newPath); // 防止重复encode，先decode
-    newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
+    try {
+        newPath = decodeURI(newPath); // 防止重复encode，先decode
+        newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
+    } catch(e) {
+        console.log(e);
+    }
     return newPath;
 }
 // 转换为相对路径,第一个参数为相对路径，第二个为新的文件全路径
@@ -468,10 +467,18 @@ export async function saveFile(content: string, count: number, selectFlag: boole
     logger.success(getLang('uptSucc', count, path.basename(mdFile)));
 }
 // 获取本地有效的文件名
-export function getValidFileName(dest: string, filename: string): string {
+export async function getValidFileName(dest: string, filename: string, content?: Buffer): Promise<string> {
     let pos1 = filename.search(/[\/:*\?\"<>|]/); // 找到第一个不合法字符位置截断
     if (pos1 > -1) {
         filename = filename.substring(0, pos1);
+    }
+    const imageExtensionRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg|ico)$/i;
+    // 若剔除不合法字符后文件名已不包含图片拓展名，则通过文件内容获取后补回
+    if (content && !imageExtensionRegex.test(filename)) {
+        const fileInfo = await fromBuffer(content);
+        if (fileInfo?.ext) {
+            filename = `${filename}.${fileInfo.ext}`
+        }
     }
     return getAntiSameFileName(dest, filename); // 防止文件重复
 }

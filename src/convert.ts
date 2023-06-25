@@ -8,7 +8,7 @@ import { getLang } from './lang';
 
 export async function convert(formatFlag: boolean = true) // ,thread:number
 {
-    let fileMapping: {};
+    let fileMapping: Record<string, any>;
     let fileArr;
     let content = '';
 
