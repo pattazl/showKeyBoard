@@ -139,13 +139,13 @@ let zhcnLang:Record<langGroup, string>= {
     ,noCBimage: "剪切板中没图片!"
 }
 // 语言包汇总
-let lang = {
+let lang: Record<string, any> = {
     'en': defaultLang,
     'zh-cn': zhcnLang
 };
 // 通过此方法获取信息
 export function getLang(key: langGroup, ...msg:any) {
-    let local = lang[locale][key];
+    let local = (lang[locale] ?? defaultLang)[key];
     if(msg!=null)
     {
         return util.format(local,...msg);
