@@ -1,6 +1,6 @@
 Persistent  ; 持久运行脚本
 
-global APPName:="ShowKeyBoard", ver:=1.0
+global APPName:="ShowKeyBoard", ver:=1.1
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
 skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
@@ -10,14 +10,18 @@ loop arrSkips.length{
 	skipKeys:=skipKeys "{" GetKeyName(arrSkips[A_Index]) "}"
 }
 ; 不要阻塞按键
-~LCtrl::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~RCtrl::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~LShift::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~RShift::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~LWin::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~RWin::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~LAlt::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-~RAlt::PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+~LCtrl::SendCtrlKey
+~RCtrl::SendCtrlKey
+~LShift::SendCtrlKey
+~RShift::SendCtrlKey
+~LWin::SendCtrlKey
+~RWin::SendCtrlKey
+~LAlt::SendCtrlKey
+~RAlt::SendCtrlKey
+SendCtrlKey()
+{
+    PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+}
 #Include dialog.ahk
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
