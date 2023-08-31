@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "build-s": "node ./esbuild.server.release.js",
+    "dev-s": "node ./esbuild.server.js",
+    "build-c": "node ./esbuild.client.release.js",
+    "dev-c": "node ./esbuild.client.js"
+  },
+  "dependencies": {
+    "ws": "^8.13.0",
+	  "dayjs": "^1.8.16",
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.15.1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+		"type": "msedge",
+		"request": "launch",  // 分为launch(启动) 和 attach(附加)两种
+		"name": "调试客户端", // 调试配置名，此方案不使用ts-node，直接node调试
+		"url": "http://localhost:8088/setting.html" ,  // 先通过 http-server ${workspaceFolder} 启动   "http://localhost:8080/debug.html"
+		"preLaunchTask": "MyServer", // 预运行任务的标签名，具体在tasks.json中定义 ${defaultBuildTask}
+		"webRoot": "${workspaceFolder}"
+	},
+	{
+		"type": "node",
+		"request": "launch",  // 分为launch(启动) 和 attach(附加)两种
+		"name": "调试服务端", // 调试配置名，此方案不使用ts-node，直接node调试
+		"preLaunchTask": "MyServer", // 预运行任务的标签名，具体在tasks.json中定义 ${defaultBuildTask}
+	}
+	]
+}

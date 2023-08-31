@@ -1,0 +1,12 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+	"version": "2.0.0",
+	"tasks": [
+			{
+				"label": "MyServer", // 个人倾向于用这个
+				"type": "shell",
+				"command": "node ./esbuild.server.js", // 基于 tsconfig.josn 调用全局的tsc进行编译，会编译整个目录,命令行用 && ps用;连接  tsc --incremental 
+			},
+	]
+}

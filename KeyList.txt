@@ -1,0 +1,37 @@
+Space : ␣
+<^  : ^+
+>^  : ^+
+<!  : ⎇+
+>!  : ⎇+
+<+  : ⇧+
+>+  : ⇧+
+<#  : ⊞+
+>#  : ⊞+
+Enter : ↩
+Left : ⬅ 
+Up :⬆︎ 
+Down :⬇ 
+Right :➞
+LControl : ^
+RControl : ^
+LWin : ⊞
+RWin : ⊞
+LAlt : ⎇
+RAlt : ⎇
+LShift : ⇧
+RShift : ⇧
+Backspace : BS
+Escape: Esc
+CapsLock :Caps
+Delete:Del 
+Insert:Ins
+PrintScreen:PrtSc
+ScrollLock:Scroll
+Insert:Ins
+PgUp : PgUp
+AppsKey : Menu 
+Ctrl : ^
+LWin : ⊞
+RWin : ⊞
+Alt : ⎇
+Shift : ⇧
