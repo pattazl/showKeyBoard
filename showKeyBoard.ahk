@@ -4,20 +4,28 @@ global APPName:="ShowKeyBoard", ver:=1.1
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
 skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
-; 外部配置文件读取
-arrSkips := StrSplit(IniRead("showKeyBoard.ini","common","skipKeys",""),'|')
-loop arrSkips.length{
-	skipKeys:=skipKeys "{" GetKeyName(arrSkips[A_Index]) "}"
+; 配置文件读取
+skipRecord := StrSplit(IniRead("showKeyBoard.ini","common","skipRecord",""),'|')
+; 哪些按键要忽略记录
+skipCtrlKey := IniRead("showKeyBoard.ini","common","skipCtrlKey","0")
+; 是否忽略单独的控制键，不记录
+
+; 正式代码开始
+loop skipRecord.length{
+	skipKeys:=skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
 }
 ; 不要阻塞按键
-~LCtrl::SendCtrlKey
-~RCtrl::SendCtrlKey
-~LShift::SendCtrlKey
-~RShift::SendCtrlKey
-~LWin::SendCtrlKey
-~RWin::SendCtrlKey
-~LAlt::SendCtrlKey
-~RAlt::SendCtrlKey
+if skipCtrlKey = 0
+{
+    ~LCtrl::SendCtrlKey
+    ~RCtrl::SendCtrlKey
+    ~LShift::SendCtrlKey
+    ~RShift::SendCtrlKey
+    ~LWin::SendCtrlKey
+    ~RWin::SendCtrlKey
+    ~LAlt::SendCtrlKey
+    ~RAlt::SendCtrlKey
+}
 SendCtrlKey()
 {
     PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))

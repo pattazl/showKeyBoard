@@ -30,7 +30,8 @@ ctrlState :=IniRead("showKeyBoard.ini","dialog","ctrlState",1 ) ; 是否显示 �
 ctrlX :=IniRead("showKeyBoard.ini","dialog","ctrlX",10 ) ; 控制键X位置
 ctrlY :=IniRead("showKeyBoard.ini","dialog","ctrlY",10 ) ; 控制键Y位置
 ctrlTextSize :=IniRead("showKeyBoard.ini","dialog","ctrlTextSize", 20 ) ; 字体大小
-ctrlList := StrSplit(IniRead("showKeyBoard.ini","dialog","ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock"),"|") ; 哪些按键长按会显示出来
+ctrlList := StrSplit(IniRead("showKeyBoard.ini","dialog","ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock"),"|") ; 哪些按键长按会单独显示出来
+skipShow := StrSplit(IniRead("showKeyBoard.ini","dialog","skipShow", ""),"|") ; 哪些按键不会显示，但会记录
 
 ; 内部参数
 global guiArr := Array() ; 保存guiObj 对象
@@ -161,7 +162,17 @@ CloseSelf()
 CallShow()
 {
 	if inArr.Length > 0 {
-		ShowTxt( ConvertTxt(inArr[1]) )
+        val1 := inArr[1]
+        bShow := 1
+        loop skipShow.Length {
+            if skipShow[A_Index] = val1 {
+                bShow := 0
+                break  ; 在不显示列表中跳过
+            }
+        }
+        if(bShow=1){
+            ShowTxt( ConvertTxt(val1) )
+        }
 		inArr.RemoveAt(1)
 	}
 }
@@ -353,7 +364,7 @@ CreateCtrlState()
 	if(ctrlState=1){
 		ctrlStateGui.Show("NoActivate x" ctrlX " y" ctrlY " w" ew " h" editHeight)
 		; 显示控制键
-		SetTimer(ShowCtrlState, 100)
+		SetTimer(ShowCtrlState, 50)
 	}
 }
 CreateCtrlState()
