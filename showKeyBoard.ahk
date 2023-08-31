@@ -5,7 +5,7 @@ global APPName:="ShowKeyBoard", ver:=1.0
 ; 这些按键用独立的监控来发送
 skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
 ; 外部配置文件读取
-arrSkips := StrSplit(IniRead("showKey.ini","common","skipKeys",""),'|')
+arrSkips := StrSplit(IniRead("showKeyBoard.ini","common","skipKeys",""),'|')
 loop arrSkips.length{
 	skipKeys:=skipKeys "{" GetKeyName(arrSkips[A_Index]) "}"
 }
