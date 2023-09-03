@@ -55,7 +55,8 @@ SetTimer( Reload, ShutDownLeft() )
 ; 托盘相关
 global MyMenu
 global L_menu_startup:="开机启动"
-global L_menu_reload:="重新启动"
+global L_menu_reload:="重启程序"
+global L_menu_reset:="完全重启"
 global L_menu_pause:="暂停运行"
 global L_menu_set:="参数设置"
 global L_menu_stat:="数据统计"
@@ -79,6 +80,11 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   {
 	Reload()
   }
+  if(ItemName = L_menu_reset)
+  {
+	ExitServer()
+	Reload()
+  }
   if(ItemName = L_menu_exit)
   {
     ExitServer()
@@ -86,11 +92,11 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   }
   if(ItemName = L_menu_set)
   {
-	Run serverUrl "/setting"
+	Run serverUrl "/setting.html"
   }
   if(ItemName = L_menu_stat)
   {
-	Run serverUrl "/stat"
+	Run serverUrl "/stat.html"
   }
   if(ItemName = L_menu_pause)
   {
@@ -113,6 +119,9 @@ CreateMenu()
   MyMenu.Delete()
   MyMenu.Add(L_menu_startup, MenuHandler)
   MyMenu.Add(L_menu_reload, MenuHandler)
+  if needRecordKey = 1{
+	MyMenu.Add(L_menu_reset, MenuHandler)
+  }
   MyMenu.Add(L_menu_pause, MenuHandler)
   MyMenu.Add(L_menu_set, MenuHandler)
   MyMenu.Add(L_menu_stat, MenuHandler)
