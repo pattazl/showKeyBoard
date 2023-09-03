@@ -1,6 +1,6 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.1" 
+global APPName:="ShowKeyBoard", ver:="1.2" 
      , IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
      

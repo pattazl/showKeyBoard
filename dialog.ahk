@@ -230,11 +230,7 @@ global PrePushKey :="" ; 前一次按键
 RecordKey(txt)
 {
 	global PrePushKey
-	if( !AllKeyRecord.Has(txt))
-	{
-		AllKeyRecord[txt] :=0
-	}
-	AllKeyRecord[txt] +=1 ; 统一添加
+	AddRecord(txt) ; 统一添加
 	;<^>^<!>!<+>+ 只在组合按键中出现
 	mapping := Map()
 	mapping['<^'] := 'LControl'
@@ -245,16 +241,31 @@ RecordKey(txt)
 	mapping['>!'] := 'RAlt'
 	mapping['<+'] := 'LShift'
 	mapping['>+'] := 'RShift'
+    leftTxt := txt
 	for key,val in mapping
 	{
-		if (InStr(txt,key) >0 && PrePushKey =val)
+		if (InStr(leftTxt,key) >0 )
 		{
-			AllKeyRecord[PrePushKey] -= 1 ; 因为会重复计算
-			AllKeyRecord[val] += 1 ; 按键分解统计
+            if(PrePushKey =val){
+                AllKeyRecord[PrePushKey] -= 1 ; 因为会重复计算
+            }
+            AddRecord(val) ; 按键分解统计
+            leftTxt := StrReplace(leftTxt,key,'')
 		}
 	}
+    if( leftTxt != txt){
+        AddRecord(leftTxt)
+    }
 	PrePushKey :=txt
     AutoSendData()  ; 发送数据给后端服务
+}
+; 如果不存在则创建，存在则+1
+AddRecord(key){
+    if( !AllKeyRecord.Has(key))
+    {
+        AllKeyRecord[key] :=0
+    }
+    AllKeyRecord[key] += 1
 }
 ; 将<#内容转换为自定义的符号 {LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}
 ConvertTxt(t){

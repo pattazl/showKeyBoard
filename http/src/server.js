@@ -65,7 +65,9 @@ app.get('/', (req, res) => {
 app.post('/exit', (req, res) => {
   console.log('exit')
   res.send('1');
+  wss.close()
   server.close(()=>{})  //  退出服务
+  setTimeout(function(){process.exit();},1000);
 });
 
 // 发送数据
