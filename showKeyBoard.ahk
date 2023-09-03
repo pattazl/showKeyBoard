@@ -1,36 +1,27 @@
-Persistent  ; 持久运行脚本
-
-global APPName:="ShowKeyBoard", ver:=1.1
-; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
-; 这些按键用独立的监控来发送
-skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
-; 配置文件读取
-skipRecord := StrSplit(IniRead("showKeyBoard.ini","common","skipRecord",""),'|')
-; 哪些按键要忽略记录
-skipCtrlKey := IniRead("showKeyBoard.ini","common","skipCtrlKey","0")
-; 是否忽略单独的控制键，不记录
-
+#Requires AutoHotkey v2
+#SingleInstance Ignore
+#include "common.ahk"
+#Include events.ahk
 ; 正式代码开始
-loop skipRecord.length{
-	skipKeys:=skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
+loop skipRecord.length {
+	skipKeys := skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
 }
 ; 不要阻塞按键
-if skipCtrlKey = 0
-{
-    ~LCtrl::SendCtrlKey
-    ~RCtrl::SendCtrlKey
-    ~LShift::SendCtrlKey
-    ~RShift::SendCtrlKey
-    ~LWin::SendCtrlKey
-    ~RWin::SendCtrlKey
-    ~LAlt::SendCtrlKey
-    ~RAlt::SendCtrlKey
-}
+~LCtrl::SendCtrlKey
+~RCtrl::SendCtrlKey
+~LShift::SendCtrlKey
+~RShift::SendCtrlKey
+~LWin::SendCtrlKey
+~RWin::SendCtrlKey
+~LAlt::SendCtrlKey
+~RAlt::SendCtrlKey
 SendCtrlKey()
 {
-    PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+	if(skipCtrlKey = 0){
+		PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+	}
 }
-#Include dialog.ahk
+
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
 ; 设置所有按键的监听
@@ -66,6 +57,8 @@ global MyMenu
 global L_menu_startup:="开机启动"
 global L_menu_reload:="重新启动"
 global L_menu_pause:="暂停运行"
+global L_menu_set:="参数设置"
+global L_menu_stat:="数据统计"
 global L_menu_exit:="退出程序"
 LinkPath := A_Startup "\" APPName ".Lnk"
 MenuHandler(ItemName , ItemPos, MyMenu){
@@ -88,7 +81,16 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   }
   if(ItemName = L_menu_exit)
   {
+    ExitServer()
 	ExitApp()
+  }
+  if(ItemName = L_menu_set)
+  {
+	Run serverUrl "/setting"
+  }
+  if(ItemName = L_menu_stat)
+  {
+	Run serverUrl "/stat"
   }
   if(ItemName = L_menu_pause)
   {
@@ -99,7 +101,6 @@ MenuHandler(ItemName , ItemPos, MyMenu){
 		Pause(True)
 		MyMenu.Check(L_menu_pause)
 	}
-	
   }
 }
 
@@ -113,6 +114,8 @@ CreateMenu()
   MyMenu.Add(L_menu_startup, MenuHandler)
   MyMenu.Add(L_menu_reload, MenuHandler)
   MyMenu.Add(L_menu_pause, MenuHandler)
+  MyMenu.Add(L_menu_set, MenuHandler)
+  MyMenu.Add(L_menu_stat, MenuHandler)
   MyMenu.Add(L_menu_exit, MenuHandler)
   ; 初始化默认状态
   If FileExist(LinkPath)
@@ -122,6 +125,8 @@ CreateMenu()
   }
 }
 CreateMenu()
+
+#Include dialog.ahk
 
 ; 这个可能导致死循环，必须最后
 Loop {

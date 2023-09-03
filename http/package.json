@@ -6,9 +6,10 @@
     "dev-c": "node ./esbuild.client.js"
   },
   "dependencies": {
-    "ws": "^8.13.0",
-	  "dayjs": "^1.8.16",
-    "express": "^4.17.1"
+    "dayjs": "^1.8.16",
+    "express": "^4.17.1",
+    "ini": "^4.1.1",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "esbuild": "^0.15.1"

@@ -1,6 +1,6 @@
 function setWS() {
     // 创建WebSocket对象并连接服务器
-    const socket = new WebSocket('ws://localhost:8080');
+    const socket = new WebSocket('ws://localhost:9901');
 
     // 监听连接成功事件
     socket.onopen = () => {

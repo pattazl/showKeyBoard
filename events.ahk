@@ -1,0 +1,170 @@
+; 用于进行对外通讯，只读本地文件 和发送数据
+#include common.ahk
+
+; 变量控制
+reqXMLHTTP := 0 
+msgNotLaunch := '服务启动失败,无法进行参数界面设置和数据统计查看'
+lastModified := FileGetTime(IniFile)
+global HttpCtrlObj := Map()  ; 和http任务相关的数据
+HttpCtrlObj['resp'] := '' ; 返回的数据
+HttpCtrlObj['task'] := '' ; 任务名
+HttpCtrlObj['state'] := '' ; 当前状态 wait succ error
+serverState := -1  ; 是否连接到服务器， -1 还未连接，0连失败，1 成功连接 
+
+; 设置检测间隔，单位为毫秒
+SetTimer IniMonitor,2000
+IniMonitor(){
+    global lastModified
+    modified := FileGetTime(IniFile)
+    if (modified != lastModified)
+    {
+        ;  当文件发生变化后，需要重新载入
+        Reload()
+        lastModified := modified
+    }
+}
+
+; 判断后端接口，启动相关程序
+Init()
+CheckServer()
+; 定时发送数据
+AutoSendData()
+; 网络相关函数代码
+Init(){
+    try{
+        global reqXMLHTTP := ComObject("Msxml2.XMLHTTP")  ; Msxml2.XMLHTTP Microsoft.XMLHTTP
+    }
+    catch
+    {
+        MsgBox '无法创建XMLHTTP对象通讯,' msgNotLaunch
+    }
+}
+; 发送数据
+StartHttp(task,route,data,timeout:=8000)
+{
+    if reqXMLHTTP = 0 
+        return
+    ; 如果正在运行则退出，同一时间只会有一个
+    if HttpCtrlObj['state'] = 'wait'
+    {
+        return 0
+    }
+    HttpCtrlObj['task'] := task  ; 任务名
+    HttpCtrlObj['tick'] := A_TickCount  ; 任务tick
+    HttpCtrlObj['timeout'] := timeout  ; 任务超时,一般不用设置
+    sendData(route,data)
+    ; 检测数据变化情况
+    SetTimer ServerCore, 10
+    return 1
+}
+; 是否曾经启动或Cmd
+CheckServer(){
+    ; 如果不能连接上则需要启动Node服务
+    StartHttp('connect','/version','')
+}
+; 服务核心处理
+ServerCore()
+{
+    state := HttpCtrlObj['state'] ; 此值会随时变化，先记录下
+    if( (A_TickCount - HttpCtrlObj['tick']) > HttpCtrlObj['timeout'])
+    {
+        ; 超时，需要取消定时
+        SetTimer ServerCore, 0
+        ; 此时可以尝试启动服务
+        if startServer() = 0{
+            ShowTxt '任务[' HttpCtrlObj['task'] ']通讯超时:' HttpCtrlObj['timeout'] 
+        }
+        return
+    }
+    if(state ='wait')
+    {
+        return
+    }
+    ; 连接完成，取消定时
+    SetTimer ServerCore, 0  
+    if HttpCtrlObj['task']='connect' {
+        if state ='succ' && InStr(HttpCtrlObj['resp'],'showKeyBoardServer Version:') > 0
+        {
+            ; 成功启动后端服务
+            global serverState := 1
+             ShowTxt '成功启动后端服务'
+        }else{
+            if startServer() = 0{
+                MsgBox msgNotLaunch
+            }
+        }
+    }else{
+        ; 常规数据发送处理
+        if state !='succ'{
+            ShowTxt HttpCtrlObj['task'] ',通讯失败'
+        }
+    }
+}
+; 启动服务
+startServer()
+{
+    if serverState = -1 {
+        ;  需要启动服务
+        cmd := 'node.exe http/src/server.js'
+        try {
+        ; Run cmd ,,'Hide'
+            Run cmd
+            global serverState := 0 ; 默认为失败
+            CheckServer()  ; 启动完毕再次检查
+            return 1
+        }catch{
+            MsgBox '启动node失败'
+            return 0
+        }
+    }
+    return 0
+}
+; 自动发送 AllKeyRecord 数据
+AutoSendData()
+{
+    if serverState = 1 {
+        StartHttp('data','/data',AllKeyRecord,timeout:=8000)
+    }
+}
+
+; 发送退出数据
+ExitServer()
+{
+    if serverState = 1 {
+        StartHttp('exit','/exit','')
+    }
+}
+; 数据回调和核心发送
+Ready() {
+    if reqXMLHTTP = 0 
+        return
+    if (reqXMLHTTP.readyState != 4)  ; Not done yet.
+    {
+        ; HttpCtrlObj['state'] := 'wait'
+        return
+    }
+    if (reqXMLHTTP.status == 200)
+    {    ; OK.
+        HttpCtrlObj['state'] := 'succ'
+        HttpCtrlObj['resp'] := reqXMLHTTP.responseText
+    }
+    else{
+        HttpCtrlObj['state'] := 'error'
+    }
+    ;MsgBox "Status " reqXMLHTTP.status,, 16
+}
+#Include "lib/_JXON.ahk"
+sendData(route,data:=''){
+    HttpCtrlObj['state'] := 'wait'
+	reqXMLHTTP.open("POST", serverUrl route , true)
+	reqXMLHTTP.setRequestHeader("Content-Type", "application/json")
+	; Set our callback function.application/json  text/plain"
+	reqXMLHTTP.onreadystatechange := Ready
+	; Send the reqXMLHTTPuest.  Ready() will be called when it's complete.
+    ;data["time"] := A_Now
+    str := ''
+    if(data!=''){
+        str := jxon_dump(data, indent:=0)
+    }
+	reqXMLHTTP.send( str )
+}
