@@ -62,6 +62,8 @@ global L_menu_set:="参数设置"
 global L_menu_stat:="数据统计"
 global L_menu_exit:="退出程序"
 LinkPath := A_Startup "\" APPName ".Lnk"
+menu_msg_noserver := '服务未成功启动，不能用界面查看和设置'
+
 MenuHandler(ItemName , ItemPos, MyMenu){
   if(ItemName = L_menu_startup)
   {
@@ -92,11 +94,19 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   }
   if(ItemName = L_menu_set)
   {
-	Run serverUrl "/setting.html"
+	if serverState = 1 {
+		Run serverUrl "/setting.html"
+	}else{
+		MsgBox menu_msg_noserver
+	}
   }
   if(ItemName = L_menu_stat)
   {
-	Run serverUrl "/stat.html"
+	if serverState = 1 {
+		Run serverUrl "/stat.html"
+	}else{
+		MsgBox menu_msg_noserver
+	}
   }
   if(ItemName = L_menu_pause)
   {
