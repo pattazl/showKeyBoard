@@ -35,3 +35,8 @@ LWin : ⊞
 RWin : ⊞
 Alt : ⎇
 Shift : ⇧
+WheelUp : ⇡
+WheelDown : ⇣
+MButton : 🖲️
+LButton : 🖱️
+RButton : 🖰

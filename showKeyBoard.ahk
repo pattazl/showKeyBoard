@@ -21,6 +21,19 @@ SendCtrlKey()
 		PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
 	}
 }
+; 鼠标事件
+
+~WheelUp::SendMouse
+~WheelDown::SendMouse
+~LButton::SendMouse
+~MButton::SendMouse
+~RButton::SendMouse
+SendMouse()
+{
+	if(showMouseEvent = 1){
+		PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+	}
+}
 
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0

@@ -13,6 +13,10 @@ skipRecord := StrSplit(IniRead(IniFile,"common","skipRecord",""),'|')
 ; 哪些按键要忽略记录
 skipCtrlKey := IniRead(IniFile,"common","skipCtrlKey","0")
 ; 是否忽略单独的控制键，不记录
+showMouseEvent := IniRead(IniFile,"common","showMouseEvent","1")
+; 是否显示和记录鼠标事件
+recordMouseMove := IniRead(IniFile,"common","recordMouseMove","0")
+; 是否记录鼠标移动距离
 needShowKey := IniRead(IniFile,"common","needShowKey","1")
 ; 是否显示按键
 needRecordKey := IniRead(IniFile,"common","needRecordKey","1")
