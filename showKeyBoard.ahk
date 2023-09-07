@@ -22,7 +22,6 @@ SendCtrlKey()
 	}
 }
 ; 鼠标事件
-
 ~WheelUp::SendMouse
 ~WheelDown::SendMouse
 ~LButton::SendMouse
@@ -30,11 +29,32 @@ SendCtrlKey()
 ~RButton::SendMouse
 SendMouse()
 {
-	if(showMouseEvent = 1){
-		PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+	if(showMouseEvent > 0){
+		PushTxt(GetKeyName(StrReplace(A_ThisHotkey,'~','')),True)
 	}
 }
-
+; 鼠标开始的位置和距离
+mouseStartX := 0
+mouseStartY := 0
+mouseDistance := 0
+GetDistance(){
+     MouseGetPos &currentX, &currentY
+    ; 计算鼠标移动距离
+	; 计算两点间的直线距离
+	distance := Integer(Sqrt((currentX - mouseStartX) ** 2 + (currentY - mouseStartY) ** 2))
+	if distance > 0{
+    global mouseDistance += distance
+    ; 在命令行窗口中输出距离
+    ;ShowTxt 'Distance: ' mouseDistance
+		AllKeyRecord['mouseDistance'] := mouseDistance
+		global mouseStartX := currentX
+		global mouseStartY := currentY
+	}
+}
+; 是否需要记录距离
+if recordMouseMove = 1{
+	SetTimer(GetDistance,100)  ; 每n毫秒记录一次位置
+}
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
 ; 设置所有按键的监听

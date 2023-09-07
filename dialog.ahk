@@ -213,15 +213,19 @@ GetKeyText(arr)
 	}
 	return text
 }
+; 通用的计算高地位方法
+GetBitState(val,bitPos){
+	return (val>>(bitPos-1))&1 ; 获取指定位后清理高位
+}
 ; 将数据放到数组中
-PushTxt(txt)
+PushTxt(txt,isMouse:=False)
 {
-    if(needShowKey = 1){
+    if(needShowKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,2)=1 ))){
         inArr.push(txt)
     }
 	; 按键数量统计
 	; OutputDebug "AutoHotkey - " txt
-	if(needRecordKey = 1){
+	if(needRecordKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,1)=1 ))){
         RecordKey(txt)
     }
 }
