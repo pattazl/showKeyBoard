@@ -1,6 +1,8 @@
+let socket = null
+
 function setWS() {
     // 创建WebSocket对象并连接服务器
-    const socket = new WebSocket('ws://localhost:9901');
+    socket = new WebSocket('ws://'+location.host);
 
     // 监听连接成功事件
     socket.onopen = () => {
@@ -23,3 +25,6 @@ function setWS() {
 }
 
 setWS()
+setTimeout( function(){
+	//socket.close()
+},2000)

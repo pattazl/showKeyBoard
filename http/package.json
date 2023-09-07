@@ -12,6 +12,7 @@
     "ws": "^8.13.0"
   },
   "devDependencies": {
-    "esbuild": "^0.15.1"
+    "esbuild": "^0.15.1",
+    "sqlite3": "^5.1.6"
   }
 }
