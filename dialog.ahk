@@ -12,6 +12,22 @@ ShowTxt(text)
 	if text = ""{
 		return 
 	}
+    ; 获取活跃窗口进程匹配 FoundPos := RegExMatch(Haystack, NeedleRegEx [, &OutputVar, StartingPos])
+    if activeWindowProc != ''{
+        ; 获取活跃窗口 WinGetProcessName
+        activeWnd := WinExist("A")
+        if(activeWnd !=0 ){
+            procName := WinGetProcessName(activeWnd)
+            FoundPos := RegExMatch(procName, activeWindowProc )
+            ; 没有找到匹配则不显示
+            if FoundPos = 0{
+                return
+            }
+        }else{
+            return
+        }
+    }
+    
 	textArr := []
 	; 如果正在处理中，则不要销毁窗口
 	global guiShowing := 1

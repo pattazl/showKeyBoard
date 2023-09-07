@@ -27,6 +27,9 @@ ctrlState :=IniRead(IniFile,"common","ctrlState",1 )
 serverPort :=IniRead(IniFile,"common","serverPort",9900 ) 
 ; 是否显示 控制键状态，如果出现则显示
 
+activeWindowProc :=IniRead(IniFile,"common","activeWindowProc","" ) 
+; 按键显示仅仅针对活跃窗口，正则匹配
+
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=IniRead(IniFile,"dialog","guiHeigth", 0 ) ;高度 0 为自动高度
