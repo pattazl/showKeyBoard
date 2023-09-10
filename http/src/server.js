@@ -1,6 +1,8 @@
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
+const {insertData} = require('./records');
+const net = require('net');
 const app = express()
 const version = '1.1'
 
@@ -12,7 +14,7 @@ var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
 var port = parseInt(config.common.serverPort)
 
 
-const net = require('net');
+
 function checkPort(port) {
   const server = net.createServer();
   return new Promise((resolve, reject) => {
@@ -63,6 +65,11 @@ app.get('/', (req, res) => {
   res.send('Welcome to showKeyBoard backend service');
 });
 app.post('/exit', (req, res) => {
+  if( preData['tick']>0 )
+  {
+    // 需要保存
+    insertData(preData)
+  }
   console.log('exit')
   res.send('1');
   wss.close()
@@ -71,9 +78,16 @@ app.post('/exit', (req, res) => {
 });
 
 // 发送数据
+let preData = {}
 app.post('/data', (req, res) => {
   var data = req.body
   console.log(data)
+  if( preData['tick']>0 &&  data['tick']>0 &&  data['tick'] != preData['tick'] )
+  {
+    // tick不一样需要保存
+    insertData(preData)
+  }
+  preData = data;
   //myWS.send(JSON.stringify(data) );
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {

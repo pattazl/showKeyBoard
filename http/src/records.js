@@ -37,6 +37,7 @@ function insertData(records) {
   })
 }
 
+
 function getRecords() {
   return new Promise((resolve, reject) => {
     // 查询记录集
@@ -56,7 +57,13 @@ function getRecords() {
     db.close();
   })
 }
+/*
 (async ()=>{
   arr = await getRecords()
   console.log(arr)
 })()
+*/
+
+module.exports = {
+  insertData
+};
