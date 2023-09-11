@@ -1,7 +1,8 @@
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const {insertData} = require('./records');
+const {insertData,getRecords} = require('./records');
+const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
 const version = '1.1'
@@ -12,8 +13,6 @@ const iniPath = '../../showKeyBoard.ini'
 var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
 
 var port = parseInt(config.common.serverPort)
-
-
 
 function checkPort(port) {
   const server = net.createServer();
@@ -32,7 +31,7 @@ function checkPort(port) {
       });
     });
 
-    server.listen(port, 'localhost');
+    server.listen(port, '127.0.0.1');
   });
 }
 // 创建WebSocket服务器
@@ -71,7 +70,7 @@ app.post('/exit', (req, res) => {
     insertData(preData)
   }
   console.log('exit')
-  res.send('1');
+  res.send('OK');
   wss.close()
   server.close(()=>{})  //  退出服务
   setTimeout(function(){process.exit();},1000);
@@ -95,7 +94,12 @@ app.post('/data', (req, res) => {
     }
   });
   // 如果 data.tick 不一样，则需要累计保存
-  res.send('1');
+  res.send('OK');
+});
+// 获取某某天，或某个tick的数据, 参数 date 如果是当天，返回的是所有tick的清单，否则返回
+app.post('/historyData', async (req, res) => {
+    let arr = await getRecords( req.body?.beginDate , req.body?.endDate )
+    res.send(JSON.stringify(data))
 });
 // 版本和服务判断
 app.post('/version', (req, res) => {

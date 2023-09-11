@@ -38,11 +38,23 @@ function insertData(records) {
 }
 
 
-function getRecords() {
+function getRecords(begin,end) {
+  let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   return new Promise((resolve, reject) => {
     // 查询记录集
     let arr = [];
-    db.all('SELECT * FROM events where date = ?', [strDate], function (err, rows) {
+    if(begin > end){
+      resolve(arr)
+      return;
+    }
+    let sql = ''
+    if(begin == strNow && end == strNow)
+    {
+      sql = 'SELECT * FROM events where date = ?'
+    }else{
+      sql = 'SELECT * FROM stat where date = ?'
+    }
+    db.all(sql, [strDate], function (err, rows) {
       if (err) {
         reject(err);
       }
@@ -65,5 +77,5 @@ function getRecords() {
 */
 
 module.exports = {
-  insertData
+  insertData,getRecords
 };
