@@ -7,15 +7,26 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from 'vue';
+import { computed, defineComponent ,ref } from 'vue';
+import { defineStore ,storeToRefs } from 'pinia'
 import {
   NMessageProvider,
   NConfigProvider,
   useOsTheme,
   darkTheme,
+  lightTheme,GlobalTheme
 } from 'naive-ui';
 import IssuePage from './components/IssuePage.vue';
 
+export const useAustinStore = defineStore('austin', () => {
+  let str = useOsTheme().value;
+  console.log('App.vue theme',str)
+  let myTheme = ref(str);
+  function changeTh() {
+    myTheme.value = 'dark'
+  }
+  return { myTheme ,changeTh }
+})
 export default defineComponent({
   name: 'App',
   components: {
@@ -24,10 +35,10 @@ export default defineComponent({
     NConfigProvider,
   },
   setup() {
-    const theme = useOsTheme();
-
+    const store= useAustinStore();
+    //const { myTheme } = storeToRefs(store)
     return {
-      theme: computed(() => (theme.value === 'dark' ? darkTheme : {})),
+      theme: computed(() => (store.myTheme === 'dark' ? darkTheme : lightTheme))
     };
   },
 });

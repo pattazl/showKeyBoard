@@ -154,9 +154,10 @@ function setParaFun(req, res) {
 let preData = {}
 function dataFun(req, res) {
   var data = req.body
-  console.log(data)
+  //console.log('mouseDistance,tick',data.mouseDistance,data.tick)
   if (preData['tick'] > 0 && data['tick'] > 0 && data['tick'] != preData['tick']) {
     // tick不一样需要保存
+    console.log( 'preTick,tick:', preData['tick'],data['tick'],)
     insertData(preData)
   }
   preData = data;
