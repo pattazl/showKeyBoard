@@ -2,32 +2,31 @@
   <n-layout-header bordered class="nav">
     <div class="nav-box">
       <n-text tag="div" class="ui-logo" :depth="1">
-        <span>Show Keyboard</span>
+        <span>{{ contentText.title }}</span>
       </n-text>
       <n-button text class="nav-picker" v-if="lang === 'zh-CN'" @click="onLangChange('en-US')">
         English</n-button>
       <n-button text class="nav-picker" v-else @click="onLangChange('zh-CN')">
         中文</n-button>
-        <n-card>
-          <n-space>
-            <n-button @click="changeTheme('dark')">
-              深色
-            </n-button>
-            <n-button @click="changeTheme('light')">
-              浅色
-            </n-button>
-          </n-space>
-        </n-card>
+      <n-space justify="end">
+        <n-button @click="changeTheme('dark')">
+          {{ contentText.theme1 }}
+        </n-button>
+        <n-button @click="changeTheme('light')">
+          {{ contentText.theme2 }}
+        </n-button>
+      </n-space>
     </div>
   </n-layout-header>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, toRef } from 'vue';
+import { defineComponent, PropType, toRef ,computed} from 'vue';
 import {
-  NMenu, NLayoutHeader, NText, NButton
+  NMenu, NLayoutHeader, NText, NButton,NSpace
 } from 'naive-ui';
 import { useAustinStore } from '../App.vue'
+import content from '../content.js';
 
 export default defineComponent({
   name: 'PageHead',
@@ -47,6 +46,8 @@ export default defineComponent({
   },
   setup: (props) => {
     const lang = toRef(props, 'lang');
+    const contentText = computed(() => content[lang.value]);
+
     const store= useAustinStore();
     console.log(store.myTheme)
     function changeTheme(style){
@@ -57,7 +58,8 @@ export default defineComponent({
     return {
       lang,
       onLangChange: props.onLangChange,
-      changeTheme
+      changeTheme,
+      contentText
     };
   },
 });

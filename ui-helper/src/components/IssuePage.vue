@@ -2,10 +2,19 @@
   <n-config-provider :theme-overrides="themeOverrides" :locale="locale">
     <n-layout embedded>
       <PageHead :lang="lang" @langChange="setLang" />
-      <div class="content-box">
-        <div class="content"><Intro :lang="lang" /></div>
-        <div class="content"><IssueForm :lang="lang" /></div>
-      </div>
+      <n-layout has-sider >
+        <LeftMenu :lang="lang" content-style="min-height:800"></LeftMenu>
+        <n-layout
+        :native-scrollbar="false"
+          :position="'absolute'"
+          content-style="min-height: calc(100vh - var(--header-height)); display: flex; flex-direction: column;"
+        >
+            <!-- --><div class="content-box">
+              <div class="content"><Intro :lang="lang" /></div>
+            </div>
+           
+          </n-layout>
+      </n-layout>
     </n-layout>
   </n-config-provider>
 </template>
@@ -15,7 +24,7 @@ import { defineComponent, ref } from 'vue';
 import { NLayout, NConfigProvider, GlobalThemeOverrides, zhCN } from 'naive-ui';
 import PageHead from './PageHead.vue';
 import Intro from './Intro.vue';
-import IssueForm from './IssueForm.vue';
+import LeftMenu from './LeftMenu.vue';
 import { getQuery, updateQuery } from './utils';
 
 export default defineComponent({
@@ -23,7 +32,6 @@ export default defineComponent({
   components: {
     PageHead,
     Intro,
-    IssueForm,
     NLayout,
     NConfigProvider,
   },
@@ -74,6 +82,7 @@ export default defineComponent({
 
 <style scoped>
 .content-box {
+  height: auto;
   margin: auto;
   width: var(--content-width);
   max-width: var(--content-max-width);
