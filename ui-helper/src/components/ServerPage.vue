@@ -41,7 +41,7 @@ import content from '../content.js';
 import {setOpt} from '../leftmenu';
 
 export default defineComponent({
-  name: 'IssuePage',
+  name: 'ServerPage',
   components: {
     PageHead,
     NLayout,

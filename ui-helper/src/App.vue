@@ -2,7 +2,7 @@
   <n-config-provider :theme="theme">
     <n-message-provider>
       <n-dialog-provider>
-      <IssuePage />
+      <ServerPage />
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
@@ -18,7 +18,7 @@ import {
   darkTheme,
   lightTheme,
 } from 'naive-ui';
-import IssuePage from './components/IssuePage.vue';
+import ServerPage from './components/ServerPage.vue';
 
 export const useAustinStore = defineStore('austin', () => {
   let str = useOsTheme().value;
@@ -32,7 +32,7 @@ export const useAustinStore = defineStore('austin', () => {
 export default defineComponent({
   name: 'App',
   components: {
-    IssuePage,
+    ServerPage,
     NMessageProvider,
     NConfigProvider,
   },
