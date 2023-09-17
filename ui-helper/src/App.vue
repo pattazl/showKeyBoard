@@ -52,7 +52,7 @@ body,
   padding: 0;
   height: 100%;
   min-width: 320px;
-  --header-height: 64px;
+  --header-height: 50px;
   --content-width: 900px;
   --content-max-width: calc(100vw - 32px);
 }

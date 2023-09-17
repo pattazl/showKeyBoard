@@ -3,7 +3,7 @@
     <n-layout embedded>
       <PageHead :lang="lang" @langChange="setLang" />
       <n-layout has-sider >
-        <n-layout-sider bordered collapse-mode="width" :collapsed-width="50" :width="180" :collapsed="collapsed"
+        <n-layout-sider bordered collapse-mode="width" :collapsed-width="40" :width="180" :collapsed="collapsed"
           @collapse="collapsed = true" @expand="collapsed = false" show-trigger="bar">
           <n-menu style="min-height: calc(100vh - var(--header-height));" :options="menuOptions"
           @update:value="handleMenuSelect"  :default-expand-all="true" :watch-props="['defaultExpandedKeys']"/>
@@ -11,19 +11,17 @@
         <n-layout
         :native-scrollbar="false"
           :position="'absolute'"
-          style="min-width:1080px; transition: all 0.3s;"
-          :style="{ left: collapsed ? '10px' : '180px' }"
+          style="min-width:720px; transition: all 0.3s;"
+          :style="{ left: collapsed ? '40px' : '180px' }"
           content-style="min-height: calc(100vh - var(--header-height)); display: flex; flex-direction: column;"
         >
           <n-layout-content
           class="layout-content"
-          style="border-radius: 0 16px 16px;"
+          style="border-radius: 0 16px 16px;padding: 10px 20px;"
         >
-          <div style="padding: 20px 40px;">
-              <router-view v-slot="{ Component }">
-                <component :is="Component" :key="$route.path" />
-              </router-view>
-            </div>
+            <router-view v-slot="{ Component }">
+              <component :is="Component" :key="$route.path" />
+            </router-view>
           </n-layout-content>
         </n-layout>
       </n-layout>

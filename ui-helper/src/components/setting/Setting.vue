@@ -1,16 +1,14 @@
 <template>
   <div>
     <n-space vertical>
-      <n-card>
-        <a id="General">{{ contentText?.menu?.setting1 }}</a>
-        <br />
-        <br />
-        <br />
-        <br />
-        <h3>Message</h3>
-        <n-button type="primary" @click="handleShowMessage">
-          useMessage
-        </n-button>
+      <n-card>{{ lang }}
+        <h3 id="General">{{ contentText?.menu?.setting1 }}</h3>
+        要忽略记录的按键:<n-dynamic-input
+        v-model:value="recordArr"
+        placeholder="分割要过滤的字符"
+        :lang="lang"
+      />
+
       </n-card>
       <n-card>
         <h3>Dialog</h3>
@@ -83,11 +81,12 @@ export default defineComponent({
   name: 'Setting',
   setup() {
     const store= useAustinStore();
+    const lang = computed(()=>store.lang) 
     const contentText = computed(()=>content[store.lang]) 
     //watch(() => store.lang, (newValue, oldValue) => {
     //  console.log(` lang New value: ${newValue}, old value: ${oldValue}`);
     //});
-    const allPara = toRef({
+    const allPara = ref({
       "common": {
         "skipRecord": "",
         "skipCtrlKey": "0",
@@ -128,6 +127,7 @@ export default defineComponent({
         "skipShow": "<^<+a|PrintScreen"
       }
     })
+    const recordArr = ref(allPara.value.common.skipRecord.split('|'))
     const handleShowMessage = () => {
       console.log('I can use message')
     }
@@ -150,7 +150,9 @@ export default defineComponent({
     return {
       handleShowMessage,
       allPara,
+      recordArr,
       contentText,
+      lang,
     }
   },
 })
