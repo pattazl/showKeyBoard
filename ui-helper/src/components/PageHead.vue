@@ -43,7 +43,6 @@ export default defineComponent({
   },
   setup: (props) => {
     const lang = toRef(props, 'lang');
-    
     const contentText = computed(() => content[lang.value]);
 
     const store= useAustinStore();
@@ -57,8 +56,6 @@ export default defineComponent({
         store.myTheme = 'dark'
         theme.value = 'dark'
       }
-      //store.changeTh()
-      console.log(store.myTheme)
     };
     return {
       lang,

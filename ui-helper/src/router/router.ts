@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/components/home/Home.vue'
-import Setting from '@/components/Setting/Setting.vue'
+import Setting from '@/components/setting/Setting.vue'
 import Message from '@/components/message/Message.vue'
 import Dialog from '@/components/dialog/Dialog.vue'
 

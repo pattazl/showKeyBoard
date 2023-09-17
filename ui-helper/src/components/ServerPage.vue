@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme-overrides="themeOverrides" :locale="locale">
+  <n-config-provider :theme-overrides="themeOverrides" >
     <n-layout embedded>
       <PageHead :lang="lang" @langChange="setLang" />
       <n-layout has-sider >
@@ -39,6 +39,7 @@ import { useRouter } from 'vue-router'
 import { getQuery, updateQuery } from './utils';
 import content from '../content.js';
 import {setOpt} from '../leftmenu';
+import { useAustinStore } from '../App.vue'
 
 export default defineComponent({
   name: 'ServerPage',
@@ -48,29 +49,31 @@ export default defineComponent({
     NConfigProvider,
   },
   setup: () => {
+    const store= useAustinStore();
     const lang = ref<'en-US' | 'zh-CN'>('zh-CN'); // 默认中文
-    const locale = ref<undefined | typeof zhCN>();
     const contentText = computed(() => content[lang.value]).value;
     const menuOptions = ref([])
     const collapsed = ref(false)
     const setLang = (value: 'en-US' | 'zh-CN') => {
       lang.value = value;
       //console.log('setLang....',value)
-      locale.value = value === 'en-US' ? undefined : zhCN;
       updateQuery({ lang: value }); // 更新地址栏
       const ct = content[value];
-      updateMenu(ct.menu);
+      setTimeout(() => {
+        updateMenu(ct.menu); // 需要延迟执行
+      }, 1);
+      // 需要改变 store的内容
+      store.lang = value;
     };
 
     // 初始化时动态设置菜单内容
-    onMounted(() => {
-      const param = getQuery();
-      let _lang = lang.value;
-      if (param?.lang) {
-        _lang = param.lang
-      }
-      setLang(_lang);
-    })
+    const param = getQuery();
+    let _lang = lang.value;
+    if (param?.lang) {
+      _lang = param.lang
+    }
+    setLang(_lang);
+
     // back, forward
     window.addEventListener('popstate', () => lang.value = getQuery()?.lang || 'en-US')
 
@@ -100,16 +103,12 @@ export default defineComponent({
 				path: value,
 			})
 		}
-    
-    // watch(() => state.lang, (newValue, oldValue) => {
-    //   console.log('属性发生变化', newValue, oldValue);
-    //   const ct = content[newValue];
-    //   updateMenu(ct.menu)
-    // });
+     //watch(() => store.myTheme, (newValue, oldValue) => {
+     //  console.log('属性发生变化', newValue, oldValue);
+     //});
     return {
       collapsed,
       lang,
-      locale,
       themeOverrides,
       setLang,
       handleMenuSelect,
