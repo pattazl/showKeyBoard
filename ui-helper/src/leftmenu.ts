@@ -6,6 +6,7 @@ import {
   BookOutline as BookIcon,
   PersonOutline as PersonIcon,
   SettingsOutline,
+  HomeOutline,
   AnalyticsOutline,
   StatsChartOutline,
   KeypadOutline,
@@ -22,6 +23,11 @@ function renderIcon(icon: Component) {
 }
 function setOpt(menuTxt){
   let menuOptions: MenuOption[] = [
+    {
+      label: menuTxt.home ,
+      key: '/',
+      icon: renderIcon(HomeOutline)
+    },
       {
         //type: 'group',
         label: menuTxt.setting,

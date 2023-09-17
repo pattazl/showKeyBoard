@@ -8,6 +8,7 @@ export default {
     theme1:'深色',
     theme2:'浅色',
     menu:{
+      home:'主页',
       setting:'设置',
       setting1:'个人喜好',
       setting2:'按键界面',
@@ -27,6 +28,7 @@ export default {
     theme1:'Dark',
     theme2:'Light',
     menu:{
+      home:'Home',
       setting:'Setting',
       setting1:'General',
       setting2:'Key UI',
