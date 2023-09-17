@@ -3,56 +3,74 @@
     <n-layout embedded>
       <PageHead :lang="lang" @langChange="setLang" />
       <n-layout has-sider >
-        <LeftMenu :lang="lang" content-style="min-height:800"></LeftMenu>
+        <n-layout-sider bordered collapse-mode="width" :collapsed-width="50" :width="180" :collapsed="collapsed"
+          @collapse="collapsed = true" @expand="collapsed = false" show-trigger="bar">
+          <n-menu style="min-height: calc(100vh - var(--header-height));" :options="menuOptions"
+          @update:value="handleMenuSelect"  :default-expand-all="true" :watch-props="['defaultExpandedKeys']"/>
+        </n-layout-sider>
         <n-layout
         :native-scrollbar="false"
           :position="'absolute'"
+          style="min-width:1080px; transition: all 0.3s;"
+          :style="{ left: collapsed ? '10px' : '180px' }"
           content-style="min-height: calc(100vh - var(--header-height)); display: flex; flex-direction: column;"
         >
-            <!-- --><div class="content-box">
-              <div class="content"><Intro :lang="lang" /></div>
+          <n-layout-content
+          class="layout-content"
+          style="border-radius: 0 16px 16px;"
+        >
+          <div style="padding: 20px 40px;">
+              <router-view v-slot="{ Component }">
+                <component :is="Component" :key="$route.path" />
+              </router-view>
             </div>
-           
-          </n-layout>
+          </n-layout-content>
+        </n-layout>
       </n-layout>
     </n-layout>
   </n-config-provider>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
-import { NLayout, NConfigProvider, GlobalThemeOverrides, zhCN } from 'naive-ui';
+import { defineComponent, ref,reactive,computed ,watch, onMounted, toRef} from 'vue';
+import { NLayout, NConfigProvider, GlobalThemeOverrides, zhCN,MenuInst } from 'naive-ui';
 import PageHead from './PageHead.vue';
-import Intro from './Intro.vue';
-import LeftMenu from './LeftMenu.vue';
+import { useRouter } from 'vue-router'
 import { getQuery, updateQuery } from './utils';
+import content from '../content.js';
+import {setOpt} from '../leftmenu';
 
 export default defineComponent({
   name: 'IssuePage',
   components: {
     PageHead,
-    Intro,
     NLayout,
     NConfigProvider,
   },
   setup: () => {
-    const lang = ref<'en-US' | 'zh-CN'>('en-US');
+    const lang = ref<'en-US' | 'zh-CN'>('zh-CN'); // 默认中文
     const locale = ref<undefined | typeof zhCN>();
-
+    const contentText = computed(() => content[lang.value]).value;
+    const menuOptions = ref([])
+    const collapsed = ref(false)
     const setLang = (value: 'en-US' | 'zh-CN') => {
       lang.value = value;
+      //console.log('setLang....',value)
       locale.value = value === 'en-US' ? undefined : zhCN;
-      updateQuery({ lang: value });
+      updateQuery({ lang: value }); // 更新地址栏
+      const ct = content[value];
+      updateMenu(ct.menu);
     };
 
-    // init
-    const param = getQuery();
-    if (!param?.lang) {
-      updateQuery({ lang: lang.value });
-    } else {
-      setLang(param.lang);
-    }
-
+    // 初始化时动态设置菜单内容
+    onMounted(() => {
+      const param = getQuery();
+      let _lang = lang.value;
+      if (param?.lang) {
+        _lang = param.lang
+      }
+      setLang(_lang);
+    })
     // back, forward
     window.addEventListener('popstate', () => lang.value = getQuery()?.lang || 'en-US')
 
@@ -69,12 +87,34 @@ export default defineComponent({
         labelFontSizeTopLarge: '15px',
       },
     };
-
+     // 修改菜单内容
+    const updateMenu = (menu) => {
+        menuOptions.value = setOpt(menu);
+    };
+    //const message = useMessage()
+    const activeName = ref('/')
+    const router = useRouter()
+    const handleMenuSelect = (value: string) => {
+			activeName.value = value
+			router.push({
+				path: value,
+			})
+		}
+    
+    // watch(() => state.lang, (newValue, oldValue) => {
+    //   console.log('属性发生变化', newValue, oldValue);
+    //   const ct = content[newValue];
+    //   updateMenu(ct.menu)
+    // });
     return {
+      collapsed,
       lang,
       locale,
       themeOverrides,
       setLang,
+      handleMenuSelect,
+      menuOptions,
+      contentText,
     };
   },
 });
@@ -82,6 +122,8 @@ export default defineComponent({
 
 <style scoped>
 .content-box {
+  border:1px solid red;
+  text-align: left;
   height: auto;
   margin: auto;
   width: var(--content-width);

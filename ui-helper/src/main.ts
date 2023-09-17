@@ -1,6 +1,6 @@
 import { createApp, defineComponent } from 'vue';
 import App from './App.vue';
-
+import router from './router/router'
 import 'vfonts/Inter.css';
 import { createPinia } from 'pinia'
 
@@ -14,5 +14,6 @@ app.component('VNode', defineComponent({
     return this.render();
   },
 }),)
+app.use(router)
 app.use(pinia)
 app.mount('#app');

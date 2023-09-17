@@ -1,7 +1,9 @@
 <template>
   <n-config-provider :theme="theme">
     <n-message-provider>
+      <n-dialog-provider>
       <IssuePage />
+      </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
 </template>
@@ -14,7 +16,7 @@ import {
   NConfigProvider,
   useOsTheme,
   darkTheme,
-  lightTheme,GlobalTheme
+  lightTheme,
 } from 'naive-ui';
 import IssuePage from './components/IssuePage.vue';
 
