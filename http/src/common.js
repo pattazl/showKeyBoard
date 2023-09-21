@@ -8,8 +8,14 @@ const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
 const ini = require('ini')
+const fontList = require('font-list')
+// 2个配置文件
 const iniPath = '../../showKeyBoard.ini'
+const keyPath = '../../keyList.txt'
 var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+var keyList; // 用于保存KeyList.txt 的文件信息
+var statPara; // 统计的配置参数保存在 数据库中
+var infoPC; // 用于保存PC的关键信息
 var port = parseInt(config.common.serverPort)
 
 function checkPort(port) {
@@ -108,14 +114,20 @@ async function startUp() {
 // 只允许一个进程
 function oneInstance() {
   const pidfilePath = path.join(__dirname, 'kbserver.pid');
+  // 读取文件判断是否有此进程，有可能是异常遗留的文件
 
   // 检查是否已存在 pidfile 文件
   if (fs.existsSync(pidfilePath)) {
-    try {
+    let pid = fs.readFileSync(pidfilePath, 'utf-8')
+    try{
+      // 判断pid是否存在，如果存在则的确程序在运行，否则删除文件
+      process.kill(pid,0)
       console.log('程序已在运行中');
-    } catch (err) {
+      return false
+    }catch (err) {
+      console.log('意外关闭,先删除Pid文件');
+      fs.unlinkSync(pidfilePath)
     }
-    return false;
   }
   // 将当前进程的 PID 写入 pidfile 文件
   fs.writeFileSync(pidfilePath, process.pid.toString(), 'utf8');
@@ -134,11 +146,32 @@ function oneInstance() {
   }));
   return true;
 }
-
-function getParaFun(req, res) {
+// 获取 和设置  KeyList.txt showKeyBoard.ini ，从文件中读取 
+async function getParaFun(req, res) {
   console.log('getPara')
-  res.send(JSON.stringify(config));
+  // 重新再读取一次
+  keyList = {}
+  config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+  const keyTxt = (fs.readFileSync(keyPath, 'utf-8'))
+  const arr = keyTxt.split('\n')
+  for(v of arr)
+  {
+    let arr2 = v.split(':')
+    if(arr2.length == 2)
+    {
+      const k = arr2[0].trim()
+      const vv = arr2[1].trim()
+      keyList[k] = vv
+    }
+  }
+  //console.log(keyList)
+  let fonts = await fontList.getFonts()
+  //console.log(fonts)
+  // 返回大 JSON
+  res.send(JSON.stringify( {config,keyList,fonts,infoPC}));
 }
+
+// 保存参数 ，包括各种文件和数据的保存
 function setParaFun(req, res) {
   console.log('setPara')
   var data = req.body
@@ -150,7 +183,13 @@ function setParaFun(req, res) {
   }
   res.send({ code: 200 });
 }
-// 发送数据
+// 接收客户端发送的PC相关信息，比如屏幕等
+function sendPCInfo(req, res){
+  var data = req.body
+  infoPC = data; // 将数据保存给全局变量
+  console.log(infoPC)
+}
+// 接受客户端发送的数据
 let preData = {}
 function dataFun(req, res) {
   var data = req.body
@@ -187,6 +226,7 @@ async function saveLastData() {
     preData['tick'] = 0
   }
 }
+
 module.exports = {
-  startUp, getParaFun, setParaFun, app, dataFun, exitFun
+  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo
 };

@@ -99,6 +99,8 @@ ServerCore()
             ; 成功启动后端服务
 			global serverState := 1
             ShowTxt '成功启动后端服务'
+			; 准备发送一些数据给后端
+			SendPCInfo()
         }else{
 			 ; 需要重试，超过N次后判断失败
 			 if serverState = -1{
@@ -142,6 +144,25 @@ ExitServer()
         StartHttp('exit','/exit','')
     }
 }
+; 发送数据给后端服务
+SendPCInfo()
+{
+	; 获取不同屏幕
+	MCount := MonitorGetCount()
+	JSONStr := '{"screen":['
+	loop MCount {
+		if A_Index != 1{
+			JSONStr := JSONStr ','
+		}
+		MonitorGet(A_Index, &Left, &Top, &Right, &Bottom)
+		tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom '}'
+		JSONStr := JSONStr tmp
+	}
+	JSONStr := JSONStr ']}'
+	if serverState = 1 {
+        StartHttp('sendPCInfo','/sendPCInfo',JSONStr,timeout:=8000)
+    }
+}
 ; 数据回调和核心发送
 Ready() {
     if reqXMLHTTP = 0 
@@ -172,7 +193,11 @@ sendData(route,data:=''){
     ;data["time"] := A_Now
     str := ''
     if(data!=''){
-        str := jxon_dump(data, indent:=0)
+		if( Type(data) = 'Map'){
+			str := jxon_dump(data, indent:=0)
+		}else{
+			str := data   ; 普通字符串
+		}
     }
 	reqXMLHTTP.send( str )
 }

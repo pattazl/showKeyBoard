@@ -11,7 +11,7 @@
         <n-layout
         :native-scrollbar="false"
           :position="'absolute'"
-          style="min-width:720px; transition: all 0.3s;"
+          style="min-width:320px; transition: all 0.3s;"
           :style="{ left: collapsed ? '40px' : '180px' }"
           content-style="min-height: calc(100vh - var(--header-height)); display: flex; flex-direction: column;"
         >
@@ -20,7 +20,7 @@
           style="border-radius: 0 16px 16px;padding: 10px 20px;"
         >
             <router-view v-slot="{ Component }">
-              <component :is="Component" :key="$route.path" />
+              <component :is="Component" :key="$route.path" :lang="lang"/>
             </router-view>
           </n-layout-content>
         </n-layout>
@@ -37,7 +37,7 @@ import { useRouter } from 'vue-router'
 import { getQuery, updateQuery } from './utils';
 import content from '../content.js';
 import {setOpt} from '../leftmenu';
-import { useAustinStore } from '../App.vue'
+// import { useAustinStore } from '../App.vue'
 
 export default defineComponent({
   name: 'ServerPage',
@@ -47,7 +47,7 @@ export default defineComponent({
     NConfigProvider,
   },
   setup: () => {
-    const store= useAustinStore();
+    //const store= useAustinStore();
     const lang = ref<'en-US' | 'zh-CN'>('zh-CN'); // 默认中文
     const contentText = computed(() => content[lang.value]).value;
     const menuOptions = ref([])
@@ -61,7 +61,7 @@ export default defineComponent({
         updateMenu(ct.menu); // 需要延迟执行
       }, 1);
       // 需要改变 store的内容
-      store.lang = value;
+      // store.lang = value;
     };
 
     // 初始化时动态设置菜单内容
