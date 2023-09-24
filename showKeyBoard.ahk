@@ -107,7 +107,7 @@ MenuHandler(ItemName , ItemPos, MyMenu){
     }
     else
     {
-      FileCreateShortcut A_ScriptFullPath, A_Startup "\" APPName ".Lnk", "A_ScriptDir"
+      FileCreateShortcut A_ScriptFullPath, A_Startup "\" APPName ".Lnk", A_ScriptDir
       MyMenu.Check(L_menu_startup)
     }
   }

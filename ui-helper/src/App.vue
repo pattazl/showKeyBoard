@@ -24,9 +24,9 @@ export const useAustinStore = defineStore('austin', () => {
   let str = useOsTheme().value;
   console.log('App.vue theme',str)
   let myTheme = ref(str);
-  //let lang = ref('')
+  let setting = ref({})
   //return { myTheme ,lang}
-  return { myTheme}
+  return { myTheme,setting}
 })
 export default defineComponent({
   name: 'App',

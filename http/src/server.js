@@ -8,6 +8,13 @@ const version = '1.1'
 const { startUp , getParaFun, setParaFun , app ,exitFun ,dataFun,sendPCInfo} = require('./common');
 
 //app.use(express.text());
+// 定义跨域设置中间件
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // 允许所有来源的请求
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // 允许的请求方法
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // 允许的请求头
+    next();
+  });
 app.use(express.json());
 app.use(express.static('ui'));
 // 返回全部参数信息 

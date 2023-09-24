@@ -3,7 +3,7 @@
     <n-space vertical>
       <h2 id="General">{{ contentText?.menu?.setting1 }}</h2>
       <n-card title="通用设置">
-        <n-list hoverable>
+        <n-list hoverable v-if="allPara.common">
         <n-list-item>要忽略记录的按键  <n-dynamic-tags v-model:value="skipRecordRef" />
         </n-list-item>
         <n-list-item>
@@ -53,7 +53,7 @@
       </n-card>
       <h2  id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
       <n-card title="按键实时显示界面">
-        <n-list hoverable>
+        <n-list hoverable v-if="allPara.dialog">
           <n-list-item>宽度
             <template #suffix>
               <n-input-number v-model:value="allPara.dialog.guiWidth" :min="1" :max="65535" />
@@ -66,7 +66,7 @@
           </n-list-item>
           <n-list-item>背景色和透明度
             <template #suffix>
-              <n-color-picker v-model:value="allPara.dialog.guiWidth" :modes="['hex']" />
+              <n-color-picker v-model:value="allPara.dialog.guiBgcolor" :modes="['hex']" />
             </template>
           </n-list-item>
           <n-list-item>鼠标穿透<div class="intro">可以点击到提示框下方的窗体</div>
@@ -173,8 +173,8 @@
           <n-list-item>哪些按键不会显示，但会记录
               <n-dynamic-tags v-model:value="skipShowRef" />
           </n-list-item>
-
         </n-list>
+        
       </n-card>
       <h2 id="StatPara">{{ contentText?.menu?.setting3 }}</h2>
       <n-card title="数据统计界面的相关参数设置">
@@ -189,7 +189,7 @@
       <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
       <n-card>
         <n-dynamic-input
-          v-model:value="keyMappintRef"
+          v-model:value="keyMappingRef"
           preset="pair"
           key-placeholder="按键名"
           value-placeholder="显示的按键符号"
@@ -237,6 +237,8 @@
 import { defineComponent, onMounted ,PropType,ref,computed } from 'vue'
 import { useRoute } from 'vue-router';
 import content from '../../content.js';
+import { storeToRefs } from 'pinia'
+import { useAustinStore } from '../../App.vue'
 // import { useAustinStore } from '../../App.vue'
 
 function splitArr(str){
@@ -264,6 +266,67 @@ function toKVList(obj:{}){
   }
   return resArr
 }
+// 转换字符串为数字
+function str2Num(hash){
+  for(let k in hash)
+  {
+    const number = Number(hash[k]);
+    if(!isNaN(number)){
+      hash[k] = number;
+    }
+  }
+}
+// 拉取数据
+async function loadPara(allPara,allFontRef,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef,screenNum,screenInfo){
+  const store= useAustinStore();
+  let data = <any>store.setting;
+  if(data.config==null){
+  // 每次路由跳转变量会重新初始化，需要保存起来
+    data = await ajax('getPara')
+    store.setting = data
+  }
+  
+  const sinfo = data.infoPC.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
+  screenInfo.value = sinfo
+  screenNum.value = toVSelectList( [...Array(sinfo.length).keys()].map(x => x + 1) )
+  
+  // 对配置文件中 data.config 的数字字符串转换为数字
+  str2Num(data.config.common)
+  str2Num(data.config.dialog)
+  
+  allPara.value = data.config;
+  console.log('data.config',data.config)
+  allFontRef.value = toVSelectList( data.fonts.map(x => x.replace(/"/g,'')))
+  keyMappingRef.value = toKVList(data.keyList)
+  skipRecordRef.value = splitArr(allPara.value.common.skipRecord)
+  ctrlListRef.value = splitArr(allPara.value.dialog.ctrlList)
+  skipShowRef.value = splitArr(allPara.value.dialog.skipShow)
+
+}
+// ajax核心模块
+async function ajax(path,data=null){
+  console.log('ajax')
+  // 测试环境
+  let port = location.port
+  if(port == '3000')
+  {
+    port = '9900' // 调试阶段
+  }
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if(data == null){
+    data = ''
+  }else if( typeof data !='string'){
+    data = JSON.stringify(data)
+  }
+  let rsp = await fetch(`http://127.0.0.1:${port}/${path}`,  {
+      method: "POST",
+      headers: headers,
+      body: data})
+  let result = await rsp.json();
+  return result
+}
 export default defineComponent({
   name: 'Setting',
   props:{
@@ -278,107 +341,18 @@ export default defineComponent({
     //watch(() => store.lang, (newValue, oldValue) => {
     //  console.log(` lang New value: ${newValue}, old value: ${oldValue}`);
     //});
+
     // 各类数据模拟
-    const allPara = ref({
-      "common": {
-        "skipRecord": "",
-        "skipCtrlKey": "0",
-        "needShowKey": "1",
-        "needRecordKey": "1",
-        "ctrlState": "1",
-        "serverPort": "9900",
-        "showMouseEvent": "3",
-        "recordMouseMove": "1",
-        "activeWindowProc": ""
-      },
-      "dialog": {
-        "guiWidth": "240",
-        "guiHeigth": "0",
-        "guiBgcolor": "11AA99",
-        "guiBgTrans": "0",
-        "guiTrans": "1",
-        "guiOpacity": "150",
-        "guiTextFont": "Verdana",
-        "guiTextSize": "26",
-        "guiTextWeight": "bold",
-        "guiTextColor": "FF0000",
-        "guiLife": "7000",
-        "guiInterval": "1000",
-        "guiPos": "BR",
-        "guiPosXY": "Y",
-        "guiPosOffsetX": "0",
-        "guiPosOffsetY": "-50",
-        "guiDpiscale": "0",
-        "guiMonitorNum": "2",
-        "guiMargin": "5",
-        "guiEdge": "1",
-        "txtSplit": " ",
-        "ctrlX": "10",
-        "ctrlY": "5",
-        "ctrlTextSize": "20",
-        "ctrlList": "Ctrl|Alt|LWin|Shift|RWin|CapsLock",
-        "skipShow": "<^<+a|PrintScreen"
-      }
-    })
-    // 字体清单
-    const allFont = ['宋体','雅黑','Verdana'];
-    // 按键匹配清单
-    const keyMappint = {
-      'Space' : ' ␣',
-'<^' : ' ^+',
-'>^' : ' ^+',
-'<!' : ' ⎇+',
-'>!' : ' ⎇+',
-'<+' : ' ⇧+',
-'>+' : ' ⇧+',
-'<#' : ' ⊞+',
-'>#' : ' ⊞+',
-'Enter' : ' ↩',
-'Left' : ' ⬅ ',
-'Up' : '⬆︎ ',
-'Down' : '⬇ ',
-'Right' : '➞',
-'LControl' : ' ^',
-'RControl' : ' ^',
-'LWin' : ' ⊞',
-'RWin' : ' ⊞',
-'LAlt' : ' ⎇',
-'RAlt' : ' ⎇',
-'LShift' : ' ⇧',
-'RShift' : ' ⇧',
-'Backspace' : ' BS',
-'Escape' : ' Esc',
-'CapsLock' : 'Caps',
-'Delete' : 'Del ',
-'Insert' : 'Ins',
-'PrintScreen' : 'PrtSc',
-'ScrollLock' : 'Scroll',
-'Insert' : 'Ins',
-'PgUp' : ' PgUp',
-'AppsKey' : ' Menu ',
-'Ctrl' : ' ^',
-'LWin' : ' ⊞',
-'RWin' : ' ⊞',
-'Alt' : ' ⎇',
-'Shift' : ' ⇧',
-'WheelUp' : ' ⇡',
-'WheelDown' : ' ⇣',
-'MButton' : ' 🖲️',
-'LButton' : ' 🖱️',
-'RButton' : ' 🖰',
-    }
-    // 屏幕数据
-    const screenInfo = [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
-    let a = [...Array(screenInfo.length).keys()]
-    const screenNum = toVSelectList( [...Array(screenInfo.length).keys()].map(x => x + 1) )
-
-    // 数据处理
-    const allFontRef = toVSelectList(allFont)
-
-    const keyMappintRef = ref(toKVList(keyMappint));
-    const skipRecordRef = ref(splitArr(allPara.value.common.skipRecord))
-    const ctrlListRef = ref(splitArr(allPara.value.dialog.ctrlList)) 
-    const skipShowRef = ref(splitArr(allPara.value.dialog.skipShow))
+    const allPara = ref<any>({})
+    const allFontRef    = ref('') // 字体清单
+    const keyMappingRef = ref([])  // 按键匹配清单
+    const skipRecordRef = ref([])
+    const ctrlListRef   = ref([])
+    const skipShowRef   = ref([])
+    const screenInfo    = ref('')  // 屏幕数据
+    const screenNum     = ref('')  // 屏幕
+    console.log('setup')
+    loadPara(allPara,allFontRef,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef,screenNum,screenInfo)
 
     const handleShowMessage = () => {
       console.log('I can use message')
@@ -408,7 +382,8 @@ export default defineComponent({
       skipShowRef,
       allFontRef,
       screenNum,
-      keyMappintRef,
+      keyMappingRef,
+      screenInfo,
     }
   },
 })
