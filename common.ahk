@@ -21,6 +21,9 @@ needShowKey := IniRead(IniFile,"common","needShowKey","1")
 ; 是否显示按键
 needRecordKey := IniRead(IniFile,"common","needRecordKey","1")
 ; 是否记录按键
+hotkey4Show := IniRead(IniFile,"common","hotkey4Show","^!+s")
+; 按键显示开关快捷键
+b_4show := True ; 是否显示按键的默认开关
 
 ctrlState :=IniRead(IniFile,"common","ctrlState",1 ) 
 ; 是否显示 控制键状态，如果出现则显示

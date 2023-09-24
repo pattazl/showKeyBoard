@@ -6,6 +6,12 @@
 loop skipRecord.length {
 	skipKeys := skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
 }
+; 切换是否显示按键
+Switch4show(Key){
+    global b_4show := not b_4show
+    UpdatMenu4Show()
+}
+Hotkey hotkey4Show, Switch4show
 ; 不要阻塞按键
 ~LCtrl::SendCtrlKey
 ~RCtrl::SendCtrlKey
@@ -91,6 +97,7 @@ global L_menu_startup:="开机启动"
 global L_menu_reload:="重启程序"
 global L_menu_reset:="完全重启"
 global L_menu_pause:="暂停运行"
+global L_menu_4show:="按键显示(" hotkey4Show ")"
 global L_menu_set:="参数设置"
 global L_menu_stat:="数据统计"
 global L_menu_exit:="退出程序"
@@ -151,8 +158,18 @@ MenuHandler(ItemName , ItemPos, MyMenu){
 		MyMenu.Check(L_menu_pause)
 	}
   }
+  if(ItemName = L_menu_4show)
+  {
+    Switch4show(0)
+  }
 }
-
+UpdatMenu4Show(){
+	if b_4show {
+		A_TrayMenu.Check(L_menu_4show)
+	}else{
+		A_TrayMenu.Uncheck(L_menu_4show)
+	}
+}  
 CreateMenu()
 {
   A_IconTip := APPName " v" ver
@@ -166,6 +183,8 @@ CreateMenu()
 	MyMenu.Add(L_menu_reset, MenuHandler)
   }
   MyMenu.Add(L_menu_pause, MenuHandler)
+  MyMenu.Add(L_menu_4show, MenuHandler)
+  UpdatMenu4Show()
   MyMenu.Add(L_menu_set, MenuHandler)
   MyMenu.Add(L_menu_stat, MenuHandler)
   MyMenu.Add(L_menu_exit, MenuHandler)

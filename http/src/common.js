@@ -188,6 +188,7 @@ function sendPCInfo(req, res){
   var data = req.body
   infoPC = data; // 将数据保存给全局变量
   console.log(infoPC)
+  res.send({ code: 200 });
 }
 // 接受客户端发送的数据
 let preData = {}

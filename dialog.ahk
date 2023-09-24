@@ -9,7 +9,7 @@
 ; 创建或显示内容
 ShowTxt(text)
 {
-	if text = ""{
+	if text = "" or not b_4show {
 		return 
 	}
     ; 获取活跃窗口进程匹配 FoundPos := RegExMatch(Haystack, NeedleRegEx [, &OutputVar, StartingPos])
@@ -317,7 +317,7 @@ GetKeyList(){
 GetKeyList()
 ;ShowTxt("测试代码123❌4567890123↩45⇧6⎇78⌃90123456 ⇧ ⊞  ⬅ ⬆︎ ⬇ ➞ ⇐, ⇑, ⇒, ⇓ ␣ ⌘ 【 】1[PageUp] ➕")
 
-;ShowTxt("11111塞发23422341123")
+
 ; 显示控制键
 global ctrlTextGui
 global ctrlStateGui
