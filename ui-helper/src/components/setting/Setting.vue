@@ -3,7 +3,7 @@
     <div style="height: 120px ;margin-right: 90px;float: right;">
       <n-anchor
         affix
-        top="80"
+        :top="80"
         :listen-to="() => containerRef"
         style="z-index: 10; font-size: 18px; "
         :bound="50"
@@ -22,7 +22,8 @@
     <div>
     <n-space vertical >
       <h2 id="General">{{ contentText?.menu?.setting1 }}</h2>
-      <n-card :title="通用设置" :style="myBorder.General?'border:1px #18a058 solid':''">
+      <n-card :style="myBorder.General?'border:1px #18a058 solid':''">
+        通用设置
         <n-list hoverable v-if="allPara.common">
         <n-list-item>要忽略记录的按键  <n-dynamic-tags v-model:value="skipRecordRef" />
         </n-list-item>
@@ -30,33 +31,33 @@
           是否忽略单独的控制键
            <div class="intro">控制键主要为 Ctrl,Alt,Shift,Win</div>
            <template #suffix>
-            <n-switch :round="false" /> 
+            <n-switch :round="false" v-model:value="allPara.common.skipCtrlKey"/> 
           </template>
         </n-list-item>
         <n-list-item>是否显示和记录鼠标事件
           <template #suffix>
-            <n-switch :round="false" /> 
+            <n-select v-model:value="allPara.common.showMouseEvent" :options="showRecEvent" />
           </template>
         </n-list-item>
         <n-list-item>是否记录鼠标移动距离 
           <template #suffix>
-            <n-switch :round="false" /> 
+            <n-switch :round="false" v-model:value="allPara.common.recordMouseMove"/> 
           </template>
         </n-list-item>
-        <n-list-item>是否显示按键  <div class="intro">临时显示和关闭快捷键为。。。</div>
+        <n-list-item>是否显示按键
           <template #suffix>
-            <n-switch :round="false" /> 
+            <n-switch :round="false" v-model:value="allPara.common.needShowKey"/> 
           </template>
         </n-list-item>
         <n-list-item>是否记录按键 
           <template #suffix>
-            <n-switch :round="false" /> 
+            <n-switch :round="false" v-model:value="allPara.common.needRecordKey"/> 
           </template>
         </n-list-item>
         <n-list-item>是否显示控制键状态
           <div class="intro">控制键主要为 Ctrl,Alt,Shift,Win  出现则显示</div>
           <template #suffix>
-            <n-switch :round="false" /> 
+            <n-switch :round="false" v-model:value="allPara.common.ctrlState"/> 
           </template>
         </n-list-item>
         <n-list-item>后端服务端口号
@@ -69,7 +70,7 @@
             <n-input v-model:value="allPara.common.activeWindowProc" type="text" placeholder="使用正则匹配窗口进程名" />
           </template>
         </n-list-item>
-        <n-list-item>按键显示开关快捷键 
+        <n-list-item>按键临时显示开关快捷键 
           <template #suffix><div class="intro">定义快捷键, !表示Alt , #表示windows, +表示shift, ^ 表示Ctrl, 比如 ^#F5 表示同时按下 ctrl+win+F5键，修改后重启程序生效</div>
             <n-input v-model:value="allPara.common.hotkey4Show" type="text" placeholder="手工输入按键" />
           </template>
@@ -211,6 +212,11 @@
               <n-input-number :value="1" :min="1" :max="65535" />
             </template>
           </n-list-item>
+          <n-list-item>鼠标DPI<div class="intro">用于计算实际鼠标移动距离</div>
+            <template #suffix>
+              <n-input-number :value="1" :min="1" :max="65535" />
+            </template>
+          </n-list-item>
         </n-list>
       </n-card>
       <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
@@ -296,13 +302,17 @@ function toKVList(obj:{}){
   }
   return resArr
 }
-// 转换字符串为数字
-function str2Num(hash){
+// 布尔类型清单
+const boolArr =['skipCtrlKey','recordMouseMove','needShowKey','needRecordKey','ctrlState'
+]
+// 转换字符串为数字或boolean
+function str2Type(hash){
   for(let k in hash)
   {
-    const number = Number(hash[k]);
-    if(!isNaN(number)){
-      hash[k] = number;
+    if( boolArr.indexOf(k)>-1){
+      hash[k] = hash[k] == 1
+    }else if(/^-?\d+$/.test(hash[k])){
+      hash[k] = Number(hash[k]);
     }
   }
 }
@@ -321,8 +331,8 @@ async function loadPara(allPara,allFontRef,keyMappingRef,skipRecordRef,ctrlListR
   screenNum.value = toVSelectList( [...Array(sinfo.length).keys()].map(x => x + 1) )
   
   // 对配置文件中 data.config 的数字字符串转换为数字
-  str2Num(data.config.common)
-  str2Num(data.config.dialog)
+  str2Type(data.config.common)
+  str2Type(data.config.dialog)
   
   allPara.value = data.config;
   console.log('data.config',data.config)
@@ -374,32 +384,22 @@ export default defineComponent({
 
     // 各类数据模拟
     const allPara = ref<any>({})
-    const allFontRef    = ref('') // 字体清单
+    const allFontRef    = ref([]) // 字体清单
     const keyMappingRef = ref([])  // 按键匹配清单
     const skipRecordRef = ref([])
     const ctrlListRef   = ref([])
     const skipShowRef   = ref([])
     const screenInfo    = ref('')  // 屏幕数据
     const screenNum     = ref('')  // 屏幕
+    // 00 高位表示显示，低位表示记录，
+    const showRecEvent =[{ label:'不显示不记录',value:0 },{ label:'不显示但记录',value:1 /*01*/},{ label:'只显示不记录',value:2 /*10*/},{ label:'既显示也记录',value:3 /*10*/}]
     console.log('setup')
     loadPara(allPara,allFontRef,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef,screenNum,screenInfo)
 
     const handleShowMessage = () => {
       console.log('I can use message')
     }
-    // 自动路由识别和滚动
-    const route = useRoute()
-    const scrollToSection = () => {
-      const section = route.params.section;
-      console.log('Setting:' + section)
-      if (section) {
-        // 滚动到对应的锚点位置
-        const element = document.getElementById(section.toString());
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    }
+
     onMounted(() => {
       //scrollToSection();
     })
@@ -408,7 +408,8 @@ export default defineComponent({
       General:true,
       KeyUI:false,
       StatPara:false,
-      KeyMap:false
+      KeyMap:false,
+      Save:false,
     })
     const scrollTo = (href: string) => {
       for(let k in myBorder.value)
@@ -427,6 +428,7 @@ export default defineComponent({
     }
     const containerRef = ref<HTMLElement | undefined>(undefined)
     return {
+      showRecEvent,
       myBorder,
       scrollTo,
       containerRef,
