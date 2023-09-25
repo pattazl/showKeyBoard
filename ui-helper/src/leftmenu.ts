@@ -30,32 +30,8 @@ function setOpt(menuTxt){
       {
         //type: 'group',
         label: menuTxt.setting,
-        key: menuTxt.setting,
+        key: '/Setting',
         icon: renderIcon(SettingsOutline),
-        children: [
-          {
-            label: menuTxt.setting1 ,
-            key: '/Setting/General',
-            icon: renderIcon(PersonIcon)
-          },
-          {
-            label: menuTxt.setting2,
-            key: '/Setting/KeyUI',
-            icon: renderIcon(DesktopOutline)
-          }, {
-            label: menuTxt.setting3,
-            key: '/Setting/StatPara',
-            icon: renderIcon(StatsChartOutline)
-          }, {
-            label: menuTxt.setting4,
-            key: '/Setting/KeyMap',
-            icon: renderIcon(KeypadOutline)
-          }, {
-            label: menuTxt.setting5,
-            key: '/Setting/Save',
-            icon: renderIcon(SaveOutline)
-          },
-        ]
       },
       {
         //type: 'group',

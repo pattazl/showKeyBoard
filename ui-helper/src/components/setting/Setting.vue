@@ -1,8 +1,28 @@
 <template>
-  <div>
-    <n-space vertical>
+  <div  ref="containerRef">
+    <div style="height: 120px ;margin-right: 90px;float: right;">
+      <n-anchor
+        affix
+        top="80"
+        :listen-to="() => containerRef"
+        style="z-index: 10; font-size: 18px; "
+        :bound="50"
+        :show-rail="false"
+        :ignore-gap="true"
+        type ='block'
+        position='fix'
+      >
+        <n-anchor-link :title="contentText?.menu?.setting1" @click.prevent ="scrollTo('General')" href="#General"/>
+        <n-anchor-link :title="contentText?.menu?.setting2" @click.prevent ="scrollTo('KeyUI')" href="#KeyUI"/>
+        <n-anchor-link :title="contentText?.menu?.setting3" @click.prevent ="scrollTo('StatPara')" href="#StatPara"/>
+        <n-anchor-link :title="contentText?.menu?.setting4" @click.prevent ="scrollTo('KeyMap')" href="#KeyMap" />
+        <n-anchor-link :title="contentText?.menu?.setting5" @click.prevent ="scrollTo('Save')" href="#Save" />
+      </n-anchor>
+    </div>
+    <div>
+    <n-space vertical >
       <h2 id="General">{{ contentText?.menu?.setting1 }}</h2>
-      <n-card title="通用设置">
+      <n-card :title="通用设置" :style="myBorder.General?'border:1px #18a058 solid':''">
         <n-list hoverable v-if="allPara.common">
         <n-list-item>要忽略记录的按键  <n-dynamic-tags v-model:value="skipRecordRef" />
         </n-list-item>
@@ -49,10 +69,16 @@
             <n-input v-model:value="allPara.common.activeWindowProc" type="text" placeholder="使用正则匹配窗口进程名" />
           </template>
         </n-list-item>
+        <n-list-item>按键显示开关快捷键 
+          <template #suffix><div class="intro">定义快捷键, !表示Alt , #表示windows, +表示shift, ^ 表示Ctrl, 比如 ^#F5 表示同时按下 ctrl+win+F5键，修改后重启程序生效</div>
+            <n-input v-model:value="allPara.common.hotkey4Show" type="text" placeholder="手工输入按键" />
+          </template>
+        </n-list-item>
       </n-list>
       </n-card>
-      <h2  id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
-      <n-card title="按键实时显示界面">
+      <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
+      <n-card :style="myBorder.KeyUI?'border:1px #18a058 solid':''">
+        按键实时显示界面
         <n-list hoverable v-if="allPara.dialog">
           <n-list-item>宽度
             <template #suffix>
@@ -177,7 +203,8 @@
         
       </n-card>
       <h2 id="StatPara">{{ contentText?.menu?.setting3 }}</h2>
-      <n-card title="数据统计界面的相关参数设置">
+      <n-card :style="myBorder.StatPara?'border:1px #18a058 solid':''">
+        数据统计界面的相关参数设置
         <n-list hoverable>
           <n-list-item>屏幕大小(英寸)
             <template #suffix>
@@ -187,7 +214,7 @@
         </n-list>
       </n-card>
       <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
-      <n-card>
+      <n-card :style="myBorder.KeyMap?'border:1px #18a058 solid':''">
         <n-dynamic-input
           v-model:value="keyMappingRef"
           preset="pair"
@@ -205,37 +232,40 @@
           useLoadingBar
         </n-button>
       </n-card>
-      <a id="KeyMap">KeyMap</a>
-      <br />
-      <br />
-      <br />
-      <br />
-      <n-card>
-
+      <h2 id="Save">{{ contentText?.menu?.setting5 }}</h2>
+      <n-card :style="myBorder.Save?'border:1px #18a058 solid':''">
         <h2>LoadingBar</h2>
         <n-button type="primary" @click="">
           useLoadingBar
         </n-button>
+        <a >Save</a>
+      <br />
+      <br />
+      <br />
+      <br /><a >Save</a>
+      <br />
+      <br />
+      <br />
+      <br /> <a >Save</a>
+      <br />
+      <br />
+      <br />
+      <br /><a >Save</a>
+      <br />
+      <br />
+      <br />
+      <br />
       </n-card>
-      <a id="Save">Save</a>
-      <br />
-      <br />
-      <br />
-      <br />
-      <n-card>
 
-        <h2>LoadingBar</h2>
-        <n-button type="primary" @click="">
-          useLoadingBar
-        </n-button>
-      </n-card>
     </n-space>
+  </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, onMounted ,PropType,ref,computed } from 'vue'
 import { useRoute } from 'vue-router';
+import { AnchorInst  } from 'naive-ui';
 import content from '../../content.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
@@ -371,9 +401,35 @@ export default defineComponent({
       }
     }
     onMounted(() => {
-      scrollToSection();
+      //scrollToSection();
     })
+    //let preAnchor = null
+    let  myBorder = ref({
+      General:true,
+      KeyUI:false,
+      StatPara:false,
+      KeyMap:false
+    })
+    const scrollTo = (href: string) => {
+      for(let k in myBorder.value)
+      {
+        myBorder.value[k] =  false;
+      }
+      myBorder.value[href] = true
+      // 原始组件会自动滚动到目标位置，先还原回去
+      // if(preAnchor!=null)
+      // {
+      //   document.getElementById(preAnchor).scrollIntoView()  // 先滚回原来的位置
+      // }
+      // document.getElementById(href).scrollIntoView({ behavior: 'smooth' })
+      // console.log( href + '---')
+      // preAnchor = href
+    }
+    const containerRef = ref<HTMLElement | undefined>(undefined)
     return {
+      myBorder,
+      scrollTo,
+      containerRef,
       handleShowMessage,
       allPara,
       skipRecordRef,
@@ -401,5 +457,11 @@ export default defineComponent({
 }
 .n-input{
   width:300px;
+}
+.n-anchor-link{
+  font-size: 16px;
+}
+body {
+  scroll-behavior: smooth; /* 添加平滑滚动效果 */
 }
 </style>

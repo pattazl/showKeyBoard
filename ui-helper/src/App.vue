@@ -43,6 +43,12 @@ export default defineComponent({
     };
   },
 });
+
+//  强制修改滚动效果 
+const __scrollIntoView = Element.prototype.scrollIntoView
+Element.prototype.scrollIntoView = function () {
+  __scrollIntoView.call(this, { behavior: "smooth" })
+}
 </script>
 
 <style>

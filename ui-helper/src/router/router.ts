@@ -14,7 +14,7 @@ const router = createRouter({
 			component: Home,
 		},
 		{
-			path: '/Setting/:section',
+			path: '/Setting',
 			component: Setting,
 		},
 		{
