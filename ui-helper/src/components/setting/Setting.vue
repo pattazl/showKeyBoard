@@ -1,10 +1,9 @@
 <template>
-  <div  ref="containerRef">
+  <div>
     <div style="height: 120px ;margin-right: 90px;float: right;">
       <n-anchor
         affix
         :top="80"
-        :listen-to="() => containerRef"
         style="z-index: 10; font-size: 18px; "
         :bound="50"
         :show-rail="false"
@@ -23,181 +22,186 @@
     <n-space vertical >
       <h2 id="General">{{ contentText?.menu?.setting1 }}</h2>
       <n-card :style="myBorder.General?'border:1px #18a058 solid':''">
-        通用设置
+        {{ contentText.intro1 }}
         <n-list hoverable v-if="allPara.common">
-        <n-list-item>要忽略记录的按键  <n-dynamic-tags v-model:value="skipRecordRef" />
+        <n-list-item> {{ contentText.intro2 }}<n-dynamic-tags v-model:value="skipRecordRef" />
         </n-list-item>
         <n-list-item>
-          是否忽略单独的控制键
-           <div class="intro">控制键主要为 Ctrl,Alt,Shift,Win</div>
+          {{ contentText.intro3 }}
+           <div class="intro">{{ contentText.intro4 }}</div>
            <template #suffix>
             <n-switch :round="false" v-model:value="allPara.common.skipCtrlKey"/> 
           </template>
         </n-list-item>
-        <n-list-item>是否显示和记录鼠标事件
+        <n-list-item>{{ contentText.intro5 }}
           <template #suffix>
-            <n-select v-model:value="allPara.common.showMouseEvent" :options="showRecEvent" />
+            <n-select v-model:value="allPara.common.showMouseEvent" 
+            :options="[{ label:contentText.intro63,value:0 /* 00 高位表示显示，低位表示记录 */ },{ label:contentText.intro64,value:1 /*01*/},
+            { label:contentText.intro65,value:2 /*10*/},{ label:contentText.intro66,value:3 /*10*/}]" />
           </template>
         </n-list-item>
-        <n-list-item>是否记录鼠标移动距离 
+        <n-list-item>{{ contentText.intro6 }} 
           <template #suffix>
             <n-switch :round="false" v-model:value="allPara.common.recordMouseMove"/> 
           </template>
         </n-list-item>
-        <n-list-item>是否显示按键
+        <n-list-item>{{ contentText.intro7 }} 
           <template #suffix>
             <n-switch :round="false" v-model:value="allPara.common.needShowKey"/> 
           </template>
         </n-list-item>
-        <n-list-item>是否记录按键 
+        <n-list-item>{{ contentText.intro8 }}  
           <template #suffix>
             <n-switch :round="false" v-model:value="allPara.common.needRecordKey"/> 
           </template>
         </n-list-item>
-        <n-list-item>是否显示控制键状态
-          <div class="intro">控制键主要为 Ctrl,Alt,Shift,Win  出现则显示</div>
+        <n-list-item>{{ contentText.intro9 }} 
+          <div class="intro">{{ contentText.intro10 }}</div>
           <template #suffix>
             <n-switch :round="false" v-model:value="allPara.common.ctrlState"/> 
           </template>
         </n-list-item>
-        <n-list-item>后端服务端口号
-          <template #suffix >
+        <n-list-item>{{ contentText.intro11 }}
+          <template #suffix>
             <n-input-number v-model:value="allPara.common.serverPort" :min="80" :max="65535" />
           </template>
         </n-list-item>
-        <n-list-item>按键显示仅针对活跃窗口 
+        <n-list-item>{{ contentText.intro12 }} 
           <template #suffix>
-            <n-input v-model:value="allPara.common.activeWindowProc" type="text" placeholder="使用正则匹配窗口进程名" />
+            <n-input v-model:value="allPara.common.activeWindowProc" type="text" :placeholder="contentText.intro13" />
           </template>
         </n-list-item>
-        <n-list-item>按键临时显示开关快捷键 
-          <template #suffix><div class="intro">定义快捷键, !表示Alt , #表示windows, +表示shift, ^ 表示Ctrl, 比如 ^#F5 表示同时按下 ctrl+win+F5键，修改后重启程序生效</div>
-            <n-input v-model:value="allPara.common.hotkey4Show" type="text" placeholder="手工输入按键" />
+        <n-list-item>{{ contentText.intro14 }}  
+          <template #suffix>
+            <div class="intro">{{ contentText.intro15 }}{{ contentText.keyIntro }}</div>
+            <n-input v-model:value="allPara.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
           </template>
         </n-list-item>
       </n-list>
       </n-card>
       <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
       <n-card :style="myBorder.KeyUI?'border:1px #18a058 solid':''">
-        按键实时显示界面
+        {{ contentText.intro17 }}
         <n-list hoverable v-if="allPara.dialog">
-          <n-list-item>宽度
-            <template #suffix>
-              <n-input-number v-model:value="allPara.dialog.guiWidth" :min="1" :max="65535" />
-            </template>
-          </n-list-item>
-          <n-list-item>高度<div class="intro">为0表示自适应</div>
-            <template #suffix>
-              <n-input-number v-model:value="allPara.dialog.guiHeigth" :min="0" :max="65535" />
-            </template>
-          </n-list-item>
-          <n-list-item>背景色和透明度
-            <template #suffix>
-              <n-color-picker v-model:value="allPara.dialog.guiBgcolor" :modes="['hex']" />
-            </template>
-          </n-list-item>
-          <n-list-item>鼠标穿透<div class="intro">可以点击到提示框下方的窗体</div>
-            <template #suffix>
-              <n-switch v-model:value="allPara.dialog.guiTrans" :round="false" /> 
-            </template>
-          </n-list-item>
-          <n-list-item>字体<div class="intro">选择系统的字体</div>
-            <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiTextFont" :options="allFontRef" />
-            </template>
-          </n-list-item>
-          <n-list-item>字体大小
-            <template #suffix>
-              <n-input-number v-model:value="allPara.dialog.guiTextSize" :min="1" :max="100" />
-            </template>
-          </n-list-item>
-          <n-list-item>是否粗体
-            <template #suffix>
-              <n-switch v-model:value="allPara.dialog.guiTextWeight" :round="false" /> 
-            </template>
-          </n-list-item>
-          <n-list-item>字体颜色
-            <template #suffix>
-              <n-color-picker v-model:value="allPara.dialog.guiTextColor" :modes="['hex']" />
-            </template>
-          </n-list-item>
-          <n-list-item>显示多少毫秒消失
-            <template #suffix>
-              <n-input-number v-model:value="allPara.dialog.guiLife" :min="10" :max="100000" />
-            </template>
-          </n-list-item>
-          <n-list-item>窗体间隔毫秒
-            <template #suffix>
-              <n-input-number v-model:value="allPara.dialog.guiInterval" :min="10" :max="100000" />
-            </template>
-          </n-list-item>
-          <n-list-item>上下左右位置<div class="intro">提示框出现的屏幕位置</div>
-            <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiPos"
-                :options="[{label:'左上',value:'TL'},{label:'右上',value:'TR'},{label:'左下',value:'BL'},{label:'右下',value:'BR'}]" />
-            </template>
-          </n-list-item>
-          <n-list-item>窗口移动位置<div class="intro">横向或垂直移动</div>
-            <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiPosXY" :options="[{label:'X'},{label:'Y'}]" />
-            </template>
-          </n-list-item>
-          <n-list-item>位置X调整<div class="intro">横向位置调整，负数表示往左，正数表示往右</div>
-            <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiPosOffsetX" />
-            </template>
-          </n-list-item>
-          <n-list-item>位置Y调整<div class="intro">纵向位置调整，负数表示往上，正数表示往下</div>
-            <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiPosOffsetY" />
-            </template>
-          </n-list-item>
-          <n-list-item>是否进行DPI
-            <template #suffix>
-                <n-switch v-model:value="allPara.dialog.guiDpiscale" :round="false" />
-            </template>
-          </n-list-item>
-          <n-list-item>第几个屏幕<div class="intro">分辨率为 {{  }}</div>
+          <n-list-item>{{ contentText.intro44 }}<div :class="screenInfo.length>0?'intro':'error'">{{ screenInfo.length>0?contentText.intro45:contentText.intro72 }} {{ screenInfo[allPara.dialog.guiMonitorNum-1] }}</div>
             <template #suffix>
               <n-select v-model:value="allPara.dialog.guiMonitorNum"
                 :options="screenNum" />
             </template>
           </n-list-item>
-          <n-list-item>提示窗口间的间隔
+          <n-list-item>{{ contentText.intro18 }}
+            <template #suffix>
+              <n-input-number v-model:value="allPara.dialog.guiWidth" :min="1" :max="65535" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro19 }}<div class="intro">{{ contentText.intro20 }}</div>
+            <template #suffix>
+              <n-input-number v-model:value="allPara.dialog.guiHeigth" :min="0" :max="65535" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro21 }}
+            <template #suffix>
+              <n-color-picker v-model:value="allPara.dialog.guiBgcolor" :modes="['hex']" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro22 }}<div class="intro">{{ contentText.intro23 }}</div>
+            <template #suffix>
+              <n-switch v-model:value="allPara.dialog.guiTrans" :round="false" /> 
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro24 }}<div class="intro">{{ contentText.intro25 }}</div>
+            <template #suffix>
+                <n-select v-model:value="allPara.dialog.guiTextFont" :options="allFontRef" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro26 }}
+            <template #suffix>
+              <n-input-number v-model:value="allPara.dialog.guiTextSize" :min="1" :max="100" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro27 }}
+            <template #suffix>
+              <n-select v-model:value="allPara.dialog.guiTextWeight" 
+              :options="[{ label:contentText.intro67,value:'norm' }, { label:contentText.intro68,value:'bold' },{ label:contentText.intro69,value:'italic'},
+              { label:contentText.intro70,value:'strike'},{ label:contentText.intro71,value:'underline' }]" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro28 }}
+            <template #suffix>
+              <n-color-picker v-model:value="allPara.dialog.guiTextColor" :show-alpha="false" :modes="['hex']" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro29 }}
+            <template #suffix>
+              <n-input-number v-model:value="allPara.dialog.guiLife" :min="10" :max="100000" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro30 }}
+            <template #suffix>
+              <n-input-number v-model:value="allPara.dialog.guiInterval" :min="10" :max="100000" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro31 }}<div class="intro">{{ contentText.intro32 }}</div>
+            <template #suffix>
+                <n-select v-model:value="allPara.dialog.guiPos"
+                :options="[{label:contentText.intro33,value:'TL'},{label:contentText.intro34,value:'TR'},{label:contentText.intro35,value:'BL'},{label:contentText.intro36,value:'BR'}]" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro37 }}<div class="intro">{{ contentText.intro38 }}</div>
+            <template #suffix>
+                <n-select v-model:value="allPara.dialog.guiPosXY" :options="[{label:'X'},{label:'Y'}]" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro39 }}<div class="intro">{{ contentText.intro40 }}</div>
+            <template #suffix>
+                <n-input-number v-model:value="allPara.dialog.guiPosOffsetX" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro41 }}<div class="intro">{{ contentText.intro42 }}</div>
+            <template #suffix>
+                <n-input-number v-model:value="allPara.dialog.guiPosOffsetY" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro43 }}
+            <template #suffix>
+                <n-switch v-model:value="allPara.dialog.guiDpiscale" :round="false" />
+            </template>
+          </n-list-item>
+          <n-list-item>{{ contentText.intro46 }}
             <template #suffix>
               <n-input-number v-model:value="allPara.dialog.guiMargin" />
             </template>
           </n-list-item>
-          <n-list-item>是否有细边框
+          <n-list-item>{{ contentText.intro47 }}
             <template #suffix>
                 <n-switch v-model:value="allPara.dialog.guiEdge" :round="false" />
             </template>
           </n-list-item>
-          <n-list-item>按键分隔符,用于按键间的显示分割
+          <n-list-item>{{ contentText.intro48 }}
             <template #suffix>
-              <n-input v-model:value="allPara.dialog.txtSplit" type="text" placeholder="推荐用空格" />
+              <n-input v-model:value="allPara.dialog.txtSplit" type="text" :placeholder="contentText.intro49" />
             </template>
           </n-list-item>
-          <h4>长按显示,主要用于控制键,如Ctrl、Alt、LWin、Shift、RWin、CapsLock等</h4>
-          <n-list-item>控制键X位置
+          <h4>{{ contentText.intro50 }}</h4>
+          <n-list-item>{{ contentText.intro51 }}
             <template #suffix>
               <n-input-number v-model:value="allPara.dialog.ctrlX" />
             </template>
           </n-list-item>
-          <n-list-item>控制键Y位置
+          <n-list-item>{{ contentText.intro52 }}
             <template #suffix>
               <n-input-number v-model:value="allPara.dialog.ctrlY" />
             </template>
           </n-list-item>
-          <n-list-item>控制键字体大小
+          <n-list-item>{{ contentText.intro53 }}
             <template #suffix>
               <n-input-number v-model:value="allPara.dialog.ctrlTextSize" :min="1" :max="100" />
             </template>
           </n-list-item>
-          <n-list-item>控制键清单
+          <n-list-item>{{ contentText.intro54 }}
               <n-dynamic-tags v-model:value="ctrlListRef" />
           </n-list-item>
-          <n-list-item>哪些按键不会显示，但会记录
+          <n-list-item>{{ contentText.intro55 }}
               <n-dynamic-tags v-model:value="skipShowRef" />
           </n-list-item>
         </n-list>
@@ -205,16 +209,16 @@
       </n-card>
       <h2 id="StatPara">{{ contentText?.menu?.setting3 }}</h2>
       <n-card :style="myBorder.StatPara?'border:1px #18a058 solid':''">
-        数据统计界面的相关参数设置
+        {{ contentText.intro56 }}
         <n-list hoverable>
-          <n-list-item>屏幕大小(英寸)
+          <n-list-item>{{ contentText.intro57 }}<div class="intro">{{ contentText.intro58 }}</div>
             <template #suffix>
-              <n-input-number :value="1" :min="1" :max="65535" />
+              <n-input-number :value="24" :min="1" :max="1000" />
             </template>
           </n-list-item>
-          <n-list-item>鼠标DPI<div class="intro">用于计算实际鼠标移动距离</div>
+          <n-list-item>{{ contentText.intro59 }}<div class="intro">{{ contentText.intro60 }}</div>
             <template #suffix>
-              <n-input-number :value="1" :min="1" :max="65535" />
+              <n-input-number :value="1000" :min="100" :max="100000" />
             </template>
           </n-list-item>
         </n-list>
@@ -224,43 +228,32 @@
         <n-dynamic-input
           v-model:value="keyMappingRef"
           preset="pair"
-          key-placeholder="按键名"
-          value-placeholder="显示的按键符号"
+          :key-placeholder="contentText.intro61"
+          :value-placeholder="contentText.intro62"
         />
       </n-card>
-      <n-card>
-        <br />
-        <br />
-        <br />
-        <br />
-        <h2>LoadingBar</h2>
-        <n-button type="primary" @click="">
-          useLoadingBar
-        </n-button>
-      </n-card>
       <h2 id="Save">{{ contentText?.menu?.setting5 }}</h2>
-      <n-card :style="myBorder.Save?'border:1px #18a058 solid':''">
-        <h2>LoadingBar</h2>
-        <n-button type="primary" @click="">
-          useLoadingBar
-        </n-button>
-        <a >Save</a>
-      <br />
-      <br />
-      <br />
-      <br /><a >Save</a>
-      <br />
-      <br />
-      <br />
-      <br /> <a >Save</a>
-      <br />
-      <br />
-      <br />
-      <br /><a >Save</a>
-      <br />
-      <br />
-      <br />
-      <br />
+      <n-card :title="'差异如下'" :style="myBorder.Save?'border:1px #18a058 solid':''">
+        <n-button type="primary" @click="savePara">保存数据</n-button>
+        <div v-if="allData?.data">
+           <n-input
+            :value="JSON.stringify(allData.data,null,2)"
+            type="textarea"
+            placeholder="基本的 Textarea"
+            show-count
+            size="large"
+            rows="50"
+          />
+            <hr/>
+            <n-input
+            :value="JSON.stringify(allData.preData,null,2)"
+            type="textarea"
+            placeholder="基本的 Textarea"
+            show-count
+            size="large"
+            rows="50"
+          />
+       </div>
       </n-card>
 
     </n-space>
@@ -271,7 +264,7 @@
 <script lang="ts">
 import { defineComponent, onMounted ,PropType,ref,computed } from 'vue'
 import { useRoute } from 'vue-router';
-import { AnchorInst  } from 'naive-ui';
+import { useMessage  } from 'naive-ui';
 import content from '../../content.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
@@ -283,6 +276,8 @@ function splitArr(str){
     arr = str.split('|')
   }
   return arr;
+}
+function arr2Str(str){
 }
 // 生成界面上select的数组
 function toVSelectList(arr:Array<string|number>){
@@ -303,45 +298,54 @@ function toKVList(obj:{}){
   return resArr
 }
 // 布尔类型清单
-const boolArr =['skipCtrlKey','recordMouseMove','needShowKey','needRecordKey','ctrlState'
-]
+const boolArr =['skipCtrlKey','recordMouseMove','needShowKey','needRecordKey','ctrlState','guiBgTrans','guiTrans', 'guiEdge' ,'guiDpiscale']
 // 转换字符串为数字或boolean
-function str2Type(hash){
+function str2Type(hash,flag){
   for(let k in hash)
   {
-    if( boolArr.indexOf(k)>-1){
-      hash[k] = hash[k] == 1
-    }else if(/^-?\d+$/.test(hash[k])){
-      hash[k] = Number(hash[k]);
+    if(flag==0){  // 进行数据转换给界面
+        // 如果不是字符串类型，证明之前已经处理过无需再处理
+        if(typeof hash[k] !=='string'){
+          return;
+        }
+        if( boolArr.indexOf(k)>-1 ){
+          hash[k] = hash[k] == 1
+        }else if('guiBgcolor' == k && hash[k].indexOf('#') ==-1 ){
+          // 有颜色字段,需要加上透明度
+          hash[k]= '#' + hash[k]+ parseInt(hash.guiOpacity,10).toString(16)
+        }else if('guiTextColor' == k && hash[k].indexOf('#') ==-1 ){
+          // 有颜色字段
+          hash[k]= '#' + hash[k]
+        }else if(/^-?\d+$/.test(hash[k])){
+          hash[k] = Number(hash[k]);
+        }
+    }else{ // 界面转换给数据
+      if( boolArr.indexOf(k)>-1 ){
+          hash[k] = hash[k]?'1':'0'
+        }else if('guiBgcolor' == k && hash[k].indexOf('#') !=-1 ){
+          // 有颜色字段,需要加上透明度
+          let color = hash[k].replace(/#/,'')
+          hash[k]= color.substr(0,6);
+          hash.guiOpacity = parseInt(color.substr(6,2),16)
+          hash.guiBgTrans = (hash.guiOpacity ==0)?1:0
+        }else if('guiTextColor' == k ){
+          // 有颜色字段
+          hash[k]= hash[k].replace(/#/,'')
+        }
     }
   }
 }
-// 拉取数据
-async function loadPara(allPara,allFontRef,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef,screenNum,screenInfo){
-  const store= useAustinStore();
-  let data = <any>store.setting;
-  if(data.config==null){
-  // 每次路由跳转变量会重新初始化，需要保存起来
-    data = await ajax('getPara')
-    store.setting = data
+function deepCopy(obj) {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
   }
-  
-  const sinfo = data.infoPC.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
-  screenInfo.value = sinfo
-  screenNum.value = toVSelectList( [...Array(sinfo.length).keys()].map(x => x + 1) )
-  
-  // 对配置文件中 data.config 的数字字符串转换为数字
-  str2Type(data.config.common)
-  str2Type(data.config.dialog)
-  
-  allPara.value = data.config;
-  console.log('data.config',data.config)
-  allFontRef.value = toVSelectList( data.fonts.map(x => x.replace(/"/g,'')))
-  keyMappingRef.value = toKVList(data.keyList)
-  skipRecordRef.value = splitArr(allPara.value.common.skipRecord)
-  ctrlListRef.value = splitArr(allPara.value.dialog.ctrlList)
-  skipShowRef.value = splitArr(allPara.value.dialog.skipShow)
-
+  const copy = Array.isArray(obj) ? [] : {};
+  for (let key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      copy[key] = deepCopy(obj[key]);
+    }
+  }
+  return copy;
 }
 // ajax核心模块
 async function ajax(path,data=null){
@@ -378,6 +382,7 @@ export default defineComponent({
     // const store= useAustinStore(); 可通过 属性传递，也可通过pinia传递
     // const lang = computed(()=>store.lang) 
     const contentText = computed(()=>content[props.lang]) 
+    const message = useMessage()
     //watch(() => store.lang, (newValue, oldValue) => {
     //  console.log(` lang New value: ${newValue}, old value: ${oldValue}`);
     //});
@@ -390,16 +395,46 @@ export default defineComponent({
     const ctrlListRef   = ref([])
     const skipShowRef   = ref([])
     const screenInfo    = ref('')  // 屏幕数据
-    const screenNum     = ref('')  // 屏幕
-    // 00 高位表示显示，低位表示记录，
-    const showRecEvent =[{ label:'不显示不记录',value:0 },{ label:'不显示但记录',value:1 /*01*/},{ label:'只显示不记录',value:2 /*10*/},{ label:'既显示也记录',value:3 /*10*/}]
+    const screenNum     = ref([])  // 屏幕
+
     console.log('setup')
-    loadPara(allPara,allFontRef,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef,screenNum,screenInfo)
+    const allData = {data:{},preData:{}}; // 重新更新数据
+    // 拉取数据
+    async function loadPara(){
+      const store= useAustinStore();
+      let data = <any>store.setting;
+      if(data.config==null){
+        const loading = message.loading(contentText.value.intro73,{duration:0})
+      // 每次路由跳转变量会重新初始化，需要保存起来
+        data = await ajax('getPara')
+        loading.destroy()
+        message.success( contentText.value.intro74)
+        // 对配置文件中 data.config 的数字字符串转换为数字
+        str2Type(data.config.common,0)
+        str2Type(data.config.dialog,0)
 
-    const handleShowMessage = () => {
-      console.log('I can use message')
+        store.setting = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
+        store.preData = deepCopy(data); // 之前的数据
+      }
+      allData.data = data;
+      allData.preData = store.preData;
+
+      // 以下为输出
+      allPara.value = data.config;
+      const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
+      if(sinfo != null){
+        screenInfo.value = sinfo
+        screenNum.value = toVSelectList( [...Array(sinfo.length).keys()].map(x => x + 1) )
+      }
+      console.log('data.config',data.config)
+      allFontRef.value = toVSelectList( data.fonts.map(x => x.replace(/"/g,'')))
+      keyMappingRef.value = toKVList(data.keyList)
+      skipRecordRef.value = splitArr(allPara.value.common.skipRecord)
+      ctrlListRef.value = splitArr(allPara.value.dialog.ctrlList)
+      skipShowRef.value = splitArr(allPara.value.dialog.skipShow)
+
     }
-
+    loadPara();
     onMounted(() => {
       //scrollToSection();
     })
@@ -426,13 +461,32 @@ export default defineComponent({
       // console.log( href + '---')
       // preAnchor = href
     }
-    const containerRef = ref<HTMLElement | undefined>(undefined)
+    // 将数据进行转换和保存 allPara,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef
+    async function savePara(){
+      let config = deepCopy(allPara.value); // config配置文件，包含common 和 dialog
+      str2Type(config.common,1)
+      str2Type(config.dialog,1)
+
+      // 转换数组为字符串
+      config.common.skipRecord = skipRecordRef.value.join('|')
+      config.dialog.ctrlList   = ctrlListRef.value.join('|')
+      config.dialog.skipShow = skipShowRef.value.join('|')
+      // 转换keyList
+      let keyList = {};
+      for( let v of keyMappingRef.value)
+      {
+        keyList[v.key] = v.value;
+      }
+      // 需要将数据保存给服务器
+      console.log('setPara')
+      const saving = message.loading(contentText.value.intro75,{duration:0})
+      await ajax('setPara',{config,keyList})
+      saving.destroy()
+      message.success(contentText.value.intro76)
+    }
     return {
-      showRecEvent,
       myBorder,
       scrollTo,
-      containerRef,
-      handleShowMessage,
       allPara,
       skipRecordRef,
       contentText,
@@ -442,6 +496,8 @@ export default defineComponent({
       screenNum,
       keyMappingRef,
       screenInfo,
+      allData,
+      savePara,
     }
   },
 })
@@ -451,11 +507,15 @@ export default defineComponent({
   font-size:smaller;
   color:#2080f0;;
 }
+.error {
+  font-size:smaller;
+  color:#f02020;;
+}
 .n-input-number{
   width:150px
 }
 .n-color-picker , .n-select {
-  width:180px;
+  width:220px;
 }
 .n-input{
   width:300px;

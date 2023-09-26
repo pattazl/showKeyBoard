@@ -174,12 +174,23 @@ async function getParaFun(req, res) {
 // 保存参数 ，包括各种文件和数据的保存
 function setParaFun(req, res) {
   console.log('setPara')
-  var data = req.body
-  let newConf = JSON.stringify(data)
+  var data = req.body  // 包含 config 和 
+  let newConf = JSON.stringify(data.config)
   if (JSON.stringify(config) != newConf) {
     console.log('write ini')
-    config = JSON.parse(newConf)
-    fs.writeFileSync(iniPath, ini.stringify(data))
+    config = data.config
+    fs.writeFileSync(iniPath, ini.stringify(config))
+  }
+  let newKeyList = JSON.stringify(data.keyList)
+  if( JSON.stringify(keyList) != newKeyList){
+    let keyArr = []
+    for(let k in newKeyList)
+    {
+      keyArr.push(k+''+newKeyList[k])
+    }
+    keyList = data.keyList
+    console.log('write keyPath')
+    fs.writeFileSync(keyPath,keyArr.join('\n'), 'utf-8')
   }
   res.send({ code: 200 });
 }
