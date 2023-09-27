@@ -21,8 +21,8 @@ export default {
       stat3: '数据趋势',
       stat4: '数据导出',
     },
-	keyIntro:`按键说明:!表示Alt , #表示windows, +表示shift, ^ 表示Ctrl, &lt;表示左，&gt;表示右，可自由组合。 
-              比如 ^#F5 表示按下ctrl+win+F5键,&lt;^&lt;+D表示按下左侧的Ctrl+左侧Shift+字母键D`,
+	keyIntro:`按键说明:!表示Alt , #表示windows, +表示shift, ^ 表示Ctrl, < 表示左，>表示右，可自由组合。 
+              比如 ^#F5 表示按下ctrl+win+F5键,<^<+D表示按下左侧的Ctrl+左侧Shift+字母键D`,
 	intro1:'通用设置',
 	intro2:'要忽略记录的按键',
 	intro3:'是否忽略单独的控制键',

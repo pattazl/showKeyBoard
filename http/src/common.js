@@ -175,12 +175,7 @@ async function getParaFun(req, res) {
 function setParaFun(req, res) {
   console.log('setPara')
   var data = req.body  // 包含 config 和 
-  let newConf = JSON.stringify(data.config)
-  if (JSON.stringify(config) != newConf) {
-    console.log('write ini')
-    config = data.config
-    fs.writeFileSync(iniPath, ini.stringify(config))
-  }
+  let isUpdate = false
   let newKeyList = JSON.stringify(data.keyList)
   if( JSON.stringify(keyList) != newKeyList){
     let keyArr = []
@@ -190,8 +185,16 @@ function setParaFun(req, res) {
     }
     keyList = data.keyList
     console.log('write keyPath')
+    isUpdate = true;
     fs.writeFileSync(keyPath,keyArr.join('\n'), 'utf-8')
   }
+  let newConf = JSON.stringify(data.config)
+  if (JSON.stringify(config) != newConf || isUpdate) {
+    console.log('write ini')
+    config = data.config
+    fs.writeFileSync(iniPath, ini.stringify(config))
+  }
+  
   res.send({ code: 200 });
 }
 // 接收客户端发送的PC相关信息，比如屏幕等

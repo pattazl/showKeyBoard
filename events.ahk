@@ -26,9 +26,14 @@ IniMonitor(){
     modified := FileGetTime(IniFile)
     if (modified != lastModified)
     {
+		; 如果端口发生了变化则需要完全重启
+		newPort :=IniRead(IniFile,"common","serverPort",9900 )
+		if newPort != serverPort
+		{
+			ExitServer()
+		}
         ;  当文件发生变化后，需要重新载入
         Reload()
-        lastModified := modified
     }
 }
 

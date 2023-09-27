@@ -235,6 +235,17 @@
       <h2 id="Save">{{ contentText?.menu?.setting5 }}</h2>
       <n-card :title="'差异如下'" :style="myBorder.Save?'border:1px #18a058 solid':''">
         <n-button type="primary" @click="savePara">保存数据</n-button>
+        <code-diff
+          v-for="(item, key) in diffJsonList"
+          :key="key"
+          :old-string="item['old']"
+          :new-string="item['new']"
+          :context="50"
+          :file-name="key"
+          output-format="side-by-side"
+          :file-content-toggle="true"
+          :render-nothing-when-empty="false"
+          />
         <div v-if="allData?.data">
            <n-input
             :value="JSON.stringify(allData.data,null,2)"
@@ -268,6 +279,7 @@ import { useMessage  } from 'naive-ui';
 import content from '../../content.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
+import CodeDiff from './CodeDiff'
 // import { useAustinStore } from '../../App.vue'
 
 function splitArr(str){
@@ -331,6 +343,8 @@ function str2Type(hash,flag){
         }else if('guiTextColor' == k ){
           // 有颜色字段
           hash[k]= hash[k].replace(/#/,'')
+        }if(typeof hash[k] !=='string'){
+          hash[k]= hash[k].toString(); // 默认都是字符串
         }
     }
   }
@@ -484,6 +498,8 @@ export default defineComponent({
       saving.destroy()
       message.success(contentText.value.intro76)
     }
+    // 
+    const diffJsonList = {'common':{'old':'111','new':'222'},'dialog':{'old':'111111','new':'3333'}}
     return {
       myBorder,
       scrollTo,
@@ -498,6 +514,7 @@ export default defineComponent({
       screenInfo,
       allData,
       savePara,
+      diffJsonList,
     }
   },
 })
