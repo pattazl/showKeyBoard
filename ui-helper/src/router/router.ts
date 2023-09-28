@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/components/home/Home.vue'
 import Setting from '@/components/setting/Setting.vue'
-import Message from '@/components/message/Message.vue'
-import Dialog from '@/components/dialog/Dialog.vue'
+import Today from '@/components/dataui/Today.vue'
+import History from '@/components/dataui/History.vue'
+import Statistics from '@/components/dataui/Statistics.vue'
+import Export from '@/components/dataui/Export.vue'
 
 
 const router = createRouter({
@@ -19,19 +21,19 @@ const router = createRouter({
 		},
 		{
 			path: '/Today',
-			component: Message,
+			component: Today,
 		},
 		{
 			path: '/History',
-			component: Dialog,
+			component: History,
 		},
 		{
 			path: '/Statistics',
-			component: Dialog,
+			component: Statistics,
 		},
 		{
 			path: '/Export',
-			component: Message,
+			component: Export,
 		},
 	],
 })

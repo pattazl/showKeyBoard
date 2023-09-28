@@ -2,7 +2,7 @@
   <div>
     <n-h3>Message</n-h3>
     <n-button type="primary" @click="handleShowMessage">
-      useMessage
+      数据统计
     </n-button>
   </div>
 </template>

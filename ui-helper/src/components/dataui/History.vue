@@ -2,7 +2,7 @@
   <div>
     <n-h3>Dialog</n-h3>
     <n-button type="primary" @click="handleShowDialog">
-      useDialog
+      数据历史
     </n-button>
 
   </div>

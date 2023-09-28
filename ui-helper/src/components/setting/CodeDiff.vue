@@ -8,7 +8,18 @@
 import { createPatch } from 'diff'
 import { parse, html } from 'diff2html'
 import 'diff2html/bundles/css/diff2html.min.css'
-
+import content from '../../content.js';
+function autoClick()
+{
+  setTimeout(() => {
+    let arr = document.getElementsByName('viewed')
+     //console.log(arr)
+     for(let v of arr)
+     {
+      if(!v.checked)v.click();
+     }
+  }, 100);
+}
 export default {
   name: "CodeDiff",
   props: {
@@ -55,6 +66,11 @@ export default {
     showTextWithoutDiff: {
       type: Boolean,
       default: true
+    },
+    // 语言
+    lang: {
+      type: String,
+      default: 'zh-CN'
     }
   },
   computed: {
@@ -63,12 +79,7 @@ export default {
     }
   },
   mounted(){
-     let arr = document.getElementsByName('viewed')
-     console.log(arr)
-     for(let v of arr)
-     {
-      if(!v.checked)v.click();
-     }
+
   },
   methods: {
     createdHtml (oldString, newString, context, outputFormat, drawFileList, fileContentToggle, renderNothingWhenEmpty, fileName, showTextWithoutDiff) {
@@ -78,9 +89,9 @@ export default {
       // diff.js的createPatch()方法，输出oldString和newString差异补丁，内容是GUN DIFF格式
       let diffString = createPatch(...args)
       // 如果两份文件没有差异，createPatch输出的结果，不会带有原文本信息，下面是强制加上原文本信息
-      console.log(oldString)
-      console.log(newString)
-      console.log(diffString)
+      //console.log(oldString)
+      //console.log(newString)
+      //console.log(diffString)
       // 将diffString转换为DiffFile[]
       // let diffJson = parse(diffString, {
       //   outputFormat,
@@ -89,6 +100,7 @@ export default {
       //   matching: 'lines'
       // })
       // 将DiffFile[]转换为html标签
+      const ct = content[this.lang]
       let diffHtml = html(diffString, {
         outputFormat,
         drawFileList,
@@ -101,18 +113,18 @@ export default {
           "generic-file-path": `<span class="d2h-file-name-wrapper">
     {{>fileIcon}}
     <span class="d2h-file-name">{{fileDiffName}}</span>
-    <span class="d2h-tag d2h-changed d2h-changed-tag">差异数</span>
-    <span class="d2h-diff-title" style="display: none; flex: 1 1 auto; text-align: center">修改前</span>
-    <span class="d2h-diff-title" style="display: none; flex: 1 1 auto; text-align: center">修改后</span>
+    <span class="d2h-diff-title" style="display: none; flex: 1 1 auto; text-align: center">${ct.intro78}</span>
+    <span class="d2h-diff-title" style="display: none; flex: 1 1 auto; text-align: center">${ct.intro79}</span>
 </span>
 <label class="d2h-file-collapse" style="display: flex;;width:60px">
     <input class="d2h-file-collapse-input" type="checkbox" name="viewed" value="viewed">
-    Viewed
+    ${ct.intro80}
 </label>`
         }
       })
       // 添加d2h-d-none类，默认隐藏diff内容
-      diffHtml = diffHtml.replace('d2h-files-diff', 'd2h-files-diff d2h-d-none')
+       diffHtml = diffHtml.replace('d2h-files-diff', 'd2h-files-diff d2h-d-none')
+       autoClick() // 自动展开
       return diffHtml
     },
     /**
