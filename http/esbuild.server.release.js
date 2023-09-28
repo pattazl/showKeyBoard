@@ -4,16 +4,16 @@ const esbuildConfig = () => require('esbuild').buildSync({
         'src/server.js',
     ],
     bundle: true,
-    sourcemap:true,
-    loader: { ".ts": "ts"  },
+    sourcemap:false,
+    loader: { ".ts": "ts" ,".js": "js" },
     outdir: outDir,
     platform: "node",
-    external: [],
+    external: [], //['nock', 'mock-aws-s3', 'aws-sdk'], // 
     target: [
-      'node8',
+      'node10',
     ],
 	//outfile: 'dist/onetrack.js',
-    //minify: true,
+    minify: true,
 })
 esbuildConfig();
 // 将 src/res 目录的内容编译到 /res 中
