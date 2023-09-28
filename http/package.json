@@ -1,19 +1,21 @@
 {
+  "name": "httpserver",
+  "version": "1.0.0",
+  "main": "server.js",
   "scripts": {
-    "build-s": "node ./esbuild.server.release.js",
-    "dev-s": "node ./esbuild.server.js",
-    "build-c": "node ./esbuild.client.release.js",
-    "dev-c": "node ./esbuild.client.js"
+    "build": "node ./esbuild.server.release.js",
+    "dev": "node ./esbuild.server.js"
   },
   "dependencies": {
     "dayjs": "^1.8.16",
     "express": "^4.17.1",
+    "font-list": "^1.5.1",
     "ini": "^4.1.1",
-    "ws": "^8.13.0",
-    "font-list":"^1.5.1"
+    "sqlite3": "^5.1.6",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "esbuild": "^0.15.1",
-    "sqlite3": "^5.1.6"
+    "node-pre-gyp": "^0.17.0"
   }
 }
