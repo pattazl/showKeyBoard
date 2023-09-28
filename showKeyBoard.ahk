@@ -135,7 +135,7 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   if(ItemName = L_menu_set)
   {
 	if serverState = 1 {
-		Run serverUrl "/setting.html"
+		Run serverUrl "/Setting"
 	}else{
 		MsgBox menu_msg_noserver
 	}
@@ -143,7 +143,7 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   if(ItemName = L_menu_stat)
   {
 	if serverState = 1 {
-		Run serverUrl "/stat.html"
+		Run serverUrl "/Today"
 	}else{
 		MsgBox menu_msg_noserver
 	}

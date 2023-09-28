@@ -17,11 +17,16 @@ app.use((req, res, next) => {
   });
 app.use(express.json());
 app.use(express.static('ui'));
+app.use('/Setting', express.static('ui'));
+app.use('/Today', express.static('ui'));
+app.use('/History', express.static('ui'));
+app.use('/Statistics', express.static('ui'));
+app.use('/Export', express.static('ui'));
 // 返回全部参数信息 
 app.post('/getPara', getParaFun);
 // 写入修改全部参数信息
 app.post('/setPara', setParaFun);
-app.get('/', (req, res) => {res.send('Welcome to showKeyBoard backend service');});
+// app.get('/', (req, res) => {res.send('Welcome to showKeyBoard backend service');});
 app.post('/exit',exitFun); // 退出系统
 app.post('/data', dataFun);  // 上传按键数据
 app.post('/sendPCInfo', sendPCInfo);  // 上传PC其他信息，比如显示屏和分辨率信息等
