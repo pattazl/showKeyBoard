@@ -1,6 +1,6 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.2" 
+global APPName:="ShowKeyBoard", ver:="1.3" 
      , IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
      
@@ -32,6 +32,9 @@ serverPort :=IniRead(IniFile,"common","serverPort",9900 )
 
 activeWindowProc :=IniRead(IniFile,"common","activeWindowProc","" ) 
 ; 按键显示仅仅针对活跃窗口，正则匹配
+
+showHttpDebug :=IniRead(IniFile,"common","showHttpDebug","0" ) 
+; 是否显示http调试框
 
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度
@@ -69,7 +72,7 @@ global inArr := Array() ; 保存传入进来的数组
 global guiShowing := 0
 global KeyMapping:=Map()
 AllKeyRecord['tick'] := A_TickCount  ; tick数据不一样表示程序重启过，需要累计计数
-global httpPath := A_WorkingDir '/http/src/'   ; node 脚本所在目录
+global httpPath := A_WorkingDir '/httpdist/dist/'   ; node 脚本所在目录
 if !FileExist(httpPath){
 	needRecordKey := 0  ; 如果不存在则不用启动后端
 }

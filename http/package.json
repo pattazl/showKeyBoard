@@ -1,19 +1,32 @@
 {
+  "main":"server.js",
+  "version":"1.0.0",
+  "name":"httpserver",
+  "binary":{
+    "module_name": "node_sqlite3",
+    "module_path": "./lib/binding/napi-v{napi_build_version}-{platform}-{libc}-{arch}",
+    "host": "https://github.com/TryGhost/node-sqlite3/releases/download/",
+    "remote_path": "v{version}",
+    "package_name": "napi-v{napi_build_version}-{platform}-{libc}-{arch}.tar.gz",
+    "napi_versions": [3,6]
+  },
   "scripts": {
-    "build-s": "node ./esbuild.server.release.js",
-    "dev-s": "node ./esbuild.server.js",
-    "build-c": "node ./esbuild.client.release.js",
-    "dev-c": "node ./esbuild.client.js"
+    "build": "node ./esbuild.server.release.js",
+    "dev": "node ./esbuild.server.js"
   },
   "dependencies": {
     "dayjs": "^1.8.16",
     "express": "^4.17.1",
+    "font-list": "^1.5.1",
     "ini": "^4.1.1",
-    "ws": "^8.13.0",
-    "font-list":"^1.5.1"
+    "ws": "^8.13.0"
   },
   "devDependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.11",
+    "aws-sdk": "^2.1467.0",
     "esbuild": "^0.15.1",
+    "mock-aws-s3": "^4.0.2",
+    "nock": "^13.3.3",
     "sqlite3": "^5.1.6"
   }
 }

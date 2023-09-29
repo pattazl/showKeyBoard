@@ -1,4 +1,4 @@
-let outDir = 'dist'
+let outDir = '../httpdist/dist'
 const esbuildConfig = () => require('esbuild').buildSync({
     entryPoints: [
         'src/server.js',
@@ -8,7 +8,7 @@ const esbuildConfig = () => require('esbuild').buildSync({
     loader: { ".ts": "ts" ,".js": "js" },
     outdir: outDir,
     platform: "node",
-    external: [], //['nock', 'mock-aws-s3', 'aws-sdk'], // 
+    external: ['nock', 'mock-aws-s3', 'aws-sdk'], // [], //
     target: [
       'node10',
     ],

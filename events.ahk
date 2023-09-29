@@ -128,7 +128,11 @@ startServer()
 	cmd := 'node.exe ' httpPath 'server.js'
 	try {
 	; Run cmd ,,'Hide' Show
-		Run cmd,httpPath,'Hide', &OutputVarPID
+		ShowFlag := 'Hide'
+		if showHttpDebug {
+			ShowFlag := 'Show'
+		}
+		Run cmd,httpPath,ShowFlag, &OutputVarPID
 		Sleep 1000  ;启动服务需要等待
 	}catch{
 		MsgBox '启动node失败'
