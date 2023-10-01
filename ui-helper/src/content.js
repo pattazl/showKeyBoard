@@ -107,6 +107,7 @@ export default {
 	intro82:'保存数据',
 	intro83:'存在差异',
 	intro84:'没有改变',
+	intro85:'数据读取失败!',
 
   },
   'en-US': {
@@ -214,5 +215,6 @@ export default {
 	intro82: 'Save',
 	intro83: 'Have changed',
 	intro84: 'No changed',
+	intro85:'Read data fail!',
   }
 };

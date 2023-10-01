@@ -1,0 +1,84 @@
+
+function deepCopy(obj) {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+  const copy = Array.isArray(obj) ? [] : {};
+  for (let key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      copy[key] = deepCopy(obj[key]);
+    }
+  }
+  return copy;
+}
+// ajax核心模块
+async function ajax(path, data = null) {
+  console.log('ajax')
+  // 测试环境
+  let port = location.port
+  if (port == '3000') {
+    port = '9900' // 调试阶段
+  }
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (data == null) {
+    data = ''
+  } else if (typeof data != 'string') {
+    data = JSON.stringify(data)
+  }
+  let rsp = await fetch(`http://127.0.0.1:${port}/${path}`, {
+    method: "POST",
+    headers: headers,
+    body: data
+  })
+  let result = await rsp.json();
+  return result
+}
+// 布尔类型清单
+const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale']
+// 转换字符串为数字或boolean
+function str2Type(hash, flag) {
+  for (let k in hash) {
+    if (flag == 0) {  // 进行数据转换给界面
+      // 如果不是字符串类型，证明之前已经处理过无需再处理
+      if (typeof hash[k] !== 'string') {
+        return;
+      }
+      if (boolArr.indexOf(k) > -1) {
+        hash[k] = hash[k] == 1
+      } else if ('guiBgcolor' == k && hash[k].indexOf('#') == -1) {
+        // 有颜色字段,需要加上透明度
+        hash[k] = '#' + hash[k] + parseInt(hash.guiOpacity, 10).toString(16)
+      } else if ('guiTextColor' == k && hash[k].indexOf('#') == -1) {
+        // 有颜色字段
+        hash[k] = '#' + hash[k]
+      } else if (/^-?\d+$/.test(hash[k])) {
+        hash[k] = Number(hash[k]);
+      }
+    } else { // 界面转换给数据
+      if (boolArr.indexOf(k) > -1) {
+        hash[k] = hash[k] ? '1' : '0'
+      } else if ('guiBgcolor' == k && hash[k].indexOf('#') != -1) {
+        // 有颜色字段,需要加上透明度
+        let color = hash[k].replace(/#/, '')
+        hash[k] = color.substr(0, 6);
+        hash.guiOpacity = parseInt(color.substr(6, 2), 16)
+        hash.guiBgTrans = (hash.guiOpacity == 0) ? 1 : 0
+      } else if ('guiTextColor' == k) {
+        // 有颜色字段
+        hash[k] = hash[k].replace(/#/, '')
+      } if (typeof hash[k] !== 'string') {
+        hash[k] = hash[k].toString(); // 默认都是字符串
+      }
+    }
+  }
+}
+function splitArr(str) {
+  let arr = []
+  if (str.length > 0) {
+    arr = str.split('|')
+  }
+  return arr;
+}
+export {deepCopy,ajax,splitArr,str2Type}

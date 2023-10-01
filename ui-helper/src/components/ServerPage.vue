@@ -18,11 +18,13 @@
           <n-layout-content
           class="layout-content"
           style="border-radius: 0 16px 16px;padding: 10px 20px;"
+          v-if="showMain"
         >
             <router-view v-slot="{ Component }">
               <component :is="Component" :key="$route.path" :lang="lang"/>
             </router-view>
           </n-layout-content>
+          <div v-if="!showMain"><img :src="myImage"></div>
         </n-layout>
       </n-layout>
     </n-layout>
@@ -38,6 +40,10 @@ import { getQuery, updateQuery } from './utils';
 import content from '../content.js';
 import {setOpt} from '../leftmenu';
 // import { useAustinStore } from '../App.vue'
+import { useMessage } from 'naive-ui';
+import { deepCopy,ajax,str2Type } from '@/common.ts'
+import { useAustinStore } from '@/App.vue'
+import myImage from '@/res/loading.webp';
 
 export default defineComponent({
   name: 'ServerPage',
@@ -47,11 +53,13 @@ export default defineComponent({
     NConfigProvider,
   },
   setup: () => {
-    //const store= useAustinStore();
+    const message = useMessage()
+
     const lang = ref<'en-US' | 'zh-CN'>('zh-CN'); // 默认中文
     const contentText = computed(() => content[lang.value]).value;
     const menuOptions = ref([])
     const collapsed = ref(false)
+    let showMain = ref(false)
     const setLang = (value: 'en-US' | 'zh-CN') => {
       lang.value = value;
       //console.log('setLang....',value)
@@ -64,6 +72,29 @@ export default defineComponent({
       // store.lang = value;
     };
 
+    async function loadParaCore(){
+      const store= useAustinStore();
+      let data = <any>store.setting;
+      if (data.config == null) {
+        const loading = message.loading(content[lang.value].intro73, { duration: 0 })
+        // 每次路由跳转变量会重新初始化，需要保存起来
+        try {
+          data = await ajax('getPara')
+          loading.destroy()
+          message.success(content[lang.value].intro74)
+          showMain.value = true
+        } catch (error) {
+          loading.destroy()
+          message.error(content[lang.value].intro85)
+        }
+        // 对配置文件中 data.config 的数字字符串转换为数字
+        str2Type(data.config.common, 0)
+        str2Type(data.config.dialog, 0)
+
+        store.setting = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
+        store.preData = deepCopy(data); // 之前的数据
+      }
+    }
     // 初始化时动态设置菜单内容
     const param = getQuery();
     let _lang = lang.value;
@@ -101,6 +132,7 @@ export default defineComponent({
 				path: value,
 			})
 		}
+    loadParaCore();
      //watch(() => store.myTheme, (newValue, oldValue) => {
      //  console.log('属性发生变化', newValue, oldValue);
      //});
@@ -112,6 +144,8 @@ export default defineComponent({
       handleMenuSelect,
       menuOptions,
       contentText,
+      showMain,
+      myImage,
     };
   },
 });

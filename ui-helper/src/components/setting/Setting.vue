@@ -217,6 +217,7 @@
         </n-card>
         <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
         <n-card :style="myBorder.KeyMap ? 'border:1px #18a058 solid' : ''">
+          <div class="intro">{{ contentText.keyIntro }}</div>
           <n-dynamic-input v-model:value="keyMappingRef" preset="pair" :key-placeholder="contentText.intro61"
             :value-placeholder="contentText.intro62" />
         </n-card>
@@ -246,16 +247,10 @@ import content from '../../content.js';
 import mapping from '../../mapping.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
+import { deepCopy,ajax,str2Type,splitArr } from '@/common.ts'
 import CodeDiff from './CodeDiff.vue'
 // import { useAustinStore } from '../../App.vue'
 
-function splitArr(str) {
-  let arr = []
-  if (str.length > 0) {
-    arr = str.split('|')
-  }
-  return arr;
-}
 // 生成界面上select的数组
 function toVSelectList(arr: Array<string | number>) {
   let resArr = [];
@@ -280,81 +275,7 @@ function KVListTo(arr: Array<any>) {
   }
   return keyList
 }
-// 布尔类型清单
-const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale']
-// 转换字符串为数字或boolean
-function str2Type(hash, flag) {
-  for (let k in hash) {
-    if (flag == 0) {  // 进行数据转换给界面
-      // 如果不是字符串类型，证明之前已经处理过无需再处理
-      if (typeof hash[k] !== 'string') {
-        return;
-      }
-      if (boolArr.indexOf(k) > -1) {
-        hash[k] = hash[k] == 1
-      } else if ('guiBgcolor' == k && hash[k].indexOf('#') == -1) {
-        // 有颜色字段,需要加上透明度
-        hash[k] = '#' + hash[k] + parseInt(hash.guiOpacity, 10).toString(16)
-      } else if ('guiTextColor' == k && hash[k].indexOf('#') == -1) {
-        // 有颜色字段
-        hash[k] = '#' + hash[k]
-      } else if (/^-?\d+$/.test(hash[k])) {
-        hash[k] = Number(hash[k]);
-      }
-    } else { // 界面转换给数据
-      if (boolArr.indexOf(k) > -1) {
-        hash[k] = hash[k] ? '1' : '0'
-      } else if ('guiBgcolor' == k && hash[k].indexOf('#') != -1) {
-        // 有颜色字段,需要加上透明度
-        let color = hash[k].replace(/#/, '')
-        hash[k] = color.substr(0, 6);
-        hash.guiOpacity = parseInt(color.substr(6, 2), 16)
-        hash.guiBgTrans = (hash.guiOpacity == 0) ? 1 : 0
-      } else if ('guiTextColor' == k) {
-        // 有颜色字段
-        hash[k] = hash[k].replace(/#/, '')
-      } if (typeof hash[k] !== 'string') {
-        hash[k] = hash[k].toString(); // 默认都是字符串
-      }
-    }
-  }
-}
-function deepCopy(obj) {
-  if (typeof obj !== 'object' || obj === null) {
-    return obj;
-  }
-  const copy = Array.isArray(obj) ? [] : {};
-  for (let key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      copy[key] = deepCopy(obj[key]);
-    }
-  }
-  return copy;
-}
-// ajax核心模块
-async function ajax(path, data = null) {
-  console.log('ajax')
-  // 测试环境
-  let port = location.port
-  if (port == '3000') {
-    port = '9900' // 调试阶段
-  }
-  const headers = {
-    "Content-Type": "application/json",
-  };
-  if (data == null) {
-    data = ''
-  } else if (typeof data != 'string') {
-    data = JSON.stringify(data)
-  }
-  let rsp = await fetch(`http://127.0.0.1:${port}/${path}`, {
-    method: "POST",
-    headers: headers,
-    body: data
-  })
-  let result = await rsp.json();
-  return result
-}
+
 // 获取不同节点的差异数据
 function getDiffHash(hash/*out */, hash1, hash2, named,contentText) {
   let oldArr = []
@@ -407,22 +328,9 @@ export default defineComponent({
     console.log('setup')
     // const allData = { data: {}, preData: {} }; // 重新更新数据
     // 拉取数据
-    async function loadPara() {
+      function loadPara() {
       const store = useAustinStore();
       let data = <any>store.setting;
-      if (data.config == null) {
-        const loading = message.loading(contentText.value.intro73, { duration: 0 })
-        // 每次路由跳转变量会重新初始化，需要保存起来
-        data = await ajax('getPara')
-        loading.destroy()
-        message.success(contentText.value.intro74)
-        // 对配置文件中 data.config 的数字字符串转换为数字
-        str2Type(data.config.common, 0)
-        str2Type(data.config.dialog, 0)
-
-        store.setting = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
-        store.preData = deepCopy(data); // 之前的数据
-      }
       //allData.data = data;
       //allData.preData = store.preData;
 

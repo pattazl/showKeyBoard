@@ -11,6 +11,7 @@
     "@vicons/ionicons5": "^0.12.0",
     "axios": "^0.21.1",
     "diff2html": "^3.4.43",
+    "echarts": "^5.4.3",
     "naive-ui": "^2.34.4",
     "pinia": "^2.1.6",
     "qs": "^6.10.1",
