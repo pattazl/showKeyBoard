@@ -29,6 +29,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
+import { setWS } from '@/common';
 
 // 注册必须的组件
 echarts.use([
@@ -244,6 +245,9 @@ export default defineComponent({
 	name: 'Today',
 	setup() {
     let chartDom,myChart;
+    function updateKeyData(msg){
+      console.log(msg)
+    }
 		onMounted(() => {
 			chartDom = document.getElementById('main');
 			myChart = echarts.init(chartDom);
@@ -261,6 +265,7 @@ export default defineComponent({
       });
 			option && myChart.setOption(option);
 
+      setWS(updateKeyData)
 		})
 
 		const message = useMessage()

@@ -218,7 +218,7 @@ function dataFun(req, res) {
   //myWS.send(JSON.stringify(data) );
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(`服务器端数据更新：${JSON.stringify(data)}`);
+      client.send(JSON.stringify(data));
     }
   });
   // 如果 data.tick 不一样，则需要累计保存

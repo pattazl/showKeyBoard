@@ -11,14 +11,18 @@ function deepCopy(obj) {
   }
   return copy;
 }
-// ajax核心模块
-async function ajax(path, data = null) {
-  console.log('ajax')
-  // 测试环境
+function getHost(){
   let port = location.port
   if (port == '3000') {
     port = '9900' // 调试阶段
   }
+  return `127.0.0.1:${port}`
+}
+// ajax核心模块
+async function ajax(path, data = null) {
+  console.log('ajax')
+  // 测试环境
+  
   const headers = {
     "Content-Type": "application/json",
   };
@@ -27,7 +31,7 @@ async function ajax(path, data = null) {
   } else if (typeof data != 'string') {
     data = JSON.stringify(data)
   }
-  let rsp = await fetch(`http://127.0.0.1:${port}/${path}`, {
+  let rsp = await fetch(`http://${getHost()}/${path}`, {
     method: "POST",
     headers: headers,
     body: data
@@ -81,4 +85,32 @@ function splitArr(str) {
   }
   return arr;
 }
-export {deepCopy,ajax,splitArr,str2Type}
+
+let socket = null
+
+function setWS(callback) {
+    // 创建WebSocket对象并连接服务器
+    socket = new WebSocket('ws://'+getHost());
+
+    // 监听连接成功事件
+    socket.onopen = () => {
+        console.log('Connected to WebSocket server');
+
+        // 发送消息给服务器
+        socket.send('Hello, Server!');
+    };
+
+    // 监听服务器发送的消息事件
+    socket.onmessage = (event) => {
+        const message = event.data;
+        //console.log('Received message:', message);
+        callback(message)
+    };
+
+    // 监听连接关闭事件
+    socket.onclose = () => {
+        console.log('Disconnected from WebSocket server');
+    };
+}
+
+export {deepCopy,ajax,splitArr,str2Type,setWS}
