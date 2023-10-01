@@ -170,7 +170,13 @@ const keyData = [[0,0,"<^"],
 [14,5,],
 [15,5,"PrintScreen"],
 [16,5,"Insert"],
-[17,5,"Delete"]
+[17,5,"Delete"],
+
+[2,6,"LButton"],
+[4,6,"RButton"],
+[6,6,"MButton"],
+[8,6,"WheelDown"],
+[10,6,"WheelUp"],
 ];
 
 //console.log(data);
@@ -244,16 +250,32 @@ option = {
 export default defineComponent({
 	name: 'Today',
 	setup() {
+    const store = useAustinStore();
+    const keyList = (<any>store.preData).keyList;
     let chartDom,myChart;
     function updateKeyData(msg){
-      console.log(msg)
+      if(msg.indexOf('{"') != 0){
+        // 不是 JSON，直接退出
+        return;
+      }
+      let keyStatHash = JSON.parse(msg)
+      option.series[0].data =  keyData.map(function (item) {
+        let val:string|number = 0 
+          if(item[2] ==null)
+          {
+            val = '-'
+          }else{
+            val = keyStatHash[item[2]]??0;
+          }
+          hashTxtData[item[0] +','+item[1]] = keyList[item[2]]??item[2]
+          return [item[0], item[1], val];
+      });
+			option && myChart.setOption(option);
     }
 		onMounted(() => {
 			chartDom = document.getElementById('main');
 			myChart = echarts.init(chartDom);
-      const store = useAustinStore();
-      const keyList = (<any>store.preData).keyList;
-      console.log(keyList)
+      //console.log(keyList)
       option.series[0].data =  keyData.map(function (item) {
         let val:string|number = 0 
           if(item[2] ==null)
