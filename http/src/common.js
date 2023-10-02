@@ -50,7 +50,8 @@ function startWS() {
       console.log('Received message:', message);
 
       // 发送消息给客户端
-      ws.send('Server received your message: ' + message);
+      //ws.send('Server received your message: ' + message);
+      ws.send(JSON.stringify(preData));
     });
     // 监听断开连接事件
     ws.on('close', () => {

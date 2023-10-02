@@ -191,7 +191,7 @@ const keyData = [
 [10,6,"WheelUp"],
 ];
 
-//console.log(data);
+
 option = {
   tooltip: {
     position: 'top'
@@ -292,7 +292,6 @@ export default defineComponent({
     const keyList = (<any>store.preData).keyList;
     let chartDom,myChart;
     let lastUpdateTick = 0
-    let leftKeyVal = []
     let strLeftKeyVal= ref('') ;
     function updateKeyData(msg){
       if(msg.indexOf('{"') != 0){
@@ -335,9 +334,8 @@ export default defineComponent({
       let leftHash ={};
       arrRemove(leftKey,'tick') ; // 去掉
       leftKey.sort( (a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
-      leftKeyVal = []
+      let leftKeyVal = []
       leftKey.forEach( k => leftKeyVal.push(k + ' : ' + keyStatHash[k] ))
-      console.log(leftKeyVal)
       strLeftKeyVal.value = leftKeyVal.join('\n')
     }
 		onMounted(() => {
