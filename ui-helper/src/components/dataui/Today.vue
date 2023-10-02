@@ -4,7 +4,17 @@
 		<n-button type="primary" @click="handleShowMessage">
 			今天数据
 		</n-button>
-		<div id="main" style="height: 400px; width: 800px; border: 1px red solid;"></div>
+		<div id="main" style="height: 500px; min-width:  800px;width:95%; "></div>
+    <div>剩余未定义数据</div>
+    <n-input
+      :value="strLeftKeyVal"
+      type="textarea"
+      placeholder="未定义数据"
+      show-count
+      size="large"
+      rows="10"
+      style="width: 400px;"
+    />
 	</div>
 </template>
 
@@ -29,7 +39,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS } from '@/common';
+import { setWS,arrRemove } from '@/common';
 
 // 注册必须的组件
 echarts.use([
@@ -57,7 +67,8 @@ const days = [
     
 ];
 // prettier-ignore
-let hashTxtData = {};
+let hashTxtData = {}; // 按键上显示的内容
+let hashOriData = {}; // 原始定义的内容，提示框上显示
 const keyData = [
 [0,0,"LControl"],
 [1,0,"LWin"],
@@ -220,7 +231,8 @@ option = {
           //自定义提示信息
           //console.log(p);
           let dataCon = p.data;
-          let txtCon = dataCon[2] + ':';
+          let key = dataCon[0]+','+dataCon[1]
+          let txtCon = hashOriData[key]+'<hr> '+dataCon[2] ;
           return txtCon;
         }
       },
@@ -247,7 +259,32 @@ option = {
     }
   ]
 };
-
+// 合并最匹配的键盘统计数据，并整理遗留的数据信息
+function getKeyVal(key, keyStatHash, leftKey) {
+  let val;
+  do {
+    val = keyStatHash[key];
+    if (val != null) break;
+    // 如果1个字母的，没匹配到，尝试匹配小写
+    if (key.length == 1) {
+      key = key.toLowerCase()
+      val = keyStatHash[key]
+      if (val != null) break;
+    }
+    // 如果还没匹配到，查看是否非字母
+    if (key.length == 2) {
+      key = key.substring(1, 2)
+      val = keyStatHash[key]
+    }
+    if (val != null) break;
+  }while(false)  // 只循环一次
+  if (val != null){
+    arrRemove(leftKey, key)
+  }else{
+    val = 0;    // 默认没有找到匹配，数据 0
+  }
+  return val
+}
 export default defineComponent({
 	name: 'Today',
 	setup() {
@@ -255,6 +292,8 @@ export default defineComponent({
     const keyList = (<any>store.preData).keyList;
     let chartDom,myChart;
     let lastUpdateTick = 0
+    let leftKeyVal = []
+    let strLeftKeyVal= ref('') ;
     function updateKeyData(msg){
       if(msg.indexOf('{"') != 0){
         // 不是 JSON，直接退出
@@ -262,64 +301,49 @@ export default defineComponent({
       }
       // 不必每次都刷新数据，可以时间间隔可以为2秒
       let nowTick = new Date().getTime();
-      if( (nowTick-lastUpdateTick) < 2000)
+      if( (nowTick-lastUpdateTick) < 1000)
       {
         return;
       }else{
         lastUpdateTick = nowTick;
       }
       let keyStatHash = JSON.parse(msg)
-      let keyArr = []
+      let keyArr = []  // 已经统计的数据清单
+      let leftKey = Object.keys(keyStatHash)  // 剩余的匹配清单
       option.series[0].data =  keyData.map(function (item) {
-        let val:string|number = 0 
-          if(item[2] ==null)
-          {
-            val = '-'
-          }else{
-            let key = item[2].toString()
-            val = keyStatHash[key];
-            // 如果直接没匹配到，尝试匹配小写
-            if(val==null && key.length == 1 ){
-              val = keyStatHash[key.toLowerCase()]
-            }
-            // 如果还没匹配到，查看是否非字母
-            if(val==null && key.length == 2){
-              val = keyStatHash[key.substring(1,2)]
-            }
-            // 没有找到匹配，数据 0
-            if(val == null)
-            {
-              val = 0
-            }
-          }
-          // 用于产生显示在界面的文字内容
-          hashTxtData[item[0] +','+item[1]] = keyList[item[2]]??item[2]
-          // 将val 数据全部放到数组中，同于统计 max值
-          keyArr.push(val)
-          return [item[0], item[1], val];
+        let val:string|number = 0 ,key:string;
+        if(item[2] ==null)
+        {
+          val = '-'
+        }else{
+          key = item[2].toString()
+          val = getKeyVal(key,keyStatHash,leftKey)
+        }
+        // 用于产生显示在界面的文字内容
+        hashTxtData[item[0] +','+item[1]] = keyList[key]??item[2]
+        hashOriData[item[0] +','+item[1]] = item[2]
+        // 将val 数据全部放到数组中，同于统计 max值
+        keyArr.push(val)
+        return [item[0], item[1], val];
       });
       if(keyArr.length>5){
         let arr = keyArr.sort((a, b) => b - a)
-        option.visualMap.max = arr[3] // 第4个
+        option.visualMap.max = Math.max(arr[3],10) // 第4个
       }
-      
 			option && myChart.setOption(option);
+      // 显示未统计进去的数据 leftKey
+      let leftHash ={};
+      arrRemove(leftKey,'tick') ; // 去掉
+      leftKey.sort( (a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
+      leftKeyVal = []
+      leftKey.forEach( k => leftKeyVal.push(k + ' : ' + keyStatHash[k] ))
+      console.log(leftKeyVal)
+      strLeftKeyVal.value = leftKeyVal.join('\n')
     }
 		onMounted(() => {
 			chartDom = document.getElementById('main');
 			myChart = echarts.init(chartDom);
       //console.log(keyList)
-      option.series[0].data =  keyData.map(function (item) {
-        let val:string|number = 0 
-          if(item[2] ==null)
-          {
-            val = '-'
-          }
-          hashTxtData[item[0] +','+item[1]] = keyList[item[2]]??item[2]
-          return [item[0], item[1], val];
-      });
-			option && myChart.setOption(option);
-
       setWS(updateKeyData)
 		})
 
@@ -332,7 +356,11 @@ export default defineComponent({
 		}
 		return {
 			handleShowMessage,
+      strLeftKeyVal,
 		}
 	},
 })
 </script>
+<style scoped>
+
+</style>

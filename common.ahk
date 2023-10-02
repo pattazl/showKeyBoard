@@ -71,7 +71,9 @@ global guiArr := Array() ; 保存guiObj 对象
 global inArr := Array() ; 保存传入进来的数组
 global guiShowing := 0
 global KeyMapping:=Map()
-AllKeyRecord['tick'] := A_TickCount  ; tick数据不一样表示程序重启过，需要累计计数
+
+; 获取1970年开始的时间戳
+AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数
 global httpPath := A_WorkingDir '/httpdist/dist/'   ; node 脚本所在目录
 if !FileExist(httpPath){
 	needRecordKey := 0  ; 如果不存在则不用启动后端

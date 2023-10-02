@@ -112,5 +112,12 @@ function setWS(callback) {
         console.log('Disconnected from WebSocket server');
     };
 }
-
-export {deepCopy,ajax,splitArr,str2Type,setWS}
+// 从数组中删除指定数据
+function arrRemove(arr /*out */,key)
+{
+  let index = arr.indexOf(key);  // 查找指定的字符串在数组中的位置
+  if (index !== -1) {  // 如果找到了
+    arr.splice(index, 1);  // 从数组中删除该元素
+  }
+}
+export {deepCopy,ajax,splitArr,str2Type,setWS,arrRemove}
