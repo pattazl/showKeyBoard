@@ -58,9 +58,10 @@ const days = [
 ];
 // prettier-ignore
 let hashTxtData = {};
-const keyData = [[0,0,"<^"],
-[1,0,"<#"],
-[2,0,"<!"],
+const keyData = [
+[0,0,"LControl"],
+[1,0,"LWin"],
+[2,0,"LAlt"],
 [3,0,"Space"],
 [4,0,"Space"],
 [5,0,"Space"],
@@ -69,16 +70,16 @@ const keyData = [[0,0,"<^"],
 [8,0,"Space"],
 [9,0,"Space"],
 [10,0,"Space"],
-[11,0,">!"],
-[12,0,">#"],
-[13,0,">^"],
+[11,0,"RAlt"],
+[12,0,"RWin"],
+[13,0,"RControl"],
 [14,0,],
 [15,0,"Left"],
 [16,0,"Down"],
 [17,0,"Right"],
 
-[0,1,"<+"],
-[1,1,"<+"],
+[0,1,"LShift"],
+[1,1,"LShift"],
 [2,1,"Z"],
 [3,1,"X"],
 [4,1,"C"],
@@ -89,8 +90,8 @@ const keyData = [[0,0,"<^"],
 [9,1,"<,"],
 [10,1,">."],
 [11,1,"?/"],
-[12,1,">+"],
-[13,1,">+"],
+[12,1,"RShift"],
+[13,1,"RShift"],
 [14,1,],
 [15,1,],
 [16,1,"Up"],
@@ -170,7 +171,7 @@ const keyData = [[0,0,"<^"],
 [14,5,],
 [15,5,"PrintScreen"],
 [16,5,"Insert"],
-[17,5,"Delete"],
+[17,5,"Pause"],
 
 [2,6,"LButton"],
 [4,6,"RButton"],
@@ -204,7 +205,7 @@ option = {
   },
   visualMap: {
     min: 0,
-    max: 10,
+    max: 100,
     calculable: true,
 	orient: 'horizontal',
     left: 'center',
@@ -253,23 +254,55 @@ export default defineComponent({
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
     let chartDom,myChart;
+    let lastUpdateTick = 0
     function updateKeyData(msg){
       if(msg.indexOf('{"') != 0){
         // 不是 JSON，直接退出
         return;
       }
+      // 不必每次都刷新数据，可以时间间隔可以为2秒
+      let nowTick = new Date().getTime();
+      if( (nowTick-lastUpdateTick) < 2000)
+      {
+        return;
+      }else{
+        lastUpdateTick = nowTick;
+      }
       let keyStatHash = JSON.parse(msg)
+      let keyArr = []
       option.series[0].data =  keyData.map(function (item) {
         let val:string|number = 0 
           if(item[2] ==null)
           {
             val = '-'
           }else{
-            val = keyStatHash[item[2]]??0;
+            let key = item[2].toString()
+            val = keyStatHash[key];
+            // 如果直接没匹配到，尝试匹配小写
+            if(val==null && key.length == 1 ){
+              val = keyStatHash[key.toLowerCase()]
+            }
+            // 如果还没匹配到，查看是否非字母
+            if(val==null && key.length == 2){
+              val = keyStatHash[key.substring(1,2)]
+            }
+            // 没有找到匹配，数据 0
+            if(val == null)
+            {
+              val = 0
+            }
           }
+          // 用于产生显示在界面的文字内容
           hashTxtData[item[0] +','+item[1]] = keyList[item[2]]??item[2]
+          // 将val 数据全部放到数组中，同于统计 max值
+          keyArr.push(val)
           return [item[0], item[1], val];
       });
+      if(keyArr.length>5){
+        let arr = keyArr.sort((a, b) => b - a)
+        option.visualMap.max = arr[3] // 第4个
+      }
+      
 			option && myChart.setOption(option);
     }
 		onMounted(() => {
