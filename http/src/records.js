@@ -8,6 +8,10 @@ function insertData(records) {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database('records.db');
     let tick = records['tick']
+	if(tick == null ){
+		resolve(0)
+		return
+	}
     // 先检查是否已经有此tick数据，如果有则删除
     db.run('delete FROM events where tick = ? ', [tick], function (err) {
       if (err) {
@@ -122,7 +126,32 @@ function doCleanData() {
   console.log(arr)
 })()
 */
+// 数据库中的相关配置信息，主要用于统计
+function getDataSetting() {
+  const db = new sqlite3.Database('records.db');
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+    let sql = 'SELECT mapDetail,screenSize,mouseDPI FROM dataSetting left join keymaps on keymap = mapname '
+    db.all(sql, [], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      // 输出记录集
+	  if(rows.length>0){
+		  row = rows[0]
+		  mapDetail = row.mapDetail
+		  screenSize = row.screenSize
+		  mouseDPI = row.mouseDPI
+		  resolve({mapDetail,screenSize,mouseDPI})
+	  }else{
+		  resolve({})
+	  }
+    });
+    // 关闭数据库连接
+    db.close();
+  })
+}
 
 module.exports = {
-  insertData, getRecords
+  insertData, getRecords,getDataSetting
 };

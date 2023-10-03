@@ -108,6 +108,14 @@ export default {
 	intro83:'存在差异',
 	intro84:'没有改变',
 	intro85:'数据读取失败!',
+	intro86:'键盘显示',
+	intro87:'其他按键统计',
+	intro88:'键名',
+	intro89:'按键说明',
+	intro90:'统计数据',
+	intro91:'当前',
+	intro92:'时间段，从 ',
+	intro93:'到 ',
 
   },
   'en-US': {
@@ -216,5 +224,13 @@ export default {
 	intro83: 'Have changed',
 	intro84: 'No changed',
 	intro85:'Read data fail!',
+	intro86:'Show in keyboard',
+	intro87:'Other Keypress',
+	intro88:'KeyName',
+	intro89:'Key Description',
+	intro90:'Key Count',
+	intro91:'Now',
+	intro92:'Time Range, from ',
+	intro93:'to ',
   }
 };

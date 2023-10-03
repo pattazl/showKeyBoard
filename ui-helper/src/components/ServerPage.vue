@@ -54,7 +54,7 @@ export default defineComponent({
   },
   setup: () => {
     const message = useMessage()
-
+    const store= useAustinStore();
     const lang = ref<'en-US' | 'zh-CN'>('zh-CN'); // 默认中文
     const contentText = computed(() => content[lang.value]).value;
     const menuOptions = ref([])
@@ -69,11 +69,10 @@ export default defineComponent({
         updateMenu(ct.menu); // 需要延迟执行
       }, 1);
       // 需要改变 store的内容
-      // store.lang = value;
+      store.lang = value;
     };
 
     async function loadParaCore(){
-      const store= useAustinStore();
       let data = <any>store.setting;
       if (data.config == null) {
         const loading = message.loading(content[lang.value].intro73, { duration: 0 })

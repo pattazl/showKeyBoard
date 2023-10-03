@@ -1,31 +1,31 @@
 <template>
-	<div>
-		<n-h3>Message</n-h3>
-		<n-button type="primary" @click="handleShowMessage">
-			今天数据
-		</n-button>
-		<div id="main" style="height: 500px; min-width:  800px;width:95%; "></div>
-    <div>剩余未定义数据</div>
-    <n-input
-      :value="strLeftKeyVal"
-      type="textarea"
-      placeholder="未定义数据"
-      show-count
-      size="large"
-      rows="10"
-      style="width: 400px;"
-    />
-	</div>
+  <div>
+    <n-space vertical>
+      <n-space style="font-size:16px">
+        {{ contentText.intro92 }}
+        <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue"/> {{ contentText.intro93 }}
+        <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue"/>
+      </n-space>
+      <n-card :title="contentText.intro86">
+        <div id="main" style="height: 500px; min-width:  800px;width:95%;"></div>
+      </n-card>
+      <div></div>
+      <n-card :title="contentText.intro87">
+        <n-data-table :columns="columns" :data="dataTable" />
+      </n-card>
+    </n-space>
+  </div>
 </template>
 
 <script lang="ts">
 import { useAustinStore } from '../../App.vue'
-import { defineComponent, onMounted, PropType, ref, computed } from 'vue'
-import { useMessage } from 'naive-ui'
+import * as dayjs from 'dayjs'
+import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
+import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { BarChart,HeatmapChart,HeatmapSeriesOption } from 'echarts/charts';
+import { BarChart, HeatmapChart, HeatmapSeriesOption } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -39,8 +39,8 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS,arrRemove } from '@/common';
-
+import { setWS, arrRemove, getHistory } from '@/common';
+import content from '../../content.js';
 // 注册必须的组件
 echarts.use([
   TitleComponent,
@@ -59,157 +59,34 @@ echarts.use([
 
 var option;
 // prettier-ignore
-const hours = [
-
-];
-// prettier-ignore
-const days = [
-    
-];
-// prettier-ignore
 let hashTxtData = {}; // 按键上显示的内容
 let hashOriData = {}; // 原始定义的内容，提示框上显示
-const keyData = [
-[0,0,"LControl"],
-[1,0,"LWin"],
-[2,0,"LAlt"],
-[3,0,"Space"],
-[4,0,"Space"],
-[5,0,"Space"],
-[6,0,"Space"],
-[7,0,"Space"],
-[8,0,"Space"],
-[9,0,"Space"],
-[10,0,"Space"],
-[11,0,"RAlt"],
-[12,0,"RWin"],
-[13,0,"RControl"],
-[14,0,],
-[15,0,"Left"],
-[16,0,"Down"],
-[17,0,"Right"],
-
-[0,1,"LShift"],
-[1,1,"LShift"],
-[2,1,"Z"],
-[3,1,"X"],
-[4,1,"C"],
-[5,1,"V"],
-[6,1,"B"],
-[7,1,"N"],
-[8,1,"M"],
-[9,1,"<,"],
-[10,1,">."],
-[11,1,"?/"],
-[12,1,"RShift"],
-[13,1,"RShift"],
-[14,1,],
-[15,1,],
-[16,1,"Up"],
-[17,1,],
-
-[0,2,"CapsLock"],
-[1,2,"CapsLock"],
-[2,2,"A"],
-[3,2,"S"],
-[4,2,"D"],
-[5,2,"F"],
-[6,2,"G"],
-[7,2,"H"],
-[8,2,"J"],
-[9,2,"K"],
-[10,2,"L"],
-[11,2,":;"],
-[12,2,"\"'"],
-[13,2,"Enter"],
-[14,2,],
-[15,2,],
-[16,2,],
-[17,2,],
-
-[0,3,"Tab"],
-[1,3,"Q"],
-[2,3,"W"],
-[3,3,"E"],
-[4,3,"R"],
-[5,3,"T"],
-[6,3,"Y"],
-[7,3,"U"],
-[8,3,"I"],
-[9,3,"O"],
-[10,3,"P"],
-[11,3,"{["],
-[12,3,"}]"],
-[13,3,"|\\"],
-[14,3,],
-[15,3,"Delete"],
-[16,3,"End"],
-[17,3,"Pgdn"],
-
-[0,4,"~`"],
-[1,4,"!1"],
-[2,4,"@2"],
-[3,4,"#3"],
-[4,4,"$4"],
-[5,4,"%5"],
-[6,4,"^6"],
-[7,4,"&7"],
-[8,4,"*8"],
-[9,4,"(9"],
-[10,4,")0"],
-[11,4,"_-"],
-[12,4,"+="],
-[13,4,"Backspace"],
-[14,4,],
-[15,4,"Insert"],
-[16,4,"Home"],
-[17,4,"Pgup"],
-
-[0,5,"Escape"],
-[1,5,],
-[2,5,"F1"],
-[3,5,"F2"],
-[4,5,"F3"],
-[5,5,"F4"],
-[6,5,"F5"],
-[7,5,"F6"],
-[8,5,"F7"],
-[9,5,"F8"],
-[10,5,"F9"],
-[11,5,"F10"],
-[12,5,"F11"],
-[13,5,"F12"],
-[14,5,],
-[15,5,"PrintScreen"],
-[16,5,"Insert"],
-[17,5,"Pause"],
-
-[2,6,"LButton"],
-[4,6,"RButton"],
-[6,6,"MButton"],
-[8,6,"WheelDown"],
-[10,6,"WheelUp"],
-];
-
+let currTick = 0; // 当前msg中的时间戳
+let historyData = []
+let tickSet = new Set();
+let keyData = [];
 
 option = {
+  textStyle: {
+    fontSize: 16
+  },
   tooltip: {
     position: 'top'
   },
   grid: {
-    height: '50%',
-    top: '10%'
+    height: '80%',
+    top: '0%',
   },
   xAxis: {
     type: 'category',
-    data: hours,
+    show: true,
     splitArea: {
       show: true
     }
   },
   yAxis: {
     type: 'category',
-    data: days,
+    show: true,
     splitArea: {
       show: true
     }
@@ -218,21 +95,24 @@ option = {
     min: 0,
     max: 100,
     calculable: true,
-	orient: 'horizontal',
+    orient: 'horizontal',
     left: 'center',
-    bottom: '15%'
+    bottom: '2%'
   },
   series: [
     {
       tooltip: {
         trigger: 'item',
+        textStyle: {
+          fontSize: 18
+        },
         confine: true,
         formatter: (p) => {
           //自定义提示信息
           //console.log(p);
           let dataCon = p.data;
-          let key = dataCon[0]+','+dataCon[1]
-          let txtCon = hashOriData[key]+'<hr> '+dataCon[2] ;
+          let key = dataCon[0] + ',' + dataCon[1]
+          let txtCon = hashOriData[key] + '<hr> ' + dataCon[2];
           return txtCon;
         }
       },
@@ -242,8 +122,8 @@ option = {
       label: {
         show: true,
         formatter: function (params) {
-          let txt = hashTxtData[params.data[0]+','+params.data[1]]
-          if (txt==null) {
+          let txt = hashTxtData[params.data[0] + ',' + params.data[1]]
+          if (txt == null) {
             return 'N/A';
           } else {
             return txt;
@@ -260,105 +140,266 @@ option = {
   ]
 };
 // 合并最匹配的键盘统计数据，并整理遗留的数据信息
-function getKeyVal(key, keyStatHash, leftKey) {
-  let val;
+function getKeyVal(key, mapkey, keyStatHash, leftKey) {
+  let val, matchKey;
   do {
-    val = keyStatHash[key];
-    if (val != null) break;
-    // 如果1个字母的，没匹配到，尝试匹配小写
-    if (key.length == 1) {
-      key = key.toLowerCase()
-      val = keyStatHash[key]
+    if (mapkey != null) {
+      matchKey = mapkey
+      val = keyStatHash[matchKey];
       if (val != null) break;
     }
-    // 如果还没匹配到，查看是否非字母
-    if (key.length == 2) {
-      key = key.substring(1, 2)
-      val = keyStatHash[key]
-    }
+    // 尝试用 key 
+    matchKey = key
+    val = keyStatHash[matchKey]
     if (val != null) break;
-  }while(false)  // 只循环一次
-  if (val != null){
-    arrRemove(leftKey, key)
-  }else{
+  } while (false)  // 只循环一次
+  if (val != null) {
+    arrRemove(leftKey, matchKey)
+  } else {
     val = 0;    // 默认没有找到匹配，数据 0
   }
   return val
 }
+// 根据键名缩写转换为说明
+function getKeyDesc(keyName) {
+  return keyName
+    .replace(/<\+/g, 'LShift ')
+    .replace(/>\+/g, 'RShift ')
+    .replace(/<!/g, 'LAlt ')
+    .replace(/>!/g, 'RAlt ')
+    .replace(/<\^/g, 'LCtrl ')
+    .replace(/>\^/g, 'LCtrl ')
+    .replace(/<#/g, 'LWin ')
+    .replace(/>#/g, 'RWin ')
+}
+// 获取今天的全部启动次数信息
+async function getTodayData(historyDate, contentText) {
+  let str = dayjs(new Date()).format('YYYY-MM-DD')
+  historyData = await getHistory(str, str)
+  historyData.forEach(x => tickSet.add(x.tick))
+  tickSet.forEach(x => {
+    let mark = ''
+    if (x == currTick) {
+      mark = '(' + contentText.intro91 + ')'
+    }
+    return historyDate.push({ label: dayjs(new Date(<number>x)).format('YYYY-MM-DD HH:mm:ss.SSS') + mark, value: x })
+  })
+}
+// 获取对应时间的Hash
+function getHash(tick) {
+  let hash = {}
+  for (let v of historyData) {
+    if (v.tick == tick) {
+      hash[v.keyname] = v.keycount
+    }
+  }
+  return hash
+}
+// 合并 hash统计数据,返回 targetHash
+function mergeHash(targetHash/**out */, srcHash) {
+  for (let k in targetHash) {
+    if (srcHash[k] != null) {
+      //需要相加合并
+      targetHash[k] += srcHash[k]
+    }
+  }
+  // target 中不存在的
+  for (let k in srcHash) {
+    if (targetHash[k] == null) {
+      targetHash[k] = srcHash[k]
+    }
+  }
+}
+// 根据选择的时间进行计算
+function getRealStatHash(oriHash, begin, end) {
+  if (begin > end || tickSet.size == 0) return oriHash; // 时间不对直接返回原始的
+  let hash = {}
+  tickSet.forEach(x => {
+    if (x >= begin && x <= end) {
+      if (x == oriHash.tick) {
+        // 表示是当前的，直接合并现在的即可
+        mergeHash(hash, oriHash)
+      } else {
+        // 进行数据合并
+        mergeHash(hash, getHash(x))
+      }
+    }
+  })
+  return hash;
+}
 export default defineComponent({
-	name: 'Today',
-	setup() {
+  name: 'Today',
+  props: {
+    lang: {
+      type: String as PropType<'en-US' | 'zh-CN'>,
+    },
+  },
+  setup(props) {
+    // reset
+    hashTxtData = {}; // 按键上显示的内容
+    hashOriData = {}; // 原始定义的内容，提示框上显示
+    currTick = 0; // 当前msg中的时间戳
+    historyData = []
+    tickSet = new Set();
+
+    const contentText = computed(() => content[props.lang])
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
-    let chartDom,myChart;
+    keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
+    let chartDom, myChart;
     let lastUpdateTick = 0
-    let strLeftKeyVal= ref('') ;
-    function updateKeyData(msg){
-      if(msg.indexOf('{"') != 0){
+    let strLeftKeyVal = ref('');
+    let dataTable = ref([])
+    const columns = ref([]);
+    const historyDate = ref([]);
+    const beginDate = ref(0);
+    const endDate = ref(0);
+    setColumn(props.lang)
+    watch(() => store.lang, (newValue, oldValue) => {
+      setColumn(newValue)
+    });
+    function setColumn(lang) {
+      columns.value = [
+        {
+          title: content[lang].intro88,
+          key: 'keyName',
+          sorter: 'default',
+        },
+        {
+          title: content[lang].intro89,
+          key: 'desc',
+          render(row) {
+            let arr = row.desc.split(' ');
+            let lastChar = arr[arr.length - 1];
+            if (lastChar.length == 1) {
+              arr[arr.length - 1] = lastChar.toUpperCase()
+            }
+            const tags = arr.map((tagKey) => {
+              return h(
+                NTag,
+                {
+                  style: {
+                    marginRight: '6px'
+                  },
+                  type: 'info',
+                  bordered: false
+                },
+                {
+                  default: () => tagKey
+                }
+              )
+            })
+            return tags
+          }
+        },
+        {
+          title: content[lang].intro90,
+          key: 'count',
+          defaultSortOrder: 'descend',
+          sorter: 'default',
+        }
+      ]
+    }
+    function handleUpdateValue()
+    {
+        let keyStatHash = getRealStatHash({}, beginDate.value, endDate.value)
+        showHash(keyStatHash)
+    }
+    function updateKeyData(msg) {
+      if (msg.indexOf('{"') != 0) {
         // 不是 JSON，直接退出
+        return;
+      }
+      // 有手工选择
+      if (endDate.value != currTick && currTick >0) {
+        // 为固定值，直接退出 WS的响应
         return;
       }
       // 不必每次都刷新数据，可以时间间隔可以为2秒
       let nowTick = new Date().getTime();
-      if( (nowTick-lastUpdateTick) < 1000)
-      {
+      if ((nowTick - lastUpdateTick) < 1000) {
         return;
-      }else{
+      } else {
         lastUpdateTick = nowTick;
       }
       let keyStatHash = JSON.parse(msg)
+      // 设置下拉选择
+      if (currTick == 0) {
+        currTick = keyStatHash.tick; // 更新当前的tick
+        getTodayData(historyDate.value, contentText.value)
+        beginDate.value = currTick
+        endDate.value = currTick
+      }
+      keyStatHash = getRealStatHash(keyStatHash, beginDate.value, endDate.value)
+      showHash(keyStatHash)
+    }
+    // 显示数据
+    function showHash(keyStatHash){
       let keyArr = []  // 已经统计的数据清单
       let leftKey = Object.keys(keyStatHash)  // 剩余的匹配清单
-      option.series[0].data =  keyData.map(function (item) {
-        let val:string|number = 0 ,key:string;
-        if(item[2] ==null)
-        {
+      option.series[0].data = keyData.map(function (item) {
+        let val: string | number = 0, key: string, keyMap;
+        keyMap = item[3]
+        if (item[2] == null) {
           val = '-'
-        }else{
-          key = item[2].toString()
-          val = getKeyVal(key,keyStatHash,leftKey)
+        } else {
+          key = item[2].toString()  // 界面显示的
+          val = getKeyVal(key, keyMap, keyStatHash, leftKey)
         }
         // 用于产生显示在界面的文字内容
-        hashTxtData[item[0] +','+item[1]] = keyList[key]??item[2]
-        hashOriData[item[0] +','+item[1]] = item[2]
+        let strKeyMap = '' // 配置了匹配键的
+        if (keyMap != null) strKeyMap = ' (' + keyMap + ')'
+        hashTxtData[item[0] + ',' + item[1]] = keyList[key] ?? key
+        hashOriData[item[0] + ',' + item[1]] = key + strKeyMap
         // 将val 数据全部放到数组中，同于统计 max值
         keyArr.push(val)
         return [item[0], item[1], val];
       });
-      if(keyArr.length>5){
+      if (keyArr.length > 5) {
         let arr = keyArr.sort((a, b) => b - a)
-        option.visualMap.max = Math.max(arr[3],10) // 第4个
+        option.visualMap.max = Math.max(arr[3], 10) // 第4个
       }
-			option && myChart.setOption(option);
+      option && myChart.setOption(option);
       // 显示未统计进去的数据 leftKey
-      let leftHash ={};
-      arrRemove(leftKey,'tick') ; // 去掉
-      leftKey.sort( (a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
-      let leftKeyVal = []
-      leftKey.forEach( k => leftKeyVal.push(k + ' : ' + keyStatHash[k] ))
-      strLeftKeyVal.value = leftKeyVal.join('\n')
+      //let leftHash = {};
+      arrRemove(leftKey, 'tick'); // 去掉
+      //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
+      //let leftKeyVal = []
+      //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
+      //strLeftKeyVal.value = leftKeyVal.join('\n')
+      dataTable.value = leftKey.map(function (item) {
+        return { keyName: item, count: keyStatHash[item], desc: getKeyDesc(item) }
+      })
     }
-		onMounted(() => {
-			chartDom = document.getElementById('main');
-			myChart = echarts.init(chartDom);
+    onMounted(() => {
+      chartDom = document.getElementById('main');
+      myChart = echarts.init(chartDom);
       //console.log(keyList)
       setWS(updateKeyData)
-		})
+    })
 
-		const message = useMessage()
-		const handleShowMessage = () => {
-      console.log(option.series.data)
+    const message = useMessage()
+    const handleShowMessage = () => {
       //option.series[0].data = data2
       //myChart.setOption(option);
-			message.success('I can use message')
-		}
-		return {
-			handleShowMessage,
+      message.success('I can use message')
+    }
+    return {
+      handleShowMessage,
       strLeftKeyVal,
-		}
-	},
+      columns,
+      dataTable,
+      contentText,
+      historyDate,
+      beginDate,
+      endDate,
+      handleUpdateValue
+    }
+  },
 })
 </script>
 <style scoped>
-
+.n-select {
+  width: 300px;
+}
 </style>

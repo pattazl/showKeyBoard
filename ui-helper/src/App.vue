@@ -26,8 +26,9 @@ export const useAustinStore = defineStore('austin', () => {
   let myTheme = ref(str);
   let setting = ref({})
   let preData = ref({})
+  let lang = ref('')
   //return { myTheme ,lang}
-  return { myTheme,setting,preData}
+  return { myTheme,setting,preData,lang}
 })
 export default defineComponent({
   name: 'App',

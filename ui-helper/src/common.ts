@@ -120,4 +120,15 @@ function arrRemove(arr /*out */,key)
     arr.splice(index, 1);  // 从数组中删除该元素
   }
 }
-export {deepCopy,ajax,splitArr,str2Type,setWS,arrRemove}
+
+// 获取历史时间
+async function getHistory(beginDate,endDate){
+  let res = [];
+  // format('YYYY-MM-DD')
+  if(/^\d{4}-\d{2}-\d{2}$/.test(beginDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate>=beginDate ){
+    res = await ajax('historyData', { beginDate, endDate })
+  }
+  //console.log('getHistory',res)
+  return res
+}
+export {deepCopy,ajax,splitArr,str2Type,setWS,arrRemove,getHistory}

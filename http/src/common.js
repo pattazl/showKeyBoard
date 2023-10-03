@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getRecords } = require('./records');
+const { insertData, getRecords,getDataSetting } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -168,8 +168,10 @@ async function getParaFun(req, res) {
   //console.log(keyList)
   let fonts = await fontList.getFonts()
   //console.log(fonts)
+  // 获取数据库中的setting
+  let dataSetting = await getDataSetting()
   // 返回大 JSON
-  res.send(JSON.stringify( {config,keyList,fonts,infoPC}));
+  res.send(JSON.stringify( {config,keyList,fonts,infoPC,dataSetting}));
 }
 
 // 保存参数 ，包括各种文件和数据的保存
@@ -244,5 +246,5 @@ async function saveLastData() {
 }
 
 module.exports = {
-  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo
+  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo,saveLastData
 };
