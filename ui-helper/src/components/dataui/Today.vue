@@ -3,13 +3,16 @@
     <n-space vertical>
       <n-space style="font-size:16px">
         {{ contentText.intro92 }}
-        <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue"/> {{ contentText.intro93 }}
-        <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue"/>
+        <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue" /> {{
+          contentText.intro93 }}
+        <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
       <n-card :title="contentText.intro86">
         <div id="main" style="height: 500px; min-width:  800px;width:95%;"></div>
       </n-card>
-      <div></div>
+      <n-card :title="contentText.intro97">
+        <n-data-table :columns="columns0" :data="mouseTable" />
+      </n-card>
       <n-card :title="contentText.intro87">
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
@@ -41,6 +44,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 import { setWS, arrRemove, getHistory } from '@/common';
 import content from '../../content.js';
+import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
 echarts.use([
   TitleComponent,
@@ -161,7 +165,7 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   return val
 }
 // 根据键名缩写转换为说明
-function getKeyDesc(keyName) {
+function getKeyDesc(keyName, contentText) {
   return keyName
     .replace(/<\+/g, 'LShift ')
     .replace(/>\+/g, 'RShift ')
@@ -177,13 +181,19 @@ async function getTodayData(historyDate, contentText) {
   let str = dayjs(new Date()).format('YYYY-MM-DD')
   historyData = await getHistory(str, str)
   historyData.forEach(x => tickSet.add(x.tick))
+  let hasNow = false
   tickSet.forEach(x => {
     let mark = ''
     if (x == currTick) {
       mark = '(' + contentText.intro91 + ')'
+      hasNow = true
     }
-    return historyDate.push({ label: dayjs(new Date(<number>x)).format('YYYY-MM-DD HH:mm:ss.SSS') + mark, value: x })
+    historyDate.push({ label: dayjs(new Date(<number>x)).format('YYYY-MM-DD HH:mm:ss.SSS') + mark, value: x })
   })
+  // 如果数据中没有当前数据，需要强行插入一个
+  if (!hasNow && currTick > 0) {
+    historyDate.push({ label: dayjs(new Date(<number>currTick)).format('YYYY-MM-DD HH:mm:ss.SSS') + '(' + contentText.intro91 + ')', value: currTick })
+  }
 }
 // 获取对应时间的Hash
 function getHash(tick) {
@@ -250,47 +260,33 @@ export default defineComponent({
     let lastUpdateTick = 0
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
+    let mouseTable = ref([])
     const columns = ref([]);
+    const columns0 = ref([]);
     const historyDate = ref([]);
     const beginDate = ref(0);
     const endDate = ref(0);
+
+    // 获取屏幕像素对角线距离
+    const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
+    let screenPixlSize = 0;
+    if (sinfo != null && sinfo.length > 0 && sinfo[0].Right != null) {
+      screenPixlSize = Math.sqrt((sinfo[0].Right - sinfo[0].Left) ** 2 + (sinfo[0].Bottom - sinfo[0].Top) ** 2)
+    }
+
     setColumn(props.lang)
     watch(() => store.lang, (newValue, oldValue) => {
       setColumn(newValue)
     });
     function setColumn(lang) {
-      columns.value = [
+      columns0.value = [
         {
           title: content[lang].intro88,
           key: 'keyName',
-          sorter: 'default',
         },
         {
-          title: content[lang].intro89,
+          title: content[lang].intro98,
           key: 'desc',
-          render(row) {
-            let arr = row.desc.split(' ');
-            let lastChar = arr[arr.length - 1];
-            if (lastChar.length == 1) {
-              arr[arr.length - 1] = lastChar.toUpperCase()
-            }
-            const tags = arr.map((tagKey) => {
-              return h(
-                NTag,
-                {
-                  style: {
-                    marginRight: '6px'
-                  },
-                  type: 'info',
-                  bordered: false
-                },
-                {
-                  default: () => tagKey
-                }
-              )
-            })
-            return tags
-          }
         },
         {
           title: content[lang].intro90,
@@ -298,12 +294,51 @@ export default defineComponent({
           defaultSortOrder: 'descend',
           sorter: 'default',
         }
-      ]
+      ],
+        columns.value = [
+          {
+            title: content[lang].intro88,
+            key: 'keyName',
+            sorter: 'default',
+          },
+          {
+            title: content[lang].intro89,
+            key: 'desc',
+            render(row) {
+              let arr = row.desc.split(' ');
+              let lastChar = arr[arr.length - 1];
+              if (lastChar.length == 1) {
+                arr[arr.length - 1] = lastChar.toUpperCase()
+              }
+              const tags = arr.map((tagKey) => {
+                return h(
+                  NTag,
+                  {
+                    style: {
+                      marginRight: '6px'
+                    },
+                    type: 'info',
+                    bordered: false
+                  },
+                  {
+                    default: () => tagKey
+                  }
+                )
+              })
+              return tags
+            }
+          },
+          {
+            title: content[lang].intro90,
+            key: 'count',
+            defaultSortOrder: 'descend',
+            sorter: 'default',
+          }
+        ]
     }
-    function handleUpdateValue()
-    {
-        let keyStatHash = getRealStatHash({}, beginDate.value, endDate.value)
-        showHash(keyStatHash)
+    function handleUpdateValue() {
+      let keyStatHash = getRealStatHash({}, beginDate.value, endDate.value)
+      showHash(keyStatHash)
     }
     function updateKeyData(msg) {
       if (msg.indexOf('{"') != 0) {
@@ -311,7 +346,7 @@ export default defineComponent({
         return;
       }
       // 有手工选择
-      if (endDate.value != currTick && currTick >0) {
+      if (endDate.value != currTick && currTick > 0) {
         // 为固定值，直接退出 WS的响应
         return;
       }
@@ -334,7 +369,7 @@ export default defineComponent({
       showHash(keyStatHash)
     }
     // 显示数据
-    function showHash(keyStatHash){
+    function showHash(keyStatHash) {
       let keyArr = []  // 已经统计的数据清单
       let leftKey = Object.keys(keyStatHash)  // 剩余的匹配清单
       option.series[0].data = keyData.map(function (item) {
@@ -363,13 +398,33 @@ export default defineComponent({
       // 显示未统计进去的数据 leftKey
       //let leftHash = {};
       arrRemove(leftKey, 'tick'); // 去掉
+      arrRemove(leftKey, 'mouseDistance'); // 去掉
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       dataTable.value = leftKey.map(function (item) {
-        return { keyName: item, count: keyStatHash[item], desc: getKeyDesc(item) }
+        return { keyName: item, count: keyStatHash[item], desc: getKeyDesc(item, contentText.value) }
       })
+      // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
+      mouseTable.value = []
+      if (keyStatHash['mouseDistance'] > 0) {
+        let pixel = keyStatHash['mouseDistance']; //获取像素移动距离
+        mouseTable.value.push({ keyName: 'mouseDistance', count: Number(pixel), desc: contentText.value.intro94 })
+        // 屏幕移动距离 mouseScreenDistance
+        let realScreen = 0
+        if (screenPixlSize > 0) {
+          realScreen = pixel * (store.data.dataSetting.screenSize * 0.0254) / screenPixlSize;
+        }
+        mouseTable.value.push({ keyName: 'mouseScreenDistance', count: Number(realScreen.toFixed(4)), desc: contentText.value.intro95 })
+
+        // 屏幕移动距离 mousePhysicalDistance
+        let realPhysical = 0;
+        if (store.data.dataSetting.mouseDPI > 0) {
+          realPhysical = pixel * (0.0254) / store.data.dataSetting.mouseDPI;
+        }
+        mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
+      }
     }
     onMounted(() => {
       chartDom = document.getElementById('main');
@@ -388,12 +443,14 @@ export default defineComponent({
       handleShowMessage,
       strLeftKeyVal,
       columns,
+      columns0,
       dataTable,
       contentText,
       historyDate,
       beginDate,
       endDate,
-      handleUpdateValue
+      handleUpdateValue,
+      mouseTable,
     }
   },
 })

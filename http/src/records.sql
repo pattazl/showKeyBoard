@@ -16,3 +16,14 @@ CREATE TABLE stat (
 );
 CREATE INDEX stat_date_IDX ON stat (date);
 CREATE INDEX stat_keyname_IDX ON stat (keyname);
+
+CREATE TABLE "keymaps" (
+  "mapName" TEXT NOT NULL,
+  "mapDetail" text
+);
+
+CREATE TABLE "dataSetting" (
+  "keymap" TEXT,
+  "screenSize" integer,
+  "mouseDPI" integer
+);

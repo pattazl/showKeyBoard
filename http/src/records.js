@@ -131,7 +131,7 @@ function getDataSetting() {
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集
-    let sql = 'SELECT mapDetail,screenSize,mouseDPI FROM dataSetting left join keymaps on keymap = mapname '
+    let sql = 'SELECT keymap,mapDetail,screenSize,mouseDPI FROM dataSetting left join keymaps on keymap = mapname '
     db.all(sql, [], function (err, rows) {
       if (err) {
         reject(err);
@@ -139,10 +139,11 @@ function getDataSetting() {
       // 输出记录集
 	  if(rows.length>0){
 		  row = rows[0]
+		  keymap = row.keymap
 		  mapDetail = row.mapDetail
 		  screenSize = row.screenSize
 		  mouseDPI = row.mouseDPI
-		  resolve({mapDetail,screenSize,mouseDPI})
+		  resolve({keymap,mapDetail,screenSize,mouseDPI})
 	  }else{
 		  resolve({})
 	  }
@@ -151,7 +152,46 @@ function getDataSetting() {
     db.close();
   })
 }
+// 获取全部键盘
+function getKeymaps() {
+  const db = new sqlite3.Database('records.db');
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+	let arr = [];
+    let sql = 'SELECT mapName,mapDetail FROM keymaps'
+    db.all(sql, [], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+	  // 输出记录集
+      rows.forEach(function (row) {
+        let mapName = row.mapName, mapDetail = row.mapDetail;
+        arr.push({ mapName, mapDetail });
+      });
+      resolve(arr)
+    });
+    // 关闭数据库连接
+    db.close();
+  })
+}
+// 保存统计的相关配置
+function setDataSetting(hash) {
+  const db = new sqlite3.Database('records.db');
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+    let sql = 'update dataSetting set keymap = ? ,screenSize = ? ,mouseDPI = ? '
+    db.all(sql, [hash.keymap,hash.screenSize,hash.mouseDPI], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      // 输出记录集
+	  resolve(1)
+    });
+    // 关闭数据库连接
+    db.close();
+  })
+}
 
 module.exports = {
-  insertData, getRecords,getDataSetting
+  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps
 };

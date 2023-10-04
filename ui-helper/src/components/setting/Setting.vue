@@ -75,8 +75,7 @@
           {{ contentText.intro17 }}
           <n-list hoverable v-if="allPara.dialog">
             <n-list-item>{{ contentText.intro44 }}<div :class="screenInfo.length > 0 ? 'intro' : 'error'">{{
-              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{
-    screenInfo[allPara.dialog.guiMonitorNum - 1] }}</div>
+              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{ screenInfo[allPara.dialog.guiMonitorNum - 1] }}</div>
               <template #suffix>
                 <n-select v-model:value="allPara.dialog.guiMonitorNum" :options="screenNum" />
               </template>
@@ -205,13 +204,27 @@
           <n-list hoverable>
             <n-list-item>{{ contentText.intro57 }}<div class="intro">{{ contentText.intro58 }}</div>
               <template #suffix>
-                <n-input-number :value="24" :min="1" :max="1000" />
+                <n-input-number v-model:value="dataSetting.screenSize" :min="1" :max="1000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro59 }}<div class="intro">{{ contentText.intro60 }}</div>
               <template #suffix>
-                <n-input-number :value="1000" :min="100" :max="100000" />
+                <n-input-number v-model:value="dataSetting.mouseDPI" :min="100" :max="100000" />
               </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro99 }}<div class="intro">{{ contentText.intro100 }}</div>
+              <template #suffix>
+                <n-select v-model:value="dataSetting.keymap" :options="keymapsRef" @update:value="handleUpdateValue"/>
+                <n-input
+                v-model:value="mapDetailRef"
+            type="textarea"
+            placeholder="keymap detail"
+            show-count
+            size="medium"
+            rows="10"
+          />
+              </template>
+              
             </n-list-item>
           </n-list>
         </n-card>
@@ -226,7 +239,8 @@
           <n-space style="margin:3px">
             <n-button type="warning" @click="resetPara">{{ contentText?.intro81 }}</n-button>
             <n-button type="primary" @click="savePara">{{ contentText?.intro82 }}</n-button>
-            <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{ Object.keys(diffJsonList).length > 0 ?
+            <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{ Object.keys(diffJsonList).length
+              > 0 ?
               contentText?.intro83 : contentText?.intro84 }}</n-tag>
           </n-space>
           <code-diff v-for="(item, key) in diffJsonList" :lang="lang" :key="key" :old-string="item['old']"
@@ -241,15 +255,13 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, PropType, ref, computed } from 'vue'
-import { useRoute } from 'vue-router';
 import { useMessage } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
-import { deepCopy,ajax,str2Type,splitArr } from '@/common.ts'
+import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
 import CodeDiff from './CodeDiff.vue'
-// import { useAustinStore } from '../../App.vue'
 
 // 生成界面上select的数组
 function toVSelectList(arr: Array<string | number>) {
@@ -277,18 +289,18 @@ function KVListTo(arr: Array<any>) {
 }
 
 // 获取不同节点的差异数据
-function getDiffHash(hash/*out */, hash1, hash2, named,contentText) {
+function getDiffHash(hash/*out */, hash1, hash2, named, contentText) {
   let oldArr = []
   let newArr = []
   if (typeof hash1 == 'string') {
-    if( hash1!= hash2){
+    if (hash1 != hash2) {
       hash[named] = { 'old': hash1, 'new': hash2 }
     }
   } else {
     for (let k in hash1) {
       let before = hash2[k]
       let after = hash1[k]
-      let keyName = mapping[k]==null?k:(contentText[mapping[k]]??k);
+      let keyName = mapping[k] == null ? k : (contentText[mapping[k]] ?? k);
       if (before != after) {
         oldArr.push(`${keyName}: ${before}`)
         newArr.push(`${keyName}: ${after}`)
@@ -307,7 +319,7 @@ export default defineComponent({
     },
   },
   setup(props) {
-    // const store= useAustinStore(); 可通过 属性传递，也可通过pinia传递
+    const store= useAustinStore();  // 可通过 属性传递，也可通过pinia传递
     // const lang = computed(()=>store.lang) 
     const contentText = computed(() => content[props.lang])
     const message = useMessage()
@@ -324,18 +336,24 @@ export default defineComponent({
     const skipShowRef = ref([])
     const screenInfo = ref('')  // 屏幕数据
     const screenNum = ref([])  // 屏幕
+    const dataSetting = ref<any>({})  // 屏幕
+    const keymapsRef = ref([])  // 选择的键盘清单
+    const mapDetailRef = ref('')  // 键盘详细定义
 
     console.log('setup')
     // const allData = { data: {}, preData: {} }; // 重新更新数据
     // 拉取数据
-      function loadPara() {
-      const store = useAustinStore();
-      let data = <any>store.setting;
+    function loadPara() {
+      let data = <any>store.data;
       //allData.data = data;
       //allData.preData = store.preData;
 
       // 以下为输出
       allPara.value = data.config;
+      dataSetting.value = data.dataSetting;
+      keymapsRef.value = data.keymaps.map(x=>{ return {label:x.mapName,value:x.mapName}});
+      handleUpdateValue(data.dataSetting.keymap)
+
       const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
       if (sinfo != null) {
         screenInfo.value = sinfo
@@ -347,6 +365,8 @@ export default defineComponent({
       skipRecordRef.value = splitArr(allPara.value.common.skipRecord)
       ctrlListRef.value = splitArr(allPara.value.dialog.ctrlList)
       skipShowRef.value = splitArr(allPara.value.dialog.skipShow)
+
+      
 
     }
     loadPara();
@@ -377,8 +397,7 @@ export default defineComponent({
     }
     // 还原数据
     function resetPara() {
-      const store = useAustinStore();
-      store.setting = deepCopy(store.preData);
+      store.data = deepCopy(store.preData);
       loadPara()
     }
     // 将数据进行转换和保存 allPara,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef
@@ -399,30 +418,47 @@ export default defineComponent({
       // 需要将数据保存给服务器
       console.log('setPara')
       const saving = message.loading(contentText.value.intro75, { duration: 0 })
-      await ajax('setPara', { config, keyList })
+      await ajax('setPara', { config, keyList,'dataSetting':dataSetting.value })
       saving.destroy()
       message.success(contentText.value.intro76)
+      
+      // 设置变量为新的数据
+      store.preData.keyList = deepCopy(keyList)
+      store.preData.dataSetting = deepCopy(dataSetting.value)
     }
     // 计算差异
     const diffJsonList = computed(() => {
-      const store = useAustinStore();
       const predata = <any>store.preData
       let hash = {}
-      if (allPara.value == null || predata.config ==null) {
+      if (allPara.value == null || predata.config == null) {
         return hash
       }
       let keyList = KVListTo(keyMappingRef.value);
       // 对比 config.common ，config.dialog ,store.preData.keyList
-      getDiffHash(hash, allPara.value.common, predata.config.common, contentText.value.menu?.setting1,contentText.value)
-      getDiffHash(hash, allPara.value.dialog, predata.config.dialog, contentText.value.menu?.setting2,contentText.value)
+      getDiffHash(hash, allPara.value.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
+      getDiffHash(hash, allPara.value.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)
+      getDiffHash(hash, dataSetting.value, predata.dataSetting, contentText.value.menu?.setting3, contentText.value)
       //getDiffHash(hash,config.common,predata.config.common,contentText.value.menu?.setting3)
-      getDiffHash(hash, JSON.stringify(keyList, null, 2), JSON.stringify(predata.keyList, null, 2), contentText.value.menu?.setting4,contentText.value)
+      getDiffHash(hash, JSON.stringify(keyList, null, 2), JSON.stringify(predata.keyList, null, 2), contentText.value.menu?.setting4, contentText.value)
       return hash
     })
+    // 根据选项显示文本
+    function handleUpdateValue(value: string){
+      console.log(value)
+      const data = <any>store.data
+      for(let v of data.keymaps)
+      {
+        if(v.mapName == value){
+          mapDetailRef.value = v.mapDetail
+          break
+        }
+      }
+    }
     return {
       myBorder,
       scrollTo,
       allPara,
+      dataSetting,
       skipRecordRef,
       contentText,
       ctrlListRef,
@@ -435,6 +471,9 @@ export default defineComponent({
       savePara,
       diffJsonList,
       resetPara,
+      keymapsRef,
+      handleUpdateValue,
+      mapDetailRef,
     }
   },
 })

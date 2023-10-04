@@ -73,7 +73,7 @@ export default defineComponent({
     };
 
     async function loadParaCore(){
-      let data = <any>store.setting;
+      let data = <any>store.data;
       if (data.config == null) {
         const loading = message.loading(content[lang.value].intro73, { duration: 0 })
         // 每次路由跳转变量会重新初始化，需要保存起来
@@ -90,7 +90,7 @@ export default defineComponent({
         str2Type(data.config.common, 0)
         str2Type(data.config.dialog, 0)
 
-        store.setting = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
+        store.data = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
         store.preData = deepCopy(data); // 之前的数据
       }
     }

@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getRecords,getDataSetting } = require('./records');
+const { insertData, getRecords,getDataSetting,setDataSetting, getKeymaps} = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -14,6 +14,7 @@ const iniPath = '../../showKeyBoard.ini'
 const keyPath = '../../keyList.txt'
 var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
 var keyList; // 用于保存KeyList.txt 的文件信息
+var dataSetting = {}; // 用于保存 dataSetting 的信息
 var statPara; // 统计的配置参数保存在 数据库中
 var infoPC; // 用于保存PC的关键信息
 var port = parseInt(config.common.serverPort)
@@ -169,22 +170,25 @@ async function getParaFun(req, res) {
   let fonts = await fontList.getFonts()
   //console.log(fonts)
   // 获取数据库中的setting
-  let dataSetting = await getDataSetting()
+  dataSetting = await getDataSetting()
+  // 获取数据库中的setting
+  let keymaps = await getKeymaps()
+  
   // 返回大 JSON
-  res.send(JSON.stringify( {config,keyList,fonts,infoPC,dataSetting}));
+  res.send(JSON.stringify( {config,keyList,fonts,infoPC,dataSetting,keymaps}));
 }
 
 // 保存参数 ，包括各种文件和数据的保存
 function setParaFun(req, res) {
   console.log('setPara')
-  var data = req.body  // 包含 config 和 
+  var data = req.body  // 包含 config 和 keyList, dataSetting
   let isUpdate = false
   let newKeyList = JSON.stringify(data.keyList)
   if( JSON.stringify(keyList) != newKeyList){
     let keyArr = []
-    for(let k in newKeyList)
+    for(let k in data.keyList)
     {
-      keyArr.push(k+''+newKeyList[k])
+      keyArr.push(k+' : '+data.keyList[k])
     }
     keyList = data.keyList
     console.log('write keyPath')
@@ -197,7 +201,12 @@ function setParaFun(req, res) {
     config = data.config
     fs.writeFileSync(iniPath, ini.stringify(config))
   }
-  
+  // 对于 dataSetting 需要更新数据库
+  let newDataSetting  = JSON.stringify(data.dataSetting)
+  if(JSON.stringify(keyList) != newDataSetting ){
+	setDataSetting(data.dataSetting);
+	console.log('setDataSetting')
+  }
   res.send({ code: 200 });
 }
 // 接收客户端发送的PC相关信息，比如屏幕等

@@ -79,7 +79,7 @@ export default {
 	intro54:'控制键清单',
 	intro55:'哪些按键不会显示，但会记录',
 	intro56:'数据统计界面的相关参数设置',
-	intro57:'屏幕大小(英寸)',
+	intro57:'第一个屏幕大小(英寸)',
 	intro58:'用于计算光标在屏幕的移动距离',
 	intro59:'鼠标DPI',
 	intro60:'用于计算实际鼠标移动距离',
@@ -116,6 +116,14 @@ export default {
 	intro91:'当前',
 	intro92:'时间段，从 ',
 	intro93:'到 ',
+	intro94:'鼠标移动距离(像素)',
+	intro95:'鼠标屏幕移动距离(米)',
+	intro96:'鼠标物理距离(米)',
+	intro97:'鼠标移动信息',
+	intro98:'距离说明',
+	intro99:'数据统计键盘',
+	intro100:`键盘由数组构成，数组中每个元素为4位数组，第一位表示X坐标，第二位是Y坐标，
+	第三位是显示在键盘上的符号(可能通过按键清单转义)，第四位是对应的真实按键信息，不写则以第三位为准`,
 
   },
   'en-US': {
@@ -195,7 +203,7 @@ export default {
 	intro54: 'Control key list',
 	intro55: 'Which keys will not be displayed, but will be recorded',
 	intro56: 'Parameters setting for the data statistics interface',
-	intro57: 'Screen size (in inches)',
+	intro57: 'First Screen size (in inches)',
 	intro58: 'Used to calculate the cursor movement distance on the screen',
 	intro59: 'Mouse DPI',
 	intro60: 'Used to calculate the actual mouse movement distance',
@@ -232,5 +240,13 @@ export default {
 	intro91:'Now',
 	intro92:'Time Range, from ',
 	intro93:'to ',
+	intro94:'Mouse movement distance (pixels)',
+	intro95:'Mouse screen movement distance (meters)',
+	intro96:'Mouse physical distance (meters)',
+	intro97:'Mouse movement info',
+	intro98:'Desc of distance',
+	intro99:'Keyboard for data statistics',
+	intro100:`The keyboard is composed of an array, with each element in the array being a 4-digit array. The first digit represents the X coordinate and the second digit represents the Y coordinate,
+	The third digit is the symbol displayed on the keyboard (which may be escaped through the key list), and the fourth digit is the corresponding real key information. If not written, the third digit shall prevail`,
   }
 };
