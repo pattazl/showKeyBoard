@@ -15,57 +15,57 @@
         <h2 id="General">{{ contentText?.menu?.setting1 }}</h2>
         <n-card :style="myBorder.General ? 'border:1px #18a058 solid' : ''">
           {{ contentText.intro1 }}
-          <n-list hoverable v-if="allPara.common">
+          <n-list hoverable v-if="allConfig.common">
             <n-list-item> {{ contentText.intro2 }}<n-dynamic-tags v-model:value="skipRecordRef" />
             </n-list-item>
             <n-list-item>
               {{ contentText.intro3 }}
               <div class="intro">{{ contentText.intro4 }}</div>
               <template #suffix>
-                <n-switch :round="false" v-model:value="allPara.common.skipCtrlKey" />
+                <n-switch :round="false" v-model:value="allConfig.common.skipCtrlKey" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro5 }}
               <template #suffix>
-                <n-select v-model:value="allPara.common.showMouseEvent" :options="[{ label: contentText.intro63, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro64, value: 1 /*01*/ },
+                <n-select v-model:value="allConfig.common.showMouseEvent" :options="[{ label: contentText.intro63, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro64, value: 1 /*01*/ },
                 { label: contentText.intro65, value: 2 /*10*/ }, { label: contentText.intro66, value: 3 /*10*/ }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro6 }}
               <template #suffix>
-                <n-switch :round="false" v-model:value="allPara.common.recordMouseMove" />
+                <n-switch :round="false" v-model:value="allConfig.common.recordMouseMove" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro7 }}
               <template #suffix>
-                <n-switch :round="false" v-model:value="allPara.common.needShowKey" />
+                <n-switch :round="false" v-model:value="allConfig.common.needShowKey" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro8 }}
               <template #suffix>
-                <n-switch :round="false" v-model:value="allPara.common.needRecordKey" />
+                <n-switch :round="false" v-model:value="allConfig.common.needRecordKey" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro9 }}
               <div class="intro">{{ contentText.intro10 }}</div>
               <template #suffix>
-                <n-switch :round="false" v-model:value="allPara.common.ctrlState" />
+                <n-switch :round="false" v-model:value="allConfig.common.ctrlState" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro11 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.common.serverPort" :min="80" :max="65535" />
+                <n-input-number v-model:value="allConfig.common.serverPort" :min="80" :max="65535" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro12 }}
               <template #suffix>
-                <n-input v-model:value="allPara.common.activeWindowProc" type="text" :placeholder="contentText.intro13" />
+                <n-input v-model:value="allConfig.common.activeWindowProc" type="text" :placeholder="contentText.intro13" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro14 }}
               <template #suffix>
                 <div class="intro">{{ contentText.intro15 }}{{ contentText.keyIntro }}</div>
-                <n-input v-model:value="allPara.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
+                <n-input v-model:value="allConfig.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
               </template>
             </n-list-item>
           </n-list>
@@ -73,120 +73,121 @@
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
           {{ contentText.intro17 }}
-          <n-list hoverable v-if="allPara.dialog">
+          <n-list hoverable v-if="allConfig.dialog">
             <n-list-item>{{ contentText.intro44 }}<div :class="screenInfo.length > 0 ? 'intro' : 'error'">{{
-              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{ screenInfo[allPara.dialog.guiMonitorNum - 1] }}</div>
+              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{
+    screenInfo[allConfig.dialog.guiMonitorNum - 1] }}</div>
               <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiMonitorNum" :options="screenNum" />
+                <n-select v-model:value="allConfig.dialog.guiMonitorNum" :options="screenNum" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro18 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiWidth" :min="1" :max="65535" />
+                <n-input-number v-model:value="allConfig.dialog.guiWidth" :min="1" :max="65535" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro19 }}<div class="intro">{{ contentText.intro20 }}</div>
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiHeigth" :min="0" :max="65535" />
+                <n-input-number v-model:value="allConfig.dialog.guiHeigth" :min="0" :max="65535" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="allPara.dialog.guiBgcolor" :modes="['hex']" />
+                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro22 }}<div class="intro">{{ contentText.intro23 }}</div>
               <template #suffix>
-                <n-switch v-model:value="allPara.dialog.guiTrans" :round="false" />
+                <n-switch v-model:value="allConfig.dialog.guiTrans" :round="false" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro24 }}<div class="intro">{{ contentText.intro25 }}</div>
               <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiTextFont" :options="allFontRef" />
+                <n-select v-model:value="allConfig.dialog.guiTextFont" :options="allFontRef" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro26 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiTextSize" :min="1" :max="100" />
+                <n-input-number v-model:value="allConfig.dialog.guiTextSize" :min="1" :max="100" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro27 }}
               <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiTextWeight"
+                <n-select v-model:value="allConfig.dialog.guiTextWeight"
                   :options="[{ label: contentText.intro67, value: 'norm' }, { label: contentText.intro68, value: 'bold' }, { label: contentText.intro69, value: 'italic' },
                   { label: contentText.intro70, value: 'strike' }, { label: contentText.intro71, value: 'underline' }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro28 }}
               <template #suffix>
-                <n-color-picker v-model:value="allPara.dialog.guiTextColor" :show-alpha="false" :modes="['hex']" />
+                <n-color-picker v-model:value="guiTextColorRef" :show-alpha="false" :modes="['hex']" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro29 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiLife" :min="10" :max="100000" />
+                <n-input-number v-model:value="allConfig.dialog.guiLife" :min="10" :max="100000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro30 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiInterval" :min="10" :max="100000" />
+                <n-input-number v-model:value="allConfig.dialog.guiInterval" :min="10" :max="100000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro31 }}<div class="intro">{{ contentText.intro32 }}</div>
               <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiPos"
+                <n-select v-model:value="allConfig.dialog.guiPos"
                   :options="[{ label: contentText.intro33, value: 'TL' }, { label: contentText.intro34, value: 'TR' }, { label: contentText.intro35, value: 'BL' }, { label: contentText.intro36, value: 'BR' }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro37 }}<div class="intro">{{ contentText.intro38 }}</div>
               <template #suffix>
-                <n-select v-model:value="allPara.dialog.guiPosXY" :options="[{ label: 'X' }, { label: 'Y' }]" />
+                <n-select v-model:value="allConfig.dialog.guiPosXY" :options="[{ label: 'X' }, { label: 'Y' }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro39 }}<div class="intro">{{ contentText.intro40 }}</div>
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiPosOffsetX" />
+                <n-input-number v-model:value="allConfig.dialog.guiPosOffsetX" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro41 }}<div class="intro">{{ contentText.intro42 }}</div>
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiPosOffsetY" />
+                <n-input-number v-model:value="allConfig.dialog.guiPosOffsetY" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro43 }}
               <template #suffix>
-                <n-switch v-model:value="allPara.dialog.guiDpiscale" :round="false" />
+                <n-switch v-model:value="allConfig.dialog.guiDpiscale" :round="false" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro46 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.guiMargin" />
+                <n-input-number v-model:value="allConfig.dialog.guiMargin" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro47 }}
               <template #suffix>
-                <n-switch v-model:value="allPara.dialog.guiEdge" :round="false" />
+                <n-switch v-model:value="allConfig.dialog.guiEdge" :round="false" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro48 }}
               <template #suffix>
-                <n-input v-model:value="allPara.dialog.txtSplit" type="text" :placeholder="contentText.intro49" />
+                <n-input v-model:value="allConfig.dialog.txtSplit" type="text" :placeholder="contentText.intro49" />
               </template>
             </n-list-item>
             <h4>{{ contentText.intro50 }}</h4>
             <n-list-item>{{ contentText.intro51 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.ctrlX" />
+                <n-input-number v-model:value="allConfig.dialog.ctrlX" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro52 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.ctrlY" />
+                <n-input-number v-model:value="allConfig.dialog.ctrlY" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro53 }}
               <template #suffix>
-                <n-input-number v-model:value="allPara.dialog.ctrlTextSize" :min="1" :max="100" />
+                <n-input-number v-model:value="allConfig.dialog.ctrlTextSize" :min="1" :max="100" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro54 }}
@@ -212,20 +213,24 @@
                 <n-input-number v-model:value="dataSetting.mouseDPI" :min="100" :max="100000" />
               </template>
             </n-list-item>
-            <n-list-item>{{ contentText.intro99 }}<div class="intro">{{ contentText.intro100 }}</div>
+            <n-list-item>{{ contentText.intro99 }}<div class="intro" style="white-space: pre-line;">{{
+              contentText.intro100 }}</div>
+              <div class="error"> {{ keyboardDetail }} </div>
               <template #suffix>
-                <n-select v-model:value="dataSetting.keymap" :options="keymapsRef" @update:value="handleUpdateValue"/>
-                <n-input
-                v-model:value="mapDetailRef"
-            type="textarea"
-            placeholder="keymap detail"
-            show-count
-            size="medium"
-            rows="10"
-          />
+                <n-select v-model:value="dataSetting.keymap" filterable tag :options="keymapsRef"
+                  @update:value="handleUpdateValue" />
+                <n-space>
+                  <n-button type="warning" @click="keyboardApply">{{ contentText?.intro104 }}</n-button>
+                  <n-button type="primary" :disabled="dataSetting.keymap == 'Default'" @click="keyboardSave">{{
+                    keyboardSaveInfo }}</n-button>
+                  <n-button type="error" :disabled="dataSetting.keymap == 'Default'" @click="keyboardDelete">{{
+                    contentText?.intro106 }}</n-button>
+                </n-space>
+                <n-input v-model:value="mapDetailRef" :readonly="dataSetting.keymap == 'Default'" type="textarea"
+                  placeholder="keymap detail" show-count size="medium" rows="10" @blur="handleUpdateDetail" />
               </template>
-              
             </n-list-item>
+            <div id="main" style="height: 500px; min-width: 800px;width:95%"></div>
           </n-list>
         </n-card>
         <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
@@ -236,7 +241,7 @@
         </n-card>
         <h2 id="Save">{{ contentText?.menu?.setting5 }}</h2>
         <n-card :style="myBorder.Save ? 'border:1px #18a058 solid' : ''">
-          <n-space style="margin:3px">
+          <n-space>
             <n-button type="warning" @click="resetPara">{{ contentText?.intro81 }}</n-button>
             <n-button type="primary" @click="savePara">{{ contentText?.intro82 }}</n-button>
             <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{ Object.keys(diffJsonList).length
@@ -255,7 +260,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, PropType, ref, computed } from 'vue'
-import { useMessage } from 'naive-ui';
+import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
 import { storeToRefs } from 'pinia'
@@ -263,6 +268,111 @@ import { useAustinStore } from '../../App.vue'
 import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
 import CodeDiff from './CodeDiff.vue'
 
+import * as echarts from 'echarts/core';
+// 引入柱状图图表，图表后缀都为 Chart
+import { HeatmapChart } from 'echarts/charts';
+// 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
+import {
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  DatasetComponent,
+  TransformComponent,
+  VisualMapComponent
+} from 'echarts/components';
+// 标签自动布局、全局过渡动画等特性
+import { LabelLayout, UniversalTransition } from 'echarts/features';
+// 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
+import { CanvasRenderer } from 'echarts/renderers';
+echarts.use([
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  DatasetComponent,
+  TransformComponent,
+  LabelLayout,
+  UniversalTransition,
+  CanvasRenderer,
+  HeatmapChart,
+  VisualMapComponent
+]);
+
+let hashTxtData = {}; // 按键上显示的内容
+let hashOriData = {}; // 原始定义的内容，提示框上显示
+var option = {
+  textStyle: {
+    fontSize: 16
+  },
+  tooltip: {
+    position: 'top'
+  },
+  grid: {
+    height: '95%',
+    top: '5%',
+  },
+  xAxis: {
+    type: 'category',
+    show: true,
+    splitArea: {
+      show: true
+    }
+  },
+  yAxis: {
+    type: 'category',
+    show: true,
+    splitArea: {
+      show: true
+    }
+  },
+  visualMap: {
+    show: false,
+    min: 0,
+    max: 100,
+    calculable: true,
+    orient: 'horizontal',
+    left: 'center',
+    bottom: '2%'
+  },
+  series: [
+    {
+      tooltip: {
+        trigger: 'item',
+        textStyle: {
+          fontSize: 18
+        },
+        confine: true,
+        formatter: (p) => {
+          //自定义提示信息
+          //console.log(p);
+          let dataCon = p.data;
+          let key = dataCon[0] + ',' + dataCon[1]
+          let txtCon = hashOriData[key] + '<hr> ' + dataCon[2];
+          return txtCon;
+        }
+      },
+      name: 'Keyboard',
+      type: 'heatmap',
+      data: {},
+      label: {
+        show: true,
+        formatter: function (params) {
+          let txt = hashTxtData[params.data[0] + ',' + params.data[1]]
+          if (txt == null) {
+            return 'N/A';
+          } else {
+            return txt;
+          }
+        }
+      },
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }
+    }
+  ]
+};
 // 生成界面上select的数组
 function toVSelectList(arr: Array<string | number>) {
   let resArr = [];
@@ -319,16 +429,16 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const store= useAustinStore();  // 可通过 属性传递，也可通过pinia传递
+    const store = useAustinStore();  // 可通过 属性传递，也可通过pinia传递
     // const lang = computed(()=>store.lang) 
     const contentText = computed(() => content[props.lang])
     const message = useMessage()
+    const myDialog = useDialog()
     //watch(() => store.lang, (newValue, oldValue) => {
     //  console.log(` lang New value: ${newValue}, old value: ${oldValue}`);
     //});
-
     // 各类数据模拟
-    const allPara = ref<any>({})
+    const allConfig = ref<any>({})
     const allFontRef = ref([]) // 字体清单
     const keyMappingRef = ref([])  // 按键匹配清单
     const skipRecordRef = ref([])
@@ -339,7 +449,12 @@ export default defineComponent({
     const dataSetting = ref<any>({})  // 屏幕
     const keymapsRef = ref([])  // 选择的键盘清单
     const mapDetailRef = ref('')  // 键盘详细定义
+    const keyboardDetail = ref('')  // 键盘定义的相关说明和提示
+    const keyboardSaveInfo = ref('')    // 键盘保存按钮
+    const guiBgcolorRef = ref('')    // 颜色需要额外处理
+    const guiTextColorRef = ref('')    // 颜色需要额外处理
 
+    let chartDom, myChart
     console.log('setup')
     // const allData = { data: {}, preData: {} }; // 重新更新数据
     // 拉取数据
@@ -349,10 +464,9 @@ export default defineComponent({
       //allData.preData = store.preData;
 
       // 以下为输出
-      allPara.value = data.config;
+      allConfig.value = data.config;
       dataSetting.value = data.dataSetting;
-      keymapsRef.value = data.keymaps.map(x=>{ return {label:x.mapName,value:x.mapName}});
-      handleUpdateValue(data.dataSetting.keymap)
+      keymapsRef.value = data.keymaps.map(x => { return { label: x.mapName, value: x.mapName } });
 
       const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
       if (sinfo != null) {
@@ -362,16 +476,20 @@ export default defineComponent({
       //console.log('data.config', data.config)
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
       keyMappingRef.value = toKVList(data.keyList)
-      skipRecordRef.value = splitArr(allPara.value.common.skipRecord)
-      ctrlListRef.value = splitArr(allPara.value.dialog.ctrlList)
-      skipShowRef.value = splitArr(allPara.value.dialog.skipShow)
+      skipRecordRef.value = splitArr(allConfig.value.common.skipRecord)
+      ctrlListRef.value = splitArr(allConfig.value.dialog.ctrlList)
+      skipShowRef.value = splitArr(allConfig.value.dialog.skipShow)
 
-      
+      guiBgcolorRef.value = '#' + allConfig.value.dialog.guiBgcolor + parseInt(allConfig.value.dialog.guiOpacity, 10).toString(16)
+      guiTextColorRef.value = '#' + allConfig.value.dialog.guiTextColor
 
     }
     loadPara();
     onMounted(() => {
-      //scrollToSection();
+      chartDom = document.getElementById('main');
+      myChart = echarts.init(chartDom);
+      // 更新键盘图和数据
+      handleUpdateValue(store.data.dataSetting.keymap)
     })
     //let preAnchor = null
     let myBorder = ref({
@@ -400,64 +518,179 @@ export default defineComponent({
       store.data = deepCopy(store.preData);
       loadPara()
     }
-    // 将数据进行转换和保存 allPara,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef
+    // 将数据进行转换和保存 allConfig,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef
     async function savePara() {
-      let config = deepCopy(allPara.value); // config配置文件，包含common 和 dialog
+      let config = deepCopy(allConfig.value); // config配置文件，包含common 和 dialog
       if (config?.common == null) {
         return
       }
-      str2Type(config.common, 1)
-      str2Type(config.dialog, 1)
+      myDialog.warning({
+        title: contentText.value.intro83,
+        positiveText: contentText.value.intro109,
+        negativeText: contentText.value.intro110,
+        maskClosable: false,
+        onPositiveClick: async () => {
+          str2Type(config.common, 1)
+          str2Type(config.dialog, 1)
 
-      // 转换数组为字符串
-      config.common.skipRecord = skipRecordRef.value.join('|')
-      config.dialog.ctrlList = ctrlListRef.value.join('|')
-      config.dialog.skipShow = skipShowRef.value.join('|')
-      // 转换keyList
-      let keyList = KVListTo(keyMappingRef.value);
-      // 需要将数据保存给服务器
-      console.log('setPara')
-      const saving = message.loading(contentText.value.intro75, { duration: 0 })
-      await ajax('setPara', { config, keyList,'dataSetting':dataSetting.value })
-      saving.destroy()
-      message.success(contentText.value.intro76)
-      
-      // 设置变量为新的数据
-      store.preData.keyList = deepCopy(keyList)
-      store.preData.dataSetting = deepCopy(dataSetting.value)
+          // 转换数组为字符串
+          config.common.skipRecord = skipRecordRef.value.join('|')
+          config.dialog.ctrlList = ctrlListRef.value.join('|')
+          config.dialog.skipShow = skipShowRef.value.join('|')
+
+          let color = guiBgcolorRef.value.replace(/#/, '')
+          config.dialog.guiBgcolor = color.substr(0, 6);
+          config.dialog.guiOpacity = parseInt(color.substr(6, 2), 16)
+          config.dialog.guiBgTrans = (config.dialog.guiOpacity == 0) ? 1 : 0
+          config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
+          // 转换keyList
+          let keyList = KVListTo(keyMappingRef.value);
+          // 需要将数据保存给服务器
+          console.log('setPara')
+          const saving = message.loading(contentText.value.intro75, { duration: 0 })
+          await ajax('setPara', { config, keyList, 'dataSetting': dataSetting.value })
+          saving.destroy()
+          message.success(contentText.value.intro76)
+
+          // 设置变量为新的数据
+          store.preData.config = deepCopy(config)
+          store.preData.keyList = deepCopy(keyList)
+          store.preData.dataSetting = deepCopy(dataSetting.value)
+        }
+      })
     }
     // 计算差异
     const diffJsonList = computed(() => {
       const predata = <any>store.preData
+      const data = <any>store.data
       let hash = {}
-      if (allPara.value == null || predata.config == null) {
+      if (allConfig.value == null || predata.config == null) {
         return hash
       }
       let keyList = KVListTo(keyMappingRef.value);
       // 对比 config.common ，config.dialog ,store.preData.keyList
-      getDiffHash(hash, allPara.value.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
-      getDiffHash(hash, allPara.value.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)
+      getDiffHash(hash, data.config.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
+      getDiffHash(hash, data.config.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)
       getDiffHash(hash, dataSetting.value, predata.dataSetting, contentText.value.menu?.setting3, contentText.value)
       //getDiffHash(hash,config.common,predata.config.common,contentText.value.menu?.setting3)
       getDiffHash(hash, JSON.stringify(keyList, null, 2), JSON.stringify(predata.keyList, null, 2), contentText.value.menu?.setting4, contentText.value)
       return hash
     })
     // 根据选项显示文本
-    function handleUpdateValue(value: string){
-      console.log(value)
+    function handleUpdateValue(value: string) {
       const data = <any>store.data
-      for(let v of data.keymaps)
-      {
-        if(v.mapName == value){
+      let isNew = true
+      for (let v of data.keymaps) {
+        if (v.mapName == value) {
           mapDetailRef.value = v.mapDetail
+          handleUpdateDetail()
+          isNew = false;
           break
         }
       }
+      if (isNew) {
+        mapDetailRef.value = ''
+        keyboardSaveInfo.value = contentText.value.intro105
+      } else {
+        keyboardSaveInfo.value = contentText.value.intro108
+      }
+    }
+    // 进行有效性检查
+    function keyboardValid() {
+      let mapDetailArr = []
+      try {
+        mapDetailArr = JSON.parse(mapDetailRef.value)
+        for (let v of mapDetailArr) {
+          if (!(v instanceof Array) || v.length < 2 || v.length > 4) {
+            keyboardDetail.value = contentText.value.intro102 + v
+            return []
+          }
+          if (isNaN(v[0]) || isNaN(v[1])) {
+            keyboardDetail.value = contentText.value.intro103 + v
+            return []
+          }
+        }
+      } catch (e) {
+        keyboardDetail.value = contentText.value.intro101
+        return []
+      }
+      keyboardDetail.value = '';
+      return mapDetailArr
+    }
+    // 输入内容变化
+    function handleUpdateDetail() {
+      let mapDetailArr = keyboardValid()
+      if (mapDetailArr.length == 0) return;
+      option.series[0].data = mapDetailArr.map(function (item) {
+        let val: string | number = 0, key: string, keyMap;
+        keyMap = item[3]
+        if (item[2] == null) {
+          val = '-'
+        } else {
+          key = item[2].toString()  // 界面显示的
+          val = 0
+        }
+        // 用于产生显示在界面的文字内容
+        // 用于产生显示在界面的文字内容
+        let strKeyMap = '' // 配置了匹配键的
+        if (keyMap != null) strKeyMap = ' (' + keyMap + ')'
+        hashTxtData[item[0] + ',' + item[1]] = store.data.keyList[key] ?? key
+        hashOriData[item[0] + ',' + item[1]] = key + strKeyMap
+        // 将val 数据全部放到数组中，同于统计 max值
+        return [item[0], item[1], val];
+      })
+      option && myChart.setOption(option);
+    }
+    // 将当前键盘应用到统计中
+    function keyboardApply() {
+      let mapDetailArr = keyboardValid()
+      if (mapDetailArr.length == 0) return;
+      (<any>store.preData).dataSetting.mapDetail = JSON.stringify(mapDetailArr)
+      message.success(contentText.value.intro107)
+    }
+    function keyboardOptDialog(mapDetail, flag, info) {
+      let mapName = dataSetting.value.keymap
+      myDialog.warning({
+        title: info + ' [' + mapName + ']',
+        positiveText: contentText.value.intro109,
+        negativeText: contentText.value.intro110,
+        maskClosable: false,
+        onPositiveClick: async () => {
+          await ajax('optKeymap', { mapName, mapDetail, flag })
+          message.success(info + contentText.value.intro111)
+          // 需要刷新数据
+          let data = <any>store.data; // 修改 data.keymaps
+          let index = data.keymaps.findIndex(x => x.mapName == mapName)
+          switch (flag) {
+            case 0: // 删除
+              data.keymaps.splice(index, 1)
+              break;
+            case 1: // 新增
+              data.keymaps.push({ mapName, mapDetail })
+              break;
+            case 2: // 修改
+              data.keymaps.splice(index, 1, { mapName, mapDetail })
+              break;
+          }
+          console.log(data.keymaps)
+          loadPara()
+        }
+      })
+    }
+    function keyboardSave() {
+      let mapDetail = keyboardValid()
+      if (mapDetail.length == 0) return;
+      let flag = (keyboardSaveInfo.value == contentText.value.intro105) ? 1 : 2; // 0=删除 1=新增 2=更新
+      keyboardOptDialog(JSON.stringify(mapDetail), flag, keyboardSaveInfo.value)
+    }
+    function keyboardDelete() {
+      keyboardOptDialog('', 0, contentText.value.intro106)
     }
     return {
+      keyboardApply,
       myBorder,
       scrollTo,
-      allPara,
+      allConfig,
       dataSetting,
       skipRecordRef,
       contentText,
@@ -474,6 +707,13 @@ export default defineComponent({
       keymapsRef,
       handleUpdateValue,
       mapDetailRef,
+      handleUpdateDetail,
+      keyboardDetail,
+      keyboardSave,
+      keyboardSaveInfo,
+      keyboardDelete,
+      guiBgcolorRef,
+      guiTextColorRef
     }
   },
 })
@@ -506,6 +746,10 @@ export default defineComponent({
 
 .n-anchor-link {
   font-size: 16px;
+}
+
+.n-space {
+  margin: 3px
 }
 
 body {

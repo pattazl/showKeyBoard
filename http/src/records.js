@@ -191,7 +191,45 @@ function setDataSetting(hash) {
     db.close();
   })
 }
+// 操作 keymap , 0=删除 1=新增 2=更新
+function optKeyMap(data) {
+  console.log('optKeyMap:',data.mapName,data.flag)
+  const db = new sqlite3.Database('records.db');
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+	let {mapName,mapDetail,flag} = data;
+	if( mapName.toLowerCase()=='default'){
+		resolve(0)
+		return
+	}
+	let sql = '',para = []
+	switch(flag)
+	{
+		case 0:
+			sql = 'delete from keymaps where mapName = ?'
+			para = [mapName]
+			break;
+		case 1:
+			sql = 'insert into keymaps(mapName, mapDetail) values(?,?) '
+			para = [mapName, mapDetail]
+			break;
+		case 2:
+			sql = 'update keymaps set mapDetail = ? where mapName = ?'
+			para = [mapDetail, mapName]
+			break;
+	}
+    db.all(sql, para , function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      // 输出记录集
+	  resolve(1)
+    });
+    // 关闭数据库连接
+    db.close();
+  })
+}
 
 module.exports = {
-  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps
+  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap
 };

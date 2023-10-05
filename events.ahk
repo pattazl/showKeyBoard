@@ -3,7 +3,7 @@
 
 ; 变量控制
 reqXMLHTTP := 0 
-msgNotLaunch := '服务启动失败,无法进行参数界面设置和数据统计查看'
+msgNotLaunch := 'Start Server fail, can not set parameter and data statistics!'
 lastModified := FileGetTime(IniFile)
 global HttpCtrlObj := Map()  ; 和http任务相关的数据
 HttpCtrlObj['resp'] := '' ; 返回的数据
@@ -44,7 +44,7 @@ Init(){
     }
     catch
     {
-        MsgBox '无法创建XMLHTTP对象通讯,' msgNotLaunch
+        MsgBox 'Can not create XMLHTTP ,' msgNotLaunch
     }
 }
 ; 发送数据
@@ -71,10 +71,10 @@ CheckServer(){
 	global CheckServerCount
 	if CheckServerCount < CheckServerMax
 	{
-		ShowTxt('第' (CheckServerCount+1) '次检测中.')
+		ShowTxt('Try ' (CheckServerCount+1) ' times,')
 		StartHttp('connect','/version','')
 	}else{
-		MsgBox '尝试检测' CheckServerCount '次，依然失败,' msgNotLaunch
+		MsgBox 'Try ' CheckServerCount ' times, but fail: ' msgNotLaunch
 	}
 	CheckServerCount +=1
 	Sleep 3000
@@ -89,7 +89,7 @@ ServerCore()
         ; 超时，需要取消定时
         SetTimer ServerCore, 0
         ; 此时可以尝试启动服务
-        ShowTxt '任务[' HttpCtrlObj['task'] ']通讯超时:' HttpCtrlObj['timeout'] 
+        ShowTxt 'Task[' HttpCtrlObj['task'] ']timeout:' HttpCtrlObj['timeout'] 
         return
     }
     if(state ='wait')
@@ -103,7 +103,7 @@ ServerCore()
         {
             ; 成功启动后端服务
 			global serverState := 1
-            ShowTxt '成功启动后端服务'
+            ShowTxt 'Start Server succ!'
 			; 准备发送一些数据给后端
 			SendPCInfo()
         }else{
@@ -116,7 +116,7 @@ ServerCore()
     }else{
         ; 常规数据发送处理
         if state !='succ'{
-            ShowTxt HttpCtrlObj['task'] ',通讯失败'   ; 可能后端服务被关闭了
+            ShowTxt HttpCtrlObj['task'] ',connect fail!'   ; 可能后端服务被关闭了
         }
     }
 }
@@ -135,7 +135,7 @@ startServer()
 		Run cmd,httpPath,ShowFlag, &OutputVarPID
 		Sleep 1000  ;启动服务需要等待
 	}catch{
-		MsgBox '启动node失败'
+		MsgBox 'Launch node fail'
 	}
 }
 ; 自动发送 AllKeyRecord 数据

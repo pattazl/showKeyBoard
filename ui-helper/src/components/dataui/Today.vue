@@ -8,7 +8,7 @@
         <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
       <n-card :title="contentText.intro86">
-        <div id="main" style="height: 500px; min-width:  800px;width:95%;"></div>
+        <div id="main" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card :title="contentText.intro97">
         <n-data-table :columns="columns0" :data="mouseTable" />
@@ -28,7 +28,7 @@ import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { BarChart, HeatmapChart, HeatmapSeriesOption } from 'echarts/charts';
+import { HeatmapChart, HeatmapSeriesOption } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -52,7 +52,6 @@ echarts.use([
   GridComponent,
   DatasetComponent,
   TransformComponent,
-  BarChart,
   LabelLayout,
   UniversalTransition,
   CanvasRenderer,
@@ -60,8 +59,6 @@ echarts.use([
   VisualMapComponent
 ]);
 
-
-var option;
 // prettier-ignore
 let hashTxtData = {}; // 按键上显示的内容
 let hashOriData = {}; // 原始定义的内容，提示框上显示
@@ -70,7 +67,7 @@ let historyData = []
 let tickSet = new Set();
 let keyData = [];
 
-option = {
+var option = {
   textStyle: {
     fontSize: 16
   },
@@ -432,15 +429,7 @@ export default defineComponent({
       //console.log(keyList)
       setWS(updateKeyData)
     })
-
-    const message = useMessage()
-    const handleShowMessage = () => {
-      //option.series[0].data = data2
-      //myChart.setOption(option);
-      message.success('I can use message')
-    }
     return {
-      handleShowMessage,
       strLeftKeyVal,
       columns,
       columns0,

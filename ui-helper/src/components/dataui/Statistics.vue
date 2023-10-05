@@ -1,6 +1,6 @@
 <template>
   <div>
-    <n-h3>Message</n-h3>
+    <n-h3>暂未想好需要统计哪些信息</n-h3>
     <n-button type="primary" @click="handleShowMessage">
       数据统计
     </n-button>

@@ -51,28 +51,13 @@ function str2Type(hash, flag) {
       }
       if (boolArr.indexOf(k) > -1) {
         hash[k] = hash[k] == 1
-      } else if ('guiBgcolor' == k && hash[k].indexOf('#') == -1) {
-        // 有颜色字段,需要加上透明度
-        hash[k] = '#' + hash[k] + parseInt(hash.guiOpacity, 10).toString(16)
-      } else if ('guiTextColor' == k && hash[k].indexOf('#') == -1) {
-        // 有颜色字段
-        hash[k] = '#' + hash[k]
       } else if (/^-?\d+$/.test(hash[k])) {
         hash[k] = Number(hash[k]);
       }
     } else { // 界面转换给数据
       if (boolArr.indexOf(k) > -1) {
         hash[k] = hash[k] ? '1' : '0'
-      } else if ('guiBgcolor' == k && hash[k].indexOf('#') != -1) {
-        // 有颜色字段,需要加上透明度
-        let color = hash[k].replace(/#/, '')
-        hash[k] = color.substr(0, 6);
-        hash.guiOpacity = parseInt(color.substr(6, 2), 16)
-        hash.guiBgTrans = (hash.guiOpacity == 0) ? 1 : 0
-      } else if ('guiTextColor' == k) {
-        // 有颜色字段
-        hash[k] = hash[k].replace(/#/, '')
-      } if (typeof hash[k] !== 'string') {
+      } else if (typeof hash[k] !== 'string') {
         hash[k] = hash[k].toString(); // 默认都是字符串
       }
     }

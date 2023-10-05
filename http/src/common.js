@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getRecords,getDataSetting,setDataSetting, getKeymaps} = require('./records');
+const { insertData, getRecords,getDataSetting,setDataSetting, getKeymaps,optKeyMap} = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -254,6 +254,12 @@ async function saveLastData() {
   }
 }
 
+// 接收keymap 
+async function optKeymapFun(req, res){
+  var data = req.body
+  await optKeyMap(data)
+  res.send({ code: 200 });
+}
 module.exports = {
-  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo,saveLastData
+  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo,saveLastData,optKeymapFun
 };
