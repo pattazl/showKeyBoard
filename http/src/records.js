@@ -32,7 +32,8 @@ function insertData(records) {
       }
       // 构建插入语句
       const placeholders = arr.map(() => '(?, ? , ? , ?)').join(', ');
-      const values = arr.reduce((acc, curr) => acc.concat([curr.name, curr.count, curr.tick, strDate]), []);
+	  let tickDate = dayjs(new Date(tick)).format('YYYY-MM-DD')  // 需要用记录中的时间作为日期
+      const values = arr.reduce((acc, curr) => acc.concat([curr.name, curr.count, curr.tick, tickDate]), []);
       // 执行一次性插入
       db.run(`INSERT INTO events (keyname, keycount , tick , date) VALUES ${placeholders}`, values, function (err) {
         if (err) {
@@ -51,7 +52,7 @@ function insertData(records) {
       }
       // 输出记录集
       if (rows.length > 0) {
-        setTimeout(doCleanData, 1);
+        setTimeout(doCleanData, 5000); // 过5秒后再处理，因为上面一行代码可能还在执行
       }
     });
     // 关闭数据库连接
