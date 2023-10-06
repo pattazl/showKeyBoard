@@ -136,6 +136,10 @@ export default {
 	intro110:'取消',
 	intro111:'成功',
 	intro112:'请选择日期',
+	intro113:'查询',
+	intro114:'鼠标移动距离统计',
+	intro115:'鼠标/键盘按键合计',
+	intro116:'自定义按键统计',
 
   },
   'en-US': {
@@ -273,5 +277,9 @@ export default {
 	intro110:'Cancel',
 	intro111:'Successful',
 	intro112:'Select Date',
+	intro113:'Query',
+	intro114:'Mouse Distance',
+	intro115:'The sum of Mouse/keyboard Keypress ',
+	intro116:'The keypress of custom',
   }
 };

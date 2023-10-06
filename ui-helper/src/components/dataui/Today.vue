@@ -22,7 +22,7 @@
 
 <script lang="ts">
 import { useAustinStore } from '../../App.vue'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs' 
 import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
