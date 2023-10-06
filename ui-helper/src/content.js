@@ -114,7 +114,7 @@ export default {
 	intro89:'按键说明',
 	intro90:'统计数据',
 	intro91:'当前',
-	intro92:'时间段，从 ',
+	intro92:'当天时间段，从 ',
 	intro93:'到 ',
 	intro94:'鼠标移动距离(像素)',
 	intro95:'鼠标屏幕移动距离(米)',
@@ -135,6 +135,7 @@ export default {
 	intro109:'确定',
 	intro110:'取消',
 	intro111:'成功',
+	intro112:'请选择日期',
 
   },
   'en-US': {
@@ -249,7 +250,7 @@ export default {
 	intro89:'Key Description',
 	intro90:'Key Count',
 	intro91:'Now',
-	intro92:'Time Range, from ',
+	intro92:'Today Time Range, from ',
 	intro93:'to ',
 	intro94:'Mouse movement distance (pixels)',
 	intro95:'Mouse screen movement distance (meters)',
@@ -271,5 +272,6 @@ export default {
 	intro109:'Confirm',
 	intro110:'Cancel',
 	intro111:'Successful',
+	intro112:'Select Date',
   }
 };

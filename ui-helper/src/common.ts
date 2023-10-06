@@ -116,4 +116,5 @@ async function getHistory(beginDate,endDate){
   //console.log('getHistory',res)
   return res
 }
+
 export {deepCopy,ajax,splitArr,str2Type,setWS,arrRemove,getHistory}

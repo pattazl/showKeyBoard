@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const {getRecords} = require('./records');
+const {getRecords,getHistoryDate} = require('./records');
 const version = '1.1'
 
 
@@ -37,7 +37,11 @@ app.post('/historyData', async (req, res) => {
 });
 // 更新和删除用户键盘
 app.post('/optKeymap', optKeymapFun); 
-
+// 获取历史天数
+app.post('/getHistoryDate', async (req, res) => {
+    let arr = await getHistoryDate()
+    res.send(JSON.stringify(arr))
+});
 // 版本和服务判断
 app.post('/version', (req, res) => {res.send('showKeyBoardServer Version:'+ version);});
 // 监听WS 连接事件

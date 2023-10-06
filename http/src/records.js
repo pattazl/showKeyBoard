@@ -230,7 +230,28 @@ function optKeyMap(data) {
     db.close();
   })
 }
+// 获取全部历史天数
+function getHistoryDate() {
+  const db = new sqlite3.Database('records.db');
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+	let arr = [];
+    let sql = 'SELECT date FROM stat group by date order by date desc'
+    db.all(sql, [], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+	  // 输出记录集
+      rows.forEach(function (row) {
+        arr.push(row.date);
+      });
+      resolve(arr)
+    });
+    // 关闭数据库连接
+    db.close();
+  })
+}
 
 module.exports = {
-  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap
+  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap,getHistoryDate
 };
