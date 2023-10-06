@@ -252,6 +252,53 @@ function getHistoryDate() {
   })
 }
 
+//获取各类统计信息到一个hash中
+async function statData(begin,end) {
+  const db = new sqlite3.Database('records.db');
+  let pro1 =new Promise((resolve, reject) => {
+    // 查询鼠标移动距离
+    let sql = "select keycount,date from stat where date between ? and ? and keyname = 'mouseDistance' order by date"
+    db.all(sql, [begin,end], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      resolve(rows)
+    });
+  })
+  // 查询鼠标点击数量和按键数量总和
+  let pro2 =new Promise((resolve, reject) => {
+    // 查询记录集
+    let sql = `select sum(keycount) as keycount,date,'mouse' as keyname from stat 
+    where date between ? and ? and keyname in ('LButton','RButton','MButton','WheelDown','WheelUp') group by date
+UNION
+select sum(keycount) as keycount,date,'keyboard' from stat 
+where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') group by date`
+    db.all(sql, [begin,end,begin,end], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      resolve(rows);
+    });
+  })
+  // 查询统计范围内按键数 top10
+  let pro3 =new Promise((resolve, reject) => {
+    // 查询记录集
+    let sql = `select keycount,date,keyname from stat where keyname in
+(select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') group by keyname order by sum(keycount) desc limit 15
+) and date between ? and ? order by date`
+    db.all(sql, [begin,end,begin,end], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      resolve(rows)
+    });
+  })
+  let arr = await Promise.all([pro1,pro2,pro3]);
+  db.close();
+  return arr;
+}
+
+
 module.exports = {
-  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap,getHistoryDate
+  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap,getHistoryDate,statData
 };

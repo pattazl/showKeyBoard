@@ -139,7 +139,8 @@ export default {
 	intro113:'查询',
 	intro114:'鼠标移动距离统计',
 	intro115:'鼠标/键盘按键合计',
-	intro116:'自定义按键统计',
+	intro116:'Top10按键统计',
+	intro117:'日期格式不合规',
 
   },
   'en-US': {
@@ -280,6 +281,7 @@ export default {
 	intro113:'Query',
 	intro114:'Mouse Distance',
 	intro115:'The sum of Mouse/keyboard Keypress ',
-	intro116:'The keypress of custom',
+	intro116:'Top 10 OF keyboard keypress',
+	intro117:'The format of date is invalid',
   }
 };

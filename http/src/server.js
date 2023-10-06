@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const {getRecords,getHistoryDate} = require('./records');
+const {getRecords,getHistoryDate,statData} = require('./records');
 const version = '1.1'
 
 
@@ -42,6 +42,12 @@ app.post('/getHistoryDate', async (req, res) => {
     let arr = await getHistoryDate()
     res.send(JSON.stringify(arr))
 });
+// 获取统计信息
+app.post('/statData', async (req, res) => {
+    let arr = await statData(req.body?.beginDate , req.body?.endDate)
+    res.send(JSON.stringify(arr))
+});
+
 // 版本和服务判断
 app.post('/version', (req, res) => {res.send('showKeyBoardServer Version:'+ version);});
 // 监听WS 连接事件
