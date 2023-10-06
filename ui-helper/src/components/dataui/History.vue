@@ -354,7 +354,7 @@ export default defineComponent({
     }
     onMounted(async () => {
       chartDom = document.getElementById('main');
-      myChart = echarts.init(chartDom);
+      myChart = echarts.init(chartDom,store.myTheme);
       // 设置下拉选择
       let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
@@ -367,6 +367,11 @@ export default defineComponent({
       }
 
     })
+    watch(() => store.myTheme, (newValue, oldValue) => {
+      myChart.dispose()
+      myChart = echarts.init(chartDom,newValue);
+      myChart.setOption(option);
+     });
     return {
       strLeftKeyVal,
       columns,

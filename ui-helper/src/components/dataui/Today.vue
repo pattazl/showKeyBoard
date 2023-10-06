@@ -68,6 +68,7 @@ let tickSet = new Set();
 let keyData = [];
 
 var option = {
+  dark:true,
   textStyle: {
     fontSize: 16
   },
@@ -425,10 +426,15 @@ export default defineComponent({
     }
     onMounted(() => {
       chartDom = document.getElementById('main');
-      myChart = echarts.init(chartDom);
+      myChart = echarts.init(chartDom,store.myTheme);
       //console.log(keyList)
       setWS(updateKeyData)
     })
+    watch(() => store.myTheme, (newValue, oldValue) => {
+      myChart.dispose()
+      myChart = echarts.init(chartDom,newValue);
+      myChart.setOption(option);
+     });
     return {
       strLeftKeyVal,
       columns,
