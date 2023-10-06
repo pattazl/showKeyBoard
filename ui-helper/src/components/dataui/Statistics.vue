@@ -205,7 +205,7 @@ export default defineComponent({
 				option2.series[1].data = getVal(res[1], dateArr, 'keyboard')
 
 				let hash = getKeyData(res[2])
-				option3.series = Object.keys(hash).map(x=>hash[x])
+				option3.series = Object.keys(hash).map(x => hash[x])
 				option3.legend.data = Object.keys(hash)
 
 				myChart1.setOption(option1);
@@ -238,6 +238,17 @@ export default defineComponent({
 				handleQuery()
 			}
 		})
+		watch(() => store.myTheme, (newValue, oldValue) => {
+			myChart1.dispose()
+			myChart1 = echarts.init(chartDom1, newValue);
+			myChart1.setOption(option1);
+			myChart2.dispose()
+			myChart2 = echarts.init(chartDom2, newValue);
+			myChart2.setOption(option2);
+			myChart3.dispose()
+			myChart3 = echarts.init(chartDom3, newValue);
+			myChart3.setOption(option3);
+		});
 		return {
 			contentText,
 			beginDate,

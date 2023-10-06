@@ -218,7 +218,7 @@ export default defineComponent({
     const columns = ref([]);
     const columns0 = ref([]);
     const historyDate = ref([]);
-    const beginDate = ref(0);
+    const beginDate = ref('');
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]

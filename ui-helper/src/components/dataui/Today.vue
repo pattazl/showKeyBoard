@@ -262,8 +262,8 @@ export default defineComponent({
     const columns = ref([]);
     const columns0 = ref([]);
     const historyDate = ref([]);
-    const beginDate = ref(0);
-    const endDate = ref(0);
+    const beginDate = ref('');
+    const endDate = ref('');
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
@@ -344,7 +344,7 @@ export default defineComponent({
         return;
       }
       // 有手工选择
-      if (endDate.value != currTick && currTick > 0) {
+      if (endDate.value != currTick.toString() && currTick > 0) {
         // 为固定值，直接退出 WS的响应
         return;
       }
@@ -360,8 +360,8 @@ export default defineComponent({
       if (currTick == 0) {
         currTick = keyStatHash.tick; // 更新当前的tick
         getTodayData(historyDate.value, contentText.value)
-        beginDate.value = currTick
-        endDate.value = currTick
+        beginDate.value = currTick.toString()
+        endDate.value = currTick.toString()
       }
       keyStatHash = getRealStatHash(keyStatHash, beginDate.value, endDate.value)
       showHash(keyStatHash)
