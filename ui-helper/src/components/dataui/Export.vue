@@ -23,7 +23,7 @@
 <script lang="ts">
 import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
 import content from '../../content.js';
-import { useMessage } from 'naive-ui'
+import { useMessage, useDialog } from 'naive-ui'
 import { getHistory, ajax } from '@/common';
 import { useAustinStore } from '../../App.vue'
 import dayjs from 'dayjs'
@@ -57,15 +57,41 @@ export default defineComponent({
 		const deleteDate = ref()
 		const todayList = ref([])
 		const historyDate = ref([])
+		const message = useMessage()
+		const myDialog = useDialog()
 		getTodayData(todayList.value)
 		getHistoryDate(historyDate)
 
-		function handleDeleteTick() {
-			console.log(deleteTick.value)
+		async function handleDeleteTick() {
+			myDialog.warning({
+				title: contentText.value.intro122+ deleteTick.value.map(x=> dayjs(new Date(x)).format('YYYY-MM-DD HH:mm:ss.SSS')),
+				positiveText: contentText.value.intro109,
+				negativeText: contentText.value.intro110,
+				maskClosable: false,
+				onPositiveClick: async () => {
+					await ajax('deleteData', { date: deleteTick.value, flag: 0 })
+					todayList.value = []
+					deleteTick.value = ''
+					getTodayData(todayList.value)
+					message.success(contentText.value.intro76)
 
+				}
+			})
 		}
-		function handleDeleteDate() {
-			console.log(deleteDate.value)
+		async function handleDeleteDate() {
+			myDialog.warning({
+				title: contentText.value.intro122+ deleteDate.value,
+				positiveText: contentText.value.intro109,
+				negativeText: contentText.value.intro110,
+				maskClosable: false,
+				onPositiveClick: async () => {
+					await ajax('deleteData', { date: deleteDate.value, flag: 1 })
+					historyDate.value = []
+					deleteDate.value = ''
+					getHistoryDate(historyDate)
+					message.success(contentText.value.intro76)
+				}
+			})
 
 		}
 

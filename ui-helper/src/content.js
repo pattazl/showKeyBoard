@@ -149,6 +149,7 @@ export default {
 	代码 : 全部开源 https://github.com/pattazl/showKeyBoard `,
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
+	intro122:'确定删除:',
 
   },
   'en-US': {
@@ -299,5 +300,6 @@ export default {
 	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.`,
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
+	intro122:'Are you sure delete:',
   }
 };

@@ -5,7 +5,7 @@ const {getRecords,getHistoryDate,statData} = require('./records');
 const version = '1.1'
 
 
-const { startUp , getParaFun, setParaFun , app ,exitFun ,dataFun,sendPCInfo,saveLastData,optKeymapFun} = require('./common');
+const { startUp , getParaFun, setParaFun , app ,exitFun ,dataFun,sendPCInfo,saveLastData,optKeymapFun,deleteDataFun} = require('./common');
 
 //app.use(express.text());
 // 定义跨域设置中间件
@@ -47,7 +47,8 @@ app.post('/statData', async (req, res) => {
     let arr = await statData(req.body?.beginDate , req.body?.endDate)
     res.send(JSON.stringify(arr))
 });
-
+// 更新和删除用户数据
+app.post('/deleteData', deleteDataFun); 
 // 版本和服务判断
 app.post('/version', (req, res) => {res.send('showKeyBoardServer Version:'+ version);});
 // 监听WS 连接事件

@@ -302,8 +302,35 @@ group by keyname order by sum(keycount) desc limit ${globalTopN}
   db.close();
   return arr;
 }
-
+// 删除 events 或 stat 数据
+async function deleteData(date,flag) {
+  const db = new sqlite3.Database('records.db');
+  return new Promise((resolve, reject) => {
+    // 查询记录集 
+    let sql = ''
+    const placeholders = date.map(() => '?').join(',');
+    if(flag==0)
+    {
+        sql = 'delete FROM events where tick in(' + placeholders + ') '
+    }else if(flag==1)
+    {
+        sql = 'delete FROM stat where date in(' + placeholders + ') '
+    }
+    console.log(sql,date)
+    if(sql!='')
+    {
+      db.all(sql, date, function (err, rows) {
+        if (err) {
+          reject(err);
+        }
+        resolve(1)
+      });
+    }
+    // 关闭数据库连接
+    db.close();
+  })
+}
 
 module.exports = {
-  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap,getHistoryDate,statData
+  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap,getHistoryDate,statData,deleteData
 };

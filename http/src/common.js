@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting,setDataSetting, getKeymaps,optKeyMap} = require('./records');
+const { insertData, getDataSetting,setDataSetting, getKeymaps,optKeyMap,deleteData} = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -260,7 +260,20 @@ async function optKeymapFun(req, res){
   await optKeyMap(data)
   res.send({ code: 200 });
 }
+// 删除数据
+async function deleteDataFun(req, res){
+  var data = req.body
+  if( typeof data.flag =='number' && data.date instanceof Array)
+  {
+    // let dateStr = data.date.map(x=>{ if(typeof x =='string')return "'"+x+"'";else return x }).join(',')
+    await deleteData(data.date,data.flag)
+    res.send({ code: 200 });
+  }else{
+    res.send({ code: 10 });
+  }
+  
+}
 
 module.exports = {
-  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo,saveLastData,optKeymapFun
+  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo,saveLastData,optKeymapFun,deleteDataFun
 };
