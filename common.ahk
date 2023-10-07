@@ -1,9 +1,9 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.4" 
+global APPName:="ShowKeyBoard", ver:="1.5" 
      , IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
-     
+A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
 skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
@@ -74,7 +74,7 @@ global KeyMapping:=Map()
 
 ; 获取1970年开始的时间戳
 AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数
-global httpPath := A_WorkingDir '/httpdist/dist/'   ; node 脚本所在目录
+global httpPath := A_WorkingDir '\httpdist\dist\'   ; node 脚本所在目录
 if !FileExist(httpPath){
 	needRecordKey := 0  ; 如果不存在则不用启动后端
 }

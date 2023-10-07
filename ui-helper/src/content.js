@@ -19,7 +19,7 @@ export default {
       stat1: '今日数据',
       stat2: '历史分析',
       stat3: '数据趋势',
-      stat4: '数据导出',
+      stat4: '数据处理',
     },
 	keyIntro:`按键说明:!表示Alt , #表示windows, +表示shift, ^ 表示Ctrl, < 表示左，>表示右，可自由组合。 
               比如 ^#F5 表示按下ctrl+win+F5键,<^<+D表示按下左侧的Ctrl+左侧Shift+字母键D`,
@@ -65,7 +65,7 @@ export default {
 	intro40:'横向位置调整，负数表示往左，正数表示往右',
 	intro41:'位置Y调整',
 	intro42:'纵向位置调整，负数表示往上，正数表示往下',
-	intro43:'是否进行DPI',
+	intro43:'是否进行DPI缩放',
 	intro44:'第几个屏幕',
 	intro45:'屏幕信息为',
 	intro46:'提示窗口间的间隔(px)',
@@ -139,8 +139,16 @@ export default {
 	intro113:'查询',
 	intro114:'鼠标移动距离统计',
 	intro115:'鼠标/键盘按键合计',
-	intro116:'Top10按键统计',
+	intro116:`Top N 按键统计`,
 	intro117:'日期格式不合规',
+	intro118:'按键统计前N个',
+	intro119:`
+	功能 : 实时显示按键情况，统计历史按键
+	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
+	数据 : 只保存在本地的 httpdist\dist\records.db 文件中，此文件为sqlite3格式
+	代码 : 全部开源 https://github.com/pattazl/showKeyBoard `,
+	intro120:'选择要删除的当天时间',
+	intro121:'选择要删除的历史日期',
 
   },
   'en-US': {
@@ -160,7 +168,7 @@ export default {
       stat1: 'Today',
       stat2: 'History',
       stat3: 'Statistics',
-      stat4: 'Export',
+      stat4: 'Manage',
     },
 	keyIntro: `Key Instructions: ! = Alt, # = Windows, + = Shift, ^ = Ctrl, < = Left, > = Right. They can be combined freely. For example, ^#F5 represents pressing Ctrl+Win+F5, <^<+D represents pressing Left Ctrl+Left Shift+the letter key D.`,
 
@@ -206,7 +214,7 @@ export default {
 	intro40: 'Horizontal position adjustment. Negative numbers indicate leftward movement and positive numbers indicate rightward movement.',
 	intro41: 'Adjust Position Y',
 	intro42: 'Vertical position adjustment. Negative numbers indicate upward movement and positive numbers indicate downward movement.',
-	intro43: 'Enable DPI',
+	intro43: 'Enable DPI scale',
 	intro44: 'Screen number',
 	intro45: 'Screen Info is',
 	intro46: 'Margin of Popup(px)',
@@ -281,7 +289,15 @@ export default {
 	intro113:'Query',
 	intro114:'Mouse Distance',
 	intro115:'The sum of Mouse/keyboard Keypress ',
-	intro116:'Top 10 OF keyboard keypress',
+	intro116: `Top N OF keyboard keypress`,
 	intro117:'The format of date is invalid',
+	intro118:'Top N in keyboard statistic',
+	intro119:`
+	Functionality: Real-time display of key press information and tracking of historical key presses.
+	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
+	Data: The data is saved in a local file named "records.db" located in the "httpdist\dist" directory. This file is in SQLite3 format.
+	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.`,
+	intro120:"Please select start time of today",
+	intro121:'Please select the day of history',
   }
 };

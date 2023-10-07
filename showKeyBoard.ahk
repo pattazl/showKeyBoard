@@ -191,8 +191,10 @@ CreateMenu()
   ; 初始化默认状态
   If FileExist(LinkPath)
   {
-  
-    MyMenu.Check(L_menu_startup)
+    FileGetShortcut LinkPath, &OutTarget, &OutDir, &OutArgs, &OutDesc, &OutIcon, &OutIconNum, &OutRunState
+	if(OutTarget = A_ScriptFullPath){
+		MyMenu.Check(L_menu_startup)
+	}
   }
 }
 CreateMenu()

@@ -135,8 +135,9 @@ CloseSelf()
 		obj := guiArr[A_Index]
 	    if( A_TickCount - obj.tick> guiLife)
 		{
-			obj.gui.Destroy()
 			guiArr.RemoveAt(A_Index)
+			Sleep(100)   ; 需要等待一会儿再删
+			obj.gui.Destroy()
 			break
 		}
 	}

@@ -213,6 +213,11 @@
                 <n-input-number v-model:value="dataSetting.mouseDPI" :min="100" :max="100000" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro118 }}
+              <template #suffix>
+                <n-input-number v-model:value="dataSetting.topN" :min="3" :max="200" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro99 }}<div class="intro" style="white-space: pre-line;">{{
               contentText.intro100 }}</div>
               <div class="error"> {{ keyboardDetail }} </div>
@@ -307,7 +312,7 @@ var option = {
     position: 'top'
   },
   grid: {
-    height: '95%',
+    height: '90%',
     top: '5%',
   },
   xAxis: {

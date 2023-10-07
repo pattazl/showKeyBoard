@@ -11,10 +11,10 @@
 			<n-card :title="contentText.intro114">
 				<div id="main1" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro115">
+			<n-card :title="contentText.intro115" >
 				<div id="main2" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro116">
+			<n-card :title="contentText.intro116 + ':'+ topN">
 				<div id="main3" style="height: 400px; min-width: 800px;width:95%;"></div>
 			</n-card>
 		</n-space>
@@ -139,6 +139,8 @@ export default defineComponent({
 		const beginDate = ref('');
 		const endDate = ref('');
 		const historyDate = ref([]);
+		const topN = ref(0)
+		topN.value = 1;
 
 		const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
 		let screenPixlSize = 0;
@@ -255,6 +257,7 @@ export default defineComponent({
 			endDate,
 			historyDate,
 			handleQuery,
+			topN,
 		}
 	},
 })
