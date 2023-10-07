@@ -128,11 +128,12 @@ function doCleanData() {
 })()
 */
 // 数据库中的相关配置信息，主要用于统计
+let globalTopN = 10;
 function getDataSetting() {
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集
-    let sql = 'SELECT keymap,mapDetail,screenSize,mouseDPI FROM dataSetting left join keymaps on keymap = mapname '
+    let sql = 'SELECT keymap,mapDetail,screenSize,mouseDPI,topN FROM dataSetting left join keymaps on keymap = mapname '
     db.all(sql, [], function (err, rows) {
       if (err) {
         reject(err);
@@ -144,7 +145,9 @@ function getDataSetting() {
 		  mapDetail = row.mapDetail
 		  screenSize = row.screenSize
 		  mouseDPI = row.mouseDPI
-		  resolve({keymap,mapDetail,screenSize,mouseDPI})
+		  topN = row.topN
+          globalTopN = topN
+		  resolve({keymap,mapDetail,screenSize,mouseDPI,topN})
 	  }else{
 		  resolve({})
 	  }
@@ -180,12 +183,13 @@ function setDataSetting(hash) {
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集
-    let sql = 'update dataSetting set keymap = ? ,screenSize = ? ,mouseDPI = ? '
-    db.all(sql, [hash.keymap,hash.screenSize,hash.mouseDPI], function (err, rows) {
+    let sql = 'update dataSetting set keymap = ? ,screenSize = ? ,mouseDPI = ? ,topN= ?'
+    db.all(sql, [hash.keymap,hash.screenSize,hash.mouseDPI,hash.topN], function (err, rows) {
       if (err) {
         reject(err);
       }
       // 输出记录集
+      globalTopN = hash.topN
 	  resolve(1)
     });
     // 关闭数据库连接
@@ -284,7 +288,8 @@ where date between ? and ? and keyname not in ('mouseDistance','LButton','RButto
   let pro3 =new Promise((resolve, reject) => {
     // 查询记录集
     let sql = `select keycount,date,keyname from stat where keyname in
-(select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') group by keyname order by sum(keycount) desc limit 15
+(select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') 
+group by keyname order by sum(keycount) desc limit ${globalTopN}
 ) and date between ? and ? order by date`
     db.all(sql, [begin,end,begin,end], function (err, rows) {
       if (err) {

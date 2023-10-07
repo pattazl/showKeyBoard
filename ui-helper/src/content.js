@@ -289,7 +289,7 @@ export default {
 	intro113:'Query',
 	intro114:'Mouse Distance',
 	intro115:'The sum of Mouse/keyboard Keypress ',
-	intro116: `Top N OF keyboard keypress`,
+	intro116: `Top N of keyboard keypress`,
 	intro117:'The format of date is invalid',
 	intro118:'Top N in keyboard statistic',
 	intro119:`

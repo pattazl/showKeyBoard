@@ -140,7 +140,7 @@ export default defineComponent({
 		const endDate = ref('');
 		const historyDate = ref([]);
 		const topN = ref(0)
-		topN.value = 1;
+		topN.value = store.data.dataSetting.topN;
 
 		const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
 		let screenPixlSize = 0;
