@@ -145,10 +145,19 @@ var option = {
 function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   let val, matchKey;
   do {
-    if (mapkey != null) {
-      matchKey = mapkey
-      val = keyStatHash[matchKey];
-      if (val != null) break;
+    if (mapkey != null) { // 需要支持多个key，用空格分割
+      matchKey = mapkey.split(' ')
+      let isMatch = false
+      val = matchKey.reduce((accumulator, k) => {
+        let v = keyStatHash[k];
+        if( v != null){
+          isMatch  = true;
+        }else{
+          v = 0
+        }
+        return accumulator + v
+        },0)
+      if (isMatch) break;
     }
     // 尝试用 key 
     matchKey = key
@@ -221,12 +230,11 @@ function mergeHash(targetHash/**out */, srcHash) {
 // 根据选择的时间进行计算
 function getRealStatHash(oriHash, begin, end) {
   if (begin > end || tickSet.size == 0) return oriHash; // 时间不对直接返回原始的
-  let hash = {}
+  let hash = oriHash
   tickSet.forEach(x => {
     if (x >= begin && x <= end) {
       if (x == oriHash.tick) {
-        // 表示是当前的，直接合并现在的即可
-        mergeHash(hash, oriHash)
+        // 表示是当前的，直接跳过无需再次合并
       } else {
         // 进行数据合并
         mergeHash(hash, getHash(x))

@@ -45,9 +45,14 @@ mouseStartY := 0
 mouseDistance := 0
 GetDistance(){
      MouseGetPos &currentX, &currentY
+	if Abs(currentX)> 1000000 || Abs(currentY) > 1000000 ; 不正常
+	{
+		return
+	}
     ; 计算鼠标移动距离
 	; 计算两点间的直线距离
 	distance := Integer(Sqrt((currentX - mouseStartX) ** 2 + (currentY - mouseStartY) ** 2))
+
 	if distance > 0{
     global mouseDistance += distance
     ; 在命令行窗口中输出距离

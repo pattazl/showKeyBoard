@@ -140,10 +140,19 @@ var option = {
 function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   let val, matchKey;
   do {
-    if (mapkey != null) {
-      matchKey = mapkey
-      val = keyStatHash[matchKey];
-      if (val != null) break;
+    if (mapkey != null) { // 需要支持多个key，用空格分割
+      matchKey = mapkey.split(' ')
+      let isMatch = false
+      val = matchKey.reduce((accumulator, k) => {
+        let v = keyStatHash[k];
+        if( v != null){
+          isMatch  = true;
+        }else{
+          v = 0
+        }
+        return accumulator + v
+        },0)
+      if (isMatch) break;
     }
     // 尝试用 key 
     matchKey = key
