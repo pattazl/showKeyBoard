@@ -124,8 +124,8 @@ ServerCore()
 startServer()
 {
 	global serverState :=0 ; 假设启动失败
-    ;  需要启动服务
-	cmd := 'node.exe ' httpPath 'server.js'
+    ;  需要启动服务,要防止路径上有空格
+	cmd := 'node.exe "' httpPath 'server.js"'
 	try {
 	; Run cmd ,,'Hide' Show
 		ShowFlag := 'Hide'
