@@ -145,7 +145,7 @@ export default {
 	intro119:`
 	功能 : 实时显示按键情况，统计历史按键
 	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
-	数据 : 只保存在本地的 httpdist\dist\records.db 文件中，此文件为sqlite3格式
+	数据 : 只保存在本地的 httpdist\\dist\\records.db 文件中，此文件为sqlite3格式
 	代码 : 全部开源 https://github.com/pattazl/showKeyBoard `,
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
