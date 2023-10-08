@@ -296,7 +296,7 @@ export default {
 	intro119:`
 	Functionality: Real-time display of key press information and tracking of historical key presses.
 	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
-	Data: The data is saved in a local file named "records.db" located in the "httpdist\dist" directory. This file is in SQLite3 format.
+	Data: The data is saved in a local file named "records.db" located in the "httpdist\\dist" directory. This file is in SQLite3 format.
 	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.`,
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
