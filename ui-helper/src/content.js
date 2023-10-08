@@ -123,7 +123,7 @@ export default {
 	intro98:'距离说明',
 	intro99:'数据统计键盘',
 	intro100:`键盘由数组构成，数组中每个元素为4位数组，第一位表示X坐标，第二位是Y坐标，
-	第三位是显示在键盘上的符号(可能通过按键清单转义)，第四位是对应的真实按键信息，不写则以第三位为准 \n\n 支持下拉框中直接输入后回车创建新键盘`,
+	第三位是显示在键盘上的符号(可能通过按键清单转义)，第四位是对应的真实按键信息，支持多个按键用空格分割，不写则以第三位为准 \n\n 支持下拉框中直接输入后回车创建新键盘`,
 	intro101:'键盘定义不是规范的格式',
 	intro102:'每行键盘定义必须是数组，且长度为2-4位:',
 	intro103:'每行键盘开头2个必须是坐标数字:',
@@ -145,7 +145,7 @@ export default {
 	intro119:`
 	功能 : 实时显示按键情况，统计历史按键
 	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
-	数据 : 只保存在本地的 httpdist\\dist\\records.db 文件中，此文件为sqlite3格式
+	数据 : 统计数据只保存在本地的 httpdist\\dist\\records.db 文件中，此文件为sqlite3格式
 	代码 : 全部开源 https://github.com/pattazl/showKeyBoard `,
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
@@ -274,7 +274,7 @@ export default {
 	intro99:'Keyboard for data statistics',
 	intro100:`The keyboard's define is composed of an array, each element is a 4-digit array. The first digit = X coordinate and the second digit = Y coordinate,
 	The third digit is the symbol displayed on the keyboard (can be replaced by the key list), 
-	and the fourth digit is the corresponding real key information, if empty, the third digit is default \n\n You can type and enter the new keyboard name in DropDownList`,
+	and the fourth digit is the corresponding key(support multi,split by space), if empty, the third digit is default \n\n You can type and enter the new keyboard name in DropDownList`,
 	intro101:"The keyboard's define is not valid format!",
 	intro102:'Every keyboard define must be array, and lenth is 2-4 digits:',
 	intro103:'1,2 digit of every keyboard define must be number:',
@@ -296,7 +296,7 @@ export default {
 	intro119:`
 	Functionality: Real-time display of key press information and tracking of historical key presses.
 	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
-	Data: The data is saved in a local file named "records.db" located in the "httpdist\\dist" directory. This file is in SQLite3 format.
+	Data: The statistic data is saved in a local file named "records.db" located in the "httpdist\\dist" directory. This file is in SQLite3 format.
 	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.`,
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
