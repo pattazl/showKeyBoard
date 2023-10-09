@@ -153,7 +153,11 @@ ExitServer()
         StartHttp('exit','/exit','')
     }
 }
-; 发送数据给后端服务
+; 发送数据给后端服务，同时更新屏幕数据
+minLeft := 0
+minTop := 0
+maxRight := 0
+maxBottom := 0
 SendPCInfo()
 {
 	; 获取不同屏幕
@@ -164,6 +168,10 @@ SendPCInfo()
 			JSONStr := JSONStr ','
 		}
 		MonitorGet(A_Index, &Left, &Top, &Right, &Bottom)
+		global minLeft := Min(minLeft,Left)
+		global minTop := Min(minTop,Top)
+		global maxRight := Max(maxRight,Right)
+		global maxBottom := Max(maxBottom,Bottom)
 		tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom '}'
 		JSONStr := JSONStr tmp
 	}

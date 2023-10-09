@@ -43,12 +43,16 @@ SendMouse()
 mouseStartX := 0
 mouseStartY := 0
 mouseDistance := 0
+CoordMode "Mouse", "Screen"
 GetDistance(){
-     MouseGetPos &currentX, &currentY
-	if Abs(currentX)> 1000000 || Abs(currentY) > 1000000 ; 不正常
-	{
-		return
-	}
+    MouseGetPos &currentX, &currentY
+    ; OutputDebug  'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+    if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
+    {
+    ; 暂时抛弃异常数据，更新屏幕信息
+        SendPCInfo()
+        return
+    }
     ; 计算鼠标移动距离
 	; 计算两点间的直线距离
 	distance := Integer(Sqrt((currentX - mouseStartX) ** 2 + (currentY - mouseStartY) ** 2))
