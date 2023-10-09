@@ -11,7 +11,7 @@ function deepCopy(obj) {
   }
   return copy;
 }
-function getHost(){
+function getHost() {
   let port = location.port
   if (port == '3000') {
     port = '9900' // 调试阶段
@@ -22,7 +22,7 @@ function getHost(){
 async function ajax(path, data = null) {
   console.log('ajax')
   // 测试环境
-  
+
   const headers = {
     "Content-Type": "application/json",
   };
@@ -74,47 +74,54 @@ function splitArr(str) {
 let socket = null
 
 function setWS(callback) {
-    // 创建WebSocket对象并连接服务器
-    socket = new WebSocket('ws://'+getHost());
+  // 创建WebSocket对象并连接服务器
+  socket = new WebSocket('ws://' + getHost());
 
-    // 监听连接成功事件
-    socket.onopen = () => {
-        console.log('Connected to WebSocket server');
+  // 监听连接成功事件
+  socket.onopen = () => {
+    console.log('Connected to WebSocket server');
 
-        // 发送消息给服务器
-        socket.send('Hello, Server!');
-    };
+    // 发送消息给服务器
+    socket.send('Hello, Server!');
+  };
 
-    // 监听服务器发送的消息事件
-    socket.onmessage = (event) => {
-        const message = event.data;
-        //console.log('Received message:', message);
-        callback(message)
-    };
+  // 监听服务器发送的消息事件
+  socket.onmessage = (event) => {
+    const message = event.data;
+    //console.log('Received message:', message);
+    callback(message)
+  };
 
-    // 监听连接关闭事件
-    socket.onclose = () => {
-        console.log('Disconnected from WebSocket server');
-    };
+  // 监听连接关闭事件
+  socket.onclose = () => {
+    console.log('Disconnected from WebSocket server');
+  };
 }
-// 从数组中删除指定数据
-function arrRemove(arr /*out */,key)
-{
-  let index = arr.indexOf(key);  // 查找指定的字符串在数组中的位置
-  if (index !== -1) {  // 如果找到了
-    arr.splice(index, 1);  // 从数组中删除该元素
+// 从数组中删除指定数据 , key 可能是数组或字符串
+function arrRemove(arr /*out */, key) {
+  let keylist = []
+  if (typeof key == 'string') {
+    keylist.push[key]
+  } else {
+    keylist = key
   }
+  keylist.forEach(v => {
+    let index = arr.indexOf(v);  // 查找指定的字符串在数组中的位置
+    if (index !== -1) {  // 如果找到了
+      arr.splice(index, 1);  // 从数组中删除该元素
+    }
+  })
 }
 
 // 获取历史时间
-async function getHistory(beginDate,endDate){
+async function getHistory(beginDate, endDate) {
   let res = [];
   // format('YYYY-MM-DD')
-  if(/^\d{4}-\d{2}-\d{2}$/.test(beginDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate>=beginDate ){
+  if (/^\d{4}-\d{2}-\d{2}$/.test(beginDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= beginDate) {
     res = await ajax('historyData', { beginDate, endDate })
   }
   //console.log('getHistory',res)
   return res
 }
 
-export {deepCopy,ajax,splitArr,str2Type,setWS,arrRemove,getHistory}
+export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory }

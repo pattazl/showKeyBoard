@@ -2,7 +2,7 @@
   <n-layout-header bordered class="nav">
     <div class="nav-box">
       <n-text tag="div" class="ui-logo" :depth="1">
-        <span>{{ contentText.title }}</span>
+        <span>{{ contentText.title + strVersion }}</span>
       </n-text>
       <n-space justify="end">
         <n-button v-if="lang === 'zh-CN'" @click="onLangChange('en-US')">
@@ -19,6 +19,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType, toRef ,computed} from 'vue';
+import { strVersion} from '@/version.ts';
 import {
   NMenu, NLayoutHeader, NText, NButton,NSpace
 } from 'naive-ui';
@@ -62,7 +63,8 @@ export default defineComponent({
       theme,
       onLangChange: props.onLangChange,
       changeTheme,
-      contentText
+      contentText,
+      strVersion
     };
   },
 });

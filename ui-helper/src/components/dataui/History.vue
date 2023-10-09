@@ -153,11 +153,13 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
         return accumulator + v
         },0)
       if (isMatch) break;
+      val = null ; //没有匹配上需要清空
+    }else{
+      // 尝试用 key 
+      matchKey = key
+      val = keyStatHash[matchKey]
+      if (val != null) break;
     }
-    // 尝试用 key 
-    matchKey = key
-    val = keyStatHash[matchKey]
-    if (val != null) break;
   } while (false)  // 只循环一次
   if (val != null) {
     arrRemove(leftKey, matchKey)

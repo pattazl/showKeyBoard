@@ -153,11 +153,7 @@ ExitServer()
         StartHttp('exit','/exit','')
     }
 }
-; 发送数据给后端服务，同时更新屏幕数据
-minLeft := 0
-minTop := 0
-maxRight := 0
-maxBottom := 0
+; 发送数据给后端服务
 SendPCInfo()
 {
 	; 获取不同屏幕

@@ -43,7 +43,7 @@ import {setOpt} from '../leftmenu';
 import { useMessage } from 'naive-ui';
 import { deepCopy,ajax,str2Type } from '@/common.ts'
 import { useAustinStore } from '@/App.vue'
-import myImage from '@/res/loading.webp';
+import myImage from '@/res/loading.gif';
 
 export default defineComponent({
   name: 'ServerPage',

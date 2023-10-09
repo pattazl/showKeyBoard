@@ -45,11 +45,12 @@ mouseStartY := 0
 mouseDistance := 0
 CoordMode "Mouse", "Screen"
 GetDistance(){
-    MouseGetPos &currentX, &currentY
-    ; OutputDebug  'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+	MouseGetPos &currentX, &currentY
+	; OutputDebug  'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
     if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
     {
-    ; 暂时抛弃异常数据，更新屏幕信息
+        ; 暂时抛弃异常数据，更新屏幕信息
+        ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         SendPCInfo()
         return
     }

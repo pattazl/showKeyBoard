@@ -1,6 +1,6 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.6.2" 
+global APPName:="ShowKeyBoard", ver:="1.7" 
      , IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
@@ -71,6 +71,11 @@ global guiArr := Array() ; 保存guiObj 对象
 global inArr := Array() ; 保存传入进来的数组
 global guiShowing := 0
 global KeyMapping:=Map()
+
+global minLeft := 0
+global minTop := 0
+global maxRight := 0
+global maxBottom := 0
 
 ; 获取1970年开始的时间戳
 AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数

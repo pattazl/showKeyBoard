@@ -59,7 +59,8 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro12 }}
               <template #suffix>
-                <n-input v-model:value="allConfig.common.activeWindowProc" type="text" :placeholder="contentText.intro13" />
+                <n-input v-model:value="allConfig.common.activeWindowProc" type="text"
+                  :placeholder="contentText.intro13" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro14 }}
@@ -620,6 +621,9 @@ export default defineComponent({
         return []
       }
       keyboardDetail.value = '';
+      //需要对  mapDetailRef.value 的内容格式化，便于编辑
+      // 对于键盘数组进行格式化，方便查看
+      mapDetailRef.value = `[\n${mapDetailArr.map(x => JSON.stringify(x)).join(',\n')}\n]`
       return mapDetailArr
     }
     // 输入内容变化
