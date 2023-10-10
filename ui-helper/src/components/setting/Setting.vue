@@ -546,8 +546,8 @@ export default defineComponent({
 
           let color = guiBgcolorRef.value.replace(/#/, '')
           config.dialog.guiBgcolor = color.substr(0, 6);
-          config.dialog.guiOpacity = parseInt(color.substr(6, 2), 16)
-          config.dialog.guiBgTrans = (config.dialog.guiOpacity == 0) ? 1 : 0
+          config.dialog.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
+          config.dialog.guiBgTrans = (config.dialog.guiOpacity == 0) ? '1' : '0'
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
@@ -562,6 +562,11 @@ export default defineComponent({
           store.preData.config = deepCopy(config)
           store.preData.keyList = deepCopy(keyList)
           store.preData.dataSetting = deepCopy(dataSetting.value)
+          // 需要应用最新键盘
+          console.log(JSON.parse(mapDetailRef.value))
+          setTimeout(() => {
+            //store.preData.dataSetting.mapDetail = JSON.parse(mapDetailRef.value)
+          }, 100);
         }
       })
     }

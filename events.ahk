@@ -124,7 +124,19 @@ ServerCore()
 startServer()
 {
 	global serverState :=0 ; 假设启动失败
+    ; 读取 httpPath+ kbserver.pid 进程文件检查是否是node的
     ;  需要启动服务,要防止路径上有空格
+    pidFile := httpPath 'kbserver.pid'
+    if FileExist(pidFile){
+        strPid := FileRead(pidFile, "`n UTF-8")
+        iPid := ProcessExist(strPid)
+        if iPid>0{
+            if ProcessGetName(iPid) = 'node.exe'{
+                ProcessClose(iPid) ;如果是 node.exe则杀进程
+            }
+            FileDelete pidFile  ; 删除进程文件
+        }
+    }
 	cmd := 'node.exe "' httpPath 'server.js"'
 	try {
 	; Run cmd ,,'Hide' Show

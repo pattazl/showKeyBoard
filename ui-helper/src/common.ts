@@ -101,7 +101,7 @@ function setWS(callback) {
 function arrRemove(arr /*out */, key) {
   let keylist = []
   if (typeof key == 'string') {
-    keylist.push[key]
+    keylist.push(key)
   } else {
     keylist = key
   }

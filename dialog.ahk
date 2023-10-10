@@ -301,7 +301,11 @@ ConvertTxt(t){
 }
 ; 按键转换清单
 GetKeyList(){
-	Section := FileRead("KeyList.txt", "`n UTF-8")
+    file := "KeyList.txt"
+    If !FileExist(file){
+        return
+    }
+	Section := FileRead(file, "`n UTF-8")
 	;MsgBox Section
 	arr := StrSplit(Section,["`n","`r"])
 	loop arr.Length{

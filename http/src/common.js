@@ -113,6 +113,27 @@ async function startUp() {
     }
   }
 }
+// 封装 ps-node的回调函数，性能过于低下，暂时放弃
+// const ps = require('ps-node');
+// function psNode(pid) {
+//   return new Promise((resolve, reject) => {
+//     ps.lookup({ pid }, (err, resultList) => {
+//       if (err) {
+//         console.error(err);
+//         resolve({err})
+//         return;
+//       }
+//       if (resultList.length > 0) {
+//         const process = resultList[0];
+//         console.log(`PID ${process.pid} 的执行文件名: ${JSON.stringify(process)}`);
+//         resolve(process)
+//       } else {
+//         console.log(`没有找到 PID 为 ${pid} 的进程`);
+//         resolve({})
+//       }
+//     })
+//   })
+// }
 // 只允许一个进程
 function oneInstance() {
   const pidfilePath = path.join(__dirname, 'kbserver.pid');
