@@ -561,12 +561,12 @@ export default defineComponent({
           // 设置变量为新的数据
           store.preData.config = deepCopy(config)
           store.preData.keyList = deepCopy(keyList)
-          store.preData.dataSetting = deepCopy(dataSetting.value)
           // 需要应用最新键盘
-          console.log(JSON.parse(mapDetailRef.value))
-          setTimeout(() => {
-            //store.preData.dataSetting.mapDetail = JSON.parse(mapDetailRef.value)
-          }, 100);
+          let mapDetailArr = keyboardValid()
+          if (mapDetailArr.length > 0) {
+            dataSetting.value.mapDetail = JSON.stringify(mapDetailArr)
+          }
+          store.preData.dataSetting = deepCopy(dataSetting.value)
         }
       })
     }
