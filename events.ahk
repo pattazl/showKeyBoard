@@ -175,13 +175,18 @@ SendPCInfo()
 		if A_Index != 1{
 			JSONStr := JSONStr ','
 		}
-		MonitorGet(A_Index, &Left, &Top, &Right, &Bottom)
-		global minLeft := Min(minLeft,Left)
-		global minTop := Min(minTop,Top)
-		global maxRight := Max(maxRight,Right)
-		global maxBottom := Max(maxBottom,Bottom)
-		tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom '}'
-		JSONStr := JSONStr tmp
+        try {
+            MonitorGet(A_Index, &Left, &Top, &Right, &Bottom)
+            global minLeft := Min(minLeft,Left)
+            global minTop := Min(minTop,Top)
+            global maxRight := Max(maxRight,Right)
+            global maxBottom := Max(maxBottom,Bottom)
+            tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom '}'
+            JSONStr := JSONStr tmp
+        }catch{
+            ; 出现异常无需发送数据
+            return 
+        }
 	}
 	JSONStr := JSONStr ']}'
 	if serverState = 1 {

@@ -18,6 +18,17 @@
           <n-list hoverable v-if="allConfig.common">
             <n-list-item> {{ contentText.intro2 }}<n-dynamic-tags v-model:value="skipRecordRef" />
             </n-list-item>
+            <n-list-item>{{ contentText.intro7 }}
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.needShowKey" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro9 }}
+              <div class="intro">{{ contentText.intro10 }}</div>
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.ctrlState" />
+              </template>
+            </n-list-item>
             <n-list-item>
               {{ contentText.intro3 }}
               <div class="intro">{{ contentText.intro4 }}</div>
@@ -25,10 +36,9 @@
                 <n-switch :round="false" v-model:value="allConfig.common.skipCtrlKey" />
               </template>
             </n-list-item>
-            <n-list-item>{{ contentText.intro5 }}
+            <n-list-item>{{ contentText.intro8 }}
               <template #suffix>
-                <n-select v-model:value="allConfig.common.showMouseEvent" :options="[{ label: contentText.intro63, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro64, value: 1 /*01*/ },
-                { label: contentText.intro65, value: 2 /*10*/ }, { label: contentText.intro66, value: 3 /*10*/ }]" />
+                <n-switch :round="false" v-model:value="allConfig.common.needRecordKey" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro6 }}
@@ -36,20 +46,10 @@
                 <n-switch :round="false" v-model:value="allConfig.common.recordMouseMove" />
               </template>
             </n-list-item>
-            <n-list-item>{{ contentText.intro7 }}
+            <n-list-item>{{ contentText.intro5 }}
               <template #suffix>
-                <n-switch :round="false" v-model:value="allConfig.common.needShowKey" />
-              </template>
-            </n-list-item>
-            <n-list-item>{{ contentText.intro8 }}
-              <template #suffix>
-                <n-switch :round="false" v-model:value="allConfig.common.needRecordKey" />
-              </template>
-            </n-list-item>
-            <n-list-item>{{ contentText.intro9 }}
-              <div class="intro">{{ contentText.intro10 }}</div>
-              <template #suffix>
-                <n-switch :round="false" v-model:value="allConfig.common.ctrlState" />
+                <n-select v-model:value="allConfig.common.showMouseEvent" :options="[{ label: contentText.intro63, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro64, value: 1 /*01*/ },
+                { label: contentText.intro65, value: 2 /*10*/ }, { label: contentText.intro66, value: 3 /*10*/ }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro11 }}
@@ -94,7 +94,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" />
+                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" @update:value="handleUpdateColor"/>
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro22 }}<div class="intro">{{ contentText.intro23 }}</div>
@@ -519,6 +519,13 @@ export default defineComponent({
       // console.log( href + '---')
       // preAnchor = href
     }
+    // 更新颜色相关的变量
+    function updateColor(dialogHash,colorVal){
+      let color = colorVal.replace(/#/, '')
+          dialogHash.guiBgcolor = color.substr(0, 6);
+          dialogHash.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
+          dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? '1' : '0'
+    }
     // 还原数据
     function resetPara() {
       store.data = deepCopy(store.preData);
@@ -543,11 +550,8 @@ export default defineComponent({
           config.common.skipRecord = skipRecordRef.value.join('|')
           config.dialog.ctrlList = ctrlListRef.value.join('|')
           config.dialog.skipShow = skipShowRef.value.join('|')
-
-          let color = guiBgcolorRef.value.replace(/#/, '')
-          config.dialog.guiBgcolor = color.substr(0, 6);
-          config.dialog.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
-          config.dialog.guiBgTrans = (config.dialog.guiOpacity == 0) ? '1' : '0'
+          // 更新颜色信息
+          updateColor(config.dialog,guiBgcolorRef.value)
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
@@ -700,6 +704,10 @@ export default defineComponent({
     function keyboardDelete() {
       keyboardOptDialog('', 0, contentText.value.intro106)
     }
+    function handleUpdateColor(value)
+    {
+      updateColor(allConfig.value.dialog,value)
+    }
     return {
       keyboardApply,
       myBorder,
@@ -727,7 +735,8 @@ export default defineComponent({
       keyboardSaveInfo,
       keyboardDelete,
       guiBgcolorRef,
-      guiTextColorRef
+      guiTextColorRef,
+      handleUpdateColor,
     }
   },
 })

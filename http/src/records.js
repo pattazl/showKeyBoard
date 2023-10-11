@@ -4,11 +4,10 @@ const sqlite3 = require('sqlite3').verbose();
 // 创建一个连接到数据库的对象
 // 创建表格（如果不存在）
 function insertData(records) {
-  let strDate = dayjs(new Date()).format('YYYY-MM-DD')
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database('records.db');
     let tick = records['tick']
-    if (tick == null) {
+    if (tick == null || tick == 0) {
       resolve(0)
       return
     }
@@ -44,17 +43,8 @@ function insertData(records) {
         resolve(this.changes)
       });
     });
-
     // 检查 events 是否有小于当天的数据,如果有，则需要触发转移
-    db.all('SELECT tick FROM events where date<? limit 1', [strDate], function (err, rows) {
-      if (err) {
-        //reject(err);
-      }
-      // 输出记录集
-      if (rows.length > 0) {
-        setTimeout(doCleanData, 5000); // 过5秒后再处理，因为上面一行代码可能还在执行
-      }
-    });
+    setTimeout(doCleanData, 3000); // 过3秒后再处理，因为上面一行代码可能还在执行
     // 关闭数据库连接
     db.close();
   })
@@ -102,23 +92,32 @@ function doCleanData() {
   console.log('doCleanData')
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   // 执行sql处理，插入统计数据
-  db.run(`INSERT INTO stat (keyname, keycount,date) SELECT keyname, sum(keycount), date FROM events where date < ? group by date,keyname`,
-    [strNow], function (err) {
-      if (err) {
-        return console.error(err.message);
-      }
-      let lines = this.changes
-      console.log('转移数据条数: ', lines)
-      // 删除 events 中的旧数据
-      if (lines > 0) {
-        db.run('delete FROM events where date < ? ', [strNow], function (err) {
+  db.all('SELECT tick FROM events where date<? limit 1', [strNow], function (err, rows) {
+    if (err) {
+      //reject(err);
+      return console.error(err.message);
+    }
+    // 输出记录集
+    if (rows.length > 0) {
+      db.run(`INSERT INTO stat (keyname, keycount,date) SELECT keyname, sum(keycount), date FROM events where date < ? group by date,keyname`,
+        [strNow], function (err) {
           if (err) {
             return console.error(err.message);
           }
-          console.log('删除数据条数: ', this.changes)
+          let lines = this.changes
+          console.log('转移数据条数: ', lines)
+          // 删除 events 中的旧数据
+          if (lines > 0) {
+            db.run('delete FROM events where date < ? ', [strNow], function (err) {
+              if (err) {
+                return console.error(err.message);
+              }
+              console.log('删除数据条数: ', this.changes)
+            });
+          }
         });
-      }
-    });
+    }
+  });
   db.close();
 }
 /*
