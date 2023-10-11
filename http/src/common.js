@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting,setDataSetting, getKeymaps,optKeyMap,deleteData} = require('./records');
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -142,12 +142,12 @@ function oneInstance() {
   // 检查是否已存在 pidfile 文件
   if (fs.existsSync(pidfilePath)) {
     let pid = fs.readFileSync(pidfilePath, 'utf-8')
-    try{
+    try {
       // 判断pid是否存在，如果存在则的确程序在运行，否则删除文件
-      process.kill(pid,0)
+      process.kill(pid, 0)
       console.log('程序已在运行中');
       return false
-    }catch (err) {
+    } catch (err) {
       console.log('意外关闭,先删除Pid文件');
       fs.unlinkSync(pidfilePath)
     }
@@ -162,11 +162,11 @@ function oneInstance() {
   });
   // 处理 SIGINT 和 SIGTERM 信号，确保应用程序正常退出时删除 pidfile 文件
   //   'CTRL + C ,
-  ['SIGINT', 'SIGTERM', 'SIGQUIT','SIGKILL']
-  .forEach(signal => process.on(signal, () => {
-    exitFun()
-    //process.exit(0);
-  }));
+  ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGKILL']
+    .forEach(signal => process.on(signal, () => {
+      exitFun()
+      //process.exit(0);
+    }));
   return true;
 }
 // 获取 和设置  KeyList.txt showKeyBoard.ini ，从文件中读取 
@@ -177,11 +177,9 @@ async function getParaFun(req, res) {
   config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
   const keyTxt = (fs.readFileSync(keyPath, 'utf-8'))
   const arr = keyTxt.split('\n')
-  for(v of arr)
-  {
+  for (v of arr) {
     let arr2 = v.split(':')
-    if(arr2.length == 2)
-    {
+    if (arr2.length == 2) {
       const k = arr2[0].trim()
       const vv = arr2[1].trim()
       keyList[k] = vv
@@ -194,9 +192,9 @@ async function getParaFun(req, res) {
   dataSetting = await getDataSetting()
   // 获取数据库中的setting
   let keymaps = await getKeymaps()
-  
+
   // 返回大 JSON
-  res.send(JSON.stringify( {config,keyList,fonts,infoPC,dataSetting,keymaps}));
+  res.send(JSON.stringify({ config, keyList, fonts, infoPC, dataSetting, keymaps }));
 }
 
 // 保存参数 ，包括各种文件和数据的保存
@@ -205,16 +203,15 @@ function setParaFun(req, res) {
   var data = req.body  // 包含 config 和 keyList, dataSetting
   let isUpdate = false
   let newKeyList = JSON.stringify(data.keyList)
-  if( JSON.stringify(keyList) != newKeyList){
+  if (JSON.stringify(keyList) != newKeyList) {
     let keyArr = []
-    for(let k in data.keyList)
-    {
-      keyArr.push(k+' : '+data.keyList[k])
+    for (let k in data.keyList) {
+      keyArr.push(k + ' : ' + data.keyList[k])
     }
     keyList = data.keyList
     console.log('write keyPath')
     isUpdate = true;
-    fs.writeFileSync(keyPath,keyArr.join('\n'), 'utf-8')
+    fs.writeFileSync(keyPath, keyArr.join('\n'), 'utf-8')
   }
   let newConf = JSON.stringify(data.config)
   if (JSON.stringify(config) != newConf || isUpdate) {
@@ -223,15 +220,15 @@ function setParaFun(req, res) {
     fs.writeFileSync(iniPath, ini.stringify(config))
   }
   // 对于 dataSetting 需要更新数据库
-  let newDataSetting  = JSON.stringify(data.dataSetting)
-  if(JSON.stringify(keyList) != newDataSetting ){
-	setDataSetting(data.dataSetting);
-	console.log('setDataSetting')
+  let newDataSetting = JSON.stringify(data.dataSetting)
+  if (JSON.stringify(keyList) != newDataSetting) {
+    setDataSetting(data.dataSetting);
+    console.log('setDataSetting')
   }
   res.send({ code: 200 });
 }
 // 接收客户端发送的PC相关信息，比如屏幕等
-function sendPCInfo(req, res){
+function sendPCInfo(req, res) {
   var data = req.body
   infoPC = data; // 将数据保存给全局变量
   console.log(infoPC)
@@ -244,7 +241,7 @@ function dataFun(req, res) {
   //console.log('mouseDistance,tick',data.mouseDistance,data.tick)
   if (preData['tick'] > 0 && data['tick'] > 0 && data['tick'] != preData['tick']) {
     // tick不一样需要保存
-    console.log( 'preTick,tick:', preData['tick'],data['tick'],)
+    console.log('preTick,tick:', preData['tick'], data['tick'],)
     insertData(preData)
   }
   preData = data;
@@ -276,25 +273,24 @@ async function saveLastData() {
 }
 
 // 接收keymap 
-async function optKeymapFun(req, res){
+async function optKeymapFun(req, res) {
   var data = req.body
   await optKeyMap(data)
   res.send({ code: 200 });
 }
 // 删除数据
-async function deleteDataFun(req, res){
+async function deleteDataFun(req, res) {
   var data = req.body
-  if( typeof data.flag =='number' && data.date instanceof Array)
-  {
+  if (typeof data.flag == 'number' && data.date instanceof Array) {
     // let dateStr = data.date.map(x=>{ if(typeof x =='string')return "'"+x+"'";else return x }).join(',')
-    await deleteData(data.date,data.flag)
+    await deleteData(data.date, data.flag)
     res.send({ code: 200 });
-  }else{
+  } else {
     res.send({ code: 10 });
   }
-  
+
 }
 
 module.exports = {
-  startUp, getParaFun, setParaFun, app, dataFun, exitFun,sendPCInfo,saveLastData,optKeymapFun,deleteDataFun
+  startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun, deleteDataFun
 };

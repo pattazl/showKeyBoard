@@ -1,14 +1,17 @@
 {
-  "main":"server.js",
-  "version":"1.0.0",
-  "name":"httpserver",
-  "binary":{
+  "main": "server.js",
+  "version": "1.0.0",
+  "name": "httpserver",
+  "binary": {
     "module_name": "node_sqlite3",
     "module_path": "./lib/binding/napi-v{napi_build_version}-{platform}-{libc}-{arch}",
     "host": "https://github.com/TryGhost/node-sqlite3/releases/download/",
     "remote_path": "v{version}",
     "package_name": "napi-v{napi_build_version}-{platform}-{libc}-{arch}.tar.gz",
-    "napi_versions": [3,6]
+    "napi_versions": [
+      3,
+      6
+    ]
   },
   "scripts": {
     "build": "node ./esbuild.server.release.js",
@@ -19,6 +22,7 @@
     "express": "^4.17.1",
     "font-list": "^1.5.1",
     "ini": "^4.1.1",
+    "jszip": "^3.10.1",
     "ws": "^8.13.0"
   },
   "devDependencies": {
