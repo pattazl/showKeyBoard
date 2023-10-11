@@ -8,10 +8,10 @@ function insertData(records) {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database('records.db');
     let tick = records['tick']
-	if(tick == null ){
-		resolve(0)
-		return
-	}
+    if (tick == null) {
+      resolve(0)
+      return
+    }
     // 先检查是否已经有此tick数据，如果有则删除
     db.run('delete FROM events where tick = ? ', [tick], function (err) {
       if (err) {
@@ -32,7 +32,7 @@ function insertData(records) {
       }
       // 构建插入语句
       const placeholders = arr.map(() => '(?, ? , ? , ?)').join(', ');
-	  let tickDate = dayjs(new Date(tick)).format('YYYY-MM-DD')  // 需要用记录中的时间作为日期
+      let tickDate = dayjs(new Date(tick)).format('YYYY-MM-DD')  // 需要用记录中的时间作为日期
       const values = arr.reduce((acc, curr) => acc.concat([curr.name, curr.count, curr.tick, tickDate]), []);
       // 执行一次性插入
       db.run(`INSERT INTO events (keyname, keycount , tick , date) VALUES ${placeholders}`, values, function (err) {
@@ -139,18 +139,18 @@ function getDataSetting() {
         reject(err);
       }
       // 输出记录集
-	  if(rows.length>0){
-		  row = rows[0]
-		  keymap = row.keymap
-		  mapDetail = row.mapDetail
-		  screenSize = row.screenSize
-		  mouseDPI = row.mouseDPI
-		  topN = row.topN
-          globalTopN = topN
-		  resolve({keymap,mapDetail,screenSize,mouseDPI,topN})
-	  }else{
-		  resolve({})
-	  }
+      if (rows.length > 0) {
+        row = rows[0]
+        keymap = row.keymap
+        mapDetail = row.mapDetail
+        screenSize = row.screenSize
+        mouseDPI = row.mouseDPI
+        topN = row.topN
+        globalTopN = topN
+        resolve({ keymap, mapDetail, screenSize, mouseDPI, topN })
+      } else {
+        resolve({})
+      }
     });
     // 关闭数据库连接
     db.close();
@@ -161,13 +161,13 @@ function getKeymaps() {
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集
-	let arr = [];
+    let arr = [];
     let sql = 'SELECT mapName,mapDetail FROM keymaps'
     db.all(sql, [], function (err, rows) {
       if (err) {
         reject(err);
       }
-	  // 输出记录集
+      // 输出记录集
       rows.forEach(function (row) {
         let mapName = row.mapName, mapDetail = row.mapDetail;
         arr.push({ mapName, mapDetail });
@@ -184,13 +184,13 @@ function setDataSetting(hash) {
   return new Promise((resolve, reject) => {
     // 查询记录集
     let sql = 'update dataSetting set keymap = ? ,screenSize = ? ,mouseDPI = ? ,topN= ?'
-    db.all(sql, [hash.keymap,hash.screenSize,hash.mouseDPI,hash.topN], function (err, rows) {
+    db.all(sql, [hash.keymap, hash.screenSize, hash.mouseDPI, hash.topN], function (err, rows) {
       if (err) {
         reject(err);
       }
       // 输出记录集
       globalTopN = hash.topN
-	  resolve(1)
+      resolve(1)
     });
     // 关闭数据库连接
     db.close();
@@ -198,37 +198,36 @@ function setDataSetting(hash) {
 }
 // 操作 keymap , 0=删除 1=新增 2=更新
 function optKeyMap(data) {
-  console.log('optKeyMap:',data.mapName,data.flag)
+  console.log('optKeyMap:', data.mapName, data.flag)
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集
-	let {mapName,mapDetail,flag} = data;
-	if( mapName.toLowerCase()=='default'){
-		resolve(0)
-		return
-	}
-	let sql = '',para = []
-	switch(flag)
-	{
-		case 0:
-			sql = 'delete from keymaps where mapName = ?'
-			para = [mapName]
-			break;
-		case 1:
-			sql = 'insert into keymaps(mapName, mapDetail) values(?,?) '
-			para = [mapName, mapDetail]
-			break;
-		case 2:
-			sql = 'update keymaps set mapDetail = ? where mapName = ?'
-			para = [mapDetail, mapName]
-			break;
-	}
-    db.all(sql, para , function (err, rows) {
+    let { mapName, mapDetail, flag } = data;
+    if (mapName.toLowerCase() == 'default') {
+      resolve(0)
+      return
+    }
+    let sql = '', para = []
+    switch (flag) {
+      case 0:
+        sql = 'delete from keymaps where mapName = ?'
+        para = [mapName]
+        break;
+      case 1:
+        sql = 'insert into keymaps(mapName, mapDetail) values(?,?) '
+        para = [mapName, mapDetail]
+        break;
+      case 2:
+        sql = 'update keymaps set mapDetail = ? where mapName = ?'
+        para = [mapDetail, mapName]
+        break;
+    }
+    db.all(sql, para, function (err, rows) {
       if (err) {
         reject(err);
       }
       // 输出记录集
-	  resolve(1)
+      resolve(1)
     });
     // 关闭数据库连接
     db.close();
@@ -239,13 +238,13 @@ function getHistoryDate() {
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集
-	let arr = [];
+    let arr = [];
     let sql = 'SELECT date FROM stat group by date order by date desc'
     db.all(sql, [], function (err, rows) {
       if (err) {
         reject(err);
       }
-	  // 输出记录集
+      // 输出记录集
       rows.forEach(function (row) {
         arr.push(row.date);
       });
@@ -257,12 +256,12 @@ function getHistoryDate() {
 }
 
 //获取各类统计信息到一个hash中
-async function statData(begin,end) {
+async function statData(begin, end) {
   const db = new sqlite3.Database('records.db');
-  let pro1 =new Promise((resolve, reject) => {
+  let pro1 = new Promise((resolve, reject) => {
     // 查询鼠标移动距离
     let sql = "select keycount,date from stat where date between ? and ? and keyname = 'mouseDistance' order by date"
-    db.all(sql, [begin,end], function (err, rows) {
+    db.all(sql, [begin, end], function (err, rows) {
       if (err) {
         reject(err);
       }
@@ -270,14 +269,14 @@ async function statData(begin,end) {
     });
   })
   // 查询鼠标点击数量和按键数量总和
-  let pro2 =new Promise((resolve, reject) => {
+  let pro2 = new Promise((resolve, reject) => {
     // 查询记录集
     let sql = `select sum(keycount) as keycount,date,'mouse' as keyname from stat 
     where date between ? and ? and keyname in ('LButton','RButton','MButton','WheelDown','WheelUp') group by date
 UNION
 select sum(keycount) as keycount,date,'keyboard' from stat 
 where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') group by date`
-    db.all(sql, [begin,end,begin,end], function (err, rows) {
+    db.all(sql, [begin, end, begin, end], function (err, rows) {
       if (err) {
         reject(err);
       }
@@ -285,40 +284,37 @@ where date between ? and ? and keyname not in ('mouseDistance','LButton','RButto
     });
   })
   // 查询统计范围内按键数 top10
-  let pro3 =new Promise((resolve, reject) => {
+  let pro3 = new Promise((resolve, reject) => {
     // 查询记录集
     let sql = `select keycount,date,keyname from stat where keyname in
 (select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') 
 group by keyname order by sum(keycount) desc limit ${globalTopN}
 ) and date between ? and ? order by date`
-    db.all(sql, [begin,end,begin,end], function (err, rows) {
+    db.all(sql, [begin, end, begin, end], function (err, rows) {
       if (err) {
         reject(err);
       }
       resolve(rows)
     });
   })
-  let arr = await Promise.all([pro1,pro2,pro3]);
+  let arr = await Promise.all([pro1, pro2, pro3]);
   db.close();
   return arr;
 }
 // 删除 events 或 stat 数据
-async function deleteData(date,flag) {
+async function deleteData(date, flag) {
   const db = new sqlite3.Database('records.db');
   return new Promise((resolve, reject) => {
     // 查询记录集 
     let sql = ''
     const placeholders = date.map(() => '?').join(',');
-    if(flag==0)
-    {
-        sql = 'delete FROM events where tick in(' + placeholders + ') '
-    }else if(flag==1)
-    {
-        sql = 'delete FROM stat where date in(' + placeholders + ') '
+    if (flag == 0) {
+      sql = 'delete FROM events where tick in(' + placeholders + ') '
+    } else if (flag == 1) {
+      sql = 'delete FROM stat where date in(' + placeholders + ') '
     }
-    console.log(sql,date)
-    if(sql!='')
-    {
+    console.log(sql, date)
+    if (sql != '') {
       db.all(sql, date, function (err, rows) {
         if (err) {
           reject(err);
@@ -332,5 +328,5 @@ async function deleteData(date,flag) {
 }
 
 module.exports = {
-  insertData, getRecords,getDataSetting,setDataSetting,getKeymaps,optKeyMap,getHistoryDate,statData,deleteData
+  insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate, statData, deleteData
 };
