@@ -152,6 +152,11 @@ export default {
 	intro122:'确定删除:',
 	intro123:'导出配置和记录',
 	intro124:'导入配置和记录,将导致重启客户端',
+	intro125:'上传时间',
+	intro126:'上传文件名',
+	intro127:'上传过程信息',
+	intro128:'导入设置成功',
+	intro129:'导入设置失败',
 
   },
   'en-US': {
@@ -305,6 +310,11 @@ export default {
 	intro122:'Are you sure delete:',
 	intro123:'Export Setting and Records',
 	intro124:'Import Setting and Records, will restart client',
+	intro125:'Upload Time',
+	intro126:'Upload filename',
+	intro127:'Upload info in server',
+	intro128:'Import Setting Successful',
+	intro129:'Import Setting Fail!',
 
   }
 };

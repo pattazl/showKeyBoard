@@ -21,11 +21,16 @@
 			<n-button type="primary" @click="handleExport">
 				{{ contentText.intro123 }}
 			</n-button>
-			<n-upload action="http://127.0.0.1:9901/zipUpload" name="file" @finish="handleFinish" :show-file-list="false">
+			<n-upload :action="getServer() + 'zipUpload'" name="file" @finish="handleFinish" :show-file-list="false"
+				:default-upload="true" @before-upload="handleImport">
 				<n-button type="warning">
 					{{ contentText.intro124 }}
 				</n-button>
 			</n-upload>
+			<ul v-if="serverInfo.now"><li>{{ contentText.intro125 }} : {{ serverInfo?.now }}</li>
+				<li>{{ contentText.intro126 }} : {{ serverInfo?.oriName }}</li>
+				<li style="white-space: pre-line;">{{ contentText.intro127 }} : {{ serverInfo?.msg?.join('\n') }}</li>
+			</ul>
 		</n-space>
 	</div>
 </template>
@@ -107,12 +112,33 @@ export default defineComponent({
 		function handleExport() {
 			window.open(getServer() + 'zipDownload', 'blank')
 		}
-		function handleImport() {
-
+		async function handleImport() {
+			let res = await new Promise((resolve, reject) => {
+				myDialog.warning({
+					title: contentText.value.intro124,
+					positiveText: contentText.value.intro109,
+					negativeText: contentText.value.intro110,
+					maskClosable: false,
+					onClose:()=>{
+						resolve(0)
+					},
+					onPositiveClick: () => {
+						resolve(1)
+					}
+				})
+			})
+			return res
 		}
-		const handleFinish = ({file,event}) => {
-			console.log(event)
-			message.success((event?.target as XMLHttpRequest).response)
+		let serverInfo = <any>ref({});
+		const handleFinish = ({ file, event }) => {
+			//console.log(event)
+			serverInfo.value = JSON.parse((event?.target as XMLHttpRequest).response)
+			serverInfo.value.now = dayjs(new Date()).format('YYYY-MM-DD HH:mm:ss.SSS')
+			if(serverInfo.value.code == 200 ){
+				message.success( contentText.value.intro128 )
+			}else{
+				message.error( contentText.value.intro129 )
+			}
 			return file
 		}
 		return {
@@ -125,7 +151,9 @@ export default defineComponent({
 			contentText,
 			handleExport,
 			handleImport,
-			handleFinish
+			handleFinish,
+			getServer,
+			serverInfo,
 		}
 	},
 })

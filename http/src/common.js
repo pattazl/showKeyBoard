@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData,dbName } = require('./records');
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -295,13 +295,13 @@ async function deleteDataFun(req, res) {
 // 打包配置文件
 function zipDownload(req, res) {
   const zip = new JSZip();
-  let fileContent ;
+  let fileContent;
   fileContent = fs.readFileSync(iniPath);
-  zip.file(path.basename(iniPath),fileContent);
+  zip.file(path.basename(iniPath), fileContent);
   fileContent = fs.readFileSync(keyPath);
-  zip.file(path.basename(keyPath),fileContent);
+  zip.file(path.basename(keyPath), fileContent);
   fileContent = fs.readFileSync(dbName);
-  zip.file(dbName,fileContent);
+  zip.file(dbName, fileContent);
 
   zip.generateAsync({ type: "nodebuffer" }).then(function (content) {
     // see FileSaver.js
@@ -316,8 +316,7 @@ function zipDownload(req, res) {
   });
 }
 // 清理目录
-function clearUpload(hash)
-{
+function clearUpload(hash) {
   let dir = path.dirname(hash.path)
   fs.readdir(dir, (err, files) => {
     if (err) {
@@ -325,38 +324,84 @@ function clearUpload(hash)
       return;
     }
     // 对于3分钟前的文件全部删除
-    let minName = (new Date().getTime() - 3*60*1000) + '.zip';
+    let minName = (new Date().getTime() - 3 * 60 * 1000) + '.zip';
     files.forEach(file => {
       const filePath = path.join(dir, file);
       let name = path.basename(filePath)
-      if(name < minName)
-      {
+      if (name < minName) {
         fs.unlinkSync(filePath)
       }
     });
   });
 }
-function unZipCore()
-{
-
+const configHash = {
+  'showKeyBoard.ini': iniPath,
+  'keyList.txt': keyPath,
+  'records.db': dbName,
+}
+function unZipCore(hash) {
+  let content = fs.readFileSync(hash.path)
+  return new Promise((resolve, reject) => {
+    const zip = new JSZip();
+    zip.loadAsync(content)
+      .then(async function (contents) {
+        //console.log( JSON.stringify(contents))
+        for(let relativePath in contents.files)
+        {
+          let file = contents.files[relativePath]
+          //console.log(relativePath,file.dir,file._data.compressedContent)
+          if (!file.dir) { // 过滤掉目录
+            const fileData = await file.async("uint8array"); // 以uint8array格式读取文件内容
+            // 在此处执行对解压出的文件的操作，例如保存到本地
+            let configPath = configHash[relativePath]
+            fs.writeFileSync(configPath, fileData)
+            hash.msg.push(relativePath + ' Ok')
+          }
+        }
+        /*
+        contents.forEach(async function (relativePath, file) {
+          console.log(relativePath)
+          if (!file.dir) { // 过滤掉目录
+            const fileData = await file.async("uint8array"); // 以uint8array格式读取文件内容
+            // 在此处执行对解压出的文件的操作，例如保存到本地
+            let configPath = configHash[relativePath]
+            fs.writeFileSync(configPath, fileData)
+            hash.msg.push(relativePath + ' Ok\n')
+            console.log('OKOK')
+          }
+        });*/
+        resolve(0)
+      })
+      .catch(function (error) {
+        let msg = "解压缩失败: "
+        console.error( msg,error);
+        hash.msg.push(msg)
+        resolve(0)
+      });
+  })
 }
 // 解压配置文件
-function zipUpload(req, res) {
+async function zipUpload(req, res) {
   const file = req.file;
   // 文件信息
-  
   //console.log(file.originalname); // 原始文件名
   // console.log(file.filename); // 存储在服务器上的文件名
-  console.log(file.path); // 存储路径
-  let hash = {path:file.path , msg:'文件上传成功！'}
+  //console.log(file.path); // 存储路径
+  let hash = { oriName: file.originalname, path: file.path, msg: ['Upload Success'], code: 0 }
   // 需要清理旧的上传文件
   clearUpload(hash)
   // 解压新的上传文件 // 覆盖新的文件
-  unZipCore(hash)
-  res.send(hash.msg);
+  try {
+    await unZipCore(hash)
+    hash.code = 200;
+  } catch {
+    hash.code = 1;
+  }
+  console.log(hash)
+  res.send(JSON.stringify(hash));
 }
 
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
-  deleteDataFun, zipDownload ,zipUpload
+  deleteDataFun, zipDownload, zipUpload
 };
