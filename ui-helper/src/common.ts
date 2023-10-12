@@ -18,6 +18,9 @@ function getHost() {
   }
   return `127.0.0.1:${port}`
 }
+function getServer() {
+  return `http://${getHost()}/`
+}
 // ajax核心模块
 async function ajax(path, data = null) {
   console.log('ajax')
@@ -31,7 +34,7 @@ async function ajax(path, data = null) {
   } else if (typeof data != 'string') {
     data = JSON.stringify(data)
   }
-  let rsp = await fetch(`http://${getHost()}/${path}`, {
+  let rsp = await fetch(`${getServer()}${path}`, {
     method: "POST",
     headers: headers,
     body: data
@@ -124,4 +127,4 @@ async function getHistory(beginDate, endDate) {
   return res
 }
 
-export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory }
+export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory,getServer }

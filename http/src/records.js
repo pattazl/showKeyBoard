@@ -1,11 +1,11 @@
 const dayjs = require('dayjs');
 const sqlite3 = require('sqlite3').verbose();
-
+const dbName = 'records.db'
 // 创建一个连接到数据库的对象
 // 创建表格（如果不存在）
 function insertData(records) {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database('records.db');
+    const db = new sqlite3.Database(dbName);
     let tick = records['tick']
     if (tick == null || tick == 0) {
       resolve(0)
@@ -52,7 +52,7 @@ function insertData(records) {
 
 
 function getRecords(begin, end) {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   return new Promise((resolve, reject) => {
     // 查询记录集
@@ -88,7 +88,7 @@ function getRecords(begin, end) {
 }
 // 将 events的旧数据统计后转移到stat 表中
 function doCleanData() {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   console.log('doCleanData')
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   // 执行sql处理，插入统计数据
@@ -129,7 +129,7 @@ function doCleanData() {
 // 数据库中的相关配置信息，主要用于统计
 let globalTopN = 10;
 function getDataSetting() {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let sql = 'SELECT keymap,mapDetail,screenSize,mouseDPI,topN FROM dataSetting left join keymaps on keymap = mapname '
@@ -157,7 +157,7 @@ function getDataSetting() {
 }
 // 获取全部键盘
 function getKeymaps() {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let arr = [];
@@ -179,7 +179,7 @@ function getKeymaps() {
 }
 // 保存统计的相关配置
 function setDataSetting(hash) {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let sql = 'update dataSetting set keymap = ? ,screenSize = ? ,mouseDPI = ? ,topN= ?'
@@ -198,7 +198,7 @@ function setDataSetting(hash) {
 // 操作 keymap , 0=删除 1=新增 2=更新
 function optKeyMap(data) {
   console.log('optKeyMap:', data.mapName, data.flag)
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let { mapName, mapDetail, flag } = data;
@@ -234,7 +234,7 @@ function optKeyMap(data) {
 }
 // 获取全部历史天数
 function getHistoryDate() {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let arr = [];
@@ -256,7 +256,7 @@ function getHistoryDate() {
 
 //获取各类统计信息到一个hash中
 async function statData(begin, end) {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   let pro1 = new Promise((resolve, reject) => {
     // 查询鼠标移动距离
     let sql = "select keycount,date from stat where date between ? and ? and keyname = 'mouseDistance' order by date"
@@ -302,7 +302,7 @@ group by keyname order by sum(keycount) desc limit ${globalTopN}
 }
 // 删除 events 或 stat 数据
 async function deleteData(date, flag) {
-  const db = new sqlite3.Database('records.db');
+  const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集 
     let sql = ''
@@ -327,5 +327,6 @@ async function deleteData(date, flag) {
 }
 
 module.exports = {
-  insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate, statData, deleteData
+  insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
+  statData, deleteData, dbName
 };

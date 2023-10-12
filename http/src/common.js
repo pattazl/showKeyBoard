@@ -3,12 +3,13 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData } = require('./records');
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData,dbName } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
 const ini = require('ini')
 const fontList = require('font-list')
+const JSZip = require("jszip");
 // 2个配置文件
 const iniPath = '../../showKeyBoard.ini'
 const keyPath = '../../keyList.txt'
@@ -291,6 +292,71 @@ async function deleteDataFun(req, res) {
 
 }
 
+// 打包配置文件
+function zipDownload(req, res) {
+  const zip = new JSZip();
+  let fileContent ;
+  fileContent = fs.readFileSync(iniPath);
+  zip.file(path.basename(iniPath),fileContent);
+  fileContent = fs.readFileSync(keyPath);
+  zip.file(path.basename(keyPath),fileContent);
+  fileContent = fs.readFileSync(dbName);
+  zip.file(dbName,fileContent);
+
+  zip.generateAsync({ type: "nodebuffer" }).then(function (content) {
+    // see FileSaver.js
+    let fileName = new Date().getTime().toString(36);
+    // 设置响应头
+    res.set({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="showkeyboard-${fileName}.zip"`
+    });
+    // 发送二进制数据
+    res.send(content);
+  });
+}
+// 清理目录
+function clearUpload(hash)
+{
+  let dir = path.dirname(hash.path)
+  fs.readdir(dir, (err, files) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    // 对于3分钟前的文件全部删除
+    let minName = (new Date().getTime() - 3*60*1000) + '.zip';
+    files.forEach(file => {
+      const filePath = path.join(dir, file);
+      let name = path.basename(filePath)
+      if(name < minName)
+      {
+        fs.unlinkSync(filePath)
+      }
+    });
+  });
+}
+function unZipCore()
+{
+
+}
+// 解压配置文件
+function zipUpload(req, res) {
+  const file = req.file;
+  // 文件信息
+  
+  //console.log(file.originalname); // 原始文件名
+  // console.log(file.filename); // 存储在服务器上的文件名
+  console.log(file.path); // 存储路径
+  let hash = {path:file.path , msg:'文件上传成功！'}
+  // 需要清理旧的上传文件
+  clearUpload(hash)
+  // 解压新的上传文件 // 覆盖新的文件
+  unZipCore(hash)
+  res.send(hash.msg);
+}
+
 module.exports = {
-  startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun, deleteDataFun
+  startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
+  deleteDataFun, zipDownload ,zipUpload
 };

@@ -150,6 +150,8 @@ export default {
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
 	intro122:'确定删除:',
+	intro123:'导出配置和记录',
+	intro124:'导入配置和记录,将导致重启客户端',
 
   },
   'en-US': {
@@ -301,5 +303,8 @@ export default {
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
 	intro122:'Are you sure delete:',
+	intro123:'Export Setting and Records',
+	intro124:'Import Setting and Records, will restart client',
+
   }
 };

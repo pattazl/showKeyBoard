@@ -16,7 +16,17 @@
 				</n-button>
 			</n-space>
 		</n-space>
-		<n-h3>暂未开发导出导入功能，历史按键信息以 sqlite3 格式保存在 records.db 文件的 stat 表中</n-h3>
+		<n-h3>历史按键信息以 sqlite3 格式保存在 records.db 文件的 stat 表中</n-h3>
+		<n-space>
+			<n-button type="primary" @click="handleExport">
+				{{ contentText.intro123 }}
+			</n-button>
+			<n-upload action="http://127.0.0.1:9901/zipUpload" name="file" @finish="handleFinish" :show-file-list="false">
+				<n-button type="warning">
+					{{ contentText.intro124 }}
+				</n-button>
+			</n-upload>
+		</n-space>
 	</div>
 </template>
 
@@ -24,7 +34,7 @@
 import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
 import content from '../../content.js';
 import { useMessage, useDialog } from 'naive-ui'
-import { getHistory, ajax } from '@/common';
+import { getHistory, ajax, getServer } from '@/common';
 import { useAustinStore } from '../../App.vue'
 import dayjs from 'dayjs'
 
@@ -64,7 +74,7 @@ export default defineComponent({
 
 		async function handleDeleteTick() {
 			myDialog.warning({
-				title: contentText.value.intro122+ deleteTick.value.map(x=> dayjs(new Date(x)).format('YYYY-MM-DD HH:mm:ss.SSS')),
+				title: contentText.value.intro122 + deleteTick.value.map(x => dayjs(new Date(x)).format('YYYY-MM-DD HH:mm:ss.SSS')),
 				positiveText: contentText.value.intro109,
 				negativeText: contentText.value.intro110,
 				maskClosable: false,
@@ -80,7 +90,7 @@ export default defineComponent({
 		}
 		async function handleDeleteDate() {
 			myDialog.warning({
-				title: contentText.value.intro122+ deleteDate.value,
+				title: contentText.value.intro122 + deleteDate.value,
 				positiveText: contentText.value.intro109,
 				negativeText: contentText.value.intro110,
 				maskClosable: false,
@@ -94,7 +104,17 @@ export default defineComponent({
 			})
 
 		}
+		function handleExport() {
+			window.open(getServer() + 'zipDownload', 'blank')
+		}
+		function handleImport() {
 
+		}
+		const handleFinish = ({file,event}) => {
+			console.log(event)
+			message.success((event?.target as XMLHttpRequest).response)
+			return file
+		}
 		return {
 			deleteTick,
 			handleDeleteTick,
@@ -103,6 +123,9 @@ export default defineComponent({
 			todayList,
 			deleteDate,
 			contentText,
+			handleExport,
+			handleImport,
+			handleFinish
 		}
 	},
 })

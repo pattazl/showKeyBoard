@@ -1,11 +1,15 @@
 const WebSocket = require('ws');
 const http = require('http');
+const multer = require('multer');
 const express = require('express')
+const path = require('path');
+
 const { getRecords, getHistoryDate, statData } = require('./records');
 const version = '1.1'
 
 
-const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData, optKeymapFun, deleteDataFun } = require('./common');
+const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData, 
+    optKeymapFun, deleteDataFun, zipDownload ,zipUpload } = require('./common');
 
 //app.use(express.text());
 // 定义跨域设置中间件
@@ -49,6 +53,22 @@ app.post('/statData', async (req, res) => {
 });
 // 更新和删除用户数据
 app.post('/deleteData', deleteDataFun);
+// 提供zip下载
+app.get('/zipDownload', zipDownload);
+const storage = multer.diskStorage({
+    destination: 'uploads/',
+    filename: (req, file, cb) => {
+      const originalName = file.originalname;
+      console.log(originalName)
+      const ext = path.extname(originalName);
+      const fileName = new Date().getTime() + ext;
+      cb(null, fileName);
+    }
+  });
+const upload = multer({storage});
+
+app.post('/zipUpload', upload.single('file'), zipUpload);
+
 // 版本和服务判断
 app.post('/version', (req, res) => { res.send('showKeyBoardServer Version:' + version); });
 // 监听WS 连接事件
