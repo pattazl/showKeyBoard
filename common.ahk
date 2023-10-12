@@ -1,6 +1,6 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.8" 
+global APPName:="ShowKeyBoard", ver:="1.9" 
      , IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
