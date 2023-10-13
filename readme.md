@@ -26,6 +26,16 @@
 
 HTTP端负责写配置文件，接收html前端数据
 
+```mermaid
+graph LR
+Client -->|Post| NodeServer ---|websocket/Post/Get| Web
+NodeServer ---|R/W| ConfigFile
+ConfigFile -->|Reload|Client
+
+```
+
+
+
 ## 编译说明
 
 1. http里面的是服务器端代码，使用 npm run build 打包，生成 httpdist目录
