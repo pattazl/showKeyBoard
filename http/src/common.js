@@ -19,7 +19,7 @@ var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参�
 var infoPC; // 用于保存PC的关键信息
 var port = parseInt(config.common.serverPort)
 
-let handleAutoSave= null  // 自动保存到DB的句柄
+let handleAutoSave = null  // 自动保存到DB的句柄
 
 function checkPort(port) {
   const server = net.createServer();
@@ -120,15 +120,15 @@ async function startUp() {
     }
   }
   // 定时保存数据, 默认180 秒保存一次
-  if(!hasError){
+  if (!hasError) {
     autoSaveFun()
   }
 }
-function autoSaveFun()
-{
-  let interval = config.common?.autoSave2Db??180
-  if(handleAutoSave != null)
-  {
+function autoSaveFun(interval) {
+  if (interval == null) {
+    interval = config.common?.autoSave2Db ?? 180
+  }
+  if (handleAutoSave != null) {
     clearInterval(handleAutoSave)
   }
   handleAutoSave = setInterval(saveLastData, interval * 1000)
@@ -236,8 +236,7 @@ function setParaFun(req, res) {
   }
   // 保存配置文件
   let newConf = JSON.stringify(data.config)
-  if(data.config?.common?.autoSave2Db != config.common?.autoSave2Db)
-  {
+  if (data.config?.common?.autoSave2Db != config.common?.autoSave2Db) {
     autoSaveFun();
   }
   // 当端口号改变时候需要服务重启，此步骤由客户端来完成

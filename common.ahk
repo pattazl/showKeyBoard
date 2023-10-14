@@ -38,6 +38,8 @@ showHttpDebug :=IniRead(IniFile,"common","showHttpDebug","0" )
 
 maxKeypressCount :=IniRead(IniFile,"common","maxKeypressCount","10" ) 
 ; 按键不放重复次数上限
+maxCtrlpressCount :=IniRead(IniFile,"common","maxCtrlpressCount","1" ) 
+; 控制键按键不放重复次数上限
 
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度

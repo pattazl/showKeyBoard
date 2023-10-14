@@ -39,13 +39,13 @@ SendCtrlKey()
 {
 	if(skipCtrlKey = 0){
         ; pressKey := GetKeyName(StrReplace(StrReplace(A_ThisHotkey,'~',''),' Up',''))
-        if ctrlKeyCount < maxKeypressCount
+        if ctrlKeyCount < maxCtrlpressCount
         {
         pressKey := GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-		PushTxt pressKey
+        PushTxt pressKey
         global ctrlKeyCount += 1
         }
-	}
+    }
 }
 ; 鼠标事件
 ~WheelUp::SendMouse
@@ -97,12 +97,12 @@ ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的
 ih.KeyOpt("{All}", "NE")  ; End
 ; 去掉控制按键的响应计数
 ih.KeyOpt(skipKeys, "-E")
+repeatRecord := 0
 MyKeyUp(ih ,VK, SC)
 {
     ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )
     global repeatRecord := 0
 }
-repeatRecord := 0
 ih.OnKeyUp := MyKeyUp
 KeyWaitCombo()
 {
