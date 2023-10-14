@@ -268,7 +268,7 @@ RecordKey(txt)
 		if (InStr(leftTxt,key) >0 )
 		{
             if(PrePushKey =val){
-                AllKeyRecord[PrePushKey] -= 1 ; 因为会重复计算
+                AllKeyRecord[PrePushKey] -= 1 ; 因为会重复计算 ,如果是Up响应方式，则需要反过来
             }
             AddRecord(val) ; 按键分解统计
             leftTxt := StrReplace(leftTxt,key,'')

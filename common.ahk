@@ -1,6 +1,6 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.9" 
+global APPName:="ShowKeyBoard", ver:="1.10" 
      , IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
@@ -35,6 +35,9 @@ activeWindowProc :=IniRead(IniFile,"common","activeWindowProc","" )
 
 showHttpDebug :=IniRead(IniFile,"common","showHttpDebug","0" ) 
 ; 是否显示http调试框
+
+maxKeypressCount :=IniRead(IniFile,"common","maxKeypressCount","10" ) 
+; 按键不放重复次数上限
 
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度

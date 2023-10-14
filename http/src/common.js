@@ -15,10 +15,11 @@ const iniPath = '../../showKeyBoard.ini'
 const keyPath = '../../keyList.txt'
 var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
 var keyList; // 用于保存KeyList.txt 的文件信息
-var dataSetting = {}; // 用于保存 dataSetting 的信息
-var statPara; // 统计的配置参数保存在 数据库中
+var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
 var infoPC; // 用于保存PC的关键信息
 var port = parseInt(config.common.serverPort)
+
+let handleAutoSave= null  // 自动保存到DB的句柄
 
 function checkPort(port) {
   const server = net.createServer();
@@ -87,6 +88,7 @@ function writePort() {
 }
 //  直接启动
 async function startUp() {
+  let hasError = false;
   // 程序不能重复运行
   if (!oneInstance()) {
     return;
@@ -97,9 +99,12 @@ async function startUp() {
     let isPortInUse = true
     try {
       isPortInUse = await checkPort(port);
-    } catch (e) { }
-    if (!isPortInUse) {
-      createServer()
+      if (!isPortInUse) {
+        createServer()
+        break;
+      }
+    } catch (e) {
+      hasError = true
       break;
     }
     port++;
@@ -110,9 +115,23 @@ async function startUp() {
     } else {
       // 达到最大尝试次数，无法启动服务器
       console.log(`无法启动服务器，已达到最大尝试次数 ${maxAttempts}`);
+      hasError = true
       break;
     }
   }
+  // 定时保存数据, 默认180 秒保存一次
+  if(!hasError){
+    autoSaveFun()
+  }
+}
+function autoSaveFun()
+{
+  let interval = config.common?.autoSave2Db??180
+  if(handleAutoSave != null)
+  {
+    clearInterval(handleAutoSave)
+  }
+  handleAutoSave = setInterval(saveLastData, interval * 1000)
 }
 // 封装 ps-node的回调函数，性能过于低下，暂时放弃
 // const ps = require('ps-node');
@@ -203,6 +222,7 @@ function setParaFun(req, res) {
   console.log('setPara')
   var data = req.body  // 包含 config 和 keyList, dataSetting
   let isUpdate = false
+  // 保存 keylist
   let newKeyList = JSON.stringify(data.keyList)
   if (JSON.stringify(keyList) != newKeyList) {
     let keyArr = []
@@ -214,7 +234,13 @@ function setParaFun(req, res) {
     isUpdate = true;
     fs.writeFileSync(keyPath, keyArr.join('\n'), 'utf-8')
   }
+  // 保存配置文件
   let newConf = JSON.stringify(data.config)
+  if(data.config?.common?.autoSave2Db != config.common?.autoSave2Db)
+  {
+    autoSaveFun();
+  }
+  // 当端口号改变时候需要服务重启，此步骤由客户端来完成
   if (JSON.stringify(config) != newConf || isUpdate) {
     console.log('write ini')
     config = data.config
@@ -222,7 +248,7 @@ function setParaFun(req, res) {
   }
   // 对于 dataSetting 需要更新数据库
   let newDataSetting = JSON.stringify(data.dataSetting)
-  if (JSON.stringify(keyList) != newDataSetting) {
+  if (JSON.stringify(dataSetting) != newDataSetting) {
     setDataSetting(data.dataSetting);
     console.log('setDataSetting')
   }
@@ -346,8 +372,7 @@ function unZipCore(hash) {
     zip.loadAsync(content)
       .then(async function (contents) {
         //console.log( JSON.stringify(contents))
-        for(let relativePath in contents.files)
-        {
+        for (let relativePath in contents.files) {
           let file = contents.files[relativePath]
           //console.log(relativePath,file.dir,file._data.compressedContent)
           if (!file.dir) { // 过滤掉目录
@@ -374,7 +399,7 @@ function unZipCore(hash) {
       })
       .catch(function (error) {
         let msg = "解压缩失败: "
-        console.error( msg,error);
+        console.error(msg, error);
         hash.msg.push(msg)
         resolve(0)
       });

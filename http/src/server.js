@@ -76,6 +76,3 @@ let wss = null
 
 //  直接启动
 startUp()
-
-// 定时保存数据, 暂定 180秒保存一次
-setInterval(saveLastData, 180 * 1000)

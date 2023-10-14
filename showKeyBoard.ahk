@@ -13,6 +13,20 @@ Switch4show(Key){
 }
 Hotkey hotkey4Show, Switch4show
 ; 不要阻塞按键
+ctrlKeyCount := 0
+CountCtrlKey()
+{
+    global ctrlKeyCount := 0
+}
+~LCtrl Up::CountCtrlKey
+~RCtrl Up::CountCtrlKey
+~LShift Up::CountCtrlKey
+~RShift Up::CountCtrlKey
+~LWin Up::CountCtrlKey
+~RWin Up::CountCtrlKey
+~LAlt Up::CountCtrlKey
+~RAlt Up::CountCtrlKey
+
 ~LCtrl::SendCtrlKey
 ~RCtrl::SendCtrlKey
 ~LShift::SendCtrlKey
@@ -24,7 +38,13 @@ Hotkey hotkey4Show, Switch4show
 SendCtrlKey()
 {
 	if(skipCtrlKey = 0){
-		PushTxt GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+        ; pressKey := GetKeyName(StrReplace(StrReplace(A_ThisHotkey,'~',''),' Up',''))
+        if ctrlKeyCount < maxKeypressCount
+        {
+        pressKey := GetKeyName(StrReplace(A_ThisHotkey,'~',''))
+		PushTxt pressKey
+        global ctrlKeyCount += 1
+        }
 	}
 }
 ; 鼠标事件
@@ -74,9 +94,16 @@ if recordMouseMove = 1{
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
 ; 设置所有按键的监听
-ih.KeyOpt("{All}", "E")  ; End
+ih.KeyOpt("{All}", "NE")  ; End
 ; 去掉控制按键的响应计数
 ih.KeyOpt(skipKeys, "-E")
+MyKeyUp(ih ,VK, SC)
+{
+    ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )
+    global repeatRecord := 0
+}
+repeatRecord := 0
+ih.OnKeyUp := MyKeyUp
 KeyWaitCombo()
 {
 	;InputHook.VisibleText := true
@@ -85,8 +112,14 @@ KeyWaitCombo()
     ih.Start()
 	;OutputDebug ("AutoHotkey InProgress " . ih.InProgress )
     ih.Wait()
-	;OutputDebug ("AutoHotkey " . ih.EndMods . ih.EndKey ) ; 类似 <^<+Esc
-	PushTxt( ih.EndMods . ih.EndKey )
+    global repeatRecord
+    if(repeatRecord < maxKeypressCount)
+    {
+	;OutputDebug ("AutoHotkey " . ih.EndMods '--' . ih.EndKey ) ; 类似 <^<+Esc
+	;OutputDebug ("AutoHotkey KeyState " . GetKeyState(ih.EndKey, "P") ) ; 类似 <^<+Esc
+        PushTxt( ih.EndMods . ih.EndKey )
+        repeatRecord += 1  ;防止重复记录
+    }
 	;OutputDebug ("AutoHotkey : " . ih.EndMods . ih.EndKey . " InProgress:" . ih.InProgress )
     ;return ih.EndMods . ih.EndKey  ; Return a string like <^<+Esc
 }
