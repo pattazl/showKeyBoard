@@ -29,7 +29,8 @@ IniMonitor(){
 		; 如果端口发生了变化则需要完全重启
 		newPort :=IniRead(IniFile,"common","serverPort",9900 )
 		newRemoteType :=IniRead(IniFile,"common","remoteType",1 )
-		if newPort != serverPort || newRemoteType != remoteType
+		newShowHttpDebug :=IniRead(IniFile,"common","showHttpDebug",0 )
+		if newPort != serverPort || newRemoteType != remoteType || newShowHttpDebug != showHttpDebug
 		{
 			ExitServer()
             Sleep(200)  ; 最好等待一会儿
