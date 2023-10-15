@@ -1,7 +1,6 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
-global APPName:="ShowKeyBoard", ver:="1.10" 
-     , IniFile := "showKeyBoard.ini"
+global IniFile := "showKeyBoard.ini"
      , AllKeyRecord := Map()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
