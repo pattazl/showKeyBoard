@@ -1,7 +1,6 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetVersion 1.10
-;@Ahk2Exe-SetProductName 1.10
 ;@Ahk2Exe-SetFileVersion 1.10
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
