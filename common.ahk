@@ -40,6 +40,8 @@ maxKeypressCount :=IniRead(IniFile,"common","maxKeypressCount","10" )
 ; 按键不放重复次数上限
 maxCtrlpressCount :=IniRead(IniFile,"common","maxCtrlpressCount","1" ) 
 ; 控制键按键不放重复次数上限
+remoteType :=IniRead(IniFile,"common","remoteType",0 ) 
+; 远程控制模式，0 禁止远程 1 可远程查看，2 可远程查看和设置
 
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度
@@ -81,6 +83,9 @@ global minLeft := 0
 global minTop := 0
 global maxRight := 0
 global maxBottom := 0
+
+global ctrlKeyCount := 0
+global repeatRecord := 0
 
 ; 获取1970年开始的时间戳
 AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数

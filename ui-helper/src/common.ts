@@ -16,7 +16,7 @@ function getHost() {
   if (port == '3000') {
     port = '9900' // 调试阶段
   }
-  return `127.0.0.1:${port}`
+  return `${location.hostname}:${port}`
 }
 function getServer() {
   return `http://${getHost()}/`
@@ -42,8 +42,8 @@ async function ajax(path, data = null) {
   let result = await rsp.json();
   return result
 }
-// 布尔类型清单
-const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale']
+// 布尔类型清单,bool list
+const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {

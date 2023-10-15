@@ -68,7 +68,7 @@ const upload = multer({ storage });
 app.post('/zipUpload', upload.single('file'), zipUpload);
 
 // 版本和服务判断
-app.all('/version', (req, res) => { res.send(`{"msg":"showKeyBoardServer Version:${strVersion}","ver":"${strVersion}"`); });
+app.all('/version', (req, res) => { res.send(`{"msg":"showKeyBoardServer Version:","ver":"${strVersion}"}`); });
 // 监听WS 连接事件
 let wss = null
 

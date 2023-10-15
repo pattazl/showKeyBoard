@@ -157,10 +157,20 @@ export default {
 	intro127:'上传过程信息',
 	intro128:'导入设置成功',
 	intro129:'导入设置失败',
+	intro130: '保存失败',
+	intro131: '普通按键按住不放,重复次数上限(次)',
+	intro132: '控制键按键不放,重复次数上限(次)',
+	intro133: '每多少秒自动将按键信息保存到数据库中',
+	intro134: '远程控制模式',
+	intro135: '禁止远程',
+	intro136: '可远程查看',
+	intro137: '可远程查看和设置',
+	intro138: '是否显示http调试框',
+	intro139: '如果允许，则可通过如下地址来远程访问或控制',
 
   },
   'en-US': {
-    title: 'Show Keyboard Server',
+    title: 'Show Keyboard Management',
     lang: 'en-US',
     theme1:'Dark',
     theme2:'Light',
@@ -315,6 +325,15 @@ export default {
 	intro127:'Upload info in server',
 	intro128:'Import Setting Successful',
 	intro129:'Import Setting Fail!',
-
+	intro130: 'Saved Fail!',
+	intro131: 'Max times for repeat normal keys when keep press',
+	intro132: 'Max times for repeat control keys when keep press',
+	intro133: 'Interval seconds automatically saved to the database',
+	intro134: 'Remote control mode',
+	intro135: 'Prevent remote',
+	intro136: 'Only remote read  ',
+	intro137: 'Remote read and set',
+	intro138: 'Show debug http window',
+	intro139: 'You can visit manangement page by follow address when permit',
   }
 };

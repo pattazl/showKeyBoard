@@ -69,6 +69,35 @@
                 <n-input v-model:value="allConfig.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro131 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.common.maxKeypressCount" :min="1" :max="500" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro132 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.common.maxCtrlpressCount" :min="1" :max="500" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro134 }}
+              <div class="error" v-if="allConfig.common.remoteType!=0">{{ contentText.intro139 }}
+              <div v-for="(link, index) in IPlinks" > <a :key="index" :href="link" target="blank">{{ link }}</a></div>
+              </div>
+              <template #suffix>
+                <n-select v-model:value="allConfig.common.remoteType" :options="[{ label: contentText.intro135, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro136, value: 1 /*01*/ },
+                { label: contentText.intro137, value: 2 /*10*/ }]" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro133 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.common.autoSave2Db" :min="10" :max="7200" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro138 }}
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.showHttpDebug" />
+              </template>
+            </n-list-item>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
@@ -94,7 +123,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" @update:value="handleUpdateColor"/>
+                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" @update:value="handleUpdateColor" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro22 }}<div class="intro">{{ contentText.intro23 }}</div>
@@ -459,6 +488,7 @@ export default defineComponent({
     const keyboardSaveInfo = ref('')    // 键盘保存按钮
     const guiBgcolorRef = ref('')    // 颜色需要额外处理
     const guiTextColorRef = ref('')    // 颜色需要额外处理
+    let IPlinks = []   // IP地址清单
 
     let chartDom, myChart
     console.log('setup')
@@ -489,6 +519,8 @@ export default defineComponent({
       guiBgcolorRef.value = '#' + allConfig.value.dialog.guiBgcolor + parseInt(allConfig.value.dialog.guiOpacity, 10).toString(16)
       guiTextColorRef.value = '#' + allConfig.value.dialog.guiTextColor
 
+      IPlinks =  data.networkIP.map(x=> location.origin.replace(location.host,x))
+      //console.log(IPlinks)
     }
     loadPara();
     onMounted(() => {
@@ -520,11 +552,11 @@ export default defineComponent({
       // preAnchor = href
     }
     // 更新颜色相关的变量
-    function updateColor(dialogHash,colorVal){
+    function updateColor(dialogHash, colorVal) {
       let color = colorVal.replace(/#/, '')
-          dialogHash.guiBgcolor = color.substr(0, 6);
-          dialogHash.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
-          dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? '1' : '0'
+      dialogHash.guiBgcolor = color.substr(0, 6);
+      dialogHash.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
+      dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? '1' : '0'
     }
     // 还原数据
     function resetPara() {
@@ -551,16 +583,21 @@ export default defineComponent({
           config.dialog.ctrlList = ctrlListRef.value.join('|')
           config.dialog.skipShow = skipShowRef.value.join('|')
           // 更新颜色信息
-          updateColor(config.dialog,guiBgcolorRef.value)
+          updateColor(config.dialog, guiBgcolorRef.value)
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
           // 需要将数据保存给服务器
           console.log('setPara')
           const saving = message.loading(contentText.value.intro75, { duration: 0 })
-          await ajax('setPara', { config, keyList, 'dataSetting': dataSetting.value })
+          let res = await ajax('setPara', { config, keyList, 'dataSetting': dataSetting.value })
           saving.destroy()
-          message.success(contentText.value.intro76)
+          if (res.code == 200) {
+            message.success(contentText.value.intro76)
+          } else {
+            message.error(contentText.value.intro130)
+            return
+          }
 
           // 设置变量为新的数据
           store.preData.config = deepCopy(config)
@@ -690,7 +727,7 @@ export default defineComponent({
               data.keymaps.splice(index, 1, { mapName, mapDetail })
               break;
           }
-          console.log(data.keymaps)
+          //console.log(data.keymaps)
           loadPara()
         }
       })
@@ -704,9 +741,8 @@ export default defineComponent({
     function keyboardDelete() {
       keyboardOptDialog('', 0, contentText.value.intro106)
     }
-    function handleUpdateColor(value)
-    {
-      updateColor(allConfig.value.dialog,value)
+    function handleUpdateColor(value) {
+      updateColor(allConfig.value.dialog, value)
     }
     return {
       keyboardApply,
@@ -737,6 +773,7 @@ export default defineComponent({
       guiBgcolorRef,
       guiTextColorRef,
       handleUpdateColor,
+      IPlinks,
     }
   },
 })

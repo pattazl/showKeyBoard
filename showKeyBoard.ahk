@@ -13,7 +13,6 @@ Switch4show(Key){
 }
 Hotkey hotkey4Show, Switch4show
 ; 不要阻塞按键
-ctrlKeyCount := 0
 CountCtrlKey()
 {
     global ctrlKeyCount := 0
@@ -97,7 +96,6 @@ ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的
 ih.KeyOpt("{All}", "NE")  ; End
 ; 去掉控制按键的响应计数
 ih.KeyOpt(skipKeys, "-E")
-repeatRecord := 0
 MyKeyUp(ih ,VK, SC)
 {
     ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )

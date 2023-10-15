@@ -10,17 +10,40 @@ const app = express()
 const ini = require('ini')
 const fontList = require('font-list')
 const JSZip = require("jszip");
+const os = require('os');
 // 2个配置文件
 const iniPath = '../../showKeyBoard.ini'
+const defaultIniPath = './showKeyBoard.desc.ini'
 const keyPath = '../../keyList.txt'
-var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+if (fs.existsSync(iniPath)) {
+  var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+}
+
 var keyList; // 用于保存KeyList.txt 的文件信息
 var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
 var infoPC; // 用于保存PC的关键信息
 var port = parseInt(config.common.serverPort)
+var remoteType = parseInt(config.common.remoteType)
 
+let hostAddress = remoteType == 0 ? '127.0.0.1' : '0.0.0.0'
+console.log(hostAddress)
 let handleAutoSave = null  // 自动保存到DB的句柄
 
+let networkIP = []
+// 获取网络接口列表
+function getNetworkList(port) {
+  const networkInterfaces = os.networkInterfaces();
+  // 遍历网络接口列表获取IP地址
+  Object.keys(networkInterfaces).forEach(interfaceName => {
+    const interfaceInfoList = networkInterfaces[interfaceName];
+    interfaceInfoList.forEach(interfaceInfo => {
+      // 排除非IPv4地址和127.0.0.1
+      if (interfaceInfo.family === 'IPv4' && interfaceInfo.address !== '127.0.0.1') {
+        networkIP.push(interfaceInfo.address + ':' + port);
+      }
+    });
+  });
+}
 function checkPort(port) {
   const server = net.createServer();
   return new Promise((resolve, reject) => {
@@ -38,7 +61,7 @@ function checkPort(port) {
       });
     });
 
-    server.listen(port, '127.0.0.1');
+    server.listen(port, hostAddress);
   });
 }
 // 创建WebSocket服务器
@@ -70,7 +93,7 @@ function startWS() {
 function createServer() {
   // 尝试启动服务器
   startWS()  // 配置WS服务
-  server.listen(port, '127.0.0.1', () => {
+  server.listen(port, hostAddress, () => {
     console.log(`Express server正在监听端口 ${port}`);
     writePort()
   }).on('error', (err) => {
@@ -101,6 +124,7 @@ async function startUp() {
       isPortInUse = await checkPort(port);
       if (!isPortInUse) {
         createServer()
+        getNetworkList(port)
         break;
       }
     } catch (e) {
@@ -189,12 +213,32 @@ function oneInstance() {
     }));
   return true;
 }
+// default 中存在的hash值复制到 obj 中
+function mergeObjects(obj1, obj2) {
+  // 遍历obj2的属性
+  for (let prop in obj2) {
+    // 如果obj1对应的属性不存在，则直接将obj2的属性添加到obj1中
+    if (typeof obj1[prop] === 'undefined') {
+      obj1[prop] = obj2[prop];
+    } else if (typeof obj1[prop] === 'object' && typeof obj2[prop] === 'object') {
+      // 如果两个属性都是普通对象，则递归调用mergeObjects函数
+      mergeObjects(obj1[prop], obj2[prop]);
+    }
+  }
+  return obj1;
+}
 // 获取 和设置  KeyList.txt showKeyBoard.ini ，从文件中读取 
 async function getParaFun(req, res) {
   console.log('getPara')
   // 重新再读取一次
   keyList = {}
   config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+  if (fs.existsSync(defaultIniPath)) {
+    var defaultConfig = ini.parse(fs.readFileSync(defaultIniPath, 'utf-8'))
+  }
+  //console.log(defaultConfig)
+  mergeObjects(config, defaultConfig)
+  //console.log(config)
   const keyTxt = (fs.readFileSync(keyPath, 'utf-8'))
   const arr = keyTxt.split('\n')
   for (v of arr) {
@@ -214,12 +258,18 @@ async function getParaFun(req, res) {
   let keymaps = await getKeymaps()
 
   // 返回大 JSON
-  res.send(JSON.stringify({ config, keyList, fonts, infoPC, dataSetting, keymaps }));
+  res.send(JSON.stringify({ config, keyList, fonts, infoPC, dataSetting, keymaps, networkIP }));
 }
 
 // 保存参数 ，包括各种文件和数据的保存
 function setParaFun(req, res) {
-  console.log('setPara')
+  console.log('setPara remoteAddress:', req.connection.remoteAddress)
+  // 如果不是2，那么需要判断来源IP是否本地
+  if (req.connection.remoteAddress != '127.0.0.1' && remoteType != 2) {
+    // 不允许修改，需要返回 Error
+    res.send({ code: 2 });
+    return
+  }
   var data = req.body  // 包含 config 和 keyList, dataSetting
   let isUpdate = false
   // 保存 keylist
@@ -290,6 +340,7 @@ async function exitFun() {
 }
 // 退出前保存最后的数据
 async function saveLastData() {
+  // 如果没有新数据进来将不会保存
   if (preData['tick'] > 0) {
     // 需要保存
     console.log('insertData')
