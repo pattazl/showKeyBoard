@@ -57,3 +57,7 @@ ConfigFile -->|Reload|Client
 2. 目录 httpdist/dist/records.db 文件保存按键的统计信息和统计的相关配置信息
 3. 文件 httpdist/dist/node.exe 用于启动后端http/websocket服务
 
+## 感谢
+
+客户端功能参考 https://github.com/telppa/KMCounter 和 Carnac 的部分设计
+UI界面使用 https://www.naiveui.com/
