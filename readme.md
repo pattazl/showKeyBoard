@@ -23,6 +23,8 @@
 
 ![data](screenshot/data.png)
 
+![keymap](screenshot/keymap.png)
+
 ## 技术架构
 
 按键监控客户端采用autohotkey + windows API
@@ -60,4 +62,5 @@ ConfigFile -->|Reload|Client
 ## 感谢
 
 客户端功能参考 https://github.com/telppa/KMCounter 和 Carnac 的部分设计
-UI界面使用 https://www.naiveui.com/
+
+UI界面使用 https://www.naiveui.com/ 框架
