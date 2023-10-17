@@ -151,26 +151,31 @@ export default defineComponent({
 		function getVal(targetArr, byArr, keyname) {
 			let returnArr = []
 			byArr.forEach(x => {
-				returnArr.push(targetArr.find(y => y.date == x && y.keyname == keyname).keycount)
+				returnArr.push(targetArr.find(y => y.date == x && y.keyname == keyname)?.keycount??0)
 			})
 			return returnArr;
 		}
-		// 获取全部按键数据的组合
-		function getKeyData(arr) {
+		// 获取全部按键数据的组合，以dim为维度从arr中取数据
+		function getKeyData(dim:Array<String>,arr) {
 			let hashList = {}
 			// 已经排序过
 			arr.forEach(x => {
 				if (hashList[x.keyname] == null) {
 					hashList[x.keyname] = {
 						name: x.keyname,
-						data: [x.keycount],
+						date: {[x.date]:x.keycount},
 						smooth: true,
 						type: 'line'
 					}
 				} else {
-					hashList[x.keyname].data.push(x.keycount)
+					hashList[x.keyname].date[x.date] = x.keycount
 				}
 			})
+			// 对 hashList 中每个key的 date 字段按 dim 进行整理，没有值则为空
+			for(let k in hashList){
+				let obj = hashList[k]
+				obj.data = dim.map(x=>obj.date[x]??0)
+			}
 			return hashList
 		}
 		let chartDom1, myChart1;
@@ -206,7 +211,7 @@ export default defineComponent({
 				option2.series[0].data = getVal(res[1], dateArr, 'mouse')
 				option2.series[1].data = getVal(res[1], dateArr, 'keyboard')
 
-				let hash = getKeyData(res[2])
+				let hash = getKeyData(dateArr,res[2])
 				option3.series = Object.keys(hash).map(x => hash[x])
 				option3.legend.data = Object.keys(hash)
 
