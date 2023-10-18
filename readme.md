@@ -7,6 +7,12 @@
 5. 可支持远程统计和设置
 6. 为了隐私安全，只记录统计信息，不记录具体内容，且内容保存在本地
 
+## 系统要求
+
+1. Windows 64位系统，推荐win10 或 win11
+2. 有现代浏览器( Edge / Chrome / FireFox 等)
+3. 由于使用了系统钩子，可能部分电脑上会误报病毒，需要信任。
+
 ## 截图演示
 
    ![实时显示按键状态和内容](screenshot/%E5%AE%9E%E6%97%B6%E6%98%BE%E7%A4%BA%E6%8C%89%E9%94%AE%E7%8A%B6%E6%80%81%E5%92%8C%E5%86%85%E5%AE%B9.gif)
@@ -24,6 +30,12 @@
 ![data](screenshot/data.png)
 
 ![keymap](screenshot/keymap.png)
+
+
+
+![dialogsetting](screenshot/dialogsetting.png)
+
+
 
 ## 技术架构
 

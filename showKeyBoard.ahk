@@ -247,6 +247,26 @@ CreateMenu()
   }
 }
 CreateMenu()
+; 关闭前需要退出后台服务
+OnExit ExitFunc
+ExitFunc(ExitReason, ExitCode)
+{
+    ;if ExitReason != "Logoff" and ExitReason != "Shutdown"
+    ;{
+        ;Result := MsgBox("Are you sure you want to exit?",, 4)
+        ;if Result = "No"
+        ;    return 1  ; Callbacks must return non-zero to avoid exit.
+    ;}
+	pidPath := httpPath 'kbserver.pid'
+	lastRecordPath := httpPath 'lastRecord.json'
+	If FileExist(pidPath){
+	; 如果存在进程文件，那么要保存到临时文件中，后端重启启动后优先载入临时文件内容更新数据
+		If FileExist(lastRecordPath){
+			FileDelete lastRecordPath   ; 先删
+		}
+		FileAppend(jxon_dump(AllKeyRecord, indent:=0), lastRecordPath)
+	}
+}
 
 #Include dialog.ahk
 

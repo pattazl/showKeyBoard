@@ -1,18 +1,6 @@
 ; 用于进行对外通讯，只读本地文件 和发送数据
 #include common.ahk
 
-; 变量控制
-reqXMLHTTP := 0 
-msgNotLaunch := 'Start Server fail, can not set parameter and data statistics!'
-lastModified := FileGetTime(IniFile)
-global HttpCtrlObj := Map()  ; 和http任务相关的数据
-HttpCtrlObj['resp'] := '' ; 返回的数据
-HttpCtrlObj['task'] := '' ; 任务名
-HttpCtrlObj['state'] := '' ; 当前状态 wait succ error
-serverState := -1  ; 是否连接到服务器， -1 还未启动过，0连失败，1 成功连接 
-CheckServerCount :=0
-CheckServerMax := 8
-
 ; 如果无需记录，那么将关闭界面设置功能
 if(needRecordKey=1){
 	Init()  ; 判断后端接口，启动相关程序
@@ -134,9 +122,13 @@ startServer()
         strPid := FileRead(pidFile, "`n UTF-8")
         iPid := ProcessExist(strPid)
         if iPid>0{
-            if ProcessGetName(iPid) = 'node.exe'{
-                ProcessClose(iPid) ;如果是 node.exe则杀进程
-            }
+			try {
+				path := ProcessGetPath(iPid)
+				SplitPath Path ,&OutFileName, &OutDir
+                if OutFileName = 'node.exe' && (OutDir '\') = httpPath {
+                    ProcessClose(iPid) ;如果是 node.exe则杀进程
+                }
+			}
             FileDelete pidFile  ; 删除进程文件
         }
     }
