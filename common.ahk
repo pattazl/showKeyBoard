@@ -42,6 +42,9 @@ maxCtrlpressCount :=IniRead(IniFile,"common","maxCtrlpressCount","1" )
 remoteType :=IniRead(IniFile,"common","remoteType",0 ) 
 ; 远程控制模式，0 禁止远程 1 可远程查看，2 可远程查看和设置
 
+httpDistPath :=IniRead(IniFile,"common","httpDistPath", "\httpdist\dist\" ) 
+; 后台服务所在路径
+
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=IniRead(IniFile,"dialog","guiHeigth", 0 ) ;高度 0 为自动高度
@@ -88,7 +91,19 @@ global repeatRecord := 0
 
 ; 获取1970年开始的时间戳
 AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数
-global httpPath := A_WorkingDir '\httpdist\dist\'   ; node 脚本所在目录
+global httpPath := A_WorkingDir httpDistPath   ; node 脚本所在目录
 if !FileExist(httpPath){
 	needRecordKey := 0  ; 如果不存在则不用启动后端
 }
+
+; events 中变量控制
+reqXMLHTTP := 0 
+msgNotLaunch := 'Start Server fail, can not set parameter and data statistics!'
+lastModified := FileGetTime(IniFile)
+global HttpCtrlObj := Map()  ; 和http任务相关的数据
+HttpCtrlObj['resp'] := '' ; 返回的数据
+HttpCtrlObj['task'] := '' ; 任务名
+HttpCtrlObj['state'] := '' ; 当前状态 wait succ error
+serverState := -1  ; 是否连接到服务器， -1 还未启动过，0连失败，1 成功连接 
+CheckServerCount :=0
+CheckServerMax := 8

@@ -278,6 +278,8 @@ RecordKey(txt)
         AddRecord(leftTxt)
     }
 	PrePushKey :=txt
+	; 需要添加更新时间
+	AllKeyRecord['updateTime'] := A_Now
     AutoSendData()  ; 发送数据给后端服务
 }
 ; 如果不存在则创建，存在则+1

@@ -15,6 +15,9 @@ const os = require('os');
 const iniPath = '../../showKeyBoard.ini'
 const defaultIniPath = './showKeyBoard.desc.ini'
 const keyPath = '../../keyList.txt'
+const updateTimePath = path.join(__dirname,'updateTime.txt');
+const lastRecordPath = path.join(__dirname,'lastRecord.json');
+const pidfilePath = path.join(__dirname, 'kbserver.pid');
 if (fs.existsSync(iniPath)) {
   var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
 }
@@ -22,8 +25,8 @@ if (fs.existsSync(iniPath)) {
 var keyList; // 用于保存KeyList.txt 的文件信息
 var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
 var infoPC; // 用于保存PC的关键信息
-var port = parseInt(config.common.serverPort)
-var remoteType = parseInt(config.common.remoteType)
+var port = parseInt(config.common?.serverPort??9900)
+var remoteType = parseInt(config.common?.remoteType??0)
 
 let hostAddress = remoteType == 0 ? '127.0.0.1' : '0.0.0.0'
 console.log(hostAddress)
@@ -111,6 +114,8 @@ function writePort() {
 }
 //  直接启动
 async function startUp() {
+  // 补数据
+  patchLastData()
   let hasError = false;
   // 程序不能重复运行
   if (!oneInstance()) {
@@ -200,15 +205,20 @@ function oneInstance() {
   fs.writeFileSync(pidfilePath, process.pid.toString(), 'utf8');
   // 退出前插入数据库
   // 应用程序退出时删除 pidfile 文件
-  process.on('exit', () => {
-    fs.unlinkSync(pidfilePath); // 无法操作数据库删除
+  process.on('exit', (code) => {
+    if (fs.existsSync(pidfilePath)) fs.unlinkSync(pidfilePath); // 无法操作数据库删除
+    console.log('exit')
+  });
+  process.on('beforeExit', (code) => {
+    if (fs.existsSync(pidfilePath)) fs.unlinkSync(pidfilePath); // 无法操作数据库删除
     console.log('exit')
   });
   // 处理 SIGINT 和 SIGTERM 信号，确保应用程序正常退出时删除 pidfile 文件
   //   'CTRL + C ,
   ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGKILL']
-    .forEach(signal => process.on(signal, () => {
-      exitFun()
+    .forEach(signal => process.on(signal, async () => {
+      if (fs.existsSync(pidfilePath)) fs.unlinkSync(pidfilePath);
+      await exitFun()
       //process.exit(0);
     }));
   return true;
@@ -317,8 +327,8 @@ function dataFun(req, res) {
   //console.log('mouseDistance,tick',data.mouseDistance,data.tick)
   if (preData['tick'] > 0 && data['tick'] > 0 && data['tick'] != preData['tick']) {
     // tick不一样需要保存
-    console.log('preTick,tick:', preData['tick'], data['tick'],)
-    insertData(preData)
+    console.log('preTick,tick:', preData['tick'], data['tick'])
+    insertDataFun(preData)
   }
   preData = data;
   //myWS.send(JSON.stringify(data) );
@@ -329,6 +339,28 @@ function dataFun(req, res) {
   });
   // 如果 data.tick 不一样，则需要累计保存
   res.send('OK');
+}
+// 补充上一次的数据
+function patchLastData()
+{
+  if(fs.existsSync(lastRecordPath) && fs.existsSync(updateTimePath)){
+    let json = JSON.parse(fs.readFileSync(lastRecordPath))
+    let updateTime = fs.readFileSync(updateTimePath)
+    if(json['updateTime'] > updateTime){
+      console.log('patchLastData')
+      insertDataFun(json)
+    }
+    fs.unlinkSync(lastRecordPath)
+  }
+}
+// 对 insertData 函数封装处理下
+async function insertDataFun(records){
+    // 需要获取 updateTime 字段，并保存到文件中记录最近的更新时间
+    if (records['updateTime'] != null) {
+      fs.writeFileSync(updateTimePath, records['updateTime'])
+      delete records['updateTime'] // 删除数据
+    }
+    return await insertData(records)
 }
 // 触发正常退出
 async function exitFun() {
@@ -343,8 +375,8 @@ async function saveLastData() {
   // 如果没有新数据进来将不会保存
   if (preData['tick'] > 0) {
     // 需要保存
-    console.log('insertData')
-    await insertData(preData)
+    console.log('insertDataFun')
+    await insertDataFun(preData)
     preData['tick'] = 0
   }
 }
