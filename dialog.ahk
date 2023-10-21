@@ -70,9 +70,11 @@ ShowTxt(text)
 	}
 	textArr.push(text)
 	newText := Trim(GetKeyText(textArr)) ; 去掉首尾空格
-	editType := "Edit"  ; 默认用edit类型可以滚动，但有边框需要额外去掉
+	editType := "Edit"  ; Text Edit 默认用edit类型可以滚动，但有边框需要额外去掉
 	; 重新创建新的对象，便于计算新的高度，旧对象删除即可
 	MyEdit:= MyGui.Add(editType, editOpt ,newText) ;   Edit Text
+	; 不允许获取焦点，如果获得焦点立刻释放
+	MyEdit.OnEvent("Focus", Edit_Focus)
 	; 去掉默认细边框
 	if guiEdge =0 {
 		WinSetExStyle  "-0x00000200", MyEdit
@@ -122,6 +124,29 @@ ShowTxt(text)
 	ReLayOut(guiX,guiY,guiWidth,editHeight)
 	global guiShowing := 0
 }
+; 如果edit获得焦点，需要立刻去掉
+Edit_Focus(thisEdit,Info) {  ; Declaring this parameter is optional.
+    ; OutputDebug ("AutoHotkey myGui_Focus" )
+    SendMessage 0x0008, 0, 0, thisEdit   ; EM_SETSEL = 0x00B1, WM_KILLFOCUS =0x0008 系统会自动触发选中，取消焦点防止选中
+}
+
+; OnMessage(0x00B1, WM_LBUTTONDOWN)  ; EM_SETSEL 消息无法通过OnMessage捕获
+; OnMessage(0x0201, WM_LBUTTONDOWN)
+; WM_LBUTTONDOWN(wParam, lParam, msg, hwnd)
+; {
+; 	OutputDebug ("AutoHotkey WM_LBUTTONDOWN" )
+;     X := lParam & 0xFFFF
+;     Y := lParam >> 16
+;     Control := ""
+;     thisGui := GuiFromHwnd(hwnd)
+;     thisGuiControl := GuiCtrlFromHwnd(hwnd)
+;     if thisGuiControl
+;     {
+;         thisGui := thisGuiControl.Gui
+;         Control := "`n(in control " . thisGuiControl.ClassNN . ")"
+;     }
+;     ToolTip "You left-clicked in Gui window '" thisGui.Title "' at client coordinates " X "x" Y "." Control
+; }
 
 ; 清理无需的窗口
 CloseSelf()
