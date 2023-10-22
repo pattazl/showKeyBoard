@@ -98,6 +98,12 @@
                 <n-switch :round="false" v-model:value="allConfig.common.showHttpDebug" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro140 }}
+              <div class="intro">{{ contentText.intro141 }}</div>
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.hideInWinPwd" />
+              </template>
+            </n-list-item>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>

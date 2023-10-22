@@ -167,6 +167,9 @@ export default {
 	intro137: '可远程查看和设置',
 	intro138: '是否显示http调试框',
 	intro139: '如果允许，则可通过如下地址来远程访问或控制',
+	intro140: '在密码输入框中使用掩码*，不显示密码',
+	intro141: '仅支持windows客户端的原生密码输入框，不支持浏览器或定制密码输入框',
+	intro142: ',更新时间:',
 
   },
   'en-US': {
@@ -335,5 +338,8 @@ export default {
 	intro137: 'Remote read and set',
 	intro138: 'Show debug http window',
 	intro139: 'You can visit manangement page by follow address when permit',
+	intro140: 'Display mask * when in password input,not display the password',
+	intro141: 'Only support native password input, not support browsers or custom password input',
+	intro142: ',Update Time:',
   }
 };

@@ -259,11 +259,35 @@ GetKeyText(arr)
 GetBitState(val,bitPos){
 	return (val>>(bitPos-1))&1 ; 获取指定位后清理高位
 }
+; 判断当前输入框是否是windows密码框
+EditIsPWD(){
+    isPASS := 0
+    try{
+        FocusedHwnd := ControlGetFocus("A")
+        if(FocusedHwnd>0){
+            Style := ControlGetStyle(FocusedHwnd)
+            ; 检查样式是否包含 ES_PASSWORD
+            if (Style & 0x0020)
+            {
+                isPASS := 1  ; 是密码输入框
+            }
+        }
+    }
+    return isPASS
+}
 ; 将数据放到数组中
 PushTxt(txt,isMouse:=False)
 {
-    if(needShowKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,2)=1 ))){
-        inArr.push(txt)
+    ; 界面显示内容
+    if( needShowKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,2)=1 ))){
+        maskTxt := txt
+        if hideInWinPwd = 1 && (!isMouse) {
+        ; 需要判断输入框是否是密码框
+            if EditIsPWD() = 1{
+                maskTxt := '*'  ; 使用掩码
+            }
+        }
+        inArr.push(maskTxt)
     }
 	; 按键数量统计
 	; OutputDebug "AutoHotkey - " txt

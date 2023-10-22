@@ -45,6 +45,9 @@ remoteType :=IniRead(IniFile,"common","remoteType",0 )
 httpDistPath :=IniRead(IniFile,"common","httpDistPath", "\httpdist\dist\" ) 
 ; 后台服务所在路径
 
+hideInWinPwd :=IniRead(IniFile,"common","hideInWinPwd", "0" ) 
+; 在window密码框中输入自动隐藏显示
+
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=IniRead(IniFile,"dialog","guiHeigth", 0 ) ;高度 0 为自动高度

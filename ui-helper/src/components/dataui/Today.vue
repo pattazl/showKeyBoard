@@ -7,13 +7,13 @@
           contentText.intro93 }}
         <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
-      <n-card :title="contentText.intro86">
+      <n-card :title="contentText.intro86 + contentText.intro142 + updateTime">
         <div id="main" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card :title="contentText.intro97">
+      <n-card :title="contentText.intro97+ contentText.intro142 + updateTime">
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
-      <n-card :title="contentText.intro87">
+      <n-card :title="contentText.intro87+ contentText.intro142 + updateTime">
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
     </n-space>
@@ -274,6 +274,7 @@ export default defineComponent({
     const historyDate = ref([]);
     const beginDate = ref(0);
     const endDate = ref(0);
+    const updateTime = ref('');
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
@@ -374,6 +375,16 @@ export default defineComponent({
         endDate.value = currTick
       }
       keyStatHash = getRealStatHash(keyStatHash, beginDate.value, endDate.value)
+      if(keyStatHash['updateTime']!=null)
+      {
+        try{
+          updateTime.value = dayjs(keyStatHash['updateTime'],'YYYYMMDDHHmmSS').format('YYYY-MM-DD HH:mm:ss')
+        }catch(e)
+        {
+          console.log(e)
+        }
+        delete keyStatHash['updateTime']
+      }
       showHash(keyStatHash)
     }
     // 显示数据
@@ -456,6 +467,7 @@ export default defineComponent({
       endDate,
       handleUpdateValue,
       mouseTable,
+      updateTime,
     }
   },
 })
