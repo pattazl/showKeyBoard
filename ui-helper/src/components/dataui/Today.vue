@@ -14,6 +14,16 @@
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
       <n-card :title="contentText.intro87+ contentText.intro142 + updateTime">
+        <template #header-extra>
+          <n-switch :round="false"  >
+            <template #checked>
+            合并左右控制键
+          </template>
+          <template #unchecked>
+            左右控制键分别显示
+          </template>
+        </n-switch>
+        </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
     </n-space>
@@ -181,7 +191,7 @@ function getKeyDesc(keyName, contentText) {
     .replace(/<!/g, 'LAlt ')
     .replace(/>!/g, 'RAlt ')
     .replace(/<\^/g, 'LCtrl ')
-    .replace(/>\^/g, 'LCtrl ')
+    .replace(/>\^/g, 'RCtrl ')
     .replace(/<#/g, 'LWin ')
     .replace(/>#/g, 'RWin ')
 }

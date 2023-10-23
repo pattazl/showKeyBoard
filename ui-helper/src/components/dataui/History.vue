@@ -176,7 +176,7 @@ function getKeyDesc(keyName, contentText) {
     .replace(/<!/g, 'LAlt ')
     .replace(/>!/g, 'RAlt ')
     .replace(/<\^/g, 'LCtrl ')
-    .replace(/>\^/g, 'LCtrl ')
+    .replace(/>\^/g, 'RCtrl ')
     .replace(/<#/g, 'LWin ')
     .replace(/>#/g, 'RWin ')
 }
