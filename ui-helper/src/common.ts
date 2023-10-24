@@ -54,8 +54,8 @@ function str2Type(hash, flag) {
       }
       if (boolArr.indexOf(k) > -1) {
         hash[k] = hash[k] == 1
-      } else if (/^-?\d+$/.test(hash[k])) {
-        hash[k] = Number(hash[k]);
+      } else if ( /^-?(?!0\d)\d+$/.test(hash[k])) { // 如果不是0，但是用0开头的数字，则为字符串，解决颜色的bug
+          hash[k] = Number(hash[k]);
       }
     } else { // 界面转换给数据
       if (boolArr.indexOf(k) > -1) {
@@ -126,5 +126,21 @@ async function getHistory(beginDate, endDate) {
   //console.log('getHistory',res)
   return res
 }
+// 根据键名缩写转换为说明
+function getKeyDesc(keyName, contentText) {
+  return keyName
+    .replace(/<\+/g, 'LShift ')
+    .replace(/>\+/g, 'RShift ')
+    .replace(/\+/g, 'Shift ')
+    .replace(/<!/g, 'LAlt ')
+    .replace(/>!/g, 'RAlt ')
+    .replace(/!/g, 'Alt ')
+    .replace(/<\^/g, 'LCtrl ')
+    .replace(/>\^/g, 'RCtrl ')
+    .replace(/\^/g, 'Ctrl ')
+    .replace(/<#/g, 'LWin ')
+    .replace(/>#/g, 'RWin ')
+    .replace(/#/g, 'Win ')
+}
 
-export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory,getServer }
+export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory,getServer,getKeyDesc }

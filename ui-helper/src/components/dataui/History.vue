@@ -40,7 +40,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax } from '@/common';
+import { arrRemove, getHistory, ajax,getKeyDesc } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -168,18 +168,7 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   }
   return val
 }
-// 根据键名缩写转换为说明
-function getKeyDesc(keyName, contentText) {
-  return keyName
-    .replace(/<\+/g, 'LShift ')
-    .replace(/>\+/g, 'RShift ')
-    .replace(/<!/g, 'LAlt ')
-    .replace(/>!/g, 'RAlt ')
-    .replace(/<\^/g, 'LCtrl ')
-    .replace(/>\^/g, 'RCtrl ')
-    .replace(/<#/g, 'LWin ')
-    .replace(/>#/g, 'RWin ')
-}
+
 // 获取对应时间的Hash
 function getHash(tick) {
   let hash = {}
@@ -189,21 +178,6 @@ function getHash(tick) {
     }
   }
   return hash
-}
-// 合并 hash统计数据,返回 targetHash
-function mergeHash(targetHash/**out */, srcHash) {
-  for (let k in targetHash) {
-    if (srcHash[k] != null) {
-      //需要相加合并
-      targetHash[k] += srcHash[k]
-    }
-  }
-  // target 中不存在的
-  for (let k in srcHash) {
-    if (targetHash[k] == null) {
-      targetHash[k] = srcHash[k]
-    }
-  }
 }
 export default defineComponent({
   name: 'History',

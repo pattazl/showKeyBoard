@@ -9,7 +9,7 @@
 ; 创建或显示内容
 ShowTxt(text)
 {
-	if text = "" or not b_4show {
+	if text = "" or needShowKey = 0 {
 		return 
 	}
     ; 获取活跃窗口进程匹配 FoundPos := RegExMatch(Haystack, NeedleRegEx [, &OutputVar, StartingPos])

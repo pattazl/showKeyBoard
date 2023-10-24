@@ -16,10 +16,13 @@ loop skipRecord.length {
 }
 ; 切换是否显示按键
 Switch4show(Key){
-    global b_4show := not b_4show
+    global needShowKey := not needShowKey
     UpdatMenu4Show()
 }
-Hotkey hotkey4Show, Switch4show
+; 尝试绑定热键
+try{
+    Hotkey hotkey4Show, Switch4show
+}
 ; 不要阻塞按键
 CountCtrlKey()
 {
@@ -213,7 +216,7 @@ MenuHandler(ItemName , ItemPos, MyMenu){
   }
 }
 UpdatMenu4Show(){
-	if b_4show {
+	if needShowKey {
 		A_TrayMenu.Check(L_menu_4show)
 	}else{
 		A_TrayMenu.Uncheck(L_menu_4show)
@@ -257,6 +260,9 @@ ExitFunc(ExitReason, ExitCode)
         ;if Result = "No"
         ;    return 1  ; Callbacks must return non-zero to avoid exit.
     ;}
+    ; 需要将 临时的配置开关保存
+    IniWrite(IniFile,"common","needShowKey",needShowKey)
+    ; 检查后台服务情况
 	pidPath := httpPath 'kbserver.pid'
 	lastRecordPath := httpPath 'lastRecord.json'
 	If FileExist(pidPath){

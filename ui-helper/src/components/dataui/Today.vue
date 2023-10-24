@@ -10,19 +10,19 @@
       <n-card :title="contentText.intro86 + contentText.intro142 + updateTime">
         <div id="main" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card :title="contentText.intro97+ contentText.intro142 + updateTime">
+      <n-card :title="contentText.intro97 + contentText.intro142 + updateTime">
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
-      <n-card :title="contentText.intro87+ contentText.intro142 + updateTime">
+      <n-card :title="contentText.intro87 + contentText.intro142 + updateTime">
         <template #header-extra>
-          <n-switch :round="false"  >
+          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKey">
             <template #checked>
-            合并左右控制键
-          </template>
-          <template #unchecked>
-            左右控制键分别显示
-          </template>
-        </n-switch>
+              合并左右控制键
+            </template>
+            <template #unchecked>
+              左右控制键分别显示
+            </template>
+          </n-switch>
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
@@ -32,8 +32,8 @@
 
 <script lang="ts">
 import { useAustinStore } from '../../App.vue'
-import dayjs from 'dayjs' 
-import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
+import dayjs from 'dayjs'
+import { defineComponent, onMounted, PropType, ref, computed, h, watch, CSSProperties } from 'vue'
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
@@ -52,7 +52,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory } from '@/common';
+import { setWS, arrRemove, getHistory, deepCopy,getKeyDesc } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -78,7 +78,7 @@ let tickSet = new Set();
 let keyData = [];
 
 var option = {
-  dark:true,
+  dark: true,
   textStyle: {
     fontSize: 16
   },
@@ -160,16 +160,16 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
       let isMatch = false
       val = matchKey.reduce((accumulator, k) => {
         let v = keyStatHash[k];
-        if( v != null){
-          isMatch  = true;
-        }else{
+        if (v != null) {
+          isMatch = true;
+        } else {
           v = 0
         }
         return accumulator + v
-        },0)
+      }, 0)
       if (isMatch) break;
-      val = null ; //没有匹配上需要清空
-    }else{
+      val = null; //没有匹配上需要清空
+    } else {
       // 尝试用 key 
       matchKey = key
       val = keyStatHash[matchKey]
@@ -182,18 +182,6 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
     val = 0;    // 默认没有找到匹配，数据 0
   }
   return val
-}
-// 根据键名缩写转换为说明
-function getKeyDesc(keyName, contentText) {
-  return keyName
-    .replace(/<\+/g, 'LShift ')
-    .replace(/>\+/g, 'RShift ')
-    .replace(/<!/g, 'LAlt ')
-    .replace(/>!/g, 'RAlt ')
-    .replace(/<\^/g, 'LCtrl ')
-    .replace(/>\^/g, 'RCtrl ')
-    .replace(/<#/g, 'LWin ')
-    .replace(/>#/g, 'RWin ')
 }
 // 获取今天的全部启动次数信息
 async function getTodayData(historyDate, contentText) {
@@ -385,12 +373,10 @@ export default defineComponent({
         endDate.value = currTick
       }
       keyStatHash = getRealStatHash(keyStatHash, beginDate.value, endDate.value)
-      if(keyStatHash['updateTime']!=null)
-      {
-        try{
-          updateTime.value = dayjs(keyStatHash['updateTime'],'YYYYMMDDHHmmSS').format('YYYY-MM-DD HH:mm:ss')
-        }catch(e)
-        {
+      if (keyStatHash['updateTime'] != null) {
+        try {
+          updateTime.value = dayjs(keyStatHash['updateTime'], 'YYYYMMDDHHmmSS').format('YYYY-MM-DD HH:mm:ss')
+        } catch (e) {
           console.log(e)
         }
         delete keyStatHash['updateTime']
@@ -432,10 +418,8 @@ export default defineComponent({
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
-      dataTable.value = leftKey.map(function (item) {
-        return { keyName: item, count: keyStatHash[item], desc: getKeyDesc(item, contentText.value) }
-      })
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
+      showLeftKey(leftKey,keyStatHash)
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
         let pixel = keyStatHash['mouseDistance']; //获取像素移动距离
@@ -455,17 +439,37 @@ export default defineComponent({
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
     }
+    // 显示剩余按键
+    let lastLeftKey = [] ,LastKeyStatHash = {} , leftKeySwitch = ref(0);
+    function showLeftKey(leftKey,keyStatHash) {
+      if(leftKey !=null && keyStatHash!=null){
+        lastLeftKey = leftKey
+        LastKeyStatHash = keyStatHash
+      }else{ // 使用上一次的
+        leftKey = lastLeftKey
+        keyStatHash = LastKeyStatHash
+      }
+      // 需要合并 左右控制键
+      let tempLeftKey = deepCopy(leftKey)
+      let tempKeyStatHash = deepCopy(keyStatHash)
+      if(leftKeySwitch.value){ // 合并
+
+      }
+      dataTable.value = tempLeftKey.map(function (item) {
+        return { keyName: item, count: tempKeyStatHash[item], desc: getKeyDesc(item, contentText.value) }
+      })
+    }
     onMounted(() => {
       chartDom = document.getElementById('main');
-      myChart = echarts.init(chartDom,store.myTheme);
+      myChart = echarts.init(chartDom, store.myTheme);
       //console.log(keyList)
       setWS(updateKeyData)
     })
     watch(() => store.myTheme, (newValue, oldValue) => {
       myChart.dispose()
-      myChart = echarts.init(chartDom,newValue);
+      myChart = echarts.init(chartDom, newValue);
       myChart.setOption(option);
-     });
+    });
     return {
       strLeftKeyVal,
       columns,
@@ -478,6 +482,29 @@ export default defineComponent({
       handleUpdateValue,
       mouseTable,
       updateTime,
+      leftKeySwitch,
+      showLeftKey,
+      railStyle: ({
+        focused,
+        checked
+      }: {
+        focused: boolean
+        checked: boolean
+      }) => {
+        const style: CSSProperties = {}
+        if (checked) {
+          style.background = '#d03050'
+          if (focused) {
+            style.boxShadow = '0 0 0 2px #d0305040'
+          }
+        } else {
+          style.background = '#2080f0'
+          if (focused) {
+            style.boxShadow = '0 0 0 2px #2080f040'
+          }
+        }
+        return style
+      }
     }
   },
 })
