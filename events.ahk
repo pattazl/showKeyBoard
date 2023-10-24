@@ -200,7 +200,10 @@ Ready() {
     if (reqXMLHTTP.status == 200)
     {    ; OK.
         HttpCtrlObj['state'] := 'succ'
-        HttpCtrlObj['resp'] := reqXMLHTTP.responseText
+        ; 可能出现 Error: (0x8000000A) 完成该操作所需的数据还不可使用。屏蔽掉
+        try{
+            HttpCtrlObj['resp'] := reqXMLHTTP.responseText
+        }
     }
     else{
         HttpCtrlObj['state'] := 'error'

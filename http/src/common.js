@@ -15,8 +15,8 @@ const os = require('os');
 const iniPath = '../../showKeyBoard.ini'
 const defaultIniPath = './showKeyBoard.desc.ini'
 const keyPath = '../../keyList.txt'
-const updateTimePath = path.join(__dirname,'updateTime.txt');
-const lastRecordPath = path.join(__dirname,'lastRecord.json');
+const updateTimePath = path.join(__dirname, 'updateTime.txt');
+const lastRecordPath = path.join(__dirname, 'lastRecord.json');
 const pidfilePath = path.join(__dirname, 'kbserver.pid');
 if (fs.existsSync(iniPath)) {
   var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
@@ -25,8 +25,8 @@ if (fs.existsSync(iniPath)) {
 var keyList; // 用于保存KeyList.txt 的文件信息
 var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
 var infoPC; // 用于保存PC的关键信息
-var port = parseInt(config.common?.serverPort??9900)
-var remoteType = parseInt(config.common?.remoteType??0)
+var port = parseInt(config.common?.serverPort ?? 9900)
+var remoteType = parseInt(config.common?.remoteType ?? 0)
 
 let hostAddress = remoteType == 0 ? '127.0.0.1' : '0.0.0.0'
 console.log(hostAddress)
@@ -104,12 +104,17 @@ function createServer() {
     console.log('创建服务异常');
   })
 }
-
+// 解决 \# 的转义问题
+function myIniwrite(config) {
+  let s = config.replace(/\\#/g,'#')
+  s = s.replace(/=(.*#.*)/g,'="$1"')
+  fs.writeFileSync(iniPath, ini.stringify(config))
+}
 function writePort() {
   if (port != parseInt(config.common.serverPort)) {
     config.common.serverPort = port;
     // 写入将导致参数重启
-    fs.writeFileSync(iniPath, ini.stringify(config))
+    myIniwrite(config)
   }
 }
 //  直接启动
@@ -303,7 +308,8 @@ function setParaFun(req, res) {
   if (JSON.stringify(config) != newConf || isUpdate) {
     console.log('write ini')
     config = data.config
-    fs.writeFileSync(iniPath, ini.stringify(config))
+    myIniwrite(config)
+
   }
   // 对于 dataSetting 需要更新数据库
   let newDataSetting = JSON.stringify(data.dataSetting)
@@ -341,12 +347,11 @@ function dataFun(req, res) {
   res.send('OK');
 }
 // 补充上一次的数据
-function patchLastData()
-{
-  if(fs.existsSync(lastRecordPath) && fs.existsSync(updateTimePath)){
+function patchLastData() {
+  if (fs.existsSync(lastRecordPath) && fs.existsSync(updateTimePath)) {
     let json = JSON.parse(fs.readFileSync(lastRecordPath))
     let updateTime = fs.readFileSync(updateTimePath)
-    if(json['updateTime'] > updateTime){
+    if (json['updateTime'] > updateTime) {
       console.log('patchLastData')
       insertDataFun(json)
     }
@@ -354,13 +359,13 @@ function patchLastData()
   }
 }
 // 对 insertData 函数封装处理下
-async function insertDataFun(records){
-    // 需要获取 updateTime 字段，并保存到文件中记录最近的更新时间
-    if (records['updateTime'] != null) {
-      fs.writeFileSync(updateTimePath, records['updateTime'])
-      delete records['updateTime'] // 删除数据
-    }
-    return await insertData(records)
+async function insertDataFun(records) {
+  // 需要获取 updateTime 字段，并保存到文件中记录最近的更新时间
+  if (records['updateTime'] != null) {
+    fs.writeFileSync(updateTimePath, records['updateTime'])
+    delete records['updateTime'] // 删除数据
+  }
+  return await insertData(records)
 }
 // 触发正常退出
 async function exitFun() {

@@ -48,8 +48,8 @@ export default defineComponent({
     const contentText = computed(() => content[lang.value]);
 
     const store = useAustinStore();
-    //console.log(store.myTheme)
-    const theme = toRef(null)
+    // console.log(store.myTheme)
+    const theme = toRef(store.myTheme)  // 修复默认主题异常
     function changeTheme() {
       if (store.myTheme == 'dark') {
         store.myTheme = 'light'
