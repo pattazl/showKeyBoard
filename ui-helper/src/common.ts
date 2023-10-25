@@ -143,16 +143,7 @@ function getKeyDesc(keyName) {
     .replace(/>#/g, 'RWin ')
     .replace(/#/g, 'Win ')
 }
-let lastLeftKey = [], LastKeyStatHash = {};
 function showLeftKey(switchVal,leftKey, keyStatHash) {
-  console.log(switchVal)
-  if (leftKey != null && keyStatHash != null) {
-    lastLeftKey = leftKey
-    LastKeyStatHash = keyStatHash
-  } else { // 使用上一次的
-    leftKey = lastLeftKey
-    keyStatHash = LastKeyStatHash
-  }
   // 需要合并 左右控制键
   let newArr = new Set<string>();
   let newItemHash = {};

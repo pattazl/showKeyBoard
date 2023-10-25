@@ -385,6 +385,7 @@ export default defineComponent({
       }
       showHash(keyStatHash)
     }
+    let lastLeftKey = [], LastKeyStatHash = {};
     // 显示数据
     function showHash(keyStatHash) {
       let keyArr = []  // 已经统计的数据清单
@@ -421,6 +422,7 @@ export default defineComponent({
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
+      lastLeftKey = leftKey, LastKeyStatHash = keyStatHash;
       dataTable.value = showLeftKey(leftKeySwitch.value, leftKey, keyStatHash)
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
@@ -442,7 +444,7 @@ export default defineComponent({
       }
     }
     function showLeftKeyRef() {
-      dataTable.value = showLeftKey(leftKeySwitch.value, null, null)
+      dataTable.value = showLeftKey(leftKeySwitch.value, lastLeftKey, LastKeyStatHash)
     }
     onMounted(() => {
       chartDom = document.getElementById('main');
