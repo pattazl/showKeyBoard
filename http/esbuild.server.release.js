@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-let outDir = '../httpdist/dist'
+let outDir = '../build/httpdist/dist'
 const esbuildConfig = () => require('esbuild').buildSync({
     entryPoints: [
         'src/server.js',

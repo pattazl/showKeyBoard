@@ -50,6 +50,9 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve('./src'),
       },
     },
+    build: {
+        outDir: '../build/httpdist/dist/ui' // 设置输出目录为 ui
+    },
     plugins: [
       vue(),
       AutoImport({
