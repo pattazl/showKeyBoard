@@ -15,12 +15,12 @@
       </n-card>
       <n-card :title="contentText.intro87 + contentText.intro142 + updateTime">
         <template #header-extra>
-          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKey">
+          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
             <template #checked>
-              合并左右控制键
+              {{ contentText.intro143 }}
             </template>
             <template #unchecked>
-              左右控制键分别显示
+              {{ contentText.intro144 }}
             </template>
           </n-switch>
         </template>
@@ -33,7 +33,7 @@
 <script lang="ts">
 import { useAustinStore } from '../../App.vue'
 import dayjs from 'dayjs'
-import { defineComponent, onMounted, PropType, ref, computed, h, watch, CSSProperties } from 'vue'
+import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
@@ -52,7 +52,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, deepCopy,getKeyDesc } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey,railStyle } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -273,6 +273,8 @@ export default defineComponent({
     const beginDate = ref(0);
     const endDate = ref(0);
     const updateTime = ref('');
+    // 显示剩余按键
+    const leftKeySwitch = ref(0);
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
@@ -419,7 +421,7 @@ export default defineComponent({
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
-      showLeftKey(leftKey,keyStatHash)
+      dataTable.value = showLeftKey(leftKeySwitch.value, leftKey, keyStatHash)
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
         let pixel = keyStatHash['mouseDistance']; //获取像素移动距离
@@ -439,25 +441,8 @@ export default defineComponent({
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
     }
-    // 显示剩余按键
-    let lastLeftKey = [] ,LastKeyStatHash = {} , leftKeySwitch = ref(0);
-    function showLeftKey(leftKey,keyStatHash) {
-      if(leftKey !=null && keyStatHash!=null){
-        lastLeftKey = leftKey
-        LastKeyStatHash = keyStatHash
-      }else{ // 使用上一次的
-        leftKey = lastLeftKey
-        keyStatHash = LastKeyStatHash
-      }
-      // 需要合并 左右控制键
-      let tempLeftKey = deepCopy(leftKey)
-      let tempKeyStatHash = deepCopy(keyStatHash)
-      if(leftKeySwitch.value){ // 合并
-
-      }
-      dataTable.value = tempLeftKey.map(function (item) {
-        return { keyName: item, count: tempKeyStatHash[item], desc: getKeyDesc(item, contentText.value) }
-      })
+    function showLeftKeyRef() {
+      dataTable.value = showLeftKey(leftKeySwitch.value, null, null)
     }
     onMounted(() => {
       chartDom = document.getElementById('main');
@@ -483,28 +468,8 @@ export default defineComponent({
       mouseTable,
       updateTime,
       leftKeySwitch,
-      showLeftKey,
-      railStyle: ({
-        focused,
-        checked
-      }: {
-        focused: boolean
-        checked: boolean
-      }) => {
-        const style: CSSProperties = {}
-        if (checked) {
-          style.background = '#d03050'
-          if (focused) {
-            style.boxShadow = '0 0 0 2px #d0305040'
-          }
-        } else {
-          style.background = '#2080f0'
-          if (focused) {
-            style.boxShadow = '0 0 0 2px #2080f040'
-          }
-        }
-        return style
-      }
+      showLeftKeyRef,
+      railStyle,
     }
   },
 })

@@ -1,3 +1,4 @@
+import { CSSProperties } from 'vue'
 
 function deepCopy(obj) {
   if (typeof obj !== 'object' || obj === null) {
@@ -43,7 +44,7 @@ async function ajax(path, data = null) {
   return result
 }
 // 布尔类型清单,bool list
-const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug','hideInWinPwd']
+const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {
@@ -54,8 +55,8 @@ function str2Type(hash, flag) {
       }
       if (boolArr.indexOf(k) > -1) {
         hash[k] = hash[k] == 1
-      } else if ( /^-?(?!0\d)\d+$/.test(hash[k])) { // 如果不是0，但是用0开头的数字，则为字符串，解决颜色的bug
-          hash[k] = Number(hash[k]);
+      } else if (/^-?(?!0\d)\d+$/.test(hash[k])) { // 如果不是0，但是用0开头的数字，则为字符串，解决颜色的bug
+        hash[k] = Number(hash[k]);
       }
     } else { // 界面转换给数据
       if (boolArr.indexOf(k) > -1) {
@@ -127,7 +128,7 @@ async function getHistory(beginDate, endDate) {
   return res
 }
 // 根据键名缩写转换为说明
-function getKeyDesc(keyName, contentText) {
+function getKeyDesc(keyName) {
   return keyName
     .replace(/<\+/g, 'LShift ')
     .replace(/>\+/g, 'RShift ')
@@ -142,5 +143,62 @@ function getKeyDesc(keyName, contentText) {
     .replace(/>#/g, 'RWin ')
     .replace(/#/g, 'Win ')
 }
-
-export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory,getServer,getKeyDesc }
+let lastLeftKey = [], LastKeyStatHash = {};
+function showLeftKey(switchVal,leftKey, keyStatHash) {
+  console.log(switchVal)
+  if (leftKey != null && keyStatHash != null) {
+    lastLeftKey = leftKey
+    LastKeyStatHash = keyStatHash
+  } else { // 使用上一次的
+    leftKey = lastLeftKey
+    keyStatHash = LastKeyStatHash
+  }
+  // 需要合并 左右控制键
+  let newArr = new Set<string>();
+  let newItemHash = {};
+  let tempLeftKey = leftKey;
+  if (switchVal) { // 合并
+    leftKey.forEach(function (item) {
+      let newItem = item.replace(/[<>]/g, '')
+      if (newItem != item) {
+        if (newItemHash[newItem] == null) {
+          newItemHash[newItem] = []
+        }
+        newItemHash[newItem].push(item)
+      }
+      newArr.add(newItem)
+    })
+    tempLeftKey = Array.from(newArr);
+  }
+  return tempLeftKey.map(function (item) {
+    let count = 0
+    if (newItemHash[item] != null) { // 经过替换，需要循环累加
+      count = newItemHash[item].reduce((acc, curr) => acc + keyStatHash[curr], 0);
+    } else {
+      count = keyStatHash[item]
+    }
+    return { keyName: item, count, desc: getKeyDesc(item) }
+  })
+}
+function railStyle({
+  focused,
+  checked
+}: {
+  focused: boolean
+  checked: boolean
+}) {
+  const style: CSSProperties = {}
+  if (checked) {
+    style.background = '#d03050'
+    if (focused) {
+      style.boxShadow = '0 0 0 2px #d0305040'
+    }
+  } else {
+    style.background = '#2080f0'
+    if (focused) {
+      style.boxShadow = '0 0 0 2px #2080f040'
+    }
+  }
+  return style
+}
+export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer, getKeyDesc,showLeftKey,railStyle }

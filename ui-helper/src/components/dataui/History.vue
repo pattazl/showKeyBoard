@@ -12,6 +12,16 @@
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
       <n-card :title="contentText.intro87">
+        <template #header-extra>
+          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
+            <template #checked>
+              {{ contentText.intro143 }}
+            </template>
+            <template #unchecked>
+              {{ contentText.intro144 }}
+            </template>
+          </n-switch>
+        </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
     </n-space>
@@ -20,7 +30,7 @@
 
 <script lang="ts">
 import { useAustinStore } from '../../App.vue'
-import dayjs from 'dayjs' 
+import dayjs from 'dayjs'
 import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
@@ -40,7 +50,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax,getKeyDesc } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -145,16 +155,16 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
       let isMatch = false
       val = matchKey.reduce((accumulator, k) => {
         let v = keyStatHash[k];
-        if( v != null){
-          isMatch  = true;
-        }else{
+        if (v != null) {
+          isMatch = true;
+        } else {
           v = 0
         }
         return accumulator + v
-        },0)
+      }, 0)
       if (isMatch) break;
-      val = null ; //没有匹配上需要清空
-    }else{
+      val = null; //没有匹配上需要清空
+    } else {
       // 尝试用 key 
       matchKey = key
       val = keyStatHash[matchKey]
@@ -204,6 +214,8 @@ export default defineComponent({
     const columns0 = ref([]);
     const historyDate = ref([]);
     const beginDate = ref('');
+    // 显示剩余按键
+    const leftKeySwitch = ref(0);
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
@@ -275,7 +287,7 @@ export default defineComponent({
         ]
     }
     async function handleUpdateValue(value) {
-      historyData = await getHistory(value,value)
+      historyData = await getHistory(value, value)
       let keyStatHash = getHash('')
       showHash(keyStatHash)
     }
@@ -314,9 +326,7 @@ export default defineComponent({
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
-      dataTable.value = leftKey.map(function (item) {
-        return { keyName: item, count: keyStatHash[item], desc: getKeyDesc(item, contentText.value) }
-      })
+      dataTable.value = showLeftKey(leftKeySwitch.value, leftKey, keyStatHash)
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
@@ -337,26 +347,28 @@ export default defineComponent({
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
     }
+    function showLeftKeyRef() {
+      dataTable.value = showLeftKey(leftKeySwitch.value, null, null)
+    }
     onMounted(async () => {
       chartDom = document.getElementById('main');
-      myChart = echarts.init(chartDom,store.myTheme);
+      myChart = echarts.init(chartDom, store.myTheme);
       // 设置下拉选择
       let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
         return { label: x, value: x }
       })
-      if(dateArr.length>0)
-      {
-        beginDate.value = dateArr[0] ;// 设置选择第一个
+      if (dateArr.length > 0) {
+        beginDate.value = dateArr[0];// 设置选择第一个
         handleUpdateValue(dateArr[0])
       }
 
     })
     watch(() => store.myTheme, (newValue, oldValue) => {
       myChart.dispose()
-      myChart = echarts.init(chartDom,newValue);
+      myChart = echarts.init(chartDom, newValue);
       myChart.setOption(option);
-     });
+    });
     return {
       strLeftKeyVal,
       columns,
@@ -367,6 +379,9 @@ export default defineComponent({
       beginDate,
       handleUpdateValue,
       mouseTable,
+      leftKeySwitch,
+      showLeftKeyRef,
+      railStyle,
     }
   },
 })

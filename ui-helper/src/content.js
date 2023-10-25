@@ -169,7 +169,9 @@ export default {
 	intro139: '如果允许，则可通过如下地址来远程访问或控制',
 	intro140: '在密码输入框中使用掩码*，不显示密码',
 	intro141: '仅支持windows客户端的原生密码输入框，不支持浏览器或定制密码输入框',
-	intro142: ',更新时间:',
+	intro142: ',更新时间: ',
+	intro143: '合并左右控制键',
+	intro144: '左右控制键分别显示',
 
   },
   'en-US': {
@@ -341,5 +343,7 @@ export default {
 	intro140: 'Display mask * when in password input,not display the password',
 	intro141: 'Only support native password input, not support browsers or custom password input',
 	intro142: ',Update Time:',
+	intro143: 'Merge left and right control keys',
+	intro144: 'Displayed left and right control keys ',
   }
 };
