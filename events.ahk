@@ -11,6 +11,9 @@ if(needRecordKey=1){
 SetTimer IniMonitor,2000
 IniMonitor(){
     global lastModified
+    if not FileExist(IniFile){
+        return
+    }
     modified := FileGetTime(IniFile)
     if (modified != lastModified)
     {
