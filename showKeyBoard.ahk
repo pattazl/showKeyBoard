@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.14.0.0
-;@Ahk2Exe-SetFileVersion 1.14.0.0
+;@Ahk2Exe-SetProductVersion 1.15.0.0
+;@Ahk2Exe-SetFileVersion 1.15.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.14" 
+global APPName:="ShowKeyBoard", ver:="1.15" 
 #include "common.ahk"
 #Include events.ahk
 ; 正式代码开始
@@ -262,7 +262,9 @@ ExitFunc(ExitReason, ExitCode)
         ;    return 1  ; Callbacks must return non-zero to avoid exit.
     ;}
     ; 需要将 临时的配置开关保存
-    IniWrite(needShowKey,IniFile,"common","needShowKey")
+    If FileExist(IniFile){
+        IniWrite(needShowKey,IniFile,"common","needShowKey")
+    }
     ; 检查后台服务情况
 	pidPath := httpPath 'kbserver.pid'
 	lastRecordPath := httpPath 'lastRecord.json'

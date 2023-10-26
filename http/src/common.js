@@ -106,9 +106,10 @@ function createServer() {
 }
 // 解决 \# 的转义问题
 function myIniwrite(config) {
-  let s = config.replace(/\\#/g,'#')
+  let s = ini.stringify(config)
+  s = s.replace(/\\#/g,'#')
   s = s.replace(/=(.*#.*)/g,'="$1"')
-  fs.writeFileSync(iniPath, ini.stringify(config))
+  fs.writeFileSync(iniPath, s )
 }
 function writePort() {
   if (port != parseInt(config.common.serverPort)) {

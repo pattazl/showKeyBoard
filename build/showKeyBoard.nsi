@@ -3,11 +3,12 @@
 
 ; °²×°³ÌÐò³õÊ¼¶¨Òå³£Á¿
 !define PRODUCT_NAME $(ToolLang)
-!define PRODUCT_VERSION "v1.14"
+!define PRODUCT_VERSION "v1.15"
 !define /date DATESTR "%y%m%d"
+!define ExeName "showKeyBoard.exe"
 !define PRODUCT_PUBLISHER "Austin.Young"
 !define PRODUCT_WEB_SITE "https://github.com/pattazl/showKeyBoard"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\ShowKeyBoard.exe"
+!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${ExeName}"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
@@ -31,15 +32,16 @@ SetCompressor lzma
 !define MUI_LANGDLL_REGISTRY_VALUENAME "NSIS:Language"
 
 ; »¶Ó­Ò³Ãæ
+
 !insertmacro MUI_PAGE_WELCOME
 ; Ðí¿ÉÐ­ÒéÒ³Ãæ
-;!insertmacro MUI_PAGE_LICENSE "c:\path\to\licence\YourSoftwareLicence.txt"
+!insertmacro MUI_PAGE_LICENSE "..\LICENSE"
 ; °²×°Ä¿Â¼Ñ¡ÔñÒ³Ãæ
 !insertmacro MUI_PAGE_DIRECTORY
 ; °²×°¹ý³ÌÒ³Ãæ
 !insertmacro MUI_PAGE_INSTFILES
 ; °²×°Íê³ÉÒ³Ãæ
-!define MUI_FINISHPAGE_RUN "$INSTDIR\ShowKeyBoard.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\${ExeName}"
 !insertmacro MUI_PAGE_FINISH
 
 ; °²×°Ð¶ÔØ¹ý³ÌÒ³Ãæ
@@ -50,6 +52,7 @@ SetCompressor lzma
 !insertmacro MUI_LANGUAGE "SimpChinese"
 
 ; °²×°Ô¤ÊÍ·ÅÎÄ¼þ
+!insertmacro MUI_RESERVEFILE_LANGDLL
 !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
 ; ------ MUI ÏÖ´ú½çÃæ¶¨Òå½áÊø ------
 
@@ -59,11 +62,10 @@ InstallDir "$PROGRAMFILES\ShowKeyBoard"
 InstallDirRegKey HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
 ShowInstDetails show
 ShowUnInstDetails show
-BrandingText "ShowKeyBoard"
 
 
-LangString ToolLang ${LANG_SIMPCHINESE} "ShowKeyBoard,¼üÅÌÊó±êÐÐÎª·ÖÎö¹¤¾ß"
-LangString ToolLang ${LANG_ENGLISH} "ShowKeyBoard,Statistic for keyboard/mouse"
+LangString ToolLang ${LANG_SIMPCHINESE} "ShowKeyBoard¼üÅÌÊó±êÐÐÎª·ÖÎö¹¤¾ß"  ; ²úÆ·ÃûÖÐ²»ÄÜÓÐ¶ººÅ£¬·ñÔò¿ÉÄÜ²»»áµ¯³öÓïÑÔÑ¡Ôñ¿ò
+LangString ToolLang ${LANG_ENGLISH} "ShowKeyBoard-Statistic for KeyboardMouse"
 
 
 LangString UNINSTALL_CONFIRM ${LANG_SIMPCHINESE} " ÄãÈ·¶¨ÒªÐ¶ÔØ "
@@ -73,7 +75,7 @@ LangString UNINSTALL_SUCC ${LANG_SIMPCHINESE} "ÒÑ³É¹¦µØ´ÓÄãµÄ¼ÆËã»úÒÆ³ý¡£"
 LangString UNINSTALL_SUCC ${LANG_ENGLISH} "Uninstall success."
 
 LangString KeyBoardPath ${LANG_SIMPCHINESE} "¼üÅÌÊó±ê"
-LangString KeyBoardPath ${LANG_ENGLISH} "KeyBoard"
+LangString KeyBoardPath ${LANG_ENGLISH} "KeyboardMouse"
 
 LangString warnmsg1 ${LANG_ENGLISH} "Find the configuration in the installation directory. Do you want to delete it?$\r$\n click $\"YES$\" for delete, click $\"NO$\" reserved"
 LangString warnmsg1 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÅäÖÃÎÄ¼þ£¬ÊÇ·ñÉ¾³ý£¿$\r$\nµ¥»÷¡°YES¡±É¾³ý£¬µ¥»÷¡°NO¡±±£Áô"
@@ -83,6 +85,9 @@ LangString warnmsg2 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÍ³¼Æ¼ÇÂ¼£¬ÊÇ·ñÉ¾³ý£
 
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "ÊÇ·ñ±£ÁôÅäÖÃºÍ¼ÇÂ¼£¿$\r$\n$\r$\nÈ·¶¨±£Áô£¿£¨µ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±Çå³ý£¬½¨Òé±£Áô£©"
+
+LangString isRunning ${LANG_ENGLISH} "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install"
+LangString isRunning ${LANG_SIMPCHINESE} "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³ö°²×°³ÌÐò¡£"
 
 
 Section "MainSection" SEC01
@@ -100,7 +105,7 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
   
 ; ÅäÖÃÎÄ¼þÈç¹û´æÔÚ²»ÄÜ¸²¸Ç
   SetOverwrite on
-    File "ShowKeyBoard.exe"
+    File "${ExeName}"
   SetOverwrite off
     File "showKeyBoard.ini"
     File "KeyList.txt"
@@ -108,7 +113,7 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
   SetOutPath "$INSTDIR\httpdist"
     File "httpdist\package.json"
   SetOutPath "$INSTDIR\httpdist\dist"
-    File "httpdist\dist\node.exe"
+    ; File "httpdist\dist\node.exe"
     File "httpdist\dist\server.js"
     File "httpdist\dist\showKeyBoard.desc.ini"
   SetOverwrite off
@@ -117,6 +122,7 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
     File /r "httpdist\dist\lib\*"
   SetOverwrite on
   SetOutPath "$INSTDIR\httpdist\dist\ui"
+    delete "$INSTDIR\httpdist\dist\ui\*"
     File /r "httpdist\dist\ui\*"
 
 
@@ -124,21 +130,21 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
 
   SetOutPath "$INSTDIR"
   CreateDirectory "$SMPROGRAMS\$(KeyBoardPath)"
-  CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk" "$INSTDIR\ShowKeyBoard.exe" "" "$INSTDIR\ShowKeyBoard.exe"
-  CreateShortCut "$DESKTOP\ShowKeyBoard.lnk" "$INSTDIR\ShowKeyBoard.exe" "" "$INSTDIR\ShowKeyBoard.exe"
+  CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
+  CreateShortCut "$DESKTOP\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
 SectionEnd
 
 Section -AdditionalIcons
-  ;WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+  WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\ShowKeyBoard.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${ExeName}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\ShowKeyBoard.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\${ExeName}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   ;WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
@@ -151,15 +157,15 @@ SectionEnd
  ******************************/
 
 Section Uninstall
-    MessageBox MB_YESNO $(unRegMsg) IDYES false IDNO true
-    true:
+    MessageBox MB_YESNO $(unRegMsg) IDYES keepConf IDNO removeConf
+    removeConf:
 	Delete "$INSTDIR\showKeyBoard.ini"
     Delete "$INSTDIR\KeyList.txt"
     Delete "$INSTDIR\httpdist\dist\records.db"
     
-	false:
+	keepConf:
     Delete "$INSTDIR\uninst.exe"
-    Delete "$INSTDIR\showKeyBoard.exe"
+    Delete "$INSTDIR\${ExeName}"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk"
     Delete "$DESKTOP\ShowKeyBoard.lnk"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk"
@@ -187,12 +193,35 @@ SectionEnd
 
 #-- ¸ù¾Ý NSIS ½Å±¾±à¼­¹æÔò£¬ËùÓÐ Function Çø¶Î±ØÐë·ÅÖÃÔÚ Section Çø¶ÎÖ®ºó±àÐ´£¬ÒÔ±ÜÃâ°²×°³ÌÐò³öÏÖÎ´¿ÉÔ¤ÖªµÄÎÊÌâ¡£--#
 Function .onInit
-  !insertmacro MUI_LANGDLL_DISPLAY
+   !insertmacro MUI_LANGDLL_DISPLAY
+   findRun:
+   nsProcess::_FindProcess "${ExeName}"
+   Pop $R0
+   IntCmp $R0 0 isRun no_run no_run
+   isRun:
+   MessageBox MB_OKCANCEL|MB_ICONSTOP  $(isRunning) IDOK findRun IDCANCEL Exit
+   ;nsProcess::_KillProcess "AppSetup.exe"
+   Exit:
+   Abort  ; Quit
+   no_run:
+
 FunctionEnd
 
 Function un.onInit
+!insertmacro MUI_UNGETLANGUAGE
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "$(UNINSTALL_CONFIRM) $(^Name) £¿" IDYES +2
   Abort
+  
+  findRun:
+   nsProcess::_FindProcess "${ExeName}"
+   Pop $R0
+   IntCmp $R0 0 isRun no_run no_run
+   isRun:
+   MessageBox MB_OKCANCEL|MB_ICONSTOP  $(isRunning) IDOK findRun IDCANCEL Exit
+   ;nsProcess::_KillProcess "AppSetup.exe"
+   Exit:
+   Abort
+   no_run:
 FunctionEnd
 
 Function un.onUninstSuccess
