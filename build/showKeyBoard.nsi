@@ -63,9 +63,9 @@ InstallDirRegKey HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
 ShowInstDetails show
 ShowUnInstDetails show
 
-
-LangString ToolLang ${LANG_SIMPCHINESE} "ShowKeyBoard¼üÅÌÊó±êÐÐÎª·ÖÎö¹¤¾ß"  ; ²úÆ·ÃûÖÐ²»ÄÜÓÐ¶ººÅ£¬·ñÔò¿ÉÄÜ²»»áµ¯³öÓïÑÔÑ¡Ôñ¿ò
-LangString ToolLang ${LANG_ENGLISH} "ShowKeyBoard-Statistic for KeyboardMouse"
+; ²úÆ·ÃûÊÇ×÷Îª°²×°Ð¶ÔØµÄÒÀ¾Ý£¬Í¬Ê±»á¼ÇÂ¼ÓïÑÔÑ¡Ôñ¿ò
+LangString ToolLang ${LANG_SIMPCHINESE} "¼üÅÌÊó±êÐÐÎª·ÖÎö¹¤¾ß"  
+LangString ToolLang ${LANG_ENGLISH} "ShowKeyBoard Statistic"
 
 
 LangString UNINSTALL_CONFIRM ${LANG_SIMPCHINESE} " ÄãÈ·¶¨ÒªÐ¶ÔØ "
@@ -86,8 +86,8 @@ LangString warnmsg2 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÍ³¼Æ¼ÇÂ¼£¬ÊÇ·ñÉ¾³ý£
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "ÊÇ·ñ±£ÁôÅäÖÃºÍ¼ÇÂ¼£¿$\r$\n$\r$\nÈ·¶¨±£Áô£¿£¨µ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±Çå³ý£¬½¨Òé±£Áô£©"
 
-LangString isRunning ${LANG_ENGLISH} "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install"
-LangString isRunning ${LANG_SIMPCHINESE} "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³ö°²×°³ÌÐò¡£"
+LangString isRunning ${LANG_ENGLISH} "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
+LangString isRunning ${LANG_SIMPCHINESE} "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌÐò¡£"
 
 
 Section "MainSection" SEC01
@@ -113,7 +113,7 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
   SetOutPath "$INSTDIR\httpdist"
     File "httpdist\package.json"
   SetOutPath "$INSTDIR\httpdist\dist"
-    ; File "httpdist\dist\node.exe"
+    File "httpdist\dist\node.exe"
     File "httpdist\dist\server.js"
     File "httpdist\dist\showKeyBoard.desc.ini"
   SetOverwrite off
@@ -122,7 +122,7 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
     File /r "httpdist\dist\lib\*"
   SetOverwrite on
   SetOutPath "$INSTDIR\httpdist\dist\ui"
-    delete "$INSTDIR\httpdist\dist\ui\*"
+    RMDir /r "$INSTDIR\httpdist\dist\ui\*"
     File /r "httpdist\dist\ui\*"
 
 
@@ -136,6 +136,7 @@ SectionEnd
 
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+  CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
@@ -164,9 +165,11 @@ Section Uninstall
     Delete "$INSTDIR\httpdist\dist\records.db"
     
 	keepConf:
+    Delete "$INSTDIR\${PRODUCT_NAME}.url"
     Delete "$INSTDIR\uninst.exe"
     Delete "$INSTDIR\${ExeName}"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk"
+    Delete "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk"
     Delete "$DESKTOP\ShowKeyBoard.lnk"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk"
 
@@ -205,6 +208,12 @@ Function .onInit
    Abort  ; Quit
    no_run:
 
+  ReadRegStr $0 HKLM "${PRODUCT_DIR_REGKEY}" ""
+  ; Èç¹ûÕÒµ½°²×°Ä¿Â¼£¬ÔòÉèÖÃÎªÄ¬ÈÏ°²×°Ä¿Â¼
+  ${If} $0 != ""
+    ${GetParent} $0 $R0
+    StrCpy $INSTDIR $R0
+  ${EndIf}
 FunctionEnd
 
 Function un.onInit
