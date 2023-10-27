@@ -36,6 +36,8 @@ SetCompressor lzma
 !insertmacro MUI_PAGE_WELCOME
 ; Ðí¿ÉÐ­ÒéÒ³Ãæ
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
+; ×é¼þÑ¡ÔñÒ³Ãæ
+!insertmacro MUI_PAGE_COMPONENTS
 ; °²×°Ä¿Â¼Ñ¡ÔñÒ³Ãæ
 !insertmacro MUI_PAGE_DIRECTORY
 ; °²×°¹ý³ÌÒ³Ãæ
@@ -77,11 +79,11 @@ LangString UNINSTALL_SUCC ${LANG_ENGLISH} "Uninstall success."
 LangString KeyBoardPath ${LANG_SIMPCHINESE} "¼üÅÌÊó±ê"
 LangString KeyBoardPath ${LANG_ENGLISH} "KeyboardMouse"
 
-LangString warnmsg1 ${LANG_ENGLISH} "Find the configuration in the installation directory. Do you want to delete it?$\r$\n click $\"YES$\" for delete, click $\"NO$\" reserved"
-LangString warnmsg1 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÅäÖÃÎÄ¼þ£¬ÊÇ·ñÉ¾³ý£¿$\r$\nµ¥»÷¡°YES¡±É¾³ý£¬µ¥»÷¡°NO¡±±£Áô"
+LangString warnmsg1 ${LANG_ENGLISH} "Find the configuration in the installation directory. Do you want to reserve it?$\r$\n click $\"YES$\" for reserved, click $\"NO$\" delete"
+LangString warnmsg1 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÅäÖÃÎÄ¼þ£¬ÊÇ·ñÉ¾³ý£¿$\r$\nµ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±É¾³ý"
 
-LangString warnmsg2 ${LANG_ENGLISH} "Find the records in the installation directory. Do you want to delete it?$\r$\n click $\"YES$\" for delete, click $\"NO$\" reserved"
-LangString warnmsg2 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÍ³¼Æ¼ÇÂ¼£¬ÊÇ·ñÉ¾³ý£¿$\r$\nµ¥»÷¡°YES¡±É¾³ý£¬µ¥»÷¡°NO¡±±£Áô"
+LangString warnmsg2 ${LANG_ENGLISH} "Find the records in the installation directory. Do you want to reserve it?$\r$\n click $\"YES$\" for reserved, click $\"NO$\" delete"
+LangString warnmsg2 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÍ³¼Æ¼ÇÂ¼£¬ÊÇ·ñÉ¾³ý£¿$\r$\nµ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±É¾³ý"
 
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "ÊÇ·ñ±£ÁôÅäÖÃºÍ¼ÇÂ¼£¿$\r$\n$\r$\nÈ·¶¨±£Áô£¿£¨µ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±Çå³ý£¬½¨Òé±£Áô£©"
@@ -89,18 +91,34 @@ LangString unRegMsg ${LANG_SIMPCHINESE} "ÊÇ·ñ±£ÁôÅäÖÃºÍ¼ÇÂ¼£¿$\r$\n$\r$\nÈ·¶¨±£Á
 LangString isRunning ${LANG_ENGLISH} "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
 LangString isRunning ${LANG_SIMPCHINESE} "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌÐò¡£"
 
+LangString mainSect ${LANG_SIMPCHINESE} "ºËÐÄÄ£¿é"
+LangString mainSect ${LANG_ENGLISH} "Main"
+LangString mainSectDesc ${LANG_SIMPCHINESE} "ºËÐÄÄ£¿é£¬±ØÐë°²×°"
+LangString mainSectDesc ${LANG_ENGLISH} "Must be installed"
 
-Section "MainSection" SEC01
+LangString deskSect ${LANG_SIMPCHINESE} "×ÀÃæ¿ì½Ý·½Ê½"
+LangString deskSect ${LANG_ENGLISH} "Desk shortcut"
+LangString deskSectDesc ${LANG_SIMPCHINESE} "´´½¨×ÀÃæ¿ì½Ý·½Ê½"
+LangString deskSectDesc ${LANG_ENGLISH} "Create desk shortcut"
+
+LangString menuSect ${LANG_SIMPCHINESE} "²Ëµ¥¿ì½Ý·½Ê½"
+LangString menuSect ${LANG_ENGLISH} "Menu shortcut"
+LangString menuSectDesc ${LANG_SIMPCHINESE} "´´½¨²Ëµ¥¿ì½Ý·½Ê½"
+LangString menuSectDesc ${LANG_ENGLISH} "Create shortcut in windows menu"
+
+
+Section $(mainSect) mainSect
+  SectionIn RO ; ½« section ÉèÖÃÎªÖ»¶Á£¬ÒÔ½ûÖ¹ÓÃ»§Ñ¡Ôñ»òÈ¡ÏûÑ¡Ôñ
 
   SetOutPath "$INSTDIR"
   
 IfFileExists '$INSTDIR\showKeyBoard.ini' +1 +4
-  MessageBox MB_YESNO|MB_DEFBUTTON2 $(warnmsg1) IDNO +3
+  MessageBox MB_YESNO|MB_DEFBUTTON1 $(warnmsg1) IDYES +3
   delete "$SYSDIR\showKeyBoard.ini"
   delete "$SYSDIR\KeyList.txt"
 
 IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
-  MessageBox MB_YESNO|MB_DEFBUTTON2 $(warnmsg2) IDNO +2
+  MessageBox MB_YESNO|MB_DEFBUTTON1 $(warnmsg2) IDYES +2
   delete "$INSTDIR\httpdist\dist\records.db"
   
 ; ÅäÖÃÎÄ¼þÈç¹û´æÔÚ²»ÄÜ¸²¸Ç
@@ -125,19 +143,13 @@ IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
     RMDir /r "$INSTDIR\httpdist\dist\ui\*"
     File /r "httpdist\dist\ui\*"
 
-
   ClearErrors
 
-  SetOutPath "$INSTDIR"
-  CreateDirectory "$SMPROGRAMS\$(KeyBoardPath)"
-  CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
-  CreateShortCut "$DESKTOP\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
 SectionEnd
 
+
 Section -AdditionalIcons
-  WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-  CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk" "$INSTDIR\uninst.exe"
+    WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
 SectionEnd
 
 Section -Post
@@ -152,7 +164,24 @@ Section -Post
 
 SectionEnd
 
+Section $(deskSect) deskSect
+    ;SetShellVarContext current
+    CreateShortCut "$DESKTOP\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
+SectionEnd
 
+Section $(menuSect) menuSect
+    ;SetShellVarContext current
+    CreateDirectory "$SMPROGRAMS\$(KeyBoardPath)"
+    CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
+    CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+    CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk" "$INSTDIR\uninst.exe"
+SectionEnd
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+	!insertmacro MUI_DESCRIPTION_TEXT ${mainSect} $(mainSectDesc)
+	!insertmacro MUI_DESCRIPTION_TEXT ${deskSect} $(deskSectDesc)
+	!insertmacro MUI_DESCRIPTION_TEXT ${menuSect} $(menuSectDesc)
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
 /******************************
  *  ÒÔÏÂÊÇ°²×°³ÌÐòµÄÐ¶ÔØ²¿·Ö  *
  ******************************/
