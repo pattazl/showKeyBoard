@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName } = require('./records');
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName ,updateDBStruct} = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -158,6 +158,8 @@ async function startUp() {
   if (!hasError) {
     autoSaveFun()
   }
+  // 需要检查和更新数据库表结构
+  updateDBStruct();
 }
 function autoSaveFun(interval) {
   if (interval == null) {

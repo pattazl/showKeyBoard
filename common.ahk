@@ -47,7 +47,8 @@ httpDistPath :=IniRead(IniFile,"common","httpDistPath", "\httpdist\dist\" )
 
 hideInWinPwd :=IniRead(IniFile,"common","hideInWinPwd", "0" ) 
 ; 在window密码框中输入自动隐藏显示
-
+statProcInfo :=IniRead(IniFile,"common","statProcInfo", "0" )
+; 是否发送按键对应的进程信息，可用于统计不同进程下的按键数
 ; 配置参数
 guiWidth :=IniRead(IniFile,"dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=IniRead(IniFile,"dialog","guiHeigth", 0 ) ;高度 0 为自动高度

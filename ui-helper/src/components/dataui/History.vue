@@ -11,6 +11,9 @@
       <n-card :title="contentText.intro97">
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
+      <n-card :title="contentText.intro149">
+        <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
+      </n-card>
       <n-card :title="contentText.intro87">
         <template #header-extra>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
@@ -36,7 +39,7 @@ import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { HeatmapChart, HeatmapSeriesOption } from 'echarts/charts';
+import { HeatmapChart, BarChart } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -50,7 +53,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -64,7 +67,8 @@ echarts.use([
   UniversalTransition,
   CanvasRenderer,
   HeatmapChart,
-  VisualMapComponent
+  VisualMapComponent,
+  BarChart,
 ]);
 
 // prettier-ignore
@@ -72,6 +76,7 @@ let hashTxtData = {}; // 按键上显示的内容
 let hashOriData = {}; // 原始定义的内容，提示框上显示
 let historyData = []
 let keyData = [];
+let appNameListMap = {};
 
 var option = {
   textStyle: {
@@ -146,6 +151,62 @@ var option = {
     }
   ]
 };
+let option2 = {
+  aria: {
+    enabled: true,
+    show: true,
+    decal: {
+      show: true,
+      decals: {
+        symbol: 'react'
+      }
+    }
+  },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: {
+      type: 'cross'
+    }
+  },
+  legend: {},
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '3%',
+    containLabel: true
+  },
+  xAxis: [
+    {
+      type: 'category',
+      data: ['Mon']
+    }
+  ],
+  yAxis: [
+    {
+      type: 'value'
+    }
+  ],
+  series: [
+    {
+      name: 'Mouse',
+      type: 'bar',
+      stack: 'apps',
+      emphasis: {
+        focus: 'series'
+      },
+      data: [320]
+    },
+    {
+      name: 'Keyboard',
+      type: 'bar',
+      stack: 'apps',
+      emphasis: {
+        focus: 'series'
+      },
+      data: [120]
+    }
+  ]
+};
 // 合并最匹配的键盘统计数据，并整理遗留的数据信息
 function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   let val, matchKey;
@@ -206,7 +267,8 @@ export default defineComponent({
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
-    let chartDom, myChart;
+    appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
+    let chartDom, myChart, chartDom2, myChart2;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
     let mouseTable = ref([])
@@ -323,6 +385,8 @@ export default defineComponent({
       //let leftHash = {};
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
+      // 显示 chart2
+      showAppChart(leftKey, keyStatHash, option2, myChart2);
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
@@ -355,6 +419,8 @@ export default defineComponent({
     onMounted(async () => {
       chartDom = document.getElementById('main');
       myChart = echarts.init(chartDom, store.myTheme);
+      chartDom2 = document.getElementById('main2');
+      myChart2 = echarts.init(chartDom2, store.myTheme);
       // 设置下拉选择
       let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
@@ -370,6 +436,10 @@ export default defineComponent({
       myChart.dispose()
       myChart = echarts.init(chartDom, newValue);
       myChart.setOption(option);
+
+      myChart2.dispose()
+      myChart2 = echarts.init(chartDom2, newValue);
+      myChart2.setOption(option2);
     });
     return {
       strLeftKeyVal,

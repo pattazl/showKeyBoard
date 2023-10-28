@@ -25,7 +25,7 @@ export default {
               比如 ^#F5 表示按下ctrl+win+F5键,<^<+D表示按下左侧的Ctrl+左侧Shift+字母键D`,
 	intro1:'通用设置',
 	intro2:'要忽略记录的按键',
-	intro3:'是否忽略单独的控制键',
+	intro3:'是否忽略单独按下的控制键',
 	intro4:'控制键主要为 Ctrl,Alt,Shift,Win',
 	intro5:'是否显示和记录鼠标事件',
 	intro6:'是否记录鼠标移动距离',
@@ -141,7 +141,7 @@ export default {
 	intro115:'鼠标/键盘按键合计',
 	intro116:`Top N 按键统计`,
 	intro117:'日期格式不合规',
-	intro118:'按键统计前N个',
+	intro118:'在数据趋势中按键统计前N个',
 	intro119:`
 	功能 : 实时显示按键情况，统计历史按键
 	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
@@ -172,6 +172,11 @@ export default {
 	intro142: ',更新时间: ',
 	intro143: '合并左右控制键',
 	intro144: '左右控制键分别显示',
+	intro145: '应用显示前N个',
+	intro146: '应用执行程序全路径',
+	intro147: '应用程序显示名',
+	intro148: '应用程序名转换清单，默认取执行程序文件名',
+	intro149: '应用按键统计信息',
 
   },
   'en-US': {
@@ -197,7 +202,7 @@ export default {
 
 	intro1: 'General Settings',
 	intro2: 'Ignore recorded keystrokes',
-	intro3: 'Ignore individual control keys',
+	intro3: 'Ignore individual press control keys',
 	intro4: 'Control keys mainly include Ctrl, Alt, Shift, Win',
 	intro5: 'Show and record mouse events',
 	intro6: 'Record mouse movement distance',
@@ -345,5 +350,10 @@ export default {
 	intro142: ',Update Time:',
 	intro143: 'Merge left and right control keys',
 	intro144: 'Displayed left and right control keys ',
+	intro145: 'App display Top N',
+	intro146: 'App full path',
+	intro147: 'App display Name',
+	intro148: 'App name mapping list, basename is default',
+	intro149: 'App keypress statistic info',
   }
 };

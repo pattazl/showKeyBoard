@@ -292,15 +292,15 @@ PushTxt(txt,isMouse:=False)
 	; 按键数量统计
 	; OutputDebug "AutoHotkey - " txt
 	if(needRecordKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,1)=1 ))){
-        RecordKey(txt)
+        RecordKey(txt,isMouse)
     }
 }
 ;记录全部按键统计
 global PrePushKey :="" ; 前一次按键
-RecordKey(txt)
+RecordKey(txt,isMouse:=False)
 {
 	global PrePushKey
-	AddRecord(txt) ; 统一添加
+	AddRecord(txt,isMouse) ; 统一添加
 	;<^>^<!>!<+>+ 只在组合按键中出现
 	mapping := Map()
 	mapping['<^'] := 'LControl'
@@ -319,12 +319,13 @@ RecordKey(txt)
             if(PrePushKey =val){
                 AllKeyRecord[PrePushKey] -= 1 ; 因为会重复计算 ,如果是Up响应方式，则需要反过来
             }
-            AddRecord(val) ; 按键分解统计
+            AddRecord(val,isMouse) ; 按键分解统计
             leftTxt := StrReplace(leftTxt,key,'')
 		}
 	}
+    ; 需要补充分解后的多个按键
     if( leftTxt != txt){
-        AddRecord(leftTxt)
+        AddRecord(leftTxt,isMouse)
     }
 	PrePushKey :=txt
 	; 需要添加更新时间
@@ -332,7 +333,26 @@ RecordKey(txt)
     AutoSendData()  ; 发送数据给后端服务
 }
 ; 如果不存在则创建，存在则+1
-AddRecord(key){
+AddRecord(key,isMouse){
+    ;如果需要按进程统计
+    if statProcInfo = 1 {
+        appName := 'App-'
+        FocusedHwnd := WinActive("A")  ; ControlGetFocus("A") WinExist("A") ;
+        if(FocusedHwnd>0){
+        ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
+            ProcPath := WinGetProcessPath(FocusedHwnd)
+            if isMouse {
+                appName .= ProcPath '-Mouse' 
+            }else{
+                appName .= ProcPath '-Key' 
+            }
+            if( !AllKeyRecord.Has(appName))
+            {
+                AllKeyRecord[appName] :=0
+            }
+            AllKeyRecord[appName] += 1  ; 以应用维度，按键汇总
+        }
+    }
     if( !AllKeyRecord.Has(key))
     {
         AllKeyRecord[key] :=0

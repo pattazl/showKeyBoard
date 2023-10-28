@@ -128,28 +128,24 @@ function doCleanData() {
 */
 // 数据库中的相关配置信息，主要用于统计
 let globalTopN = 10;
+let globalAppTopN = 10;
 function getDataSetting() {
   const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
-    let sql = 'SELECT keymap,mapDetail,screenSize,mouseDPI,topN FROM dataSetting left join keymaps on keymap = mapname '
+    let sql = `SELECT keyname,val from dataSetting2 
+    union
+    select 'mapDetail',mapDetail from keymaps join dataSetting2 on mapName = val where keyname='keymap' `
     db.all(sql, [], function (err, rows) {
       if (err) {
         reject(err);
       }
       // 输出记录集
-      if (rows.length > 0) {
-        row = rows[0]
-        keymap = row.keymap
-        mapDetail = row.mapDetail
-        screenSize = row.screenSize
-        mouseDPI = row.mouseDPI
-        topN = row.topN
-        globalTopN = topN
-        resolve({ keymap, mapDetail, screenSize, mouseDPI, topN })
-      } else {
-        resolve({})
-      }
+      let hash = {}
+      rows.forEach(r=>{
+        hash[r.keyname] = r.val
+      })
+      resolve(hash)
     });
     // 关闭数据库连接
     db.close();
@@ -181,14 +177,20 @@ function getKeymaps() {
 function setDataSetting(hash) {
   const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
-    // 查询记录集
-    let sql = 'update dataSetting set keymap = ? ,screenSize = ? ,mouseDPI = ? ,topN= ?'
-    db.all(sql, [hash.keymap, hash.screenSize, hash.mouseDPI, hash.topN], function (err, rows) {
+    // 动态保存参数  mapDetail 参数在另外的表中，无需保存
+    delete hash['mapDetail'] ; 
+    const placeholders = Object.keys(hash).map(() => '(?, ?)').join(', ');
+    // 需要将内容全部按数组顺序排列
+    const values = Object.entries(hash).flat(3); // Infinity 数组展开配置参数表
+    db.run(`INSERT OR REPLACE INTO dataSetting2 (keyname, val) VALUES ${placeholders}`, values, function (err) {
+      //let sql = 'INSERT OR REPLACE INTO keymap (key, value) VALUES'
+      //db.all(sql, [hash.keymap, hash.screenSize, hash.mouseDPI, hash.topN], function (err, rows) {
       if (err) {
         reject(err);
       }
       // 输出记录集
       globalTopN = hash.topN
+      globalAppTopN = hash.appTopN
       resolve(1)
     });
     // 关闭数据库连接
@@ -274,7 +276,9 @@ async function statData(begin, end) {
     where date between ? and ? and keyname in ('LButton','RButton','MButton','WheelDown','WheelUp') group by date
 UNION
 select sum(keycount) as keycount,date,'keyboard' from stat 
-where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') group by date`
+where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
+and keyname not like('App-%')
+group by date`
     db.all(sql, [begin, end, begin, end], function (err, rows) {
       if (err) {
         reject(err);
@@ -286,7 +290,8 @@ where date between ? and ? and keyname not in ('mouseDistance','LButton','RButto
   let pro3 = new Promise((resolve, reject) => {
     // 查询记录集
     let sql = `select keycount,date,keyname from stat where keyname in
-(select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp') 
+(select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
+ and keyname not like('App-%')
 group by keyname order by sum(keycount) desc limit ${globalTopN}
 ) and date between ? and ? order by date`
     db.all(sql, [begin, end, begin, end], function (err, rows) {
@@ -296,6 +301,7 @@ group by keyname order by sum(keycount) desc limit ${globalTopN}
       resolve(rows)
     });
   })
+  // 查询统计范围内APP操作数的前 top10
   let arr = await Promise.all([pro1, pro2, pro3]);
   db.close();
   return arr;
@@ -326,7 +332,51 @@ async function deleteData(date, flag) {
   })
 }
 
+// 更新数据库表结构
+async function updateDBStruct() {
+  // dataSetting  ->  dataSetting2 更新表结构
+  const db = new sqlite3.Database(dbName);
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+    let sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='dataSetting2';"
+    db.all(sql, [], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      // 输出记录集
+      if (rows.length > 0) {
+        resolve(0)
+      } else {
+        console.log('Need updateDBStruct')
+        const db2 = new sqlite3.Database(dbName);
+        // 需要创建表 dataSetting2 数据从 dataSetting 中过来
+        sql = `CREATE TABLE dataSetting2(
+          keyname TEXT,
+          val TEXT,
+           PRIMARY KEY (keyname)
+        );
+        insert into dataSetting2 
+          select 'keymap' as keyname ,  keymap as  val  from dataSetting
+          union 
+          select 'screenSize' as keyname , screenSize as  val  from dataSetting
+          union 
+          select 'mouseDPI' as keyname , mouseDPI as  val  from dataSetting
+          union 
+          select 'topN' as keyname , topN as  val  from dataSetting;`
+        db2.exec(sql, function (err) {  // 需要同时执行多条SQL
+          if (err) {
+            reject(err);
+          }
+          resolve(1)
+        });
+        db2.close();
+      }
+    });
+    // 关闭数据库连接
+    db.close();
+  })
+}
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName
+  statData, deleteData, dbName, updateDBStruct
 };

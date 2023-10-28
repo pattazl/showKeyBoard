@@ -116,7 +116,33 @@ function arrRemove(arr /*out */, key) {
     }
   })
 }
-
+// 控制应用图形显示,将 leftKey 中 App-开头的按键剥离出去
+function showAppChart(leftKey, keyStatHash, opt, chart) {
+  let appArr = leftKey.filter(x => x.indexOf('App-') > -1)
+  arrRemove(leftKey, appArr) // 清除应用信息
+  // 所有应用的数组清单
+  //let newSet = new Set<string>(); let nameList = Array.from(newSet)
+  let nameArr = [], myList = [], mouseArr = [], keyArr = [];
+  appArr.forEach(x => {
+    let appName = x.replace(/(-Mouse|-Key)$/, '');
+    if (myList.indexOf(appName) == -1) {
+      // 不存在就插入，并找对应的鼠标和键盘信息
+      myList.push(appName)
+      mouseArr.push(keyStatHash[appName + '-Mouse'] ?? 0)
+      keyArr.push(keyStatHash[appName + '-Key'] ?? 0)
+      // 如果没有预先匹配则取文件名
+      let appPath = appName.replace(/^App-/,'')
+      nameArr.push(appPath)
+    }
+  })
+  // console.log(nameArr,mouseArr,keyArr)
+  opt.xAxis[0].data = nameArr
+  // 鼠标
+  opt.series[0].data = mouseArr
+  // 键盘
+  opt.series[1].data = keyArr
+  opt && chart.setOption(opt);
+}
 // 获取历史时间
 async function getHistory(beginDate, endDate) {
   let res = [];
@@ -143,7 +169,7 @@ function getKeyDesc(keyName) {
     .replace(/>#/g, 'RWin ')
     .replace(/#/g, 'Win ')
 }
-function showLeftKey(switchVal,leftKey, keyStatHash) {
+function showLeftKey(switchVal, leftKey, keyStatHash) {
   // 需要合并 左右控制键
   let newArr = new Set<string>();
   let newItemHash = {};
@@ -192,4 +218,7 @@ function railStyle({
   }
   return style
 }
-export { deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer, getKeyDesc,showLeftKey,railStyle }
+export {
+  deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
+  getKeyDesc, showLeftKey, railStyle, showAppChart
+}

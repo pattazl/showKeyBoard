@@ -254,6 +254,15 @@
                 <n-input-number v-model:value="dataSetting.topN" :min="3" :max="200" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro145 }}
+              <template #suffix>
+                <n-input-number v-model:value="dataSetting.appTopN" :min="1" :max="200" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro148 }}
+                <n-dynamic-input v-model:value="appNameListRef" preset="pair" :key-placeholder="contentText.intro146"
+                :value-placeholder="contentText.intro147" />
+            </n-list-item>
             <n-list-item>{{ contentText.intro99 }}<div class="intro" style="white-space: pre-line;">{{
               contentText.intro100 }}</div>
               <div class="error"> {{ keyboardDetail }} </div>
@@ -482,6 +491,7 @@ export default defineComponent({
     const allConfig = ref<any>({})
     const allFontRef = ref([]) // 字体清单
     const keyMappingRef = ref([])  // 按键匹配清单
+    const appNameListRef = ref([])  // 应用名称匹配清单
     const skipRecordRef = ref([])
     const ctrlListRef = ref([])
     const skipShowRef = ref([])
@@ -518,6 +528,7 @@ export default defineComponent({
       //console.log('data.config', data.config)
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
       keyMappingRef.value = toKVList(data.keyList)
+      appNameListRef.value = toKVList(JSON.parse(data.dataSetting.appNameList))
       skipRecordRef.value = splitArr(allConfig.value.common.skipRecord)
       ctrlListRef.value = splitArr(allConfig.value.dialog.ctrlList)
       skipShowRef.value = splitArr(allConfig.value.dialog.skipShow)
@@ -593,6 +604,7 @@ export default defineComponent({
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
+          dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value),null,2);
           // 需要将数据保存给服务器
           console.log('setPara')
           const saving = message.loading(contentText.value.intro75, { duration: 0 })
@@ -626,6 +638,7 @@ export default defineComponent({
         return hash
       }
       let keyList = KVListTo(keyMappingRef.value);
+      dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value),null, 2);
       // 对比 config.common ，config.dialog ,store.preData.keyList
       getDiffHash(hash, data.config.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
       getDiffHash(hash, data.config.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)
@@ -763,6 +776,7 @@ export default defineComponent({
       allFontRef,
       screenNum,
       keyMappingRef,
+      appNameListRef,
       screenInfo,
       //allData,
       savePara,

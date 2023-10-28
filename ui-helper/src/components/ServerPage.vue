@@ -89,6 +89,10 @@ export default defineComponent({
         // 对配置文件中 data.config 的数字字符串转换为数字
         str2Type(data.config.common, 0)
         str2Type(data.config.dialog, 0)
+        str2Type(data.dataSetting,0)
+        // 对于变量中初始值设置
+        data.dataSetting.appNameList = data.dataSetting.appNameList??'{}'
+        data.dataSetting.appTopN = data.dataSetting.appTopN??10
 
         store.data = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
         store.preData = deepCopy(data); // 之前的数据

@@ -13,6 +13,9 @@
       <n-card :title="contentText.intro97 + contentText.intro142 + updateTime">
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
+      <n-card :title="contentText.intro149 + contentText.intro142 + updateTime">
+        <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
+      </n-card>
       <n-card :title="contentText.intro87 + contentText.intro142 + updateTime">
         <template #header-extra>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
@@ -38,7 +41,7 @@ import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { HeatmapChart, HeatmapSeriesOption } from 'echarts/charts';
+import { HeatmapChart, BarChart } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -46,13 +49,14 @@ import {
   GridComponent,
   DatasetComponent,
   TransformComponent,
-  VisualMapComponent
+  VisualMapComponent,
+  LegendComponent,
 } from 'echarts/components';
 // 标签自动布局、全局过渡动画等特性
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey,railStyle } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -66,7 +70,9 @@ echarts.use([
   UniversalTransition,
   CanvasRenderer,
   HeatmapChart,
-  VisualMapComponent
+  VisualMapComponent,
+  BarChart,
+  LegendComponent,
 ]);
 
 // prettier-ignore
@@ -76,6 +82,7 @@ let currTick = 0; // 当前msg中的时间戳
 let historyData = []
 let tickSet = new Set();
 let keyData = [];
+let appNameListMap = {};
 
 var option = {
   dark: true,
@@ -148,6 +155,70 @@ var option = {
           shadowColor: 'rgba(0, 0, 0, 0.5)'
         }
       }
+    }
+  ]
+};
+
+let option2 = {
+  aria: {
+    enabled: true,
+    show: true,
+    decal: {
+      show: true,
+      decals: {
+        symbol: 'react'
+      }
+    }
+  },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: {
+      type: 'cross'
+    }
+  },
+  legend: {},
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '3%',
+    containLabel: true
+  },
+  xAxis: [
+    {
+      type: 'category',
+      data: ['Mon'],
+      axisLabel: {
+        show: true,
+        formatter: function (value) {
+          return appNameListMap[value] ?? value.split(/[\\\/]/).pop().replace(/\.exe$/i, '')
+          // return value.substr(-10); // 自定义标签格式化函数
+        },
+      }
+    }
+  ],
+  yAxis: [
+    {
+      type: 'value'
+    }
+  ],
+  series: [
+    {
+      name: 'Mouse',
+      type: 'bar',
+      stack: 'apps',
+      emphasis: {
+        focus: 'series'
+      },
+      data: [320]
+    },
+    {
+      name: 'Keyboard',
+      type: 'bar',
+      stack: 'apps',
+      emphasis: {
+        focus: 'series'
+      },
+      data: [120]
     }
   ]
 };
@@ -243,6 +314,7 @@ function getRealStatHash(oriHash, begin, end) {
   })
   return hash;
 }
+
 export default defineComponent({
   name: 'Today',
   props: {
@@ -262,7 +334,8 @@ export default defineComponent({
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
-    let chartDom, myChart;
+    appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
+    let chartDom, myChart, chartDom2, myChart2;
     let lastUpdateTick = 0
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
@@ -417,6 +490,8 @@ export default defineComponent({
       //let leftHash = {};
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
+      // 显示 chart2
+      showAppChart(leftKey, keyStatHash, option2, myChart2);
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
@@ -449,6 +524,8 @@ export default defineComponent({
     onMounted(() => {
       chartDom = document.getElementById('main');
       myChart = echarts.init(chartDom, store.myTheme);
+      chartDom2 = document.getElementById('main2');
+      myChart2 = echarts.init(chartDom2, store.myTheme);
       //console.log(keyList)
       setWS(updateKeyData)
     })
@@ -456,6 +533,10 @@ export default defineComponent({
       myChart.dispose()
       myChart = echarts.init(chartDom, newValue);
       myChart.setOption(option);
+
+      myChart2.dispose()
+      myChart2 = echarts.init(chartDom2, newValue);
+      myChart2.setOption(option2);
     });
     return {
       strLeftKeyVal,
