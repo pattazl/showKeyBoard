@@ -104,6 +104,11 @@
                 <n-switch :round="false" v-model:value="allConfig.common.hideInWinPwd" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro155 }}
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.statProcInfo" />
+              </template>
+            </n-list-item>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
