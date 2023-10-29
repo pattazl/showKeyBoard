@@ -302,6 +302,8 @@ group by keyname order by sum(keycount) desc limit ${globalTopN}
     });
   })
   // 查询统计范围内APP操作数的前 top10
+  /**SELECT  REPLACE(REPLACE(keyname,'.exe-Mouse',''),'.exe-Key','') as pathname,sum(keycount) as count FROM "stat"  
+   * where keyname like 'APP-%' and date between '2023-10-06' and '2023-10-28' group by pathname order by count desc limit 3 */
   let arr = await Promise.all([pro1, pro2, pro3]);
   db.close();
   return arr;

@@ -44,7 +44,8 @@ async function ajax(path, data = null) {
   return result
 }
 // 布尔类型清单,bool list
-const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd']
+const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 
+'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd','mergeControl','fillDate']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {
@@ -122,25 +123,34 @@ function showAppChart(leftKey, keyStatHash, opt, chart) {
   arrRemove(leftKey, appArr) // 清除应用信息
   // 所有应用的数组清单
   //let newSet = new Set<string>(); let nameList = Array.from(newSet)
-  let nameArr = [], myList = [], mouseArr = [], keyArr = [];
+  let myList = [], myHash = []
   appArr.forEach(x => {
-    let appName = x.replace(/(-Mouse|-Key)$/, '');
+    let appName = x.replace(/^(App-Mouse-|App-Key-)/, '');
     if (myList.indexOf(appName) == -1) {
       // 不存在就插入，并找对应的鼠标和键盘信息
       myList.push(appName)
-      mouseArr.push(keyStatHash[appName + '-Mouse'] ?? 0)
-      keyArr.push(keyStatHash[appName + '-Key'] ?? 0)
+      let mouse = keyStatHash['App-Mouse-' + appName] ?? 0
+      let key = keyStatHash['App-Key-' + appName] ?? 0
+      let total = mouse + key
       // 如果没有预先匹配则取文件名
-      let appPath = appName.replace(/^App-/,'')
-      nameArr.push(appPath)
+      // let appPath = appName.replace(/^App-/,'')
+      myHash.push({ appName, mouse, key, total })
     }
   })
+  // 对 myHash 进行排序
+  myHash.sort((a, b) => {
+    if (a.total > b.total) {
+      return -1;
+    } else {
+      return 1;
+    }
+  });
   // console.log(nameArr,mouseArr,keyArr)
-  opt.xAxis[0].data = nameArr
+  opt.xAxis[0].data = myHash.map(x => x.appName)
   // 鼠标
-  opt.series[0].data = mouseArr
+  opt.series[0].data = myHash.map(x => x.mouse)
   // 键盘
-  opt.series[1].data = keyArr
+  opt.series[1].data = myHash.map(x => x.key)
   opt && chart.setOption(opt);
 }
 // 获取历史时间

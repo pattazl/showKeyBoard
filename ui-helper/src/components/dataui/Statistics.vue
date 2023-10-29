@@ -7,14 +7,22 @@
 				{{ contentText.intro93 }}
 				<n-select v-model:value="endDate" filterable :options="historyDate" />
 				<n-button type="primary" @click="handleQuery">{{ contentText?.intro113 }}</n-button>
+				<n-switch :round="false" :rail-style="railStyle" v-model:value="fillDate" @update:value="handleQuery">
+					<template #checked>
+						{{ contentText.intro151 }}
+					</template>
+					<template #unchecked>
+						{{ contentText.intro150 }}
+					</template>
+				</n-switch>
 			</n-space>
 			<n-card :title="contentText.intro114">
 				<div id="main1" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro115" >
+			<n-card :title="contentText.intro115">
 				<div id="main2" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro116 + ':'+ topN">
+			<n-card :title="contentText.intro116 + ':' + topN">
 				<div id="main3" style="height: 400px; min-width: 800px;width:95%;"></div>
 			</n-card>
 		</n-space>
@@ -51,8 +59,9 @@ echarts.use([
 ]);
 
 
-import { arrRemove, getHistory, ajax } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle } from '@/common';
 import content from '../../content.js';
+import { getQuery } from '../utils';
 
 let option1 = {
 	xAxis: {
@@ -141,6 +150,9 @@ export default defineComponent({
 		const historyDate = ref([]);
 		const topN = ref(0)
 		const appTopN = ref(0)
+		const fillDate = ref(store.data.dataSetting.fillDate);
+
+
 		topN.value = store.data.dataSetting.topN;
 		appTopN.value = store.data.dataSetting.appTopN;
 
@@ -153,19 +165,19 @@ export default defineComponent({
 		function getVal(targetArr, byArr, keyname) {
 			let returnArr = []
 			byArr.forEach(x => {
-				returnArr.push(targetArr.find(y => y.date == x && y.keyname == keyname)?.keycount??0)
+				returnArr.push(targetArr.find(y => y.date == x && y.keyname == keyname)?.keycount ?? 0)
 			})
 			return returnArr;
 		}
 		// 获取全部按键数据的组合，以dim为维度从arr中取数据
-		function getKeyData(dim:Array<String>,arr) {
+		function getKeyData(dim: Array<String>, arr) {
 			let hashList = {}
 			// 已经排序过
 			arr.forEach(x => {
 				if (hashList[x.keyname] == null) {
 					hashList[x.keyname] = {
 						name: x.keyname,
-						date: {[x.date]:x.keycount},
+						date: { [x.date]: x.keycount },
 						smooth: true,
 						type: 'line'
 					}
@@ -174,9 +186,9 @@ export default defineComponent({
 				}
 			})
 			// 对 hashList 中每个key的 date 字段按 dim 进行整理，没有值则为空
-			for(let k in hashList){
+			for (let k in hashList) {
 				let obj = hashList[k]
-				obj.data = dim.map(x=>obj.date[x]??0)
+				obj.data = dim.map(x => obj.date[x] ?? 0)
 			}
 			return hashList
 		}
@@ -195,25 +207,39 @@ export default defineComponent({
 				let pixHash = { name: 'Pix Distance', data: [], smooth: true, type: 'line' }
 				let screenHash = { name: 'Screen Distance(Meter)', data: [], smooth: true, type: 'line' }
 				let phyHash = { name: 'Physical Distance(Meter)', data: [], smooth: true, type: 'line' }
-				res[0].forEach(x => {
-					dateArr.push(x.date)
-					pixHash.data.push(x.keycount)
-					if (screenPixlSize > 0) {
-						screenHash.data.push(x.keycount * (store.data.dataSetting.screenSize * 0.0254) / screenPixlSize);
+				const df = 'YYYY-MM-DD'
+				// 需要循环补充到 x.date 这天
+				if (fillDate.value) {
+					let ed = dayjs(endDate.value, df).add(1, 'day');
+					let currentDate = dayjs(beginDate.value, df);
+					while (currentDate.isBefore(ed)) {
+						dateArr.push(currentDate.format('YYYY-MM-DD'));
+						currentDate = currentDate.add(1, 'day');
 					}
-					if (store.data.dataSetting.mouseDPI > 0) {
-						phyHash.data.push(x.keycount * (0.0254) / store.data.dataSetting.mouseDPI);
-					}
-				})
+				} else {
+					res[0].forEach(x => {
+						dateArr.push(x.date);
+					})
+				}
 				option1.xAxis.data = dateArr
 				option2.xAxis.data = dateArr
 				option3.xAxis.data = dateArr
-				// 设置				
+				// 设置	
+				dateArr.forEach(x => {
+					let kc = res[0].find(y => y.date == x)?.keycount ?? 0
+					pixHash.data.push(kc)
+					if (screenPixlSize > 0) {
+						screenHash.data.push(kc * (store.data.dataSetting.screenSize * 0.0254) / screenPixlSize);
+					}
+					if (store.data.dataSetting.mouseDPI > 0) {
+						phyHash.data.push(kc * (0.0254) / store.data.dataSetting.mouseDPI);
+					}
+				})
 				option1.series = [pixHash, screenHash, phyHash]
 				option2.series[0].data = getVal(res[1], dateArr, 'mouse')
 				option2.series[1].data = getVal(res[1], dateArr, 'keyboard')
 
-				let hash = getKeyData(dateArr,res[2])
+				let hash = getKeyData(dateArr, res[2])
 				option3.series = Object.keys(hash).map(x => hash[x])
 				option3.legend.data = Object.keys(hash)
 
@@ -265,6 +291,9 @@ export default defineComponent({
 			historyDate,
 			handleQuery,
 			topN,
+			appTopN,
+			railStyle,
+			fillDate,
 		}
 	},
 })

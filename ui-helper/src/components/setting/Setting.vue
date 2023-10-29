@@ -249,6 +249,16 @@
                 <n-input-number v-model:value="dataSetting.mouseDPI" :min="100" :max="100000" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro143 }}
+              <template #suffix>
+                <n-switch v-model:value="dataSetting.mergeControl" :round="false" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro151 }}
+              <template #suffix>
+                <n-switch v-model:value="dataSetting.fillDate" :round="false" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro118 }}
               <template #suffix>
                 <n-input-number v-model:value="dataSetting.topN" :min="3" :max="200" />

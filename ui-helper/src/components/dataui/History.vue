@@ -178,7 +178,13 @@ let option2 = {
   xAxis: [
     {
       type: 'category',
-      data: ['Mon']
+      data: ['Mon'],
+      axisLabel: {
+        show: true,
+        formatter: function (value) {
+          return appNameListMap[value] ?? value.split(/[\\\/]/).pop().replace(/\.exe$/i, '')
+        },
+      }
     }
   ],
   yAxis: [
@@ -277,7 +283,7 @@ export default defineComponent({
     const historyDate = ref([]);
     const beginDate = ref('');
     // 显示剩余按键
-    const leftKeySwitch = ref(0);
+    const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]

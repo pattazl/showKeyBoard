@@ -12,7 +12,7 @@ export default {
       setting:'设置',
       setting1:'个人喜好',
       setting2:'按键界面',
-      setting3:'统计参数',
+      setting3:'统计配置',
       setting4:'按键清单',
       setting5:'保存参数',
       stat: '数据',
@@ -177,6 +177,8 @@ export default {
 	intro147: '应用程序显示名',
 	intro148: '应用程序名转换清单，默认取执行程序文件名',
 	intro149: '应用按键统计信息',
+	intro150: '跳过没有数据的日期',
+	intro151: '用空数据填充日期',
 
   },
   'en-US': {
@@ -355,5 +357,7 @@ export default {
 	intro147: 'App display Name',
 	intro148: 'App name mapping list, basename is default',
 	intro149: 'App keypress statistic info',
+	intro150: 'Ignore date that no data',
+	intro151: 'Fill date that no data',
   }
 };

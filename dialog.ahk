@@ -342,9 +342,9 @@ AddRecord(key,isMouse){
         ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
             ProcPath := WinGetProcessPath(FocusedHwnd)
             if isMouse {
-                appName .= ProcPath '-Mouse' 
+                appName .= 'Mouse-' ProcPath  
             }else{
-                appName .= ProcPath '-Key' 
+                appName .= 'Key-' ProcPath  
             }
             if( !AllKeyRecord.Has(appName))
             {
