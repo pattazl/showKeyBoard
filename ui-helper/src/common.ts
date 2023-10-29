@@ -228,7 +228,11 @@ function railStyle({
   }
   return style
 }
+// 应用程序名转换为显示名
+function appPath2Name(val,map){
+  return map[val] ?? val.split(/[\\\/]/).pop().replace(/\.exe$/i, '')
+}
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
-  getKeyDesc, showLeftKey, railStyle, showAppChart
+  getKeyDesc, showLeftKey, railStyle, showAppChart,appPath2Name
 }

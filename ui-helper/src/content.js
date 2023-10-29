@@ -179,6 +179,9 @@ export default {
 	intro149: '应用按键统计信息',
 	intro150: '跳过没有数据的日期',
 	intro151: '用空数据填充日期',
+	intro152: '应用操作合计TOP N',
+	intro153: '应用鼠标显示TOP N',
+	intro154: '应用键盘显示TOP N',
 
   },
   'en-US': {
@@ -359,5 +362,8 @@ export default {
 	intro149: 'App keypress statistic info',
 	intro150: 'Ignore date that no data',
 	intro151: 'Fill date that no data',
+	intro152: 'App operate accumulate TOP N',
+	intro153: 'App mouse operate TOP N',
+	intro154: 'App keystroke operate TOP N',
   }
 };

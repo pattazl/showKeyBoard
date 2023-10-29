@@ -17,13 +17,22 @@
 				</n-switch>
 			</n-space>
 			<n-card :title="contentText.intro114">
-				<div id="main1" style="height: 200px; min-width: 800px;width:95%;"></div>
+				<div id="main0" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
 			<n-card :title="contentText.intro115">
-				<div id="main2" style="height: 200px; min-width: 800px;width:95%;"></div>
+				<div id="main1" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
 			<n-card :title="contentText.intro116 + ':' + topN">
-				<div id="main3" style="height: 400px; min-width: 800px;width:95%;"></div>
+				<div id="main2" style="height: 400px; min-width: 800px;width:95%;"></div>
+			</n-card>
+			<n-card :title="contentText.intro152 + ':' + appTopN">
+				<div id="main3" style="height: 300px; min-width: 800px;width:95%;"></div>
+			</n-card>
+			<n-card :title="contentText.intro153 + ':' + appTopN">
+				<div id="main4" style="height: 300px; min-width: 800px;width:95%;"></div>
+			</n-card>
+			<n-card :title="contentText.intro154 + ':' + appTopN">
+				<div id="main5" style="height: 300px; min-width: 800px;width:95%;"></div>
 			</n-card>
 		</n-space>
 	</div>
@@ -58,12 +67,10 @@ echarts.use([
 	UniversalTransition
 ]);
 
-
-import { arrRemove, getHistory, ajax, railStyle } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy,appPath2Name } from '@/common';
 import content from '../../content.js';
-import { getQuery } from '../utils';
-
-let option1 = {
+let option = [] ; // 用数组代替
+option[0] = {
 	xAxis: {
 		type: 'category',
 		data: []
@@ -80,7 +87,7 @@ let option1 = {
 	},
 	series: []
 };
-let option2 = {
+option[1] = {
 	tooltip: {
 		trigger: 'axis'
 	},
@@ -117,7 +124,7 @@ let option2 = {
 
 	]
 };
-let option3 = {
+option[2] = {
 	xAxis: {
 		type: 'category',
 		data: []
@@ -134,6 +141,9 @@ let option3 = {
 	},
 	series: []
 };
+option[3] = deepCopy(option[2] )
+option[4] = deepCopy(option[2] )
+option[5] = deepCopy(option[2] )
 export default defineComponent({
 	name: 'Message',
 	props: {
@@ -151,6 +161,7 @@ export default defineComponent({
 		const topN = ref(0)
 		const appTopN = ref(0)
 		const fillDate = ref(store.data.dataSetting.fillDate);
+		const appNameListMap =  JSON.parse(store.data.dataSetting.appNameList);
 
 
 		topN.value = store.data.dataSetting.topN;
@@ -192,15 +203,12 @@ export default defineComponent({
 			}
 			return hashList
 		}
-		let chartDom1, myChart1;
-		let chartDom2, myChart2;
-		let chartDom3, myChart3;
-
+		let chartDom = [], myChart = [];
 		async function handleQuery() {
 			let b = beginDate.value, e = endDate.value
 			if (/^\d{4}-\d{2}-\d{2}$/.test(b) && /^\d{4}-\d{2}-\d{2}$/.test(e) && e >= b) {
 				let res = await ajax('statData', { "beginDate": b, "endDate": e }) //数组，3个内容
-				if (res.length != 3) {
+				if (res.length <4 ) {
 					return
 				}
 				let dateArr = []
@@ -221,9 +229,9 @@ export default defineComponent({
 						dateArr.push(x.date);
 					})
 				}
-				option1.xAxis.data = dateArr
-				option2.xAxis.data = dateArr
-				option3.xAxis.data = dateArr
+				option.forEach(x=>{
+					x.xAxis.data = dateArr
+				})
 				// 设置	
 				dateArr.forEach(x => {
 					let kc = res[0].find(y => y.date == x)?.keycount ?? 0
@@ -235,29 +243,57 @@ export default defineComponent({
 						phyHash.data.push(kc * (0.0254) / store.data.dataSetting.mouseDPI);
 					}
 				})
-				option1.series = [pixHash, screenHash, phyHash]
-				option2.series[0].data = getVal(res[1], dateArr, 'mouse')
-				option2.series[1].data = getVal(res[1], dateArr, 'keyboard')
+				option[0].series = [pixHash, screenHash, phyHash]
+				option[1].series[0].data = getVal(res[1], dateArr, 'mouse')
+				option[1].series[1].data = getVal(res[1], dateArr, 'keyboard')
 
 				let hash = getKeyData(dateArr, res[2])
-				option3.series = Object.keys(hash).map(x => hash[x])
-				option3.legend.data = Object.keys(hash)
+				option[2].series = Object.keys(hash).map(x => hash[x])
+				option[2].legend.data = Object.keys(hash)
 
-				myChart1.setOption(option1);
-				myChart2.setOption(option2);
-				myChart3.setOption(option3);
+				// 对应用进行统计分析 
+				// 对 res[3] 分离出3个数组分别是 汇总，鼠标，键盘
+				let appInfo = [[],[],[]];
+				res[3].forEach(x=>{
+					let val =''
+					if( x.keyname.indexOf('App-Mouse-')==0){
+						val = x.keyname.replace(/App-Mouse-/,'')
+						x.keyname = appPath2Name(val,appNameListMap)
+						appInfo[1].push(x)
+					}else if(x.keyname.indexOf('App-Key-')==0)
+					{
+						val = x.keyname.replace(/App-Key-/,'')
+						x.keyname = appPath2Name(val,appNameListMap)
+						appInfo[2].push(x)
+					}
+					// 汇总
+					if(val != '')
+					{
+						// appInfo[0].push(x)
+					}
+				})
+				for(let i=1;i<appInfo.length;i++)
+				{
+					let hash = getKeyData(dateArr, appInfo[i])
+					option[3+i].series = Object.keys(hash).map(x => hash[x])
+					option[3+i].legend.data = Object.keys(hash)
+				}
 
+				myChart.forEach((v,i)=>{
+					v.setOption(option[i]);
+				})
 			} else {
 				message.error(contentText.value.intro117)
 			}
 		}
 		onMounted(async () => {
-			chartDom1 = document.getElementById('main1');
-			myChart1 = echarts.init(chartDom1, store.myTheme);
-			chartDom2 = document.getElementById('main2');
-			myChart2 = echarts.init(chartDom2, store.myTheme);
-			chartDom3 = document.getElementById('main3');
-			myChart3 = echarts.init(chartDom3, store.myTheme);
+			for(let i=0;i<6;i++)
+			{
+				chartDom[i] = document.getElementById('main'+i);
+				myChart[i] = echarts.init(chartDom[i], store.myTheme);
+			}
+			
+			
 			// 设置下拉选择
 			let dateArr = await ajax('getHistoryDate')
 			historyDate.value = dateArr.map((x) => {
@@ -274,15 +310,11 @@ export default defineComponent({
 			}
 		})
 		watch(() => store.myTheme, (newValue, oldValue) => {
-			myChart1.dispose()
-			myChart1 = echarts.init(chartDom1, newValue);
-			myChart1.setOption(option1);
-			myChart2.dispose()
-			myChart2 = echarts.init(chartDom2, newValue);
-			myChart2.setOption(option2);
-			myChart3.dispose()
-			myChart3 = echarts.init(chartDom3, newValue);
-			myChart3.setOption(option3);
+			myChart.forEach((v,i)=>{
+				v.dispose()
+				v = echarts.init(chartDom[i], newValue);
+				v.setOption(option[i]);
+			})
 		});
 		return {
 			contentText,

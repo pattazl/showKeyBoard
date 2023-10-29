@@ -142,7 +142,7 @@ function getDataSetting() {
       }
       // 输出记录集
       let hash = {}
-      rows.forEach(r=>{
+      rows.forEach(r => {
         hash[r.keyname] = r.val
       })
       resolve(hash)
@@ -178,7 +178,7 @@ function setDataSetting(hash) {
   const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 动态保存参数  mapDetail 参数在另外的表中，无需保存
-    delete hash['mapDetail'] ; 
+    delete hash['mapDetail'];
     const placeholders = Object.keys(hash).map(() => '(?, ?)').join(', ');
     // 需要将内容全部按数组顺序排列
     const values = Object.entries(hash).flat(3); // Infinity 数组展开配置参数表
@@ -301,10 +301,28 @@ group by keyname order by sum(keycount) desc limit ${globalTopN}
       resolve(rows)
     });
   })
-  // 查询统计范围内APP操作数的前 top10
-  /**SELECT  REPLACE(REPLACE(keyname,'.exe-Mouse',''),'.exe-Key','') as pathname,sum(keycount) as count FROM "stat"  
-   * where keyname like 'APP-%' and date between '2023-10-06' and '2023-10-28' group by pathname order by count desc limit 3 */
-  let arr = await Promise.all([pro1, pro2, pro3]);
+  // 查询统计范围内APP操作数的前 topN
+  let pro4 = new Promise((resolve, reject) => {
+    // 查询记录集
+    let sql = `WITH
+temp AS (
+  SELECT * FROM "stat"  where keyname like 'APP-%' and date between ? and ?),
+	temp2 as (
+  SELECT  REPLACE(REPLACE(keyname,'App-Mouse-',''),'App-Key-','') as pathname,sum(keycount) as count FROM temp  
+    group by pathname order by count desc limit ${globalAppTopN}
+)
+select * from stat where keyname in ( select 'App-Mouse-'||pathname from temp2 ) 
+union
+select * from stat where keyname in ( select 'App-Key-'||pathname from temp2 ) 
+    `
+    db.all(sql, [begin, end], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      resolve(rows)
+    });
+  })
+  let arr = await Promise.all([pro1, pro2, pro3, pro4]);
   db.close();
   return arr;
 }
