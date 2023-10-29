@@ -255,30 +255,38 @@ export default defineComponent({
 				// 对 res[3] 分离出3个数组分别是 汇总，鼠标，键盘
 				let appInfo = [[],[],[]];
 				res[3].forEach(x=>{
-					let val =''
+					let val ='',shortName=''
 					if( x.keyname.indexOf('App-Mouse-')==0){
 						val = x.keyname.replace(/App-Mouse-/,'')
-						x.keyname = appPath2Name(val,appNameListMap)
+						shortName = appPath2Name(val,appNameListMap)
+						x.keyname = shortName
 						appInfo[1].push(x)
 					}else if(x.keyname.indexOf('App-Key-')==0)
 					{
 						val = x.keyname.replace(/App-Key-/,'')
-						x.keyname = appPath2Name(val,appNameListMap)
+						shortName = appPath2Name(val,appNameListMap)
+						x.keyname = shortName
 						appInfo[2].push(x)
 					}
 					// 汇总
 					if(val != '')
 					{
-						// appInfo[0].push(x)
+						let index = appInfo[0].findIndex(y => (y.keyname == shortName&&y.date == x.date))
+						if(index!=-1){
+							appInfo[0][index].keycount +=x.keycount  // 如果有相同日期和键值的就累加
+						}else{
+							let xx = deepCopy(x) // 需要深拷贝，避免影响上面2个函数的数据
+							appInfo[0].push(xx)  // 没有数据则插入
+						}
 					}
 				})
-				for(let i=1;i<appInfo.length;i++)
-				{
+				// 应用数据循环设置参数
+				appInfo.forEach((xx,i)=>{
 					let hash = getKeyData(dateArr, appInfo[i])
 					option[3+i].series = Object.keys(hash).map(x => hash[x])
 					option[3+i].legend.data = Object.keys(hash)
-				}
-
+				})
+				// 显示全部图标数据
 				myChart.forEach((v,i)=>{
 					v.setOption(option[i]);
 				})
@@ -292,7 +300,6 @@ export default defineComponent({
 				chartDom[i] = document.getElementById('main'+i);
 				myChart[i] = echarts.init(chartDom[i], store.myTheme);
 			}
-			
 			
 			// 设置下拉选择
 			let dateArr = await ajax('getHistoryDate')

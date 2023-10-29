@@ -179,6 +179,8 @@ let option2 = {
       type: 'category',
       data: ['Mon'],
       axisLabel: {
+        interval:0,
+        rotate: 45 ,
         show: true,
         formatter: function (value) {
           return appPath2Name(value,appNameListMap)

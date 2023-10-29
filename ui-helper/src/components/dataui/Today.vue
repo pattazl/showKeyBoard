@@ -56,7 +56,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart,appPath2Name } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -188,9 +188,11 @@ let option2 = {
       type: 'category',
       data: ['Mon'],
       axisLabel: {
+        interval:0,
+        rotate: 45 ,
         show: true,
         formatter: function (value) {
-          return appNameListMap[value] ?? value.split(/[\\\/]/).pop().replace(/\.exe$/i, '')
+          return appPath2Name(value,appNameListMap)
           // return value.substr(-10); // 自定义标签格式化函数
         },
       }
