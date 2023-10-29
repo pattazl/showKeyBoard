@@ -16,6 +16,9 @@
       <n-card :title="contentText.intro149 + contentText.intro142 + updateTime">
         <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
       </n-card>
+      <n-card :title="contentText.intro149 + contentText.intro142 + updateTime">
+        <n-data-table :columns="columns2" :data="appListData" />
+      </n-card>
       <n-card :title="contentText.intro87 + contentText.intro142 + updateTime">
         <template #header-extra>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
@@ -56,7 +59,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart,appPath2Name } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -188,11 +191,11 @@ let option2 = {
       type: 'category',
       data: ['Mon'],
       axisLabel: {
-        interval:0,
-        rotate: 45 ,
+        interval: 0,
+        rotate: 45,
         show: true,
         formatter: function (value) {
-          return appPath2Name(value,appNameListMap)
+          return appPath2Name(value, appNameListMap)
           // return value.substr(-10); // 自定义标签格式化函数
         },
       }
@@ -338,16 +341,18 @@ export default defineComponent({
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
     let chartDom, myChart, chartDom2, myChart2;
-    let lastUpdateTick = 0
+    let updateFlag = null;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
     let mouseTable = ref([])
     const columns = ref([]);
     const columns0 = ref([]);
+    const columns2 = ref([]);
     const historyDate = ref([]);
     const beginDate = ref(0);
     const endDate = ref(0);
     const updateTime = ref('');
+    const appListData = ref([]);
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
 
@@ -378,53 +383,94 @@ export default defineComponent({
           defaultSortOrder: 'descend',
           sorter: 'default',
         }
-      ],
-        columns.value = [
-          {
-            title: content[lang].intro88,
-            key: 'keyName',
-            sorter: 'default',
-          },
-          {
-            title: content[lang].intro89,
-            key: 'desc',
-            render(row) {
-              let arr = row.desc.split(' ');
-              let lastChar = arr[arr.length - 1];
-              if (lastChar.length == 1) {
-                arr[arr.length - 1] = lastChar.toUpperCase()
-              }
-              const tags = arr.map((tagKey) => {
-                return h(
-                  NTag,
-                  {
-                    style: {
-                      marginRight: '6px'
-                    },
-                    type: 'info',
-                    bordered: false
-                  },
-                  {
-                    default: () => tagKey
-                  }
-                )
-              })
-              return tags
+      ];
+      columns.value = [
+        {
+          title: content[lang].intro88,
+          key: 'keyName',
+          sorter: 'default',
+        },
+        {
+          title: content[lang].intro89,
+          key: 'desc',
+          render(row) {
+            let arr = row.desc.split(' ');
+            let lastChar = arr[arr.length - 1];
+            if (lastChar.length == 1) {
+              arr[arr.length - 1] = lastChar.toUpperCase()
             }
-          },
-          {
-            title: content[lang].intro90,
-            key: 'count',
-            defaultSortOrder: 'descend',
-            sorter: 'default',
+            const tags = arr.map((tagKey) => {
+              return h(
+                NTag,
+                {
+                  style: {
+                    marginRight: '6px'
+                  },
+                  type: 'info',
+                  bordered: false
+                },
+                {
+                  default: () => tagKey
+                }
+              )
+            })
+            return tags
           }
-        ]
+        },
+        {
+          title: content[lang].intro90,
+          key: 'count',
+          defaultSortOrder: 'descend',
+          sorter: 'default',
+        }
+      ];
+      // 应用列表数据
+      columns2.value = [
+        {
+          title: content[lang].intro156, // 'AppPath',
+          key: 'appPath',
+          sorter: 'default'
+        },
+        {
+          title: content[lang].intro90, //'keyCount',
+          key: 'keyCount',
+          defaultSortOrder: 'descend',
+          sorter: (row1, row2) => row1.keyCount - row2.keyCount
+        },
+        {
+          title: content[lang].intro157, // 'keyType',
+          key: 'keyType',
+          defaultFilterOptionValues: ['Mouse', 'Keyboard'],
+          filterOptions: [
+            {
+              label: 'Mouse',
+              value: 'Mouse'
+            },
+            {
+              label: 'Keyboard',
+              value: 'Keyboard'
+            }
+          ],
+          filter(value, row) {
+            return row.keyType == value.toString()
+          }
+        }
+      ]
     }
     function handleUpdateValue() {
       let keyStatHash = getRealStatHash({}, beginDate.value, endDate.value)
       showHash(keyStatHash)
     }
     function updateKeyData(msg) {
+      // 不必每次都刷新数据，可以时间间隔可以为1秒
+      if (updateFlag == null) {
+        updateFlag = setTimeout(() => {
+          updateKeyDataCore(msg)
+          updateFlag = null
+        }, 1000);
+      }
+    }
+    function updateKeyDataCore(msg) {
       if (msg.indexOf('{"') != 0) {
         // 不是 JSON，直接退出
         return;
@@ -433,13 +479,6 @@ export default defineComponent({
       if (endDate.value != currTick && currTick > 0) {
         // 为固定值，直接退出 WS的响应
         return;
-      }
-      // 不必每次都刷新数据，可以时间间隔可以为2秒
-      let nowTick = new Date().getTime();
-      if ((nowTick - lastUpdateTick) < 1000) {
-        return;
-      } else {
-        lastUpdateTick = nowTick;
       }
       let keyStatHash = JSON.parse(msg)
       // 设置下拉选择
@@ -493,7 +532,11 @@ export default defineComponent({
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
-      showAppChart(leftKey, keyStatHash, option2, myChart2);
+      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2);
+      /**const appListData0 = [
+        { appPath: 'c:/123',
+          keyCount: 32,
+          keyType: 'Mouse'} ] */
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
@@ -540,10 +583,12 @@ export default defineComponent({
       myChart2 = echarts.init(chartDom2, newValue);
       myChart2.setOption(option2);
     });
+
     return {
       strLeftKeyVal,
       columns,
       columns0,
+      columns2,
       dataTable,
       contentText,
       historyDate,
@@ -555,6 +600,7 @@ export default defineComponent({
       leftKeySwitch,
       showLeftKeyRef,
       railStyle,
+      appListData,
     }
   },
 })

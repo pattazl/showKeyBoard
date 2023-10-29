@@ -14,6 +14,9 @@
       <n-card :title="contentText.intro149">
         <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
       </n-card>
+      <n-card :title="contentText.intro149">
+        <n-data-table :columns="columns2" :data="appListData" />
+      </n-card>
       <n-card :title="contentText.intro87">
         <template #header-extra>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
@@ -53,7 +56,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart,appPath2Name } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name } from '@/common';
 import content from '../../content.js';
 // 注册必须的组件
 echarts.use([
@@ -179,11 +182,11 @@ let option2 = {
       type: 'category',
       data: ['Mon'],
       axisLabel: {
-        interval:0,
-        rotate: 45 ,
+        interval: 0,
+        rotate: 45,
         show: true,
         formatter: function (value) {
-          return appPath2Name(value,appNameListMap)
+          return appPath2Name(value, appNameListMap)
         },
       }
     }
@@ -283,6 +286,8 @@ export default defineComponent({
     const columns0 = ref([]);
     const historyDate = ref([]);
     const beginDate = ref('');
+    const columns2 = ref([]);
+    const appListData = ref([]);
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
 
@@ -313,47 +318,79 @@ export default defineComponent({
           defaultSortOrder: 'descend',
           sorter: 'default',
         }
-      ],
-        columns.value = [
-          {
-            title: content[lang].intro88,
-            key: 'keyName',
-            sorter: 'default',
-          },
-          {
-            title: content[lang].intro89,
-            key: 'desc',
-            render(row) {
-              let arr = row.desc.split(' ');
-              let lastChar = arr[arr.length - 1];
-              if (lastChar.length == 1) {
-                arr[arr.length - 1] = lastChar.toUpperCase()
-              }
-              const tags = arr.map((tagKey) => {
-                return h(
-                  NTag,
-                  {
-                    style: {
-                      marginRight: '6px'
-                    },
-                    type: 'info',
-                    bordered: false
-                  },
-                  {
-                    default: () => tagKey
-                  }
-                )
-              })
-              return tags
+      ];
+      columns.value = [
+        {
+          title: content[lang].intro88,
+          key: 'keyName',
+          sorter: 'default',
+        },
+        {
+          title: content[lang].intro89,
+          key: 'desc',
+          render(row) {
+            let arr = row.desc.split(' ');
+            let lastChar = arr[arr.length - 1];
+            if (lastChar.length == 1) {
+              arr[arr.length - 1] = lastChar.toUpperCase()
             }
-          },
-          {
-            title: content[lang].intro90,
-            key: 'count',
-            defaultSortOrder: 'descend',
-            sorter: 'default',
+            const tags = arr.map((tagKey) => {
+              return h(
+                NTag,
+                {
+                  style: {
+                    marginRight: '6px'
+                  },
+                  type: 'info',
+                  bordered: false
+                },
+                {
+                  default: () => tagKey
+                }
+              )
+            })
+            return tags
           }
-        ]
+        },
+        {
+          title: content[lang].intro90,
+          key: 'count',
+          defaultSortOrder: 'descend',
+          sorter: 'default',
+        }
+      ];
+      // 应用列表数据
+      columns2.value = [
+        {
+          title: content[lang].intro156, // 'AppPath',
+          key: 'appPath',
+          sorter: 'default'
+        },
+        {
+          title: content[lang].intro90, //'keyCount',
+          key: 'keyCount',
+          defaultSortOrder: 'descend',
+          sorter: (row1, row2) => row1.keyCount - row2.keyCount
+        },
+        {
+          title: content[lang].intro157, // 'keyType',
+          key: 'keyType',
+          defaultFilterOptionValues: ['Mouse', 'Keyboard'],
+          filterOptions: [
+            {
+              label: 'Mouse',
+              value: 'Mouse'
+            },
+            {
+              label: 'Keyboard',
+              value: 'Keyboard'
+            }
+          ],
+          filter(value, row) {
+            return row.keyType == value.toString()
+          }
+        }
+      ]
     }
     async function handleUpdateValue(value) {
       historyData = await getHistory(value, value)
@@ -393,7 +430,7 @@ export default defineComponent({
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
-      showAppChart(leftKey, keyStatHash, option2, myChart2);
+      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2);
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
@@ -452,6 +489,7 @@ export default defineComponent({
       strLeftKeyVal,
       columns,
       columns0,
+      columns2,
       dataTable,
       contentText,
       historyDate,
@@ -461,6 +499,7 @@ export default defineComponent({
       leftKeySwitch,
       showLeftKeyRef,
       railStyle,
+      appListData,
     }
   },
 })

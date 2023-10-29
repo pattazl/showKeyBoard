@@ -183,6 +183,8 @@ export default {
 	intro153: '应用鼠标显示TOP N',
 	intro154: '应用键盘显示TOP N',
 	intro155: '是否发送应用信息，以用于统计不同应用的使用情况',
+	intro156: '应用程序路径',
+	intro157: '数据类型',
 
   },
   'en-US': {
@@ -367,5 +369,7 @@ export default {
 	intro153: 'App mouse operate TOP N',
 	intro154: 'App keystroke operate TOP N',
 	intro155: 'Whether send App Info for App statistic',
+	intro156: 'App path',
+	intro157: 'Data Type',
   }
 };

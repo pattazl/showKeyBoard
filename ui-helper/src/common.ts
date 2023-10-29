@@ -123,14 +123,21 @@ function showAppChart(leftKey, keyStatHash, opt, chart) {
   arrRemove(leftKey, appArr) // 清除应用信息
   // 所有应用的数组清单
   //let newSet = new Set<string>(); let nameList = Array.from(newSet)
-  let myList = [], myHash = []
+  let myList = [], myHash = [], retArr= [];
   appArr.forEach(x => {
     let appName = x.replace(/^(App-Mouse-|App-Key-)/, '');
+    let mouse = keyStatHash['App-Mouse-' + appName] ?? 0
+    let key = keyStatHash['App-Key-' + appName] ?? 0
+    let keyType = 'Keyboard'
+    let keyCount = key
+    if(/^App-Mouse-/.test(x)){
+      keyType = 'Mouse'
+      keyCount = mouse
+    }
+    retArr.push({appPath:appName,keyType,keyCount})
     if (myList.indexOf(appName) == -1) {
       // 不存在就插入，并找对应的鼠标和键盘信息
       myList.push(appName)
-      let mouse = keyStatHash['App-Mouse-' + appName] ?? 0
-      let key = keyStatHash['App-Key-' + appName] ?? 0
       let total = mouse + key
       // 如果没有预先匹配则取文件名
       // let appPath = appName.replace(/^App-/,'')
@@ -152,6 +159,7 @@ function showAppChart(leftKey, keyStatHash, opt, chart) {
   // 键盘
   opt.series[1].data = myHash.map(x => x.key)
   opt && chart.setOption(opt);
+  return retArr;
 }
 // 获取历史时间
 async function getHistory(beginDate, endDate) {
