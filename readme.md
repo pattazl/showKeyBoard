@@ -6,6 +6,7 @@
 4. 支持参数导入导出
 5. 可支持远程统计和设置
 6. 为了隐私安全，只记录统计信息，不记录具体内容，且内容保存在本地
+7. 支持应用程序的鼠标和键盘使用统计
 
 ## 系统要求
 
@@ -36,6 +37,10 @@
 ![dialogsetting](screenshot/dialogsetting.png)
 
 
+
+![appStat](screenshot/appStat.png)
+
+![appHistory](screenshot/appHistory.png)
 
 ## 技术架构
 
