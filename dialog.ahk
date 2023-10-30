@@ -127,7 +127,9 @@ ShowTxt(text)
 ; 如果edit获得焦点，需要立刻去掉
 Edit_Focus(thisEdit,Info) {  ; Declaring this parameter is optional.
     ; OutputDebug ("AutoHotkey myGui_Focus" )
-    SendMessage 0x0008, 0, 0, thisEdit   ; EM_SETSEL = 0x00B1, WM_KILLFOCUS =0x0008 系统会自动触发选中，取消焦点防止选中
+    try{
+        SendMessage 0x0008, 0, 0, thisEdit   ; EM_SETSEL = 0x00B1, WM_KILLFOCUS =0x0008 系统会自动触发选中，取消焦点防止选中
+    }
 }
 
 ; OnMessage(0x00B1, WM_LBUTTONDOWN)  ; EM_SETSEL 消息无法通过OnMessage捕获
