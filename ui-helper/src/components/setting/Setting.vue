@@ -7,7 +7,9 @@
         <n-anchor-link :title="contentText?.menu?.setting2" @click.prevent="scrollTo('KeyUI')" href="#KeyUI" />
         <n-anchor-link :title="contentText?.menu?.setting3" @click.prevent="scrollTo('StatPara')" href="#StatPara" />
         <n-anchor-link :title="contentText?.menu?.setting4" @click.prevent="scrollTo('KeyMap')" href="#KeyMap" />
-        <n-anchor-link :title="contentText?.menu?.setting5" @click.prevent="scrollTo('Save')" href="#Save" />
+        <div v-show="Object.keys(diffJsonList).length > 0" class="saveBlink">
+          <n-anchor-link :title="contentText?.menu?.setting5" @click.prevent="scrollTo('Save')" href="#Save" />
+        </div>
       </n-anchor>
     </div>
     <div>
@@ -166,12 +168,12 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro29 }}
               <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.guiLife" :min="10" :max="100000" />
+                <n-input-number v-model:value="allConfig.dialog.guiLife" :step="100" :min="10" :max="100000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro30 }}
               <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.guiInterval" :min="10" :max="100000" />
+                <n-input-number v-model:value="allConfig.dialog.guiInterval" :step="100" :min="10" :max="100000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro31 }}<div class="intro">{{ contentText.intro32 }}</div>
@@ -251,7 +253,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro59 }}<div class="intro">{{ contentText.intro60 }}</div>
               <template #suffix>
-                <n-input-number v-model:value="dataSetting.mouseDPI" :min="100" :max="100000" />
+                <n-input-number v-model:value="dataSetting.mouseDPI" :step="100" :min="100" :max="100000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro143 }}
@@ -851,4 +853,18 @@ body {
   scroll-behavior: smooth;
   /* 添加平滑滚动效果 */
 }
+@keyframes flash {
+  from {
+    background-color: orange;
+  }
+
+  to {
+    background-color: #ffffff;
+  }
+}
+
+.saveBlink {
+  animation: flash 0.6s infinite alternate;
+}
+
 </style>

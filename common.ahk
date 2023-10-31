@@ -39,6 +39,7 @@ showMouseEvent := DescRead("common","showMouseEvent","1")
 recordMouseMove := DescRead("common","recordMouseMove","0")
 ; 是否记录鼠标移动距离
 needShowKey := DescRead("common","needShowKey","1")
+preNeedShowKey := needShowKey
 ; 是否显示按键
 
 if needRecordKey = -1 {

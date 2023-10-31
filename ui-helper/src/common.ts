@@ -102,6 +102,12 @@ function setWS(callback) {
     console.log('Disconnected from WebSocket server');
   };
 }
+function closeWS() {
+  if(socket!=null){
+    socket.close()
+    socket = null
+  }
+}
 // 从数组中删除指定数据 , key 可能是数组或字符串
 function arrRemove(arr /*out */, key) {
   let keylist = []
@@ -246,5 +252,5 @@ function appPath2Name(val,map){
 }
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
-  getKeyDesc, showLeftKey, railStyle, showAppChart,appPath2Name
+  getKeyDesc, showLeftKey, railStyle, showAppChart,appPath2Name,closeWS
 }

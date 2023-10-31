@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.16.0.0
-;@Ahk2Exe-SetFileVersion 1.16.0.0
+;@Ahk2Exe-SetProductVersion 1.17.0.0
+;@Ahk2Exe-SetFileVersion 1.17.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.16" 
+global APPName:="ShowKeyBoard", ver:="1.17" 
 #include "common.ahk"
 #Include events.ahk
 ; 正式代码开始
@@ -263,7 +263,11 @@ ExitFunc(ExitReason, ExitCode)
     ;}
     ; 需要将 临时的配置开关保存
     If FileExist(IniFile){
-        IniWrite(needShowKey,IniFile,"common","needShowKey")
+		; 当文件中的参数没有被人修改时才写入状态，否则以文件中数据为准
+		tempVal := DescRead("common","needShowKey","1")
+		if tempVal = preNeedShowKey {
+			IniWrite(needShowKey,IniFile,"common","needShowKey")
+		}
     }
     ; 检查后台服务情况
 	pidPath := httpPath 'kbserver.pid'

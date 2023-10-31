@@ -143,10 +143,13 @@ export default {
 	intro117:'日期格式不合规',
 	intro118:'在数据趋势中按键统计前N个',
 	intro119:`
+	声明 : 本工具不联网，只保存统计信息，不记录具体内容，不会收集任何数据到服务器上
+
 	功能 : 实时显示按键情况，统计历史按键
-	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
 	数据 : 统计数据只保存在本地的 httpdist\\dist\\records.db 文件中，此文件为sqlite3格式
-	代码 : 全部开源 https://github.com/pattazl/showKeyBoard `,
+	代码 : 全部开源 https://github.com/pattazl/showKeyBoard 
+	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
+	`,
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
 	intro122:'确定删除:',
@@ -329,10 +332,13 @@ export default {
 	intro117:'The format of date is invalid',
 	intro118:'Top N in keyboard statistic',
 	intro119:`
+	Declaration: This tool is offline, save statistical information only, and will not collect any data on the server
+
 	Functionality: Real-time display of key press information and tracking of historical key presses.
-	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
 	Data: The statistic data is saved in a local file named "records.db" located in the "httpdist\\dist" directory. This file is in SQLite3 format.
-	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.`,
+	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.
+	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
+	`,
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
 	intro122:'Are you sure delete:',

@@ -39,7 +39,7 @@
 <script lang="ts">
 import { useAustinStore } from '../../App.vue'
 import dayjs from 'dayjs'
-import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
+import { defineComponent, onMounted, PropType, ref, computed, h, watch ,onUnmounted} from 'vue'
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
@@ -59,7 +59,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name,closeWS } from '@/common';
 import content from '../../content.js';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
@@ -461,13 +461,18 @@ export default defineComponent({
       let keyStatHash = getRealStatHash({}, beginDate.value, endDate.value)
       showHash(keyStatHash)
     }
+    let firstUpdate = true; // 用于控制第一次显示时没有延时，其他均有延时显示
     function updateKeyData(msg) {
       // 不必每次都刷新数据，可以时间间隔可以为1秒
-      if (updateFlag == null) {
+      if (updateFlag == null && !firstUpdate) {
         updateFlag = setTimeout(() => {
           updateKeyDataCore(msg)
           updateFlag = null
         }, 1000);
+      }
+      if(firstUpdate){
+        updateKeyDataCore(msg) // 先立刻执行增强用户体验
+        firstUpdate = false
       }
     }
     function updateKeyDataCore(msg) {
@@ -573,6 +578,9 @@ export default defineComponent({
       myChart2 = echarts.init(chartDom2, store.myTheme);
       //console.log(keyList)
       setWS(updateKeyData)
+    })
+    onUnmounted(()=>{
+      closeWS()
     })
     watch(() => store.myTheme, (newValue, oldValue) => {
       myChart.dispose()
