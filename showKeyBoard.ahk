@@ -265,7 +265,7 @@ ExitFunc(ExitReason, ExitCode)
     If FileExist(IniFile){
 		; 当文件中的参数没有被人修改时才写入状态，否则以文件中数据为准
 		tempVal := DescRead("common","needShowKey","1")
-		if tempVal = preNeedShowKey {
+		if tempVal = preNeedShowKey && tempVal != needShowKey {
 			IniWrite(needShowKey,IniFile,"common","needShowKey")
 		}
     }
