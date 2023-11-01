@@ -338,28 +338,49 @@ RecordKey(txt,isMouse:=False)
 AddRecord(key,isMouse){
     ;如果需要按进程统计
     if statProcInfo = 1 {
-        appName := 'App-'
-        FocusedHwnd := WinActive("A")  ; ControlGetFocus("A") WinExist("A") ;
-        if(FocusedHwnd>0){
-        ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
-            ProcPath := WinGetProcessPath(FocusedHwnd)
-            if isMouse {
-                appName .= 'Mouse-' ProcPath  
-            }else{
-                appName .= 'Key-' ProcPath  
-            }
-            if( !AllKeyRecord.Has(appName))
-            {
-                AllKeyRecord[appName] :=0
-            }
-            AllKeyRecord[appName] += 1  ; 以应用维度，按键汇总
-        }
+        GetAppInfo(isMouse)
     }
     if( !AllKeyRecord.Has(key))
     {
         AllKeyRecord[key] :=0
     }
     AllKeyRecord[key] += 1
+}
+; 更新活动窗口信息
+GetAppInfo(isMouse){
+    appName := 'App-'
+    try {
+        FocusedHwnd := WinActive("A")  ; ControlGetFocus("A") WinExist("A") ;
+    }catch{
+        return
+    }
+    if(FocusedHwnd>0){
+    ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
+        ProcPath := ''
+        try{
+            ProcPath := WinGetProcessPath(FocusedHwnd)
+        }catch{
+            try {   ; 当无法获取进程路径和名称时用进程的标题名代替
+                ProcPath := Trim(WinGetTitle(FocusedHwnd))
+                if ProcPath != '' {
+                    ProcPath := 'Title:' ProcPath
+                }
+            }
+        }
+        if ProcPath = ''{
+            ProcPath := 'Unknown'
+        }
+        if isMouse {
+            appName .= 'Mouse-' ProcPath  
+        }else{
+            appName .= 'Key-' ProcPath  
+        }
+        if( !AllKeyRecord.Has(appName))
+        {
+            AllKeyRecord[appName] :=0
+        }
+        AllKeyRecord[appName] += 1  ; 以应用维度，按键汇总
+    }
 }
 ; 将<#内容转换为自定义的符号 {LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}
 ConvertTxt(t){
