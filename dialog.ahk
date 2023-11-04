@@ -340,11 +340,7 @@ AddRecord(key,isMouse){
     if statProcInfo = 1 {
         GetAppInfo(isMouse)
     }
-    if( !AllKeyRecord.Has(key))
-    {
-        AllKeyRecord[key] :=0
-    }
-    AllKeyRecord[key] += 1
+    AddKeyToMap(key)
 }
 ; 更新活动窗口信息
 GetAppInfo(isMouse){
@@ -375,13 +371,22 @@ GetAppInfo(isMouse){
         }else{
             appName .= 'Key-' ProcPath  
         }
-        if( !AllKeyRecord.Has(appName))
-        {
-            AllKeyRecord[appName] :=0
-        }
-        AllKeyRecord[appName] += 1  ; 以应用维度，按键汇总
+        AddKeyToMap(appName)  ; 以应用维度，按键汇总
     }
 }
+; 动态判断是否有Key，如果没有则添加
+AddKeyToMap(key){
+    ; 对于空键直接跳过
+    if(key == ''){
+        return
+    }
+    if( !AllKeyRecord.Has(key))
+    {
+        AllKeyRecord[key] :=0
+    }
+    AllKeyRecord[key] += 1
+}
+
 ; 将<#内容转换为自定义的符号 {LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}
 ConvertTxt(t){
 	; 如果能直接匹配，直接返回

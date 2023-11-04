@@ -1,6 +1,6 @@
 ; 用于进行对外通讯，只读本地文件 和发送数据
 #include common.ahk
-
+#Include "lib/JSON.ahk"
 ; 如果无需记录，那么将关闭界面设置功能
 if(needRecordKey=1){
 	Init()  ; 判断后端接口，启动相关程序
@@ -213,7 +213,7 @@ Ready() {
     }
     ;MsgBox "Status " reqXMLHTTP.status,, 16
 }
-#Include "lib/_JXON.ahk"
+
 sendData(route,data:=''){
     HttpCtrlObj['state'] := 'wait'
 	reqXMLHTTP.open('POST', serverUrl route , true)
@@ -225,7 +225,7 @@ sendData(route,data:=''){
     str := ''
     if(data!=''){
 		if( Type(data) = 'Map'){
-			str := jxon_dump(data, indent:=0)
+			str := JSON.stringify(data)
 		}else{
 			str := data   ; 普通字符串
 		}

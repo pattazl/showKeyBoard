@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.18.0.0
-;@Ahk2Exe-SetFileVersion 1.18.0.0
+;@Ahk2Exe-SetProductVersion 1.19.0.0
+;@Ahk2Exe-SetFileVersion 1.19.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.18" 
+global APPName:="ShowKeyBoard", ver:="1.19" 
 #include "common.ahk"
 #Include events.ahk
 ; 正式代码开始
@@ -277,7 +277,7 @@ ExitFunc(ExitReason, ExitCode)
 		If FileExist(lastRecordPath){
 			FileDelete lastRecordPath   ; 先删
 		}
-		FileAppend(jxon_dump(AllKeyRecord, indent:=0), lastRecordPath)
+		FileAppend(JSON.stringify(AllKeyRecord), lastRecordPath)
 	}
 }
 
