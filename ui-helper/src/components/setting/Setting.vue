@@ -276,6 +276,12 @@
                 <n-input-number v-model:value="dataSetting.appTopN" :min="1" :max="200" />
               </template>
             </n-list-item>
+            
+            <n-list-item>{{ contentText.intro158 }}
+              <template #suffix>
+                <n-switch v-model:value="dataSetting.mergeAppName" :round="false" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro148 }}
                 <n-dynamic-input v-model:value="appNameListRef" preset="pair" :key-placeholder="contentText.intro146"
                 :value-placeholder="contentText.intro147" />

@@ -4,7 +4,19 @@
       <n-space style="font-size:16px">
         {{ contentText.intro112 }}
         <n-select v-model:value="beginDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
+
+        <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate" >
+            <template #unchecked>
+              {{ contentText.intro159 }}
+            </template>
+            <template #checked>
+              {{ contentText.intro160 }}
+            </template>
+          </n-switch>
+        <n-select v-show="showEndDate" v-model:value="endDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
+
+
       <n-card :title="contentText.intro86">
         <div id="main" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
@@ -286,8 +298,10 @@ export default defineComponent({
     const columns0 = ref([]);
     const historyDate = ref([]);
     const beginDate = ref('');
+    const endDate = ref('');
     const columns2 = ref([]);
     const appListData = ref([]);
+    const showEndDate = ref(0);
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
 
@@ -470,6 +484,7 @@ export default defineComponent({
       historyDate.value = dateArr.map((x) => {
         return { label: x, value: x }
       })
+      endDate.value = dateArr[0]??''
       if (dateArr.length > 0) {
         beginDate.value = dateArr[0];// 设置选择第一个
         handleUpdateValue(dateArr[0])
@@ -494,12 +509,14 @@ export default defineComponent({
       contentText,
       historyDate,
       beginDate,
+      endDate,
       handleUpdateValue,
       mouseTable,
       leftKeySwitch,
       showLeftKeyRef,
       railStyle,
       appListData,
+      showEndDate,
     }
   },
 })

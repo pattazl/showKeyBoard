@@ -95,6 +95,7 @@ export default defineComponent({
         data.dataSetting.appTopN = data.dataSetting.appTopN??10
         data.dataSetting.mergeControl = data.dataSetting.mergeControl??false
         data.dataSetting.fillDate = data.dataSetting.fillDate??false
+        data.dataSetting.mergeAppName = data.dataSetting.mergeAppName??true
 
         store.data = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
         store.preData = deepCopy(data); // 之前的数据

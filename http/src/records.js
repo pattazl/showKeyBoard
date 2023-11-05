@@ -65,7 +65,12 @@ function getRecords(begin, end) {
     if (begin == strNow && end == strNow) {
       sql = 'SELECT keyname, keycount, date, tick FROM events where date between ? and ?'
     } else {
-      sql = 'SELECT keyname, keycount, date FROM stat where date between ? and ? '
+      if(begin == end){
+        sql = 'SELECT keyname, keycount, date FROM stat where date = ? '
+      }else{
+        sql = 'SELECT keyname, sum(keycount), min(date) FROM stat where date between ? and ? group by keyname '
+      }
+      // sql = 'SELECT keyname, keycount, date FROM stat where date between ? and ? '
     }
     db.all(sql, [begin, end], function (err, rows) {
       if (err) {
