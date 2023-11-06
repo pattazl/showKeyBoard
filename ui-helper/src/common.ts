@@ -44,9 +44,9 @@ async function ajax(path, data = null) {
   return result
 }
 // 布尔类型清单,bool list
-const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans', 
-'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd','mergeControl','fillDate','statProcInfo',
-'mergeAppName']
+const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans',
+  'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd', 'mergeControl', 'fillDate', 'statProcInfo',
+  'mergeAppName']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {
@@ -104,7 +104,7 @@ function setWS(callback) {
   };
 }
 function closeWS() {
-  if(socket!=null){
+  if (socket != null) {
     socket.close()
     socket = null
   }
@@ -130,30 +130,33 @@ function showAppChart(leftKey, keyStatHash, opt, chart, mergeApp) {
   arrRemove(leftKey, appArr) // 清除应用信息
   // 所有应用的数组清单
   //let newSet = new Set<string>(); let nameList = Array.from(newSet)
-  let myList = [] /**用于过滤唯一应用名 */, myHash = [] /**用于图形 */, retArr= [] /**用于表格 */;
+  let myList = [] /**用于过滤唯一应用名 */, myHash = [] /**用于图形 */, retArr = [] /**用于表格 */;
+  let appSet = new Set<string>(); // 保存唯一APP名
   appArr.forEach(x => {
     let appName = x.replace(/^(App-Mouse-|App-Key-)/, '');
+    appSet.add(appName)
+  })
+  appSet.forEach(appName => {
     let mouse = keyStatHash['App-Mouse-' + appName] ?? 0
     let key = keyStatHash['App-Key-' + appName] ?? 0
     let total = mouse + key
     // 如果能找到且需要合并名称
-    if(mergeApp!=null)
-    {
-      appName = mergeApp[appName]??appName
+    if (mergeApp != null) {
+      appName = mergeApp[appName] ?? appName
     }
     if (myList.indexOf(appName) == -1) {
       // 不存在就插入，并找对应的鼠标和键盘信息
       myList.push(appName)
-      retArr.push({appPath:appName,keyType:'Keyboard',keyCount:key})
-      retArr.push({appPath:appName,keyType:'Mouse',keyCount:mouse})
+      retArr.push({ appPath: appName, keyType: 'Keyboard', keyCount: key })
+      retArr.push({ appPath: appName, keyType: 'Mouse', keyCount: mouse })
       // 如果没有预先匹配则取文件名
       // let appPath = appName.replace(/^App-/,'')
       myHash.push({ appName, mouse, key, total })
-    }else{
+    } else {
       // 需要叠加数据
-      retArr.find(x=>x.appPath == appName&&x.keyType == 'Keyboard').keyCount +=key
-      retArr.find(x=>x.appPath == appName&&x.keyType == 'Mouse').keyCount +=mouse
-      let obj = myHash.find(x=>x.appName == appName)
+      retArr.find(x => x.appPath == appName && x.keyType == 'Keyboard').keyCount += key
+      retArr.find(x => x.appPath == appName && x.keyType == 'Mouse').keyCount += mouse
+      let obj = myHash.find(x => x.appName == appName)
       obj.mouse += mouse
       obj.key += key
       obj.total += total
@@ -252,14 +255,14 @@ function railStyle({
   return style
 }
 // 应用程序名转换为显示名
-function appPath2Name(val,map){
+function appPath2Name(val, map) {
   let newName = map[val] ?? val.split(/[\\\/]/).pop().replace(/\.exe$/i, '')
-  if(newName.length>20){
-    newName = newName.substring(0,18)+'...'
+  if (newName.length > 20) {
+    newName = newName.substring(0, 18) + '...'
   }
   return newName
 }
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
-  getKeyDesc, showLeftKey, railStyle, showAppChart,appPath2Name,closeWS
+  getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS
 }
