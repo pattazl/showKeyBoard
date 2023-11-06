@@ -5,15 +5,16 @@
         {{ contentText.intro112 }}
         <n-select v-model:value="beginDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
 
-        <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate" >
-            <template #unchecked>
-              {{ contentText.intro159 }}
-            </template>
-            <template #checked>
-              {{ contentText.intro160 }}
-            </template>
-          </n-switch>
-        <n-select v-show="showEndDate" v-model:value="endDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
+        <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate" @update:value="endDate = beginDate">
+          <template #unchecked>
+            {{ contentText.intro159 }}
+          </template>
+          <template #checked>
+            {{ contentText.intro160 }}
+          </template>
+        </n-switch>
+        <n-select v-show="showEndDate" v-model:value="endDate" filterable :options="historyDate"
+          @update:value="handleUpdateValue" />
       </n-space>
 
 
@@ -62,7 +63,8 @@ import {
   GridComponent,
   DatasetComponent,
   TransformComponent,
-  VisualMapComponent
+  VisualMapComponent,
+  DataZoomComponent,
 } from 'echarts/components';
 // 标签自动布局、全局过渡动画等特性
 import { LabelLayout, UniversalTransition } from 'echarts/features';
@@ -82,6 +84,7 @@ echarts.use([
   CanvasRenderer,
   HeatmapChart,
   VisualMapComponent,
+  DataZoomComponent,
   BarChart,
 ]);
 
@@ -206,6 +209,13 @@ let option2 = {
   yAxis: [
     {
       type: 'value'
+    }
+  ],
+  dataZoom: [
+    {
+      show: true,
+      startValue: 0,
+      endValue: 14  // 前15个数据
     }
   ],
   series: [
@@ -407,7 +417,20 @@ export default defineComponent({
       ]
     }
     async function handleUpdateValue(value) {
-      historyData = await getHistory(value, value)
+      // console.log(value, beginDate.value, endDate.value)
+      let b = beginDate.value, e = b;
+      if (showEndDate.value) {
+        if (beginDate.value > endDate.value) {
+          if (value == endDate.value) {
+            endDate.value = beginDate.value
+          } else {
+            beginDate.value = endDate.value
+          }
+        }
+        b = beginDate.value
+        e = endDate.value
+      }
+      historyData = await getHistory(b, e)
       let keyStatHash = getHash('')
       showHash(keyStatHash)
     }
@@ -444,7 +467,8 @@ export default defineComponent({
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
-      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2);
+      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2
+        , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
@@ -484,7 +508,6 @@ export default defineComponent({
       historyDate.value = dateArr.map((x) => {
         return { label: x, value: x }
       })
-      endDate.value = dateArr[0]??''
       if (dateArr.length > 0) {
         beginDate.value = dateArr[0];// 设置选择第一个
         handleUpdateValue(dateArr[0])

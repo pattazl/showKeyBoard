@@ -66,9 +66,9 @@ function getRecords(begin, end) {
       sql = 'SELECT keyname, keycount, date, tick FROM events where date between ? and ?'
     } else {
       if(begin == end){
-        sql = 'SELECT keyname, keycount, date FROM stat where date = ? '
+        sql = 'SELECT keyname, keycount, date FROM stat where date between ? and ? '
       }else{
-        sql = 'SELECT keyname, sum(keycount), min(date) FROM stat where date between ? and ? group by keyname '
+        sql = 'SELECT keyname, sum(keycount) as keycount, min(date) as date FROM stat where date between ? and ? group by keyname '
       }
       // sql = 'SELECT keyname, keycount, date FROM stat where date between ? and ? '
     }

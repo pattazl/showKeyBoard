@@ -125,30 +125,38 @@ function arrRemove(arr /*out */, key) {
   })
 }
 // 控制应用图形显示,将 leftKey 中 App-开头的按键剥离出去
-function showAppChart(leftKey, keyStatHash, opt, chart) {
+function showAppChart(leftKey, keyStatHash, opt, chart, mergeApp) {
   let appArr = leftKey.filter(x => x.indexOf('App-') > -1)
   arrRemove(leftKey, appArr) // 清除应用信息
   // 所有应用的数组清单
   //let newSet = new Set<string>(); let nameList = Array.from(newSet)
-  let myList = [], myHash = [], retArr= [];
+  let myList = [] /**用于过滤唯一应用名 */, myHash = [] /**用于图形 */, retArr= [] /**用于表格 */;
   appArr.forEach(x => {
     let appName = x.replace(/^(App-Mouse-|App-Key-)/, '');
     let mouse = keyStatHash['App-Mouse-' + appName] ?? 0
     let key = keyStatHash['App-Key-' + appName] ?? 0
-    let keyType = 'Keyboard'
-    let keyCount = key
-    if(/^App-Mouse-/.test(x)){
-      keyType = 'Mouse'
-      keyCount = mouse
+    let total = mouse + key
+    // 如果能找到且需要合并名称
+    if(mergeApp!=null)
+    {
+      appName = mergeApp[appName]??appName
     }
-    retArr.push({appPath:appName,keyType,keyCount})
     if (myList.indexOf(appName) == -1) {
       // 不存在就插入，并找对应的鼠标和键盘信息
       myList.push(appName)
-      let total = mouse + key
+      retArr.push({appPath:appName,keyType:'Keyboard',keyCount:key})
+      retArr.push({appPath:appName,keyType:'Mouse',keyCount:mouse})
       // 如果没有预先匹配则取文件名
       // let appPath = appName.replace(/^App-/,'')
       myHash.push({ appName, mouse, key, total })
+    }else{
+      // 需要叠加数据
+      retArr.find(x=>x.appPath == appName&&x.keyType == 'Keyboard').keyCount +=key
+      retArr.find(x=>x.appPath == appName&&x.keyType == 'Mouse').keyCount +=mouse
+      let obj = myHash.find(x=>x.appName == appName)
+      obj.mouse += mouse
+      obj.key += key
+      obj.total += total
     }
   })
   // 对 myHash 进行排序

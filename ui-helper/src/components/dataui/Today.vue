@@ -206,6 +206,13 @@ let option2 = {
       type: 'value'
     }
   ],
+  dataZoom: [
+    {
+      show: true,
+      startValue: 0,
+      endValue: 14  // 前15个数据
+    }
+  ],
   series: [
     {
       name: 'Mouse',
@@ -537,7 +544,8 @@ export default defineComponent({
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
-      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2);
+      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2
+      ,store.data.dataSetting.mergeAppName?appNameListMap:null);
       /**const appListData0 = [
         { appPath: 'c:/123',
           keyCount: 32,
