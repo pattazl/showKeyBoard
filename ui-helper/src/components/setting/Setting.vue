@@ -256,6 +256,11 @@
                 <n-input-number v-model:value="dataSetting.mouseDPI" :step="100" :min="100" :max="100000" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro161 }}
+              <template #suffix>
+                <n-input-number v-model:value="dataSetting.refreshTodayMs" :step="1000" :min="100" :max="300000" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro143 }}
               <template #suffix>
                 <n-switch v-model:value="dataSetting.mergeControl" :round="false" />

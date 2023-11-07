@@ -469,20 +469,24 @@ export default defineComponent({
       showHash(keyStatHash)
     }
     let firstUpdate = true; // 用于控制第一次显示时没有延时，其他均有延时显示
+    let currMsg = ''
     function updateKeyData(msg) {
+      currMsg = msg; // 更新最新的数据
       // 不必每次都刷新数据，可以时间间隔可以为1秒
+      let ms = store.data.dataSetting.refreshTodayMs??2000;
       if (updateFlag == null && !firstUpdate) {
         updateFlag = setTimeout(() => {
-          updateKeyDataCore(msg)
+          updateKeyDataCore()
           updateFlag = null
-        }, 1000);
+        }, ms);  // refreshTodayMs
       }
       if(firstUpdate){
-        updateKeyDataCore(msg) // 先立刻执行增强用户体验
+        updateKeyDataCore() // 先立刻执行增强用户体验
         firstUpdate = false
       }
     }
-    function updateKeyDataCore(msg) {
+    function updateKeyDataCore() {
+      let msg = currMsg // 直接显示最新的数据，而不是之前的旧数据
       if (msg.indexOf('{"') != 0) {
         // 不是 JSON，直接退出
         return;

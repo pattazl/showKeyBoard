@@ -191,6 +191,7 @@ export default {
 	intro158: '相同名称的应用是否进行合并统计',
 	intro159: '单日期查询',
 	intro160: '时间段到',
+	intro161: '今日数据中，操作过N毫秒后才会显示到界面上，避免频繁刷新',
 
   },
   'en-US': {
@@ -383,5 +384,6 @@ export default {
 	intro158: 'Whether the same app name will be merged in statistic',
 	intro159: 'Single date query',
 	intro160: 'Query date until',
+	intro161: 'Will fresh the data after N ms in Today panel, avoid refreshing too frequently',
   }
 };
