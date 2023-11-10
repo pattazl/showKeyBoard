@@ -112,13 +112,11 @@ option[1] = {
 		{
 			name: 'Sum of mouse',
 			type: 'line',
-			stack: 'Total',
 			data: [120, 132, 101, 134, 90, 230, 210]
 		},
 		{
 			name: 'Sum of keyboard',
 			type: 'line',
-			stack: 'Total',
 			data: [220, 182, 191, 234, 290, 330, 310]
 		}
 
