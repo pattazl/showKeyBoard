@@ -21,7 +21,7 @@
 
 如果有node10及以上环境或已经安装过一次，安装
 
-`ShowKeyBoard_Setup_版本_日期(node).exe`
+`ShowKeyBoard_Setup_版本_日期(node).exe`  或 `ShowKeyBoard_Setup_版本_日期.node.exe` 
 
 安装时根据提示进行选择，如是否保留配置，是否创建快捷方式等，一般使用默认配置即可
 
