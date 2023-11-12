@@ -114,10 +114,27 @@ ServerCore()
         }
     }
 }
+; 根据进程id获取命令行
+GetCommand(procId)
+{
+    cmdLine := ""
+    try{
+        wmi := ComObjGet("winmgmts:")
+        queryEnum := wmi.ExecQuery(""
+            . "Select * from Win32_Process where ProcessId=" . procId)
+            ._NewEnum()
+        ; Get first matching process.
+        if queryEnum(&proc)
+            cmdLine := proc.CommandLine
+    }
+    return cmdLine
+}
 ; 启动服务
 startServer()
 {
-	global serverState :=0 ; 假设启动失败
+    cmdExe := 'node.exe '  ; Node命令带空格支持后面的参数
+    cmd := cmdExe '"' httpPath 'server.js"'  ; 完整命令行
+    global serverState :=0 ; 假设启动失败
     ; 读取 httpPath+ kbserver.pid 进程文件检查是否是node的
     ;  需要启动服务,要防止路径上有空格
     pidFile := httpPath 'kbserver.pid'
@@ -125,17 +142,24 @@ startServer()
         strPid := FileRead(pidFile, "`n UTF-8")
         iPid := ProcessExist(strPid)
         if iPid>0{
-			try {
-				path := ProcessGetPath(iPid)
-				SplitPath Path ,&OutFileName, &OutDir
-                if OutFileName = 'node.exe' && (OutDir '\') = httpPath {
-                    ProcessClose(iPid) ;如果是 node.exe则杀进程
+            try {
+                path := ProcessGetPath(iPid)
+                SplitPath Path ,&OutFileName, &OutDir
+                if OutFileName = trim(cmdExe) {
+                    cmdLine := GetCommand(iPid)  ; 尝试获取命令行根据命令行参数排挤
+                    if cmdLine !="" {
+                        canKill :=  (cmdLine = cmd)
+                    }else{ ; 没有成功获取命令行则直接用node的路径判断
+                        canKill := ((OutDir '\') = httpPath)
+                    }
+                    if canKill {
+                        ProcessClose(iPid) ;如果是 node.exe则杀进程
+                    }
                 }
-			}
+            }
             FileDelete pidFile  ; 删除进程文件
         }
     }
-	cmd := 'node.exe "' httpPath 'server.js"'
 	try {
 	; Run cmd ,,'Hide' Show
 		ShowFlag := 'Hide'
