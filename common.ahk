@@ -53,7 +53,13 @@ hotkey4Show := DescRead("common","hotkey4Show","^!+s")
 
 ctrlState :=DescRead("common","ctrlState",1 ) 
 ; 是否显示 控制键状态，如果出现则显示
-serverPort :=DescRead("common","serverPort",9900 ) 
+serverPortDect := 19999
+serverPort :=DescRead("common","serverPort",serverPortDect ) 
+; 尝试判断是否文件无法读取正确内容
+if serverPort = serverPortDect{
+    MsgBox('Can not read file: [' IniFile '], will exit!!')
+    ExitApp
+}
 ; 是否显示 控制键状态，如果出现则显示
 
 activeWindowProc :=DescRead("common","activeWindowProc","" ) 

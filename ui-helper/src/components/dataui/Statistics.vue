@@ -235,10 +235,10 @@ export default defineComponent({
 					let kc = res[0].find(y => y.date == x)?.keycount ?? 0
 					pixHash.data.push(kc)
 					if (screenPixlSize > 0) {
-						screenHash.data.push(kc * (store.data.dataSetting.screenSize * 0.0254) / screenPixlSize);
+						screenHash.data.push((kc * (store.data.dataSetting.screenSize * 0.0254) / screenPixlSize).toFixed(4));
 					}
 					if (store.data.dataSetting.mouseDPI > 0) {
-						phyHash.data.push(kc * (0.0254) / store.data.dataSetting.mouseDPI);
+						phyHash.data.push((kc * (0.0254) / store.data.dataSetting.mouseDPI).toFixed(4));
 					}
 				})
 				option[0].series = [pixHash, screenHash, phyHash]
