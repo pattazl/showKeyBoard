@@ -67,8 +67,8 @@ The HTTP side writes the configuration file and receives the HTML front-end data
 
 ```mermaid
 graph LR
-Client -->|Post| NodeServer ---|websocket/Post/Get| Web
-NodeServer ---|R/W| ConfigFile
+Client -->|Post|NodeServer ---|WebSocket/Post/Get|Web
+NodeServer ---|R/W|ConfigFile
 ConfigFile -->|Reload|Client
 ```
 

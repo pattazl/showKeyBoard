@@ -67,8 +67,8 @@ HTTP 端负责写配置文件，接收 HTML 前端数据
 
 ```mermaid
 graph LR
-Client -->|Post| NodeServer ---|websocket/Post/Get| Web
-NodeServer ---|R/W| ConfigFile
+Client -->|Post|NodeServer ---|WebSocket/Post/Get|Web
+NodeServer ---|R/W|ConfigFile
 ConfigFile -->|Reload|Client
 ```
 
