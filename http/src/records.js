@@ -294,12 +294,16 @@ group by date`
   // 查询统计范围内按键数 top10
   let pro3 = new Promise((resolve, reject) => {
     // 查询记录集
-    let sql = `select keycount,date,keyname from stat where keyname in
-(select keyname from stat where date between ? and ? and keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
+    let sql = `
+WITH
+temp AS (
+  SELECT * FROM "stat"  where date between ? and ? )
+select keycount,date,keyname from temp where keyname in
+(select keyname from temp where keyname not in ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
  and keyname not like('App-%')
 group by keyname order by sum(keycount) desc limit ${globalTopN}
-) and date between ? and ? order by date`
-    db.all(sql, [begin, end, begin, end], function (err, rows) {
+) order by date`
+    db.all(sql, [begin, end], function (err, rows) {
       if (err) {
         reject(err);
       }
@@ -316,9 +320,9 @@ temp AS (
   SELECT  REPLACE(REPLACE(keyname,'App-Mouse-',''),'App-Key-','') as pathname,sum(keycount) as count FROM temp  
     group by pathname order by count desc limit ${globalAppTopN}
 )
-select * from stat where keyname in ( select 'App-Mouse-'||pathname from temp2 ) 
+select * from temp where keyname in ( select 'App-Mouse-'||pathname from temp2 ) 
 union
-select * from stat where keyname in ( select 'App-Key-'||pathname from temp2 ) 
+select * from temp where keyname in ( select 'App-Key-'||pathname from temp2 ) 
     `
     db.all(sql, [begin, end], function (err, rows) {
       if (err) {
