@@ -55,7 +55,7 @@ export default defineComponent({
   setup: () => {
     const message = useMessage()
     const store= useAustinStore();
-    const lang = ref<'en-US' | 'zh-CN'>('zh-CN'); // 默认中文
+    const lang = ref<'en-US' | 'zh-CN'>('en-US'); // 最基础语言默认英文 ,之后取 defaultLang 的值
     const contentText = computed(() => content[lang.value]).value;
     const menuOptions = ref([])
     const collapsed = ref(false)
@@ -63,7 +63,7 @@ export default defineComponent({
     const setLang = (value: 'en-US' | 'zh-CN') => {
       lang.value = value;
       //console.log('setLang....',value)
-      updateQuery({ lang: value }); // 更新地址栏
+      //updateQuery({ lang: value }); // 更新地址栏
       const ct = content[value];
       setTimeout(() => {
         updateMenu(ct.menu); // 需要延迟执行
@@ -97,21 +97,23 @@ export default defineComponent({
         data.dataSetting.fillDate = data.dataSetting.fillDate??false
         data.dataSetting.mergeAppName = data.dataSetting.mergeAppName??true
         data.dataSetting.refreshTodayMs = data.dataSetting.refreshTodayMs??2000
+        data.config.common.defaultLang = data.config.common.defaultLang??'zh-CN'  // 配置文件默认中文
 
         store.data = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新
-        store.preData = deepCopy(data); // 之前的数据
+        store.preData = deepCopy(data); // 
+        setLang(data.config.common.defaultLang) // 载入成功后设置默认语言
       }
     }
     // 初始化时动态设置菜单内容
-    const param = getQuery();
-    let _lang = lang.value;
-    if (param?.lang) {
-      _lang = param.lang
-    }
-    setLang(_lang);
+    // const param = getQuery();
+    // let _lang = lang.value;
+    // if (param?.lang) {
+    //   _lang = param.lang
+    // }
+    // setLang(_lang);
 
-    // back, forward
-    window.addEventListener('popstate', () => lang.value = getQuery()?.lang || 'en-US')
+    // // back, forward
+    // window.addEventListener('popstate', () => lang.value = getQuery()?.lang || 'en-US')
 
     const themeOverrides: GlobalThemeOverrides = {
       common: {
