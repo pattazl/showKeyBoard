@@ -280,13 +280,13 @@ export default defineComponent({
 				})
 				// 应用数据循环设置参数
 				appInfo.forEach((xx,i)=>{
-					let hash = getKeyData(dateArr, appInfo[i])
+					let hash = getKeyData(dateArr, xx)
 					option[3+i].series = Object.keys(hash).map(x => hash[x])
 					option[3+i].legend.data = Object.keys(hash)
 				})
 				// 显示全部图标数据
 				myChart.forEach((v,i)=>{
-					v.setOption(option[i]);
+					v.setOption(option[i],true); // 去除缓存
 				})
 			} else {
 				message.error(contentText.value.intro117)

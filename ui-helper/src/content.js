@@ -192,6 +192,7 @@ export default {
 	intro159: '单日期查询',
 	intro160: '时间段到',
 	intro161: '今日数据中，操作过N毫秒后才会显示到界面上，避免频繁刷新',
+	intro162: '默认语言',
 
   },
   'en-US': {
@@ -385,5 +386,6 @@ export default {
 	intro159: 'Single date query',
 	intro160: 'Query date until',
 	intro161: 'Will fresh the data after N ms in Today panel, avoid refreshing too frequently',
+	intro162: 'Default language',
   }
 };

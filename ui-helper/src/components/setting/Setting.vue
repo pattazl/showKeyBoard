@@ -18,6 +18,11 @@
         <n-card :style="myBorder.General ? 'border:1px #18a058 solid' : ''">
           {{ contentText.intro1 }}
           <n-list hoverable v-if="allConfig.common">
+            <n-list-item>{{ contentText.intro162 }}
+              <template #suffix>
+                <n-select v-model:value="allConfig.common.defaultLang" :options="[{ label: '中文', value: 'zh-CN' }, { label: 'English', value: 'en-US'}]" />
+              </template>
+            </n-list-item>
             <n-list-item> {{ contentText.intro2 }}<n-dynamic-tags v-model:value="skipRecordRef" />
             </n-list-item>
             <n-list-item>{{ contentText.intro7 }}

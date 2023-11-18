@@ -79,6 +79,8 @@ hideInWinPwd :=DescRead("common","hideInWinPwd", "0" )
 ; 在window密码框中输入自动隐藏显示
 statProcInfo :=DescRead("common","statProcInfo", "1" )
 ; 是否发送按键对应的进程信息，可用于统计不同进程下的按键数
+defaultLang :=DescRead("common","defaultLang", "zh-CN" )
+; 默认语言
 ; 配置参数
 guiWidth :=DescRead("dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=DescRead("dialog","guiHeigth", 0 ) ;高度 0 为自动高度

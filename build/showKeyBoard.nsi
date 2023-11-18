@@ -3,7 +3,7 @@
 
 ; °²×°³ÌÐò³õÊ¼¶¨Òå³£Á¿
 !define PRODUCT_NAME $(ToolLang)
-!define PRODUCT_VERSION "v1.21"
+!define PRODUCT_VERSION "v1.22"
 !define /date DATESTR "%y%m%d"
 !define ExeName "showKeyBoard.exe"
 !define PRODUCT_PUBLISHER "Austin.Young"
@@ -32,7 +32,6 @@ SetCompressor lzma
 !define MUI_LANGDLL_REGISTRY_VALUENAME "NSIS:Language"
 
 ; »¶Ó­Ò³Ãæ
-
 !insertmacro MUI_PAGE_WELCOME
 ; Ðí¿ÉÐ­ÒéÒ³Ãæ
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
@@ -69,10 +68,6 @@ ShowUnInstDetails show
 LangString ToolLang ${LANG_SIMPCHINESE} "¼üÅÌÊó±êÐÐÎª·ÖÎö¹¤¾ß"  
 LangString ToolLang ${LANG_ENGLISH} "ShowKeyBoard Statistic"
 
-
-LangString UNINSTALL_CONFIRM ${LANG_SIMPCHINESE} " ÄãÈ·¶¨ÒªÐ¶ÔØ "
-LangString UNINSTALL_CONFIRM ${LANG_ENGLISH} "Are you sure uninstall !"
-
 LangString UNINSTALL_SUCC ${LANG_SIMPCHINESE} "ÒÑ³É¹¦µØ´ÓÄãµÄ¼ÆËã»úÒÆ³ý¡£"
 LangString UNINSTALL_SUCC ${LANG_ENGLISH} "Uninstall success."
 
@@ -87,9 +82,6 @@ LangString warnmsg2 ${LANG_SIMPCHINESE} "·¢ÏÖ°²×°Ä¿Â¼ÏÂÔ­ÏÈµÄÍ³¼Æ¼ÇÂ¼£¬ÊÇ·ñÉ¾³ý£
 
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "ÊÇ·ñ±£ÁôÅäÖÃºÍ¼ÇÂ¼£¿$\r$\n$\r$\nÈ·¶¨±£Áô£¿£¨µ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±Çå³ý£¬½¨Òé±£Áô£©"
-
-LangString isRunning ${LANG_ENGLISH} "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
-LangString isRunning ${LANG_SIMPCHINESE} "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌÐò¡£"
 
 LangString mainSect ${LANG_SIMPCHINESE} "ºËÐÄÄ£¿é"
 LangString mainSect ${LANG_ENGLISH} "Main"
@@ -149,7 +141,7 @@ SectionEnd
 
 
 Section -AdditionalIcons
-    WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+    WriteIniStr "$INSTDIR\Website.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
 SectionEnd
 
 Section -Post
@@ -162,6 +154,11 @@ Section -Post
   ;WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
 
+  ${If} $LANGUAGE == "1033"
+      WriteINIStr "$INSTDIR\showKeyBoard.ini" "common" "defaultLang" "en-US"
+  ${ElseIf} $LANGUAGE == "2052"
+      WriteINIStr "$INSTDIR\showKeyBoard.ini" "common" "defaultLang" "zh-CN"
+  ${EndIf}
 SectionEnd
 
 Section $(deskSect) deskSect
@@ -173,7 +170,7 @@ Section $(menuSect) menuSect
     ;SetShellVarContext current
     CreateDirectory "$SMPROGRAMS\$(KeyBoardPath)"
     CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\ShowKeyBoard.lnk" "$INSTDIR\${ExeName}" "" "$INSTDIR\${ExeName}"
-    CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+    CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk" "$INSTDIR\Website.url"
     CreateShortCut "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
@@ -185,8 +182,8 @@ SectionEnd
 /******************************
  *  ÒÔÏÂÊÇ°²×°³ÌÐòµÄÐ¶ÔØ²¿·Ö  *
  ******************************/
-
 Section Uninstall
+    Call un.Detect   
     MessageBox MB_YESNO $(unRegMsg) IDYES keepConf IDNO removeConf
     removeConf:
 	Delete "$INSTDIR\showKeyBoard.ini"
@@ -194,7 +191,7 @@ Section Uninstall
     Delete "$INSTDIR\httpdist\dist\records.db"
     
 	keepConf:
-    Delete "$INSTDIR\${PRODUCT_NAME}.url"
+    Delete "$INSTDIR\Website.url"
     Delete "$INSTDIR\uninst.exe"
     Delete "$INSTDIR\${ExeName}"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk"
@@ -223,43 +220,64 @@ Section Uninstall
     SetAutoClose true
 SectionEnd
 
+Var isRunning
+Function Detect
+  StrCpy $isRunning "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌÐò¡£"
+  ${If} $LANGUAGE == "1033"
+      StrCpy $isRunning "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
+  ${EndIf}
+  findRun:
+  nsProcess::_FindProcess "${ExeName}"
+  Pop $R0
+  IntCmp $R0 0 isRun no_run no_run
+  isRun:
+  MessageBox MB_OKCANCEL|MB_ICONSTOP  $isRunning IDOK findRun IDCANCEL Exit
+  ;nsProcess::_KillProcess "AppSetup.exe"
+  Exit:
+  Quit  ; Quit Abort
+  no_run:
+FunctionEnd
+; Ð¶ÔØºÍ°²×°º¯ÊýÎÞ·¨¸´ÓÃ
+Function un.Detect
+  StrCpy $isRunning "°²×°³ÌÐò¼ì²âµ½ ${PRODUCT_NAME} ÕýÔÚÔËÐÐ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌÐò¡£"
+  ${If} $LANGUAGE == "1033"
+      StrCpy $isRunning "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
+  ${EndIf}
+  findRun:
+  nsProcess::_FindProcess "${ExeName}"
+  Pop $R0
+  IntCmp $R0 0 isRun no_run no_run
+  isRun:
+  MessageBox MB_OKCANCEL|MB_ICONSTOP  $isRunning IDOK findRun IDCANCEL Exit
+  ;nsProcess::_KillProcess "AppSetup.exe"
+  Exit:
+  Quit  ; Quit Abort
+  no_run:
+FunctionEnd
 #-- ¸ù¾Ý NSIS ½Å±¾±à¼­¹æÔò£¬ËùÓÐ Function Çø¶Î±ØÐë·ÅÖÃÔÚ Section Çø¶ÎÖ®ºó±àÐ´£¬ÒÔ±ÜÃâ°²×°³ÌÐò³öÏÖÎ´¿ÉÔ¤ÖªµÄÎÊÌâ¡£--#
 Function .onInit
-   !insertmacro MUI_LANGDLL_DISPLAY
-   findRun:
-   nsProcess::_FindProcess "${ExeName}"
-   Pop $R0
-   IntCmp $R0 0 isRun no_run no_run
-   isRun:
-   MessageBox MB_OKCANCEL|MB_ICONSTOP  $(isRunning) IDOK findRun IDCANCEL Exit
-   ;nsProcess::_KillProcess "AppSetup.exe"
-   Exit:
-   Abort  ; Quit
-   no_run:
-
+  !insertmacro MUI_LANGDLL_DISPLAY
   ReadRegStr $0 HKLM "${PRODUCT_DIR_REGKEY}" ""
   ; Èç¹ûÕÒµ½°²×°Ä¿Â¼£¬ÔòÉèÖÃÎªÄ¬ÈÏ°²×°Ä¿Â¼
   ${If} $0 != ""
     ${GetParent} $0 $R0
     StrCpy $INSTDIR $R0
   ${EndIf}
+  Call Detect
 FunctionEnd
 
+Var UNINSTALL_CONFIRM
 Function un.onInit
-!insertmacro MUI_UNGETLANGUAGE
-  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "$(UNINSTALL_CONFIRM) $(^Name) £¿" IDYES +2
+; $LANGUAGE  ´ÓÅäÖÃÎÄ¼þÖÐ¶ÁÈ¡ÓïÑÔ
+  StrCpy $UNINSTALL_CONFIRM " ÄãÈ·¶¨ÒªÐ¶ÔØ "
+  ReadINIStr $0 "$INSTDIR\showKeyBoard.ini" "common" "defaultLang"
+  ${If} $0 == "en-US" ; Ó¢ÎÄ
+    StrCpy $LANGUAGE "1033"
+    StrCpy $UNINSTALL_CONFIRM "Are you sure uninstall !"
+  ${EndIf}
+  ;!insertmacro MUI_UNGETLANGUAGE
+  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "$UNINSTALL_CONFIRM $(^Name) £¿" IDYES +2
   Abort
-  
-  findRun:
-   nsProcess::_FindProcess "${ExeName}"
-   Pop $R0
-   IntCmp $R0 0 isRun no_run no_run
-   isRun:
-   MessageBox MB_OKCANCEL|MB_ICONSTOP  $(isRunning) IDOK findRun IDCANCEL Exit
-   ;nsProcess::_KillProcess "AppSetup.exe"
-   Exit:
-   Abort
-   no_run:
 FunctionEnd
 
 Function un.onUninstSuccess

@@ -1,15 +1,15 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.21.0.0
-;@Ahk2Exe-SetFileVersion 1.21.0.0
+;@Ahk2Exe-SetProductVersion 1.22.0.0
+;@Ahk2Exe-SetFileVersion 1.22.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.21" 
-#include "common.ahk"
+global APPName:="ShowKeyBoard", ver:="1.22" 
+#include common.ahk
 #Include events.ahk
 ; 正式代码开始
 loop skipRecord.length {
@@ -146,6 +146,8 @@ ShutDownLeft()
 SetTimer( Reload, ShutDownLeft() )
 ; 托盘相关
 global MyMenu
+global LinkPath := A_Startup "\" APPName ".Lnk"
+global menu_msg_noserver := '服务未成功启动，不能用界面查看和设置'
 global L_menu_startup:="开机启动"
 global L_menu_reload:="重启程序"
 global L_menu_reset:="完全重启"
@@ -154,9 +156,18 @@ global L_menu_4show:="按键显示(" hotkey4Show ")"
 global L_menu_set:="参数设置"
 global L_menu_stat:="数据统计"
 global L_menu_exit:="退出程序"
-LinkPath := A_Startup "\" APPName ".Lnk"
-menu_msg_noserver := '服务未成功启动，不能用界面查看和设置'
+if defaultLang = 'en-US' {
+    L_menu_startup:="Auto Start"
+    L_menu_reload :="Reset Client"
+    L_menu_reset  :="Full Reset"
+    L_menu_pause  :="Pause"
+    L_menu_4show  :="Show/Hide Key(" hotkey4Show ")"
+    L_menu_set    :="Setting"
+    L_menu_stat   :="Statistics"
+    L_menu_exit   :="Exit"
 
+    menu_msg_noserver := 'Launch Server Fail! Can not Statistics and set parameters by UI'
+}
 MenuHandler(ItemName , ItemPos, MyMenu){
   if(ItemName = L_menu_startup)
   {
