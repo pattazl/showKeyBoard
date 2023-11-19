@@ -538,7 +538,7 @@ function autoBackup() {
   if (!fs.existsSync(backupPath)) {
     fs.mkdirSync(backupPath)
   }
-  let lastBackUp = backupPath + getDayStr(1)
+  let lastBackUp = backupPath + getDayStr(0)
   if (days > 0) {
     // backup 下保存文件
     zipCore(function (content) {
@@ -547,7 +547,7 @@ function autoBackup() {
     })
 
     // 清理 days前的文件
-    let beforeStr = getDayStr(days + 1)
+    let beforeStr = getDayStr(days)
     fs.readdir(backupPath, (err, files) => {
       if (err) {
         console.error('无法读取文件夹内容', err);
