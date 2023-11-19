@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.22.0.0
-;@Ahk2Exe-SetFileVersion 1.22.0.0
+;@Ahk2Exe-SetProductVersion 1.23.0.0
+;@Ahk2Exe-SetFileVersion 1.23.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.22" 
+global APPName:="ShowKeyBoard", ver:="1.23" 
 #include common.ahk
 #Include events.ahk
 ; 正式代码开始
@@ -82,7 +82,7 @@ GetDistance(){
     {
         ; 暂时抛弃异常数据，更新屏幕信息
         ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
-        SendPCInfo()
+        SendPCInfo(1)
         return
     }
     ; 计算鼠标移动距离

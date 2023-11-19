@@ -99,7 +99,7 @@ ServerCore()
 			global serverState := 1
             ShowTxt 'Start Server succ!'
 			; 准备发送一些数据给后端
-			SendPCInfo()
+			SendPCInfo(0)
         }else{
 			 ; 需要重试，超过N次后判断失败
 			 if serverState = -1{
@@ -187,8 +187,8 @@ ExitServer()
         StartHttp('exit','/exit','')
     }
 }
-; 发送数据给后端服务
-SendPCInfo()
+; 发送数据给后端服务,flag=0 表示第一次发送数据
+SendPCInfo(flag)
 {
 	; 获取不同屏幕
 	MCount := MonitorGetCount()
@@ -203,7 +203,7 @@ SendPCInfo()
             global minTop := Min(minTop,Top)
             global maxRight := Max(maxRight,Right)
             global maxBottom := Max(maxBottom,Bottom)
-            tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom '}'
+            tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom ',"flag":' flag '}'
             JSONStr := JSONStr tmp
         }catch{
             ; 出现异常无需发送数据

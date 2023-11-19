@@ -3,7 +3,7 @@
 
 ; 安装程序初始定义常量
 !define PRODUCT_NAME $(ToolLang)
-!define PRODUCT_VERSION "v1.22"
+!define PRODUCT_VERSION "v1.23"
 !define /date DATESTR "%y%m%d"
 !define ExeName "showKeyBoard.exe"
 !define PRODUCT_PUBLISHER "Austin.Young"
@@ -74,11 +74,16 @@ LangString UNINSTALL_SUCC ${LANG_ENGLISH} "Uninstall success."
 LangString KeyBoardPath ${LANG_SIMPCHINESE} "键盘鼠标"
 LangString KeyBoardPath ${LANG_ENGLISH} "KeyboardMouse"
 
-LangString warnmsg1 ${LANG_ENGLISH} "Find the configuration in the installation directory. Do you want to reserve it?$\r$\n click $\"YES$\" for reserved, click $\"NO$\" delete"
-LangString warnmsg1 ${LANG_SIMPCHINESE} "发现安装目录下原先的配置文件，是否保留？$\r$\n单击“YES”保留，单击“NO”删除"
+LangString delConfig ${LANG_ENGLISH} "Delete last config"
+LangString delConfig ${LANG_SIMPCHINESE} "删除旧配置"
 
-LangString warnmsg2 ${LANG_ENGLISH} "Find the records in the installation directory. Do you want to reserve it?$\r$\n click $\"YES$\" for reserved, click $\"NO$\" delete"
-LangString warnmsg2 ${LANG_SIMPCHINESE} "发现安装目录下原先的统计记录，是否保留？$\r$\n单击“YES”保留，单击“NO”删除"
+LangString delConfigDesc ${LANG_ENGLISH} "Config include the parameters of client and Server"
+LangString delConfigDesc ${LANG_SIMPCHINESE} "配置文件包含客户端和服务端启动的相关信息"
+
+LangString delRecord ${LANG_ENGLISH} "Delete last record"
+LangString delRecord ${LANG_SIMPCHINESE} "删除旧统计"
+LangString delRecordDesc ${LANG_ENGLISH} "Records for statistic of mouse, keystroke,keymap,Apps"
+LangString delRecordDesc ${LANG_SIMPCHINESE} "统计记录包含键盘、鼠标、应用的相关信息"
 
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "是否保留配置和记录？$\r$\n$\r$\n确定保留？（单击“YES”保留，单击“NO”清除，建议保留）"
@@ -98,29 +103,34 @@ LangString menuSect ${LANG_ENGLISH} "Menu shortcut"
 LangString menuSectDesc ${LANG_SIMPCHINESE} "创建菜单快捷方式"
 LangString menuSectDesc ${LANG_ENGLISH} "Create shortcut in windows menu"
 
+LangString Prepare ${LANG_SIMPCHINESE} "准备"
+LangString Prepare ${LANG_ENGLISH} "Prepare"
+
+Section $(Prepare) Prepare
+  SectionIn RO
+SectionEnd
+Section /o $(delConfig) delConfig
+  ;MessageBox MB_OK "$INSTDIR\showKeyBoard.ini"
+  delete "$INSTDIR\showKeyBoard.ini"
+  delete "$INSTDIR\KeyList.txt"
+SectionEnd
+Section /o $(delRecord) delRecord
+  ;MessageBox MB_OK "$INSTDIR\httpdist\dist\records.db"
+  delete "$INSTDIR\httpdist\dist\records.db"
+SectionEnd
 
 Section $(mainSect) mainSect
   SectionIn RO ; 将 section 设置为只读，以禁止用户选择或取消选择
 
   SetOutPath "$INSTDIR"
-  
-IfFileExists '$INSTDIR\showKeyBoard.ini' +1 +4
-  MessageBox MB_YESNO|MB_DEFBUTTON1 $(warnmsg1) IDYES +3
-  delete "$SYSDIR\showKeyBoard.ini"
-  delete "$SYSDIR\KeyList.txt"
-
-IfFileExists '$INSTDIR\httpdist\dist\records.db' +1 +3
-  MessageBox MB_YESNO|MB_DEFBUTTON1 $(warnmsg2) IDYES +2
-  delete "$INSTDIR\httpdist\dist\records.db"
-  
-; 配置文件如果存在不能覆盖
   SetOverwrite on
     File "${ExeName}"
+; 配置文件如果存在不能覆盖
   SetOverwrite off
     File "showKeyBoard.ini"
     File "KeyList.txt"
-  SetOverwrite on	
   SetOutPath "$INSTDIR\httpdist"
+  SetOverwrite on
     File "httpdist\package.json"
   SetOutPath "$INSTDIR\httpdist\dist"
     File "httpdist\dist\node.exe"
@@ -175,9 +185,13 @@ Section $(menuSect) menuSect
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-	!insertmacro MUI_DESCRIPTION_TEXT ${mainSect} $(mainSectDesc)
-	!insertmacro MUI_DESCRIPTION_TEXT ${deskSect} $(deskSectDesc)
-	!insertmacro MUI_DESCRIPTION_TEXT ${menuSect} $(menuSectDesc)
+    !insertmacro MUI_DESCRIPTION_TEXT ${Prepare} ""
+    !insertmacro MUI_DESCRIPTION_TEXT ${mainSect} $(mainSectDesc)
+    !insertmacro MUI_DESCRIPTION_TEXT ${deskSect} $(deskSectDesc)
+    !insertmacro MUI_DESCRIPTION_TEXT ${menuSect} $(menuSectDesc)
+    !insertmacro MUI_DESCRIPTION_TEXT ${delConfig} $(delConfigDesc)
+    !insertmacro MUI_DESCRIPTION_TEXT ${delRecord} $(delRecordDesc)
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 /******************************
  *  以下是安装程序的卸载部分  *

@@ -3,7 +3,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName ,updateDBStruct} = require('./records');
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName, updateDBStruct } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -15,6 +15,7 @@ const os = require('os');
 const iniPath = '../../showKeyBoard.ini'
 const defaultIniPath = './showKeyBoard.desc.ini'
 const keyPath = '../../keyList.txt'
+const backupPath = '../../backup/'
 const updateTimePath = path.join(__dirname, 'updateTime.txt');
 const lastRecordPath = path.join(__dirname, 'lastRecord.json');
 const pidfilePath = path.join(__dirname, 'kbserver.pid');
@@ -107,9 +108,9 @@ function createServer() {
 // 解决 \# 的转义问题
 function myIniwrite(config) {
   let s = ini.stringify(config)
-  s = s.replace(/\\#/g,'#')
-  s = s.replace(/=(.*#.*)/g,'="$1"')
-  fs.writeFileSync(iniPath, s )
+  s = s.replace(/\\#/g, '#')
+  s = s.replace(/=(.*#.*)/g, '="$1"')
+  fs.writeFileSync(iniPath, s)
 }
 function writePort() {
   if (port != parseInt(config.common.serverPort)) {
@@ -325,8 +326,14 @@ function setParaFun(req, res) {
 // 接收客户端发送的PC相关信息，比如屏幕等
 function sendPCInfo(req, res) {
   var data = req.body
+  let flag = data.flag ?? 0;
+  delete data.flag; // 删除此节点
   infoPC = data; // 将数据保存给全局变量
   console.log(infoPC)
+  //每次客户端重启都会调用
+  if (flag == 0) {
+    autoBackup();
+  }
   res.send({ code: 200 });
 }
 // 接受客户端发送的数据
@@ -407,9 +414,8 @@ async function deleteDataFun(req, res) {
   }
 
 }
-
-// 打包配置文件
-function zipDownload(req, res) {
+// 生成相关 zip文件，处理方式根据函数
+function zipCore(cbFun) {
   const zip = new JSZip();
   let fileContent;
   fileContent = fs.readFileSync(iniPath);
@@ -421,6 +427,13 @@ function zipDownload(req, res) {
 
   zip.generateAsync({ type: "nodebuffer" }).then(function (content) {
     // see FileSaver.js
+    cbFun(content)
+  });
+}
+// 打包配置文件
+function zipDownload(req, res) {
+  zipCore(function (content) {
+    // see FileSaver.js
     let fileName = new Date().getTime().toString(36);
     // 设置响应头
     res.set({
@@ -429,7 +442,7 @@ function zipDownload(req, res) {
     });
     // 发送二进制数据
     res.send(content);
-  });
+  })
 }
 // 清理目录
 function clearUpload(hash) {
@@ -515,7 +528,47 @@ async function zipUpload(req, res) {
   console.log(hash)
   res.send(JSON.stringify(hash));
 }
+// 根据参数自动备份
+function autoBackup() {
+  let days = parseInt(dataSetting.autoBackupDays ?? 3, 10)
+  function getDayStr(before) {
+    let beforeDays = dayjs().subtract(before, 'day');
+    return `skb_${beforeDays.format('YYYY-MM-DD-HH-mm-ss')}.zip`
+  }
+  if (!fs.existsSync(backupPath)) {
+    fs.mkdirSync(backupPath)
+  }
+  let lastBackUp = backupPath + getDayStr(1)
+  if (days > 0) {
+    // backup 下保存文件
+    zipCore(function (content) {
+      // see FileSaver.js
+      fs.writeFileSync(lastBackUp, content);
+    })
 
+    // 清理 days前的文件
+    let beforeStr = getDayStr(days + 1)
+    fs.readdir(backupPath, (err, files) => {
+      if (err) {
+        console.error('无法读取文件夹内容', err);
+        return;
+      }
+      // 遍历文件列表
+      files.forEach((file) => {
+        if (file < beforeStr) {
+          // 如果文件名表示的数字小于阈值数字，就删除该文件
+          fs.unlink(path.join(backupPath, file), (err) => {
+            if (err) {
+              console.error('无法删除文件', file, err);
+            } else {
+              console.log('已删除文件', file);
+            }
+          });
+        }
+      });
+    });
+  }
+}
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
   deleteDataFun, zipDownload, zipUpload

@@ -97,6 +97,7 @@ export default defineComponent({
         data.dataSetting.fillDate = data.dataSetting.fillDate??false
         data.dataSetting.mergeAppName = data.dataSetting.mergeAppName??true
         data.dataSetting.refreshTodayMs = data.dataSetting.refreshTodayMs??2000
+        data.dataSetting.autoBackupDays = data.dataSetting.autoBackupDays??3
         data.config.common.defaultLang = data.config.common.defaultLang??'zh-CN'  // 配置文件默认中文
 
         store.data = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新

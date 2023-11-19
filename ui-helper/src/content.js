@@ -193,6 +193,8 @@ export default {
 	intro160: '时间段到',
 	intro161: '今日数据中，操作过N毫秒后才会显示到界面上，避免频繁刷新',
 	intro162: '默认语言',
+	intro163: '自动备份数据保留天数',
+	intro164: '如果为0则不进行自动备份,备份在安装目录下的backup目录，每次客户端启动均备份一次',
 
   },
   'en-US': {
@@ -387,5 +389,7 @@ export default {
 	intro160: 'Query date until',
 	intro161: 'Will fresh the data after N ms in Today panel, avoid refreshing too frequently',
 	intro162: 'Default language',
+	intro163: 'Keep days when auto backup data',
+	intro164: 'If zero will not backup data, backup fold is install dir/backup, will backup once when client launch',
   }
 };
