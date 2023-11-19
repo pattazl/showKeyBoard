@@ -58,7 +58,7 @@ SetCompressor lzma
 ; ------ MUI 现代界面定义结束 ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "release\ShowKeyBoard_Setup_${PRODUCT_VERSION}_${DATESTR}.exe"
+OutFile "publish\ShowKeyBoard_Setup_${PRODUCT_VERSION}_${DATESTR}.exe"
 InstallDir "$PROGRAMFILES\ShowKeyBoard"
 InstallDirRegKey HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
 ShowInstDetails show
