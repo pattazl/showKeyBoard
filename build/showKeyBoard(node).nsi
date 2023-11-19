@@ -75,10 +75,10 @@ LangString KeyBoardPath ${LANG_SIMPCHINESE} "键盘鼠标"
 LangString KeyBoardPath ${LANG_ENGLISH} "KeyboardMouse"
 
 LangString warnmsg1 ${LANG_ENGLISH} "Find the configuration in the installation directory. Do you want to reserve it?$\r$\n click $\"YES$\" for reserved, click $\"NO$\" delete"
-LangString warnmsg1 ${LANG_SIMPCHINESE} "发现安装目录下原先的配置文件，是否删除？$\r$\n单击“YES”保留，单击“NO”删除"
+LangString warnmsg1 ${LANG_SIMPCHINESE} "发现安装目录下原先的配置文件，是否保留？$\r$\n单击“YES”保留，单击“NO”删除"
 
 LangString warnmsg2 ${LANG_ENGLISH} "Find the records in the installation directory. Do you want to reserve it?$\r$\n click $\"YES$\" for reserved, click $\"NO$\" delete"
-LangString warnmsg2 ${LANG_SIMPCHINESE} "发现安装目录下原先的统计记录，是否删除？$\r$\n单击“YES”保留，单击“NO”删除"
+LangString warnmsg2 ${LANG_SIMPCHINESE} "发现安装目录下原先的统计记录，是否保留？$\r$\n单击“YES”保留，单击“NO”删除"
 
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "是否保留配置和记录？$\r$\n$\r$\n确定保留？（单击“YES”保留，单击“NO”清除，建议保留）"
@@ -189,6 +189,7 @@ Section Uninstall
 	Delete "$INSTDIR\showKeyBoard.ini"
     Delete "$INSTDIR\KeyList.txt"
     Delete "$INSTDIR\httpdist\dist\records.db"
+    RMDir /r "$INSTDIR\backup\*"
     
 	keepConf:
     Delete "$INSTDIR\Website.url"
