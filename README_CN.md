@@ -23,6 +23,10 @@
 
 `ShowKeyBoard_Setup_版本_日期.exe`
 
+直接解压可用如下版本，但是此版本升级时需要手工备份还原数据
+
+`ShowKeyBoard_portable_版本_日期.exe`
+
 如果有 node10 及以上环境或已经安装过一次，安装
 
 `ShowKeyBoard_Setup_版本_日期(node).exe` 或 `ShowKeyBoard_Setup_版本_日期.node.exe` 

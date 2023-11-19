@@ -127,23 +127,23 @@ Section $(mainSect) mainSect
     File "${ExeName}"
 ; 配置文件如果存在不能覆盖
   SetOverwrite off
-    File "showKeyBoard.ini"
-    File "KeyList.txt"
+    File "release\showKeyBoard.ini"
+    File "release\KeyList.txt"
   SetOutPath "$INSTDIR\httpdist"
   SetOverwrite on
-    File "httpdist\package.json"
+    File "release\httpdist\package.json"
   SetOutPath "$INSTDIR\httpdist\dist"
-    ;File "httpdist\dist\node.exe"
-    File "httpdist\dist\server.js"
-    File "httpdist\dist\showKeyBoard.desc.ini"
+    ;File "release\httpdist\dist\node.exe"
+    File "release\httpdist\dist\server.js"
+    File "release\httpdist\dist\showKeyBoard.desc.ini"
   SetOverwrite off
-    File "httpdist\dist\records.db"
+    File "release\httpdist\dist\records.db"
   SetOutPath "$INSTDIR\httpdist\dist\lib"
-    File /r "httpdist\dist\lib\*"
+    File /r "release\httpdist\dist\lib\*"
   SetOverwrite on
   SetOutPath "$INSTDIR\httpdist\dist\ui"
     RMDir /r "$INSTDIR\httpdist\dist\ui\*"
-    File /r "httpdist\dist\ui\*"
+    File /r "release\httpdist\dist\ui\*"
 
   ClearErrors
 

@@ -5,7 +5,7 @@
 ;@Ahk2Exe-SetFileVersion 1.23.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
-;@Ahk2Exe-ExeName build/ShowKeyBoard.exe
+;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
 global APPName:="ShowKeyBoard", ver:="1.23" 

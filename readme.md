@@ -23,6 +23,10 @@ Install for the first time, or do not have node10 or above environment, install
 
 `ShowKeyBoard_Setup_(version)_(date).exe`
 
+Unzip version as below,  please note that manual backup and restore of data is required when update
+
+`ShowKeyBoard_portable_(version)_(date).exe`
+
 If you have node10 or above environment, or have installed it once, install
 
 `ShowKeyBoard_Setup_(version)_(date)(node).exe` or `ShowKeyBoard_Setup_(version)_(date).node.exe`
