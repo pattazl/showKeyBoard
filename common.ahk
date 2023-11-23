@@ -1,7 +1,8 @@
 Persistent  ; 持久运行脚本
 ; 全局通用变量和函数
 global IniFile := "showKeyBoard.ini"
-     , AllKeyRecord := Map()
+global AllKeyRecord := Map()
+global MinuteRecords := Array()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
@@ -38,6 +39,8 @@ showMouseEvent := DescRead("common","showMouseEvent","1")
 ; 是否显示和记录鼠标事件
 recordMouseMove := DescRead("common","recordMouseMove","0")
 ; 是否记录鼠标移动距离
+recordMinute := DescRead("common","recordMinute","1")
+; 是否记录分钟数据
 needShowKey := DescRead("common","needShowKey","1")
 preNeedShowKey := needShowKey
 ; 是否显示按键
@@ -139,3 +142,11 @@ HttpCtrlObj['state'] := '' ; 当前状态 wait succ error
 serverState := -1  ; 是否连接到服务器， -1 还未启动过，0连失败，1 成功连接 
 CheckServerCount :=0
 CheckServerMax := 8
+; 鼠标开始的位置和距离
+mouseStartX := 0
+mouseStartY := 0
+mouseDistance := 0
+; 全局键盘鼠标统计
+globalKeyCount := 0
+globalMouseCount := 0
+

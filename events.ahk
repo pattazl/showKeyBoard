@@ -49,6 +49,7 @@ StartHttp(task,route,data,timeout:=8000)
     ; 如果正在运行则退出，同一时间只会有一个
     if HttpCtrlObj['state'] = 'wait'
     {
+        ; OutputDebug ("AutoHotkey :skip " task)
         return 0
     }
     HttpCtrlObj['task'] := task  ; 任务名

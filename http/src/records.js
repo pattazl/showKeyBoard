@@ -49,7 +49,25 @@ function insertData(records) {
     db.close();
   })
 }
-
+// 插入 分钟数据
+function insertMiniute(MinuteRecords) {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(dbName);
+    // 构建插入语句,同时插入 按键，
+    const placeholders = MinuteRecords.map(() => '(?,?,?,?,?)').join(',');
+    const values = MinuteRecords.reduce((acc, curr) => acc.concat([curr.Minute, curr.KeyCount, curr.MouseCount, curr.Distance, 0]), []);
+    // 执行一次性插入
+    db.run(`INSERT INTO statFreq (keyTime, keyCount , mouseCount, distance, freqType ) VALUES ${placeholders}`, values, function (err) {
+      if (err) {
+        console.error(err.message);
+        reject(err)
+      }
+      console.log(`insertMiniute ${this.changes} rows have been inserted`);
+      resolve(this.changes)
+    });
+    db.close();
+  })
+}
 
 function getRecords(begin, end) {
   const db = new sqlite3.Database(dbName);
@@ -65,9 +83,9 @@ function getRecords(begin, end) {
     if (begin == strNow && end == strNow) {
       sql = 'SELECT keyname, keycount, date, tick FROM events where date between ? and ?'
     } else {
-      if(begin == end){
+      if (begin == end) {
         sql = 'SELECT keyname, keycount, date FROM stat where date between ? and ? '
-      }else{
+      } else {
         sql = 'SELECT keyname, sum(keycount) as keycount, min(date) as date FROM stat where date between ? and ? group by keyname '
       }
       // sql = 'SELECT keyname, keycount, date FROM stat where date between ? and ? '
@@ -401,11 +419,60 @@ async function updateDBStruct() {
         db2.close();
       }
     });
+    sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='statFreq';"
+    db.all(sql, [], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      // 输出记录集
+      if (rows.length > 0) {
+        resolve(0)
+      } else {
+        const db2 = new sqlite3.Database(dbName);
+        sql = `CREATE TABLE statFreq (
+          keyTime TEXT, 
+          keyCount INTEGER, 
+          mouseCount INTEGER, 
+          distance INTEGER,  
+          freqType INTEGER 
+        );
+        CREATE INDEX statFreq_date_IDX ON stat (keyTime);
+        CREATE INDEX statFreq_type_IDX ON stat (freqType);`
+        db2.exec(sql, function (err) {  // 需要同时执行多条SQL
+          if (err) {
+            reject(err);
+          }
+          resolve(1)
+        });
+        db2.close();
+      }
+    });
     // 关闭数据库连接
     db.close();
   })
 }
+
+// 获取最新的分钟信息
+async function getLastMinute() {
+  const db = new sqlite3.Database(dbName);
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+    let lastObj = {};
+    let sql = 'SELECT keyTime,keyCount,mouseCount,distance FROM statFreq where freqType = 0 order by keyTime desc limit 1'
+    db.all(sql, [], function (err, rows) {
+      if (err) {
+        reject(err);
+      }
+      rows.forEach(function (row) {
+        lastObj = {"Distance":row.distance,"KeyCount":row.keyCount,"Minute":row.keyTime,"MouseCount":row.mouseCount};
+      });
+      resolve(lastObj)
+    });
+    db.close();
+  })
+}
+
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct
+  statData, deleteData, dbName, updateDBStruct, insertMiniute , getLastMinute
 };

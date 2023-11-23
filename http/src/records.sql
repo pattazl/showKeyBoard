@@ -27,3 +27,26 @@ CREATE TABLE "dataSetting" (
   "screenSize" integer,
   "mouseDPI" integer
 );
+CREATE TABLE dataSetting2(
+  keyname TEXT,
+  val TEXT,
+   PRIMARY KEY (keyname)
+);
+insert into dataSetting2 
+  select 'keymap' as keyname ,  keymap as  val  from dataSetting
+  union 
+  select 'screenSize' as keyname , screenSize as  val  from dataSetting
+  union 
+  select 'mouseDPI' as keyname , mouseDPI as  val  from dataSetting
+  union 
+  select 'topN' as keyname , topN as  val  from dataSetting;
+-- 使用的频繁程度，保存每分钟和每小时的统计信息
+CREATE TABLE statFreq (
+    keyTime TEXT,  -- 日期和时间
+    keyCount INTEGER, -- 按键次数
+    mouseCount INTEGER, -- 鼠标次数
+    distance INTEGER,   -- 鼠标距离
+    freqType INTEGER   -- 0=分钟，1=小时
+);
+CREATE INDEX statFreq_date_IDX ON stat (keyTime);
+CREATE INDEX statFreq_type_IDX ON stat (freqType);

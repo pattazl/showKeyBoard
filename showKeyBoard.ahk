@@ -70,19 +70,17 @@ SendMouse()
 		PushTxt(GetKeyName(StrReplace(A_ThisHotkey,'~','')),True)
 	}
 }
-; 鼠标开始的位置和距离
-mouseStartX := 0
-mouseStartY := 0
-mouseDistance := 0
 CoordMode "Mouse", "Screen"
 GetDistance(){
 	MouseGetPos &currentX, &currentY
-	; OutputDebug  'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+	
     if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
     {
+        ; OutputDebug  'AutoHotkey currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         ; 暂时抛弃异常数据，更新屏幕信息
         ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         SendPCInfo(1)
+        Sleep(500) ; // 可能是锁屏状态，等待下，不必马上循环
         return
     }
     ; 计算鼠标移动距离
@@ -101,6 +99,37 @@ GetDistance(){
 ; 是否需要记录距离
 if recordMouseMove = 1{
 	SetTimer(GetDistance,100)  ; 每n毫秒记录一次位置
+}
+; 是否统计分钟数据
+GetMinuteData(){
+    currMinute := FormatTime(A_Now, "yyyyMMddHHmm")
+    currData := Map("Minute",currMinute,"MouseCount",globalMouseCount,"KeyCount",globalKeyCount,"Distance",mouseDistance)
+    Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
+    if Len > 10 {
+        ; 清理 10个以外 的数据，为了减少带宽
+        MinuteRecords.removeAt(1)
+    }
+    if Len == 0 {
+        MinuteRecords.push(currData)
+        return  ; 刚才开始不用做任何计算
+    }
+    ; 最后一个时间不一样则插入
+    last := MinuteRecords[-1]
+    if last['Minute'] != currMinute {
+        ; 更新之前的数据,由总数变成统计数据
+        last['MouseCount'] := globalMouseCount - last['MouseCount']
+        last['KeyCount'] := globalKeyCount - last['KeyCount']
+        last['Distance'] := mouseDistance - last['Distance']
+        if last['MouseCount'] = 0 && last['KeyCount'] = 0 && last['Distance'] = 0 {
+            MinuteRecords[-1] := currData ; 因为为空数据，那么则直接替换
+        }else{
+        ; 插入新数据
+            MinuteRecords.push(currData)
+        }
+    }
+}
+if recordMinute = 1 {
+	SetTimer(GetMinuteData,1000)  ; 每1秒刷新一次分钟数据
 }
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
@@ -288,6 +317,14 @@ ExitFunc(ExitReason, ExitCode)
 		If FileExist(lastRecordPath){
 			FileDelete lastRecordPath   ; 先删
 		}
+        ; 对于 AllKeyRecord 中最后的数据需要处理
+        if MinuteRecords.Length > 0 {
+            last := MinuteRecords[-1]
+            last['MouseCount'] := globalMouseCount - last['MouseCount']
+            last['KeyCount'] := globalKeyCount - last['KeyCount']
+            last['Distance'] := mouseDistance - last['Distance']
+            last['LastFlag'] := 1  ; 标注为最后的一次
+        }
 		FileAppend(JSON.stringify(AllKeyRecord), lastRecordPath)
 	}
 }

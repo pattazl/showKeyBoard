@@ -3,7 +3,8 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName, updateDBStruct } = require('./records');
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName,
+  updateDBStruct, insertMiniute, getLastMinute } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -121,8 +122,6 @@ function writePort() {
 }
 //  直接启动
 async function startUp() {
-  // 补数据
-  patchLastData()
   let hasError = false;
   // 程序不能重复运行
   if (!oneInstance()) {
@@ -160,7 +159,17 @@ async function startUp() {
     autoSaveFun()
   }
   // 需要检查和更新数据库表结构
-  updateDBStruct();
+  await updateDBStruct();
+  // 设置一些基础数据，比如 读取到 lastMinuteRecords 数据中
+  await initData();
+  // 补数据
+  patchLastData()
+}
+// 一些基础数据
+let lastMinuteRecords = null
+async function initData() {
+  lastMinuteRecords = await getLastMinute()
+  console.log('lastMinuteRecords:', lastMinuteRecords)
 }
 function autoSaveFun(interval) {
   if (interval == null) {
@@ -338,13 +347,17 @@ function sendPCInfo(req, res) {
 }
 // 接受客户端发送的数据
 let preData = {}
-function dataFun(req, res) {
+async function dataFun(req, res) {
   var data = req.body
+  if (data.MinuteRecords != null) {
+    console.log(JSON.stringify(data.MinuteRecords))
+  }
+  await insertMiniuteFun(data)
   //console.log('mouseDistance,tick',data.mouseDistance,data.tick)
   if (preData['tick'] > 0 && data['tick'] > 0 && data['tick'] != preData['tick']) {
     // tick不一样需要保存
     console.log('preTick,tick:', preData['tick'], data['tick'])
-    insertDataFun(preData)
+    await insertDataFun(preData)
   }
   preData = data;
   //myWS.send(JSON.stringify(data) );
@@ -361,7 +374,7 @@ function patchLastData() {
   if (fs.existsSync(lastRecordPath) && fs.existsSync(updateTimePath)) {
     let json = JSON.parse(fs.readFileSync(lastRecordPath))
     let updateTime = fs.readFileSync(updateTimePath)
-    if (json['updateTime'] > updateTime) {
+    if (json['updateTime'] >= updateTime) { // 一般相同值是手工退出的，大于时是关机退出
       console.log('patchLastData')
       insertDataFun(json)
     }
@@ -375,7 +388,50 @@ async function insertDataFun(records) {
     fs.writeFileSync(updateTimePath, records['updateTime'])
     delete records['updateTime'] // 删除数据
   }
+  await insertMiniuteFun(records)
   return await insertData(records)
+}
+// 随时可以调用，数据库中保存历史数据,支持合并上一次未完成的数据
+let lastFlagRecord = null // 上次保留的最后一个数据
+async function insertMiniuteFun(records) {
+  let MinuteRecords = records.MinuteRecords
+  if (MinuteRecords != null && MinuteRecords.length > 0) {
+    // 需要将 MinuteRecords 的数据保存到 statFreq 中
+    // 需要额外处理 {Distance: 24622,KeyCount: 8,Minute: '202311232030',MouseCount: 42 }
+    let last = MinuteRecords.pop() // 去掉最后一个数据
+    let lastTime = lastMinuteRecords?.Minute ?? ''
+    //console.log('insertMiniuteFun last?.Minute:' + last?.Minute + ',lastTime:' + lastTime)
+    if (last?.Minute > lastTime) {
+      // 有新数据进来，可以插入数据
+      // 需要对于 MinuteRecords 的数据调整如果已经插入的数据则删除
+      let newArr = MinuteRecords.filter(function (item) {
+        return item.Minute > lastTime;
+      });
+      if (lastFlagRecord != null && newArr.length > 0) {
+        // 有遗留数据需要合并,鼠标距离不能合并
+        //console.log('lastFlagRecord.Minute:', newArr[0]?.Minute, lastFlagRecord.Minute)
+        if (newArr[0]?.Minute == lastFlagRecord.Minute) {
+          newArr[0].KeyCount += lastFlagRecord.KeyCount
+          newArr[0].MouseCount += lastFlagRecord.MouseCount
+          console.log('merge lastFlagRecord')
+        } else {
+          newArr.unshift(lastFlagRecord) //插入到开头
+        }
+        lastFlagRecord = null
+      }
+      //console.log('insertMiniute,lastTime:' + lastTime)
+      if (newArr.length > 0) {
+        await insertMiniute(newArr)
+        lastMinuteRecords = newArr.pop(); // 用保存的数据作为上次的最后一个
+      }
+    }
+    if (last.LastFlag == 1) {
+      // 重新启动时，更新的数据需要累计
+      console.log('lastFlagRecord')
+      lastFlagRecord = last
+    }
+    delete records.MinuteRecords // 删除分钟统计数据
+  }
 }
 // 触发正常退出
 async function exitFun() {

@@ -332,6 +332,10 @@ RecordKey(txt,isMouse:=False)
 	PrePushKey :=txt
 	; 需要添加更新时间
 	AllKeyRecord['updateTime'] := A_Now
+    ; 保存
+    if recordMinute {
+        AllKeyRecord['MinuteRecords'] := MinuteRecords
+    }
     AutoSendData()  ; 发送数据给后端服务
 }
 ; 如果不存在则创建，存在则+1
@@ -339,6 +343,11 @@ AddRecord(key,isMouse){
     ;如果需要按进程统计
     if statProcInfo = 1 {
         GetAppInfo(isMouse)
+    }
+    if isMouse {
+        global globalMouseCount += 1
+    }else{
+        global globalKeyCount += 1
     }
     AddKeyToMap(key)
 }
