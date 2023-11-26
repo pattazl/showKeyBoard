@@ -46,7 +46,17 @@ CREATE TABLE statFreq (
     keyCount INTEGER, -- 按键次数
     mouseCount INTEGER, -- 鼠标次数
     distance INTEGER,   -- 鼠标距离
-    freqType INTEGER   -- 0=分钟，1=小时
+    freqType INTEGER,   -- 0=分钟，1=小时
+    date TEXT   -- 具体日期，用于方便分析统计
 );
-CREATE INDEX statFreq_date_IDX ON stat (keyTime);
-CREATE INDEX statFreq_type_IDX ON stat (freqType);
+CREATE INDEX statFreq_date_IDX ON statFreq (date);
+CREATE INDEX statFreq_type_IDX ON statFreq (freqType);
+-- 应用每分钟使用频率的表
+CREATE TABLE appFreq (
+  keyTime TEXT,   -- 日期和时间
+  appPath TEXT,   -- 应用路径
+  freqType INTEGER,   -- 0=分钟，1=小时
+  date TEXT    -- 具体日期，用于方便分析统计
+);
+CREATE INDEX appFreq_date_IDX ON appFreq (date);
+CREATE INDEX appFreq_type_IDX ON appFreq (freqType);

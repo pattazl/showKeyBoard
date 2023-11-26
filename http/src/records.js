@@ -51,13 +51,17 @@ function insertData(records) {
 }
 // 插入 分钟数据
 function insertMiniute(MinuteRecords) {
+  // 202311232259 变成  2023-11-23
+  function convert2Date( strTime ){
+    return `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`
+  }
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(dbName);
     // 构建插入语句,同时插入 按键，
-    const placeholders = MinuteRecords.map(() => '(?,?,?,?,?)').join(',');
-    const values = MinuteRecords.reduce((acc, curr) => acc.concat([curr.Minute, curr.KeyCount, curr.MouseCount, curr.Distance, 0]), []);
+    const placeholders = MinuteRecords.map(() => '(?,?,?,?,?,?)').join(',');
+    const values = MinuteRecords.reduce((acc, curr) => acc.concat([curr.Minute, curr.KeyCount, curr.MouseCount, curr.Distance, 0,convert2Date(curr.Minute)]), []);
     // 执行一次性插入
-    db.run(`INSERT INTO statFreq (keyTime, keyCount , mouseCount, distance, freqType ) VALUES ${placeholders}`, values, function (err) {
+    db.run(`INSERT INTO statFreq (keyTime, keyCount , mouseCount, distance, freqType,date ) VALUES ${placeholders}`, values, function (err) {
       if (err) {
         console.error(err.message);
         reject(err)
@@ -363,11 +367,15 @@ async function deleteData(date, flag) {
     if (flag == 0) {
       sql = 'delete FROM events where tick in(' + placeholders + ') '
     } else if (flag == 1) {
-      sql = 'delete FROM stat where date in(' + placeholders + ') '
+      sql = `delete FROM stat where date in(${placeholders}) ; 
+      delete FROM statFreq where date in(${placeholders}) ;
+      delete FROM appFreq where date in(${placeholders}) ;
+      `  // 需要支持多个SQL
+      date = date.concat(date, date);  // 有3个 placeholders 重复3次
     }
     console.log(sql, date)
     if (sql != '') {
-      db.all(sql, date, function (err, rows) {
+      db.exec(sql, date, function (err) {
         if (err) {
           reject(err);
         }
@@ -434,10 +442,18 @@ async function updateDBStruct() {
           keyCount INTEGER, 
           mouseCount INTEGER, 
           distance INTEGER,  
-          freqType INTEGER 
+          freqType INTEGER,
+          date TEXT
         );
-        CREATE INDEX statFreq_date_IDX ON stat (keyTime);
-        CREATE INDEX statFreq_type_IDX ON stat (freqType);`
+        CREATE INDEX statFreq_date_IDX ON statFreq (date);
+        CREATE INDEX statFreq_type_IDX ON statFreq (freqType);
+        CREATE TABLE appFreq (
+          keyTime TEXT, 
+          appPath TEXT, 
+          date TEXT
+        );
+        CREATE INDEX appFreq_date_IDX ON appFreq (date);
+        `
         db2.exec(sql, function (err) {  // 需要同时执行多条SQL
           if (err) {
             reject(err);
@@ -458,13 +474,13 @@ async function getLastMinute() {
   return new Promise((resolve, reject) => {
     // 查询记录集
     let lastObj = {};
-    let sql = 'SELECT keyTime,keyCount,mouseCount,distance FROM statFreq where freqType = 0 order by keyTime desc limit 1'
+    let sql = 'SELECT keyTime,keyCount,mouseCount,distance FROM statFreq where freqType = 0 order by date desc, keyTime desc limit 1'
     db.all(sql, [], function (err, rows) {
       if (err) {
         reject(err);
       }
       rows.forEach(function (row) {
-        lastObj = {"Distance":row.distance,"KeyCount":row.keyCount,"Minute":row.keyTime,"MouseCount":row.mouseCount};
+        lastObj = { "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount };
       });
       resolve(lastObj)
     });
@@ -474,5 +490,5 @@ async function getLastMinute() {
 
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct, insertMiniute , getLastMinute
+  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute
 };
