@@ -375,6 +375,7 @@ GetAppInfo(isMouse){
         if ProcPath = ''{
             ProcPath := 'Unknown'
         }
+        global globalAppPath := ProcPath  ; 设置全局变量激活窗口信息
         if isMouse {
             appName .= 'Mouse-' ProcPath  
         }else{

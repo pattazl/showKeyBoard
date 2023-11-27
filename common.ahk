@@ -149,4 +149,5 @@ mouseDistance := 0
 ; 全局键盘鼠标统计
 globalKeyCount := 0
 globalMouseCount := 0
+globalAppPath := ''  ; 当前激活的窗口路径
 

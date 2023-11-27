@@ -397,7 +397,7 @@ async function insertMiniuteFun(records) {
   let MinuteRecords = records.MinuteRecords
   if (MinuteRecords != null && MinuteRecords.length > 0) {
     // 需要将 MinuteRecords 的数据保存到 statFreq 中
-    // 需要额外处理 {Distance: 24622,KeyCount: 8,Minute: '202311232030',MouseCount: 42 }
+    // 需要额外处理 {Distance: 24622,KeyCount: 8,Minute: '202311232030',MouseCount: 42 , Apps:['app1','app2'] }
     let last = MinuteRecords.pop() // 去掉最后一个数据
     let lastTime = lastMinuteRecords?.Minute ?? ''
     //console.log('insertMiniuteFun last?.Minute:' + last?.Minute + ',lastTime:' + lastTime)

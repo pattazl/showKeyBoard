@@ -100,10 +100,20 @@ GetDistance(){
 if recordMouseMove = 1{
 	SetTimer(GetDistance,100)  ; 每n毫秒记录一次位置
 }
+; 判断某内容是否在数组中
+HasVal( arr , val ){
+    For Index,Value in arr{
+        if Value == val{
+            return Index
+        }
+    }
+    return 0
+}
 ; 是否统计分钟数据
 GetMinuteData(){
     currMinute := FormatTime(A_Now, "yyyyMMddHHmm")
-    currData := Map("Minute",currMinute,"MouseCount",globalMouseCount,"KeyCount",globalKeyCount,"Distance",mouseDistance)
+    currData := Map("Minute",currMinute,"MouseCount",globalMouseCount,"KeyCount",globalKeyCount
+    ,"Distance",mouseDistance,"Apps",Array() )
     Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
     if Len > 10 {
         ; 清理 10个以外 的数据，为了减少带宽
@@ -124,7 +134,13 @@ GetMinuteData(){
             MinuteRecords[-1] := currData ; 因为为空数据，那么则直接替换
         }else{
         ; 插入新数据
+            currData["Apps"].push(globalAppPath) ; 有操作数据才更新APP信息
             MinuteRecords.push(currData)
+        }
+    }else{
+    ; 同一分钟内，那么需要添加不同的APP名
+        if( HasVal(last["Apps"],globalAppPath) == 0 ){
+            last["Apps"].push(globalAppPath)
         }
     }
 }

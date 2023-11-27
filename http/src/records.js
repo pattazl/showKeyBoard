@@ -53,13 +53,36 @@ function insertData(records) {
 function insertMiniute(MinuteRecords) {
   // 202311232259 变成  2023-11-23
   function convert2Date( strTime ){
-    return `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`
+    return `${strTime.substring(0, 4)}-${strTime.substring(4, 6)}-${strTime.substring(6, 8)}`
   }
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(dbName);
     // 构建插入语句,同时插入 按键，
     const placeholders = MinuteRecords.map(() => '(?,?,?,?,?,?)').join(',');
     const values = MinuteRecords.reduce((acc, curr) => acc.concat([curr.Minute, curr.KeyCount, curr.MouseCount, curr.Distance, 0,convert2Date(curr.Minute)]), []);
+    // 需要将 MinuteRecords 中 apps 属性信息进行设置和处理
+    let appsPara = [],arrHolder = []
+    MinuteRecords.forEach(x=>{
+      if( x.Apps?.length > 0)
+      {
+        let d = convert2Date(x.Minute)
+        x.Apps.forEach(y=>{
+          appsPara.push(x.Minute,y,0,d) // keyTime, appPath, freqType,date
+          arrHolder.push(1)
+        })
+      }
+    })
+    /*console.log(appsPara)
+    [
+  [
+    '202311271320',
+    'D:\\Program Files\\Microsoft VS Code\\Code.exe',
+    0,
+    '2023-11-27'
+  ],
+  [ '202311271320', 'C:\\Windows\\System32\\cmd.exe', 0, '2023-11-27' ]
+] */
+    const appsParaHolders = arrHolder.map(() => '(?,?,?,?)').join(',');
     // 执行一次性插入
     db.run(`INSERT INTO statFreq (keyTime, keyCount , mouseCount, distance, freqType,date ) VALUES ${placeholders}`, values, function (err) {
       if (err) {
@@ -68,6 +91,18 @@ function insertMiniute(MinuteRecords) {
       }
       console.log(`insertMiniute ${this.changes} rows have been inserted`);
       resolve(this.changes)
+      if(appsPara.length >0){
+        db.run(`INSERT INTO appFreq (keyTime, appPath, freqType,date ) VALUES ${appsParaHolders}`, appsPara, function (err) {
+          if (err) {
+            console.error(err.message);
+            reject(err)
+          }
+          console.log(`inser appFreq ${this.changes} rows have been inserted`);
+          resolve(this.changes)
+        });
+      }else{
+        resolve(this.changes)
+      }
     });
     db.close();
   })
