@@ -1,5 +1,16 @@
 <template>
 	<div>
+		<div style="height: 120px ;margin-right: 90px;float: right;">
+			<n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false"
+				:ignore-gap="true" type='block' position='fix'>
+				<n-anchor-link :title="contentText.intro114" href="#intro114" />
+				<n-anchor-link :title="contentText.intro115" href="#intro115" />
+				<n-anchor-link :title="contentText.intro116" href="#intro116" />
+				<n-anchor-link :title="contentText.intro152" href="#intro152" />
+				<n-anchor-link :title="contentText.intro153" href="#intro153" />
+				<n-anchor-link :title="contentText.intro154" href="#intro154" />
+			</n-anchor>
+		</div>
 		<n-space vertical>
 			<n-space style="font-size:16px">
 				{{ contentText.intro112 }}
@@ -16,22 +27,22 @@
 					</template>
 				</n-switch>
 			</n-space>
-			<n-card :title="contentText.intro114">
+			<n-card id="intro114" :title="contentText.intro114">
 				<div id="main0" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro115">
+			<n-card id="intro115" :title="contentText.intro115">
 				<div id="main1" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro116 + ':' + topN">
+			<n-card id="intro116" :title="contentText.intro116 + ':' + topN">
 				<div id="main2" style="height: 400px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro152 + ':' + appTopN">
+			<n-card id="intro152" :title="contentText.intro152 + ':' + appTopN">
 				<div id="main3" style="height: 300px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro153 + ':' + appTopN">
+			<n-card id="intro153" :title="contentText.intro153 + ':' + appTopN">
 				<div id="main4" style="height: 300px; min-width: 800px;width:95%;"></div>
 			</n-card>
-			<n-card :title="contentText.intro154 + ':' + appTopN">
+			<n-card id="intro154" :title="contentText.intro154 + ':' + appTopN">
 				<div id="main5" style="height: 300px; min-width: 800px;width:95%;"></div>
 			</n-card>
 		</n-space>
@@ -67,9 +78,9 @@ echarts.use([
 	UniversalTransition
 ]);
 
-import { arrRemove, getHistory, ajax, railStyle, deepCopy,appPath2Name } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name } from '@/common';
 import content from '../../content.js';
-let option = [] ; // 用数组代替
+let option = []; // 用数组代替
 option[0] = {
 	xAxis: {
 		type: 'category',
@@ -139,9 +150,9 @@ option[2] = {
 	},
 	series: []
 };
-option[3] = deepCopy(option[2] )
-option[4] = deepCopy(option[2] )
-option[5] = deepCopy(option[2] )
+option[3] = deepCopy(option[2])
+option[4] = deepCopy(option[2])
+option[5] = deepCopy(option[2])
 export default defineComponent({
 	name: 'Message',
 	props: {
@@ -159,7 +170,7 @@ export default defineComponent({
 		const topN = ref(0)
 		const appTopN = ref(0)
 		const fillDate = ref(store.data.dataSetting.fillDate);
-		const appNameListMap =  JSON.parse(store.data.dataSetting.appNameList);
+		const appNameListMap = JSON.parse(store.data.dataSetting.appNameList);
 
 
 		topN.value = store.data.dataSetting.topN;
@@ -206,7 +217,7 @@ export default defineComponent({
 			let b = beginDate.value, e = endDate.value
 			if (/^\d{4}-\d{2}-\d{2}$/.test(b) && /^\d{4}-\d{2}-\d{2}$/.test(e) && e >= b) {
 				let res = await ajax('statData', { "beginDate": b, "endDate": e }) //数组，3个内容
-				if (res.length <4 ) {
+				if (res.length < 4) {
 					return
 				}
 				let dateArr = []
@@ -227,7 +238,7 @@ export default defineComponent({
 						dateArr.push(x.date);
 					})
 				}
-				option.forEach(x=>{
+				option.forEach(x => {
 					x.xAxis.data = dateArr
 				})
 				// 设置	
@@ -251,54 +262,51 @@ export default defineComponent({
 
 				// 对应用进行统计分析 
 				// 对 res[3] 分离出3个数组分别是 汇总，鼠标，键盘
-				let appInfo = [[],[],[]];
-				res[3].forEach(x=>{
-					let val ='',shortName=''
-					if( x.keyname.indexOf('App-Mouse-')==0){
-						val = x.keyname.replace(/App-Mouse-/,'')
-						shortName = appPath2Name(val,appNameListMap)
+				let appInfo = [[], [], []];
+				res[3].forEach(x => {
+					let val = '', shortName = ''
+					if (x.keyname.indexOf('App-Mouse-') == 0) {
+						val = x.keyname.replace(/App-Mouse-/, '')
+						shortName = appPath2Name(val, appNameListMap)
 						x.keyname = shortName
 						appInfo[1].push(x)
-					}else if(x.keyname.indexOf('App-Key-')==0)
-					{
-						val = x.keyname.replace(/App-Key-/,'')
-						shortName = appPath2Name(val,appNameListMap)
+					} else if (x.keyname.indexOf('App-Key-') == 0) {
+						val = x.keyname.replace(/App-Key-/, '')
+						shortName = appPath2Name(val, appNameListMap)
 						x.keyname = shortName
 						appInfo[2].push(x)
 					}
 					// 汇总
-					if(val != '')
-					{
-						let index = appInfo[0].findIndex(y => (y.keyname == shortName&&y.date == x.date))
-						if(index!=-1){
-							appInfo[0][index].keycount +=x.keycount  // 如果有相同日期和键值的就累加
-						}else{
+					if (val != '') {
+						let index = appInfo[0].findIndex(y => (y.keyname == shortName && y.date == x.date))
+						if (index != -1) {
+							appInfo[0][index].keycount += x.keycount  // 如果有相同日期和键值的就累加
+						} else {
 							let xx = deepCopy(x) // 需要深拷贝，避免影响上面2个函数的数据
 							appInfo[0].push(xx)  // 没有数据则插入
 						}
 					}
 				})
 				// 应用数据循环设置参数
-				appInfo.forEach((xx,i)=>{
+				appInfo.forEach((xx, i) => {
 					let hash = getKeyData(dateArr, xx)
-					option[3+i].series = Object.keys(hash).map(x => hash[x])
-					option[3+i].legend.data = Object.keys(hash)
+					option[3 + i].series = Object.keys(hash).map(x => hash[x])
+					option[3 + i].legend.data = Object.keys(hash)
 				})
 				// 显示全部图标数据
-				myChart.forEach((v,i)=>{
-					v.setOption(option[i],true); // 去除缓存
+				myChart.forEach((v, i) => {
+					v.setOption(option[i], true); // 去除缓存
 				})
 			} else {
 				message.error(contentText.value.intro117)
 			}
 		}
 		onMounted(async () => {
-			for(let i=0;i<6;i++)
-			{
-				chartDom[i] = document.getElementById('main'+i);
+			for (let i = 0; i < 6; i++) {
+				chartDom[i] = document.getElementById('main' + i);
 				myChart[i] = echarts.init(chartDom[i], store.myTheme);
 			}
-			
+
 			// 设置下拉选择
 			let dateArr = await ajax('getHistoryDate')
 			historyDate.value = dateArr.map((x) => {
@@ -315,7 +323,7 @@ export default defineComponent({
 			}
 		})
 		watch(() => store.myTheme, (newValue, oldValue) => {
-			myChart.forEach((v,i)=>{
+			myChart.forEach((v, i) => {
 				v.dispose()
 				v = echarts.init(chartDom[i], newValue);
 				v.setOption(option[i]);

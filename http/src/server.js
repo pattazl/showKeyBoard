@@ -4,7 +4,7 @@ const multer = require('multer');
 const express = require('express')
 const path = require('path');
 
-const { getRecords, getHistoryDate, statData } = require('./records');
+const { getRecords, getHistoryDate, statData , getMinuteRecords } = require('./records');
 const { strVersion } = require('./version');
 
 const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData,
@@ -36,6 +36,11 @@ app.post('/sendPCInfo', sendPCInfo);  // 上传PC其他信息，比如显示屏�
 // 获取某某天，或某个tick的数据, 参数 date 如果是当天，返回的是所有tick的清单，否则返回
 app.post('/historyData', async (req, res) => {
     let arr = await getRecords(req.body?.beginDate, req.body?.endDate)
+    res.send(JSON.stringify(arr))
+});
+// 获取某某天的应用使用分钟数据
+app.post('/minuteData', async (req, res) => {
+    let arr = await getMinuteRecords(req.body?.beginDate, req.body?.endDate,req.body?.freqType)
     res.send(JSON.stringify(arr))
 });
 // 更新和删除用户键盘

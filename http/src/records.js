@@ -523,7 +523,27 @@ async function getLastMinute() {
   })
 }
 
+// 获取分钟数据
+async function getMinuteRecords(beginDate,endDate,freqType) {
+  const db = new sqlite3.Database(dbName);
+  return new Promise((resolve, reject) => {
+    // 查询记录集
+    let arr = []
+    let sql = 'SELECT keyTime,keyCount,mouseCount,distance FROM statFreq where freqType = ? and date between ? and ?'
+    db.all(sql, [freqType??0,beginDate??'',endDate??''], function (err, rows) {
+      if (err) {
+        console.log(err)
+        resolve(err);
+      }
+      rows.forEach(function (row) {
+        arr.push({ "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount });
+      });
+      resolve(arr)
+    });
+    db.close();
+  })
+}
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute
+  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute ,getMinuteRecords
 };

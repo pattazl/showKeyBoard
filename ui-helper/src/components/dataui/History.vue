@@ -1,5 +1,19 @@
 <template>
   <div>
+    <div style="height: 120px ;margin-right: 90px;float: right;">
+      <n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false" :ignore-gap="true"
+        type='block' position='fix'>
+        <n-anchor-link :title="contentText.intro86"  href="#intro86" />
+        <n-anchor-link :title="contentText.intro97"  href="#intro97" />
+        <n-anchor-link :title="contentText.intro149"  href="#intro149" />
+        <n-anchor-link :title="contentText.intro149"  href="#intro149_" />
+        <n-anchor-link :title="contentText.intro87"  href="#intro87" />
+        <n-anchor-link :title="contentText.intro165"  href="#intro165" />
+        <n-anchor-link :title="contentText.intro166"  href="#intro166" />
+        <n-anchor-link :title="contentText.intro167"  href="#intro167" />
+        <n-anchor-link :title="contentText.intro168"  href="#intro168" />
+      </n-anchor>
+    </div>
     <n-space vertical>
       <n-space style="font-size:16px">
         {{ contentText.intro112 }}
@@ -18,19 +32,19 @@
       </n-space>
 
 
-      <n-card :title="contentText.intro86">
+      <n-card id="intro86" :title="contentText.intro86">
         <div id="main" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card :title="contentText.intro97">
+      <n-card id="intro97" :title="contentText.intro97">
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
-      <n-card :title="contentText.intro149">
+      <n-card id="intro149" :title="contentText.intro149">
         <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card :title="contentText.intro149">
+      <n-card id="intro149_" :title="contentText.intro149">
         <n-data-table :columns="columns2" :data="appListData" />
       </n-card>
-      <n-card :title="contentText.intro87">
+      <n-card id="intro87" :title="contentText.intro87">
         <template #header-extra>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
             <template #checked>
@@ -42,6 +56,18 @@
           </n-switch>
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
+      </n-card>
+      <n-card  id="intro165" :title="contentText.intro165">
+        <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
+      </n-card>
+      <n-card  id="intro166" :title="contentText.intro166">
+        <div id="main4" style="height: 500px; min-width: 800px;width:95%;"></div>
+      </n-card>
+      <n-card  id="intro167" :title="contentText.intro167">
+        <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
+      </n-card>
+      <n-card  id="intro168" :title="contentText.intro168">
+        <div id="main6" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
     </n-space>
   </div>

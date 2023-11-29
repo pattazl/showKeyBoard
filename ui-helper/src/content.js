@@ -179,7 +179,7 @@ export default {
 	intro146: '应用执行程序全路径',
 	intro147: '应用程序显示名',
 	intro148: '应用程序名转换清单，默认取执行程序文件名',
-	intro149: '应用按键统计信息',
+	intro149: '应用按键统计',
 	intro150: '跳过没有数据的日期',
 	intro151: '用空数据填充日期',
 	intro152: '应用操作合计TOP N',
@@ -195,6 +195,10 @@ export default {
 	intro162: '默认语言',
 	intro163: '自动备份数据保留天数',
 	intro164: '如果为0则不进行自动备份,备份在安装目录下的backup目录，每次客户端启动均备份一次',
+	intro165: '操作按分钟',
+	intro166: '操作按小时',
+	intro167: '应用时长',
+	intro168: '应用时间分布',
 
   },
   'en-US': {
@@ -375,7 +379,7 @@ export default {
 	intro146: 'App full path',
 	intro147: 'App display Name',
 	intro148: 'App name mapping list, basename is default',
-	intro149: 'App keypress statistic info',
+	intro149: 'App keypress statistic',
 	intro150: 'Ignore date that no data',
 	intro151: 'Fill date that no data',
 	intro152: 'App operate accumulate TOP N',
@@ -391,5 +395,9 @@ export default {
 	intro162: 'Default language',
 	intro163: 'Keep days when auto backup data',
 	intro164: 'If zero will not backup data, backup fold is install dir/backup, will backup once when client launch',
+	intro165: 'Operate by minutes',
+	intro166: 'Operate by hours',
+	intro167: 'App usage duration ',
+	intro168: 'App usage distribution',
   }
 };
