@@ -350,7 +350,7 @@ let preData = {}
 async function dataFun(req, res) {
   var data = req.body
   if (data.MinuteRecords != null) {
-    console.log(JSON.stringify(data.MinuteRecords))
+    //console.log(JSON.stringify(data.MinuteRecords))
   }
   await insertMiniuteFun(data)
   //console.log('mouseDistance,tick',data.mouseDistance,data.tick)

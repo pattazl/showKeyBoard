@@ -110,10 +110,20 @@ HasVal( arr , val ){
     return 0
 }
 ; 是否统计分钟数据
-GetMinuteData(){
+GetMinuteData(isMouse,isPress){
     currMinute := FormatTime(A_Now, "yyyyMMddHHmm")
+    initMouse := 0
+    initKey := 0
+    if isPress {
+        if isMouse {
+            initMouse := 1
+        }else{
+            initKey := 1
+        }
+    }
+    ; 有操作数据才更新APP信息
     currData := Map("Minute",currMinute,"MouseCount",globalMouseCount,"KeyCount",globalKeyCount
-    ,"Distance",mouseDistance,"Apps",Array() )
+    ,"Distance",mouseDistance,"Apps",Map(globalAppPath,Map("Mouse",initMouse,"Key",initKey)) )
     Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
     if Len > 10 {
         ; 清理 10个以外 的数据，为了减少带宽
@@ -134,18 +144,28 @@ GetMinuteData(){
             MinuteRecords[-1] := currData ; 因为为空数据，那么则直接替换
         }else{
         ; 插入新数据
-            currData["Apps"].push(globalAppPath) ; 有操作数据才更新APP信息
             MinuteRecords.push(currData)
         }
     }else{
     ; 同一分钟内，那么需要添加不同的APP名
-        if( HasVal(last["Apps"],globalAppPath) == 0 ){
-            last["Apps"].push(globalAppPath)
+        if isPress {
+            if( last["Apps"].has(globalAppPath) ){
+                if isMouse{
+                    last["Apps"][globalAppPath]["Mouse"] +=1
+                }else{
+                    last["Apps"][globalAppPath]["Key"] +=1
+                }
+            }else{
+                last["Apps"][globalAppPath] := Map("Mouse",initMouse,"Key",initKey)
+            }
         }
     }
 }
+GetMinuteDataTimer(){
+    GetMinuteData(False,False)
+}
 if recordMinute = 1 {
-	SetTimer(GetMinuteData,1000)  ; 每1秒刷新一次分钟数据
+	SetTimer(GetMinuteDataTimer,1000)  ; 每1秒刷新一次分钟数据
 }
 ; 建立钩子抓取数据,默认不要阻塞 V I0
 ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0

@@ -63,26 +63,31 @@ function insertMiniute(MinuteRecords) {
     // 需要将 MinuteRecords 中 apps 属性信息进行设置和处理
     let appsPara = [],arrHolder = []
     MinuteRecords.forEach(x=>{
-      if( x.Apps?.length > 0)
+      let len = Object.keys(x.Apps??{})
+      if( len.length > 0)
       {
         let d = convert2Date(x.Minute)
-        x.Apps.forEach(y=>{
-          appsPara.push(x.Minute,y,0,d) // keyTime, appPath, freqType,date
+        for (let key in x.Apps) {
+          if(key=="")continue; // 为空值时跳过
+          let app = x.Apps[key]
+          appsPara.push(x.Minute,key,app.Key,app.Mouse,0,d) // keyTime, appPath,keyCount,mouseCount freqType,date
           arrHolder.push(1)
-        })
+        }
       }
     })
-    /*console.log(appsPara)
-    [
-  [
-    '202311271320',
-    'D:\\Program Files\\Microsoft VS Code\\Code.exe',
-    0,
-    '2023-11-27'
-  ],
-  [ '202311271320', 'C:\\Windows\\System32\\cmd.exe', 0, '2023-11-27' ]
-] */
-    const appsParaHolders = arrHolder.map(() => '(?,?,?,?)').join(',');
+    // console.log("appsPara",appsPara)
+    /* '202312010801',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  1,
+  1,
+  0,
+  '2023-12-01',
+  '202312010801',
+  'C:\\Windows\\System32\\cmd.exe',
+  6,
+  4,
+  0,*/
+    const appsParaHolders = arrHolder.map(() => '(?,?,?,?,?,?)').join(',');
     // 执行一次性插入
     db.run(`INSERT INTO statFreq (keyTime, keyCount , mouseCount, distance, freqType,date ) VALUES ${placeholders}`, values, function (err) {
       if (err) {
@@ -90,9 +95,8 @@ function insertMiniute(MinuteRecords) {
         reject(err)
       }
       console.log(`insertMiniute ${this.changes} rows have been inserted`);
-      resolve(this.changes)
       if(appsPara.length >0){
-        db.run(`INSERT INTO appFreq (keyTime, appPath, freqType,date ) VALUES ${appsParaHolders}`, appsPara, function (err) {
+        db.run(`INSERT INTO appFreq (keyTime, appPath,keyCount,mouseCount,freqType,date ) VALUES ${appsParaHolders}`, appsPara, function (err) {
           if (err) {
             console.error(err.message);
             reject(err)
@@ -485,9 +489,13 @@ async function updateDBStruct() {
         CREATE TABLE appFreq (
           keyTime TEXT, 
           appPath TEXT, 
+          keyCount INTEGER, 
+          mouseCount INTEGER, 
+          freqType INTEGER,
           date TEXT
         );
         CREATE INDEX appFreq_date_IDX ON appFreq (date);
+        CREATE INDEX appFreq_type_IDX ON appFreq (freqType);
         `
         db2.exec(sql, function (err) {  // 需要同时执行多条SQL
           if (err) {

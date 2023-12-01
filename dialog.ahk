@@ -344,10 +344,15 @@ AddRecord(key,isMouse){
     if statProcInfo = 1 {
         GetAppInfo(isMouse)
     }
-    if isMouse {
-        global globalMouseCount += 1
-    }else{
-        global globalKeyCount += 1
+    ; 需要进行分钟级统计
+    if recordMinute = 1{
+        if isMouse {
+            global globalMouseCount += 1
+        }else{
+            global globalKeyCount += 1
+        }
+        ;需要修改 MinuteRecords 中的数据
+        GetMinuteData(isMouse,true)
     }
     AddKeyToMap(key)
 }

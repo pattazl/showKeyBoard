@@ -55,6 +55,8 @@ CREATE INDEX statFreq_type_IDX ON statFreq (freqType);
 CREATE TABLE appFreq (
   keyTime TEXT,   -- 日期和时间
   appPath TEXT,   -- 应用路径
+  keyCount INTEGER, -- 按键次数
+  mouseCount INTEGER, -- 鼠标次数
   freqType INTEGER,   -- 0=分钟，1=小时
   date TEXT    -- 具体日期，用于方便分析统计
 );
