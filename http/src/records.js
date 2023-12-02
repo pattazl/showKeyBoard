@@ -532,19 +532,22 @@ async function getLastMinute() {
 }
 
 // 获取分钟数据
-async function getMinuteRecords(beginDate,endDate,freqType) {
+async function getMinuteRecords(beginDate,endDate,freqType, isApp) {
   const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let arr = []
-    let sql = 'SELECT keyTime,keyCount,mouseCount,distance FROM statFreq where freqType = ? and date between ? and ?'
+    let sql = 'SELECT keyTime,keyCount,mouseCount,distance,date FROM statFreq where freqType = ? and date between ? and ?'
+    if(isApp){
+      sql = 'SELECT keyTime, keyCount , mouseCount, distance, date  FROM appFreq where freqType = ? and date between ? and ?'
+    }
     db.all(sql, [freqType??0,beginDate??'',endDate??''], function (err, rows) {
       if (err) {
         console.log(err)
         resolve(err);
       }
       rows.forEach(function (row) {
-        arr.push({ "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount });
+        arr.push({ "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date });
       });
       resolve(arr)
     });

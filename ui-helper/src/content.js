@@ -199,6 +199,9 @@ export default {
 	intro166: '操作按小时',
 	intro167: '应用时长',
 	intro168: '应用时间分布',
+	intro169: '分钟数据保留天数',
+	intro170: '应用操作分钟统计',
+	intro171: '应用操作小时统计',
 
   },
   'en-US': {
@@ -399,5 +402,8 @@ export default {
 	intro166: 'Operate by hours',
 	intro167: 'App usage duration ',
 	intro168: 'App usage distribution',
+	intro169: 'Keep days for Minute data',
+	intro170: 'Apps Operate by minutes',
+	intro171: 'Apps Operate by hours',
   }
 };

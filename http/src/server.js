@@ -40,7 +40,7 @@ app.post('/historyData', async (req, res) => {
 });
 // 获取某某天的应用使用分钟数据
 app.post('/minuteData', async (req, res) => {
-    let arr = await getMinuteRecords(req.body?.beginDate, req.body?.endDate,req.body?.freqType)
+    let arr = await getMinuteRecords(req.body?.beginDate, req.body?.endDate,req.body?.freqType,req.body?.isApp)
     res.send(JSON.stringify(arr))
 });
 // 更新和删除用户键盘

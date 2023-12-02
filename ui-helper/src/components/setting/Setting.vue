@@ -251,6 +251,11 @@
         <n-card :style="myBorder.StatPara ? 'border:1px #18a058 solid' : ''">
           {{ contentText.intro56 }}
           <n-list hoverable>
+            <n-list-item>{{ contentText.intro169 }}
+              <template #suffix>
+                <n-input-number v-model:value="dataSetting.minuteKeepDays" :min="1" :max="360" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro163 }}<div class="intro">{{ contentText.intro164 }}</div>
               <template #suffix>
                 <n-input-number v-model:value="dataSetting.autoBackupDays" :min="0" :max="360" />

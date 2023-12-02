@@ -111,6 +111,19 @@ HasVal( arr , val ){
 }
 ; 是否统计分钟数据
 GetMinuteData(isMouse,isPress){
+    ; 如果同时调用
+    if(GetMinuteDataFlag){
+        OutputDebug ("AutoHotkey GetMinuteData ")
+        return
+    }
+    ;startT := A_TickCount
+    global GetMinuteDataFlag := True
+    GetMinuteDataCore(isMouse,isPress)
+    global GetMinuteDataFlag := False
+    ;OutputDebug ("AutoHotkey GetMinuteData: " (A_TickCount - startT) ' : ' A_TickCount)
+}
+; 统计核心
+GetMinuteDataCore(isMouse,isPress){
     currMinute := FormatTime(A_Now, "yyyyMMddHHmm")
     initMouse := 0
     initKey := 0
@@ -125,8 +138,10 @@ GetMinuteData(isMouse,isPress){
     currData := Map("Minute",currMinute,"MouseCount",globalMouseCount,"KeyCount",globalKeyCount
     ,"Distance",mouseDistance,"Apps",Map(globalAppPath,Map("Mouse",initMouse,"Key",initKey)) )
     Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
-    if Len > 10 {
-        ; 清理 10个以外 的数据，为了减少带宽
+    MaxLen := 10
+    if Len > MaxLen {
+        ; 清理 MaxLen 个以外 的数据，为了减少带宽，至少为 MaxLen 分钟数据 
+        ; MaxLen分钟内没有任何点击，但有鼠标移动,因为只有按键或点击才上传数据
         MinuteRecords.removeAt(1)
     }
     if Len == 0 {
@@ -162,6 +177,7 @@ GetMinuteData(isMouse,isPress){
     }
 }
 GetMinuteDataTimer(){
+    global globalAppPath := GetProcPath()
     GetMinuteData(False,False)
 }
 if recordMinute = 1 {

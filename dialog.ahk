@@ -356,17 +356,16 @@ AddRecord(key,isMouse){
     }
     AddKeyToMap(key)
 }
-; 更新活动窗口信息
-GetAppInfo(isMouse){
-    appName := 'App-'
+; 获取活动窗口的路径
+GetProcPath(){
+    ProcPath := 'SysDefault'  ; 当没有默认窗口时
     try {
         FocusedHwnd := WinActive("A")  ; ControlGetFocus("A") WinExist("A") ;
     }catch{
-        return
+        return ProcPath
     }
     if(FocusedHwnd>0){
     ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
-        ProcPath := ''
         try{
             ProcPath := WinGetProcessPath(FocusedHwnd)
         }catch{
@@ -380,14 +379,22 @@ GetAppInfo(isMouse){
         if ProcPath = ''{
             ProcPath := 'Unknown'
         }
-        global globalAppPath := ProcPath  ; 设置全局变量激活窗口信息
-        if isMouse {
-            appName .= 'Mouse-' ProcPath  
-        }else{
-            appName .= 'Key-' ProcPath  
-        }
-        AddKeyToMap(appName)  ; 以应用维度，按键汇总
     }
+    return ProcPath
+}
+; 更新活动窗口信息
+GetAppInfo(isMouse){
+    appName := 'App-'
+    global globalAppPath := GetProcPath()  ; 设置全局变量激活窗口信息
+    if globalAppPath = ''{
+        return
+    }
+    if isMouse {
+        appName .= 'Mouse-' globalAppPath  
+    }else{
+        appName .= 'Key-' globalAppPath  
+    }
+    AddKeyToMap(appName)  ; 以应用维度，按键汇总
 }
 ; 动态判断是否有Key，如果没有则添加
 AddKeyToMap(key){
