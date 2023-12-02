@@ -1,6 +1,3 @@
-import { h } from 'vue';
-import { NP, NText, NUl, NA, NPopover, NDivider, NOl } from 'naive-ui';
-
 export default {
   'zh-CN': {
     title: '按键显示工具后台',

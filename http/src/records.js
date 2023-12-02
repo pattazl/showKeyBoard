@@ -52,25 +52,24 @@ function insertData(records) {
 // 插入 分钟数据
 function insertMiniute(MinuteRecords) {
   // 202311232259 变成  2023-11-23
-  function convert2Date( strTime ){
+  function convert2Date(strTime) {
     return `${strTime.substring(0, 4)}-${strTime.substring(4, 6)}-${strTime.substring(6, 8)}`
   }
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(dbName);
     // 构建插入语句,同时插入 按键，
     const placeholders = MinuteRecords.map(() => '(?,?,?,?,?,?)').join(',');
-    const values = MinuteRecords.reduce((acc, curr) => acc.concat([curr.Minute, curr.KeyCount, curr.MouseCount, curr.Distance, 0,convert2Date(curr.Minute)]), []);
+    const values = MinuteRecords.reduce((acc, curr) => acc.concat([curr.Minute, curr.KeyCount, curr.MouseCount, curr.Distance, 0, convert2Date(curr.Minute)]), []);
     // 需要将 MinuteRecords 中 apps 属性信息进行设置和处理
-    let appsPara = [],arrHolder = []
-    MinuteRecords.forEach(x=>{
-      let len = Object.keys(x.Apps??{})
-      if( len.length > 0)
-      {
+    let appsPara = [], arrHolder = []
+    MinuteRecords.forEach(x => {
+      let len = Object.keys(x.Apps ?? {})
+      if (len.length > 0) {
         let d = convert2Date(x.Minute)
         for (let key in x.Apps) {
-          if(key=="")continue; // 为空值时跳过
+          if (key == "") continue; // 为空值时跳过
           let app = x.Apps[key]
-          appsPara.push(x.Minute,key,app.Key,app.Mouse,0,d) // keyTime, appPath,keyCount,mouseCount freqType,date
+          appsPara.push(x.Minute, key, app.Key, app.Mouse, 0, d) // keyTime, appPath,keyCount,mouseCount freqType,date
           arrHolder.push(1)
         }
       }
@@ -95,7 +94,7 @@ function insertMiniute(MinuteRecords) {
         reject(err)
       }
       console.log(`insertMiniute ${this.changes} rows have been inserted`);
-      if(appsPara.length >0){
+      if (appsPara.length > 0) {
         db.run(`INSERT INTO appFreq (keyTime, appPath,keyCount,mouseCount,freqType,date ) VALUES ${appsParaHolders}`, appsPara, function (err) {
           if (err) {
             console.error(err.message);
@@ -104,7 +103,7 @@ function insertMiniute(MinuteRecords) {
           console.log(`inser appFreq ${this.changes} rows have been inserted`);
           resolve(this.changes)
         });
-      }else{
+      } else {
         resolve(this.changes)
       }
     });
@@ -532,22 +531,27 @@ async function getLastMinute() {
 }
 
 // 获取分钟数据
-async function getMinuteRecords(beginDate,endDate,freqType, isApp) {
+async function getMinuteRecords(beginDate, endDate, freqType, isApp) {
   const db = new sqlite3.Database(dbName);
   return new Promise((resolve, reject) => {
     // 查询记录集
     let arr = []
     let sql = 'SELECT keyTime,keyCount,mouseCount,distance,date FROM statFreq where freqType = ? and date between ? and ?'
-    if(isApp){
-      sql = 'SELECT keyTime, keyCount , mouseCount, distance, date  FROM appFreq where freqType = ? and date between ? and ?'
+    if (isApp) {
+      sql = 'SELECT keyTime, keyCount , mouseCount,appPath,date  FROM appFreq where freqType = ? and date between ? and ?'
     }
-    db.all(sql, [freqType??0,beginDate??'',endDate??''], function (err, rows) {
+    db.all(sql, [freqType ?? 0, beginDate ?? '', endDate ?? ''], function (err, rows) {
       if (err) {
         console.log(err)
         resolve(err);
       }
       rows.forEach(function (row) {
-        arr.push({ "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date });
+        if (isApp) {
+          arr.push({ "Apps": row.appPath, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date });
+        }
+        else {
+          arr.push({ "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date });
+        }
       });
       resolve(arr)
     });
@@ -556,5 +560,5 @@ async function getMinuteRecords(beginDate,endDate,freqType, isApp) {
 }
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute ,getMinuteRecords
+  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords
 };
