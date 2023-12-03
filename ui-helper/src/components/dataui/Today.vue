@@ -10,7 +10,6 @@
         <n-anchor-link :title="contentText.intro87"  href="#intro87" />
         <n-anchor-link :title="contentText.intro165"  href="#intro165" />
         <n-anchor-link :title="contentText.intro167"  href="#intro167" />
-        <n-anchor-link :title="contentText.intro168"  href="#intro168" />
         <n-anchor-link :title="contentText.intro170"  href="#intro170" />
       </n-anchor>
     </div>
@@ -52,11 +51,8 @@
       <n-card  id="intro167" :title="contentText.intro167">
         <div id="main4" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro168" :title="contentText.intro168">
-        <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
-      </n-card>
-      <n-card  id="intro170" :title="contentText.intro170">
-        <div id="main6" style="height: 500px; min-width: 800px;width:95%;"></div>
+      <n-card  id="intro170" :title="contentText.intro170 + contentText.intro168"> 
+        <div id="main5" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
     </n-space>
   </div>
@@ -71,7 +67,7 @@ import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { HeatmapChart, BarChart } from 'echarts/charts';
+import { HeatmapChart, BarChart,PieChart } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -88,7 +84,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name,closeWS, ajax } from '@/common';
 import content from '../../content.js';
-import {setMinuteEcharts,getMinuteOption} from './Minute';
+import {setMinuteEcharts,getMinuteOption, bindCharts} from './Minute';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
 echarts.use([
@@ -104,6 +100,7 @@ echarts.use([
   VisualMapComponent,
   BarChart,
   LegendComponent,
+  PieChart,
 ]);
 
 // prettier-ignore
@@ -376,7 +373,7 @@ export default defineComponent({
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
     let optionArr = [],myChartArr:Array<echarts.ECharts> =[],chartDomArr= [];
-    let domNameArr = ['main1','main2','main3' ] // ,'main4','main5','main6'
+    let domNameArr = ['main1','main2','main3','main4','main5'] // ,'main4','main5'
     let updateFlag = null;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
@@ -628,7 +625,8 @@ export default defineComponent({
     async function updateMinuteData(){
       let strDay = dayjs(new Date()).format('YYYY-MM-DD')
       // 需要渲染 main1 图表
-      setMinuteEcharts(strDay,strDay,MinuteType.ByMinute,myChartArr[2]) // main3
+      setMinuteEcharts(strDay,strDay,MinuteType.ByMinute,[myChartArr[2]],appNameListMap) // main3
+      setMinuteEcharts(strDay,strDay,MinuteType.Duration,[myChartArr[3],myChartArr[4]],appNameListMap) // main4
     }
     onMounted(() => {
       myChartArr = []
@@ -639,7 +637,7 @@ export default defineComponent({
         chartDomArr.push(chartDom)
         myChartArr.push(myChart)
       })
-      let arr:Array<any> = getMinuteOption([MinuteType.ByMinute,MinuteType.Duration,MinuteType.Distribution,MinuteType.AppByMinute])
+      let arr:Array<any> = getMinuteOption([MinuteType.ByMinute,MinuteType.Duration,MinuteType.AppByMinute])
       optionArr = [option,option2].concat(arr)
       console.log(optionArr)
       setWS(updateKeyData)
@@ -659,6 +657,7 @@ export default defineComponent({
         myChartArr[i] = echarts.init(dom, newValue);
         let opt = optionArr[i]
         if(opt!=null)myChartArr[i].setOption(opt);
+        updateMinuteData()
       })
     });
 

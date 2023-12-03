@@ -3,13 +3,26 @@ export enum MinuteType {
   ByMinute = 0,
   ByHour,
   Duration,
-  Distribution,
   AppByMinute,
   AppByHour,
  }
  
-//  export interface SomeType {
-//   name: string;
-//   length: number;
-//   extras?: string[];
-// }
+export interface MinuteData {
+  Minute: string;
+  Distance: number;
+  MouseCount: number;
+  KeyCount: number;
+  Date: string;
+}
+
+export interface MinuteAppData {
+  Minute: string;
+  Apps: number;
+  MouseCount: number;
+  KeyCount: number;
+  Date: string;
+}
+export interface seriesData {
+  name: string;
+  value: number;
+}

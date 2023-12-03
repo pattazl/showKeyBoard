@@ -11,7 +11,6 @@
         <n-anchor-link :title="contentText.intro165"  href="#intro165" />
         <n-anchor-link :title="contentText.intro166"  href="#intro166" />
         <n-anchor-link :title="contentText.intro167"  href="#intro167" />
-        <n-anchor-link :title="contentText.intro168"  href="#intro168" />
         <n-anchor-link :title="contentText.intro170"  href="#intro170" />
         <n-anchor-link :title="contentText.intro171"  href="#intro171" />
       </n-anchor>
@@ -68,14 +67,11 @@
       <n-card  id="intro167" :title="contentText.intro167">
         <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro168" :title="contentText.intro168">
+      <n-card  id="intro170" :title="contentText.intro170">
         <div id="main6" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro170" :title="contentText.intro170">
-        <div id="main7" style="height: 500px; min-width: 800px;width:95%;"></div>
-      </n-card>
       <n-card  id="intro171" :title="contentText.intro171">
-        <div id="main8" style="height: 500px; min-width: 800px;width:95%;"></div>
+        <div id="main7" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
     </n-space>
   </div>
