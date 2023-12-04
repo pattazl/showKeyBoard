@@ -34,7 +34,7 @@
 
 
       <n-card id="intro86" :title="contentText.intro86">
-        <div id="main" style="height: 500px; min-width: 800px;width:95%;"></div>
+        <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card id="intro97" :title="contentText.intro97">
         <n-data-table :columns="columns0" :data="mouseTable" />
@@ -68,10 +68,10 @@
         <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card  id="intro170" :title="contentText.intro170">
-        <div id="main6" style="height: 500px; min-width: 800px;width:95%;"></div>
+        <div id="main6" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card  id="intro171" :title="contentText.intro171">
-        <div id="main7" style="height: 500px; min-width: 800px;width:95%;"></div>
+        <div id="main7" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
     </n-space>
   </div>
@@ -85,7 +85,7 @@ import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { HeatmapChart, BarChart } from 'echarts/charts';
+import { HeatmapChart, BarChart,PieChart } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -98,10 +98,12 @@ import {
 } from 'echarts/components';
 // 标签自动布局、全局过渡动画等特性
 import { LabelLayout, UniversalTransition } from 'echarts/features';
+import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
 import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name } from '@/common';
 import content from '../../content.js';
+import {setMinuteEcharts,getMinuteOption} from './Minute';
 // 注册必须的组件
 echarts.use([
   TitleComponent,
@@ -116,6 +118,7 @@ echarts.use([
   VisualMapComponent,
   DataZoomComponent,
   BarChart,
+  PieChart,
 ]);
 
 // prettier-ignore
@@ -330,7 +333,8 @@ export default defineComponent({
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
-    let chartDom, myChart, chartDom2, myChart2;
+    let optionArr = [],myChartArr:Array<echarts.ECharts> =[],chartDomArr= [];
+    let domNameArr = ['main1','main2','main3','main4','main5','main6','main7'] // ,'main6','main7'
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
     let mouseTable = ref([])
@@ -463,6 +467,7 @@ export default defineComponent({
       historyData = await getHistory(b, e)
       let keyStatHash = getHash('')
       showHash(keyStatHash)
+      updateMinuteData()
     }
     let lastLeftKey = [], LastKeyStatHash = {};
     // 显示数据
@@ -491,13 +496,13 @@ export default defineComponent({
         let arr = keyArr.sort((a, b) => b - a)
         option.visualMap.max = Math.max(arr[3], 10) // 第4个
       }
-      option && myChart.setOption(option);
+      option && myChartArr[0].setOption(option);
       // 显示未统计进去的数据 leftKey
       //let leftHash = {};
       arrRemove(leftKey, 'tick'); // 去掉
       arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
-      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChart2
+      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChartArr[1]
         , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
@@ -528,11 +533,27 @@ export default defineComponent({
     function showLeftKeyRef() {
       dataTable.value = showLeftKey(leftKeySwitch.value, lastLeftKey, LastKeyStatHash)
     }
+    function updateMinuteData(){
+      let b = beginDate.value, e = endDate.value;
+      if (beginDate.value > endDate.value) {
+        b = beginDate.value
+        e = beginDate.value
+      }
+      // 需要渲染 main1 图表
+      setMinuteEcharts(b,e,MinuteType.ByMinute,[myChartArr[2]],appNameListMap) // main3
+      setMinuteEcharts(b,e,MinuteType.Duration,[myChartArr[4],myChartArr[5]],appNameListMap) // main5 6
+    }
     onMounted(async () => {
-      chartDom = document.getElementById('main');
-      myChart = echarts.init(chartDom, store.myTheme);
-      chartDom2 = document.getElementById('main2');
-      myChart2 = echarts.init(chartDom2, store.myTheme);
+      myChartArr = []
+      chartDomArr = []
+      domNameArr.forEach(x=> {
+        let chartDom = document.getElementById(x);
+        let myChart = echarts.init(chartDom, store.myTheme);
+        chartDomArr.push(chartDom)
+        myChartArr.push(myChart)
+      })
+      let arr:Array<any> = getMinuteOption([MinuteType.ByMinute,MinuteType.Duration,MinuteType.AppByMinute])
+      optionArr = [option,option2].concat(arr)
       // 设置下拉选择
       let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
@@ -545,13 +566,14 @@ export default defineComponent({
 
     })
     watch(() => store.myTheme, (newValue, oldValue) => {
-      myChart.dispose()
-      myChart = echarts.init(chartDom, newValue);
-      myChart.setOption(option);
-
-      myChart2.dispose()
-      myChart2 = echarts.init(chartDom2, newValue);
-      myChart2.setOption(option2);
+      domNameArr.forEach((x,i)=> {
+        let dom = chartDomArr[i]
+        myChartArr[i].dispose()
+        myChartArr[i] = echarts.init(dom, newValue);
+        let opt = optionArr[i]
+        if(opt!=null)myChartArr[i].setOption(opt);
+      })
+      updateMinuteData()
     });
     return {
       strLeftKeyVal,

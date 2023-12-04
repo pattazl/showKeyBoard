@@ -20,7 +20,8 @@
           <n-list hoverable v-if="allConfig.common">
             <n-list-item>{{ contentText.intro162 }}
               <template #suffix>
-                <n-select v-model:value="allConfig.common.defaultLang" :options="[{ label: '中文', value: 'zh-CN' }, { label: 'English', value: 'en-US'}]" />
+                <n-select v-model:value="allConfig.common.defaultLang"
+                  :options="[{ label: '中文', value: 'zh-CN' }, { label: 'English', value: 'en-US' }]" />
               </template>
             </n-list-item>
             <n-list-item> {{ contentText.intro2 }}<n-dynamic-tags v-model:value="skipRecordRef" />
@@ -87,8 +88,8 @@
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro134 }}
-              <div class="error" v-if="allConfig.common.remoteType!=0">{{ contentText.intro139 }}
-              <div v-for="(link, index) in IPlinks" > <a :key="index" :href="link" target="blank">{{ link }}</a></div>
+              <div class="error" v-if="allConfig.common.remoteType != 0">{{ contentText.intro139 }}
+                <div v-for="(link, index) in IPlinks"> <a :key="index" :href="link" target="blank">{{ link }}</a></div>
               </div>
               <template #suffix>
                 <n-select v-model:value="allConfig.common.remoteType" :options="[{ label: contentText.intro135, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro136, value: 1 /*01*/ },
@@ -253,7 +254,7 @@
           <n-list hoverable>
             <n-list-item>{{ contentText.intro169 }}
               <template #suffix>
-                <n-input-number v-model:value="dataSetting.minuteKeepDays" :min="1" :max="360" />
+                <n-input-number v-model:value="dataSetting.minuteKeepDays" :min="1" :max="30" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro163 }}<div class="intro">{{ contentText.intro164 }}</div>
@@ -296,15 +297,15 @@
                 <n-input-number v-model:value="dataSetting.appTopN" :min="1" :max="200" />
               </template>
             </n-list-item>
-            
+
             <n-list-item>{{ contentText.intro158 }}
               <template #suffix>
                 <n-switch v-model:value="dataSetting.mergeAppName" :round="false" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro148 }}
-                <n-dynamic-input v-model:value="appNameListRef" preset="pair" :key-placeholder="contentText.intro146"
-                :value-placeholder="contentText.intro147" />
+              <n-dynamic-input v-model:value="appNameListRef" preset="pair" :key-placeholder="contentText.intro146"
+                @update:value="validAppNameList" :value-placeholder="contentText.intro147" />
             </n-list-item>
             <n-list-item>{{ contentText.intro99 }}<div class="intro" style="white-space: pre-line;">{{
               contentText.intro100 }}</div>
@@ -579,7 +580,7 @@ export default defineComponent({
       guiBgcolorRef.value = '#' + allConfig.value.dialog.guiBgcolor + parseInt(allConfig.value.dialog.guiOpacity, 10).toString(16)
       guiTextColorRef.value = '#' + allConfig.value.dialog.guiTextColor
 
-      IPlinks =  data.networkIP.map(x=> location.origin.replace(location.host,x))
+      IPlinks = data.networkIP.map(x => location.origin.replace(location.host, x))
       //console.log(IPlinks)
     }
     loadPara();
@@ -647,7 +648,7 @@ export default defineComponent({
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
-          dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value),null,2);
+          dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
           // 需要将数据保存给服务器
           console.log('setPara')
           const saving = message.loading(contentText.value.intro75, { duration: 0 })
@@ -681,7 +682,7 @@ export default defineComponent({
         return hash
       }
       let keyList = KVListTo(keyMappingRef.value);
-      dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value),null, 2);
+      dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
       // 对比 config.common ，config.dialog ,store.preData.keyList
       getDiffHash(hash, data.config.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
       getDiffHash(hash, data.config.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)
@@ -806,7 +807,16 @@ export default defineComponent({
     function handleUpdateColor(value) {
       updateColor(allConfig.value.dialog, value)
     }
+    // 去掉空格等
+    function validAppNameList(value) {
+      setTimeout(function () {
+        appNameListRef.value.forEach(x => {
+          x.key = x.key.trim()
+        });
+      }, 1000)  // 延时执行便于输入空格等
+    }
     return {
+      validAppNameList,
       keyboardApply,
       myBorder,
       scrollTo,
@@ -879,6 +889,7 @@ body {
   scroll-behavior: smooth;
   /* 添加平滑滚动效果 */
 }
+
 @keyframes flash {
   from {
     background-color: orange;
@@ -892,5 +903,4 @@ body {
 .saveBlink {
   animation: flash 0.6s infinite alternate;
 }
-
 </style>

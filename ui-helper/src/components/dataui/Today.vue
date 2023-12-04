@@ -84,7 +84,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name,closeWS, ajax } from '@/common';
 import content from '../../content.js';
-import {setMinuteEcharts,getMinuteOption, bindCharts} from './Minute';
+import {setMinuteEcharts,getMinuteOption} from './Minute';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
 echarts.use([
@@ -622,7 +622,7 @@ export default defineComponent({
         }
       },2000) // 不必过于频繁，2秒检查一次即可
     }
-    async function updateMinuteData(){
+    function updateMinuteData(){
       let strDay = dayjs(new Date()).format('YYYY-MM-DD')
       // 需要渲染 main1 图表
       setMinuteEcharts(strDay,strDay,MinuteType.ByMinute,[myChartArr[2]],appNameListMap) // main3
@@ -639,7 +639,7 @@ export default defineComponent({
       })
       let arr:Array<any> = getMinuteOption([MinuteType.ByMinute,MinuteType.Duration,MinuteType.AppByMinute])
       optionArr = [option,option2].concat(arr)
-      console.log(optionArr)
+      // console.log(optionArr)
       setWS(updateKeyData)
       setupMinuteData() // 启动定时获取分钟信息
     })
@@ -657,8 +657,8 @@ export default defineComponent({
         myChartArr[i] = echarts.init(dom, newValue);
         let opt = optionArr[i]
         if(opt!=null)myChartArr[i].setOption(opt);
-        updateMinuteData()
       })
+      updateMinuteData()
     });
 
     return {

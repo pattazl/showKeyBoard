@@ -176,23 +176,33 @@ const oneMinute = 60 * 1000;
 let lastAppTime = 0, lastAppData: Array<MinuteAppData> = null; // 上一次获取App数据的时间
 async function setMinuteEcharts(beginDate: string, endDate: string, typeFlag: MinuteType, charts: Array<echarts.ECharts>, applist: any) {
   appNameListMap = applist
-  let today = new Date();
-  let now = new Date().getTime()
-  // 将时分秒设置为 0
-  today.setHours(0, 0, 0, 0);
+  // let today = new Date();
+  // let now = new Date().getTime()
+  // // 将时分秒设置为 0
+  // today.setHours(0, 0, 0, 0);
   if (typeFlag == MinuteType.ByMinute) {
     let data: Array<MinuteData> = await ajax('minuteData', { beginDate, endDate, freqType: 0, isApp: false })
     // let data3 = await ajax('minuteData',{beginDate:strDay, endDate:strDay,freqType:0,isApp:true})
     // 转换为每分钟的hash数据
-    let hash = {};
+    let hash = {}, firstDate,firstMinute = 0, lastMinute = 0;
     data.forEach(x => {
       let minute = dayjs(x.Minute, 'YYYYMMDDHHmm').valueOf()
+      if(firstMinute==0){
+        firstMinute = minute
+        firstDate = x.Date
+      }
+      lastMinute = minute
       hash[minute] = x
     })
-    let base = today.getTime()
+    // let base = today.getTime()
+    //let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
     let keyData = [], mouseData = [], disData = [];
-    for (let i = 0; i < 24 * 60; i++) {
-      let now = +new Date(base + oneMinute * i);
+    let afterMinute = 0 ;// 延后10分钟
+    let totalMs = lastMinute - firstMinute + afterMinute*60*1000
+    let totalMinute = totalMs/1000/60
+
+    for (let i = 0; i < totalMinute; i++) {
+      let now = +new Date(firstMinute + oneMinute * i);
       keyData.push([now, hash[now]?.KeyCount ?? 0]);
       mouseData.push([now, hash[now]?.MouseCount ?? 0]);
       disData.push([now, hash[now]?.Distance ?? 0]);
@@ -201,9 +211,9 @@ async function setMinuteEcharts(beginDate: string, endDate: string, typeFlag: Mi
     opt.series[0].data = keyData
     opt.series[1].data = mouseData
     opt.series[2].data = disData
-    // 当前时间的前1小时，后10分钟
-    let startPer = ((now - base - 60 * oneMinute) / (24 * 60 * 60 * 1000)) * 100
-    let endPer = ((now + 10 * oneMinute - base) / (24 * 60 * 60 * 1000)) * 100
+    // 最近时间的前1小时，后10分钟
+    let startPer = ((lastMinute - firstMinute - 60 * oneMinute) / totalMs) * 100
+    let endPer = ((lastMinute + afterMinute * oneMinute - firstMinute) / totalMs) * 100
     opt.dataZoom[0].start = startPer
     opt.dataZoom[0].end = endPer
     charts[0].setOption(<any>opt)
@@ -240,7 +250,7 @@ async function setMinuteEcharts(beginDate: string, endDate: string, typeFlag: Mi
 }
 // 绑定 chart的事件
 function bindCharts(b1, b2) {
-  console.log('hasBind', b1['hasBind'])
+  // console.log('hasBind', b1['hasBind'])
   if (b1['hasBind'] == null) {
     // 需要防止重复绑定
     b1.on('click', function (params) {
@@ -256,22 +266,30 @@ function showAppMinute(appName, chart) {
     console.log('showAppMinute fail:', chart, lastAppData)
     return
   }
-  let today = new Date();
-  let now = new Date().getTime()
+  // let today = new Date();
+  // let strToday = dayjs(today).format('YYYY-MM-DD')
+  // let now = new Date().getTime()
   // 将时分秒设置为 0
-  today.setHours(0, 0, 0, 0);
-  let hash = {}, lastMinute = 0;
+  // today.setHours(0, 0, 0, 0);
+  let hash = {}, firstDate,firstMinute = 0, lastMinute = 0;
   lastAppData.forEach(x => {
     if (appName == x.Apps) {
       let minute = dayjs(x.Minute, 'YYYYMMDDHHmm').valueOf()
+      if(firstMinute==0){
+        firstMinute = minute
+        firstDate = x.Date
+      }
       lastMinute = minute
       hash[minute] = x
     }
   })
-  let base = today.getTime()
+  // let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
   let keyData = [], mouseData = [];
-  for (let i = 0; i < 24 * 60; i++) {
-    let now = +new Date(base + oneMinute * i);
+  let afterMinute = 0 ;// 延后10分钟
+  let totalMs = lastMinute - firstMinute + afterMinute*60*1000
+  let totalMinute = totalMs/1000/60
+  for (let i = 0; i < totalMinute; i++) {
+    let now = +new Date(firstMinute + oneMinute * i);
     keyData.push([now, hash[now]?.KeyCount ?? 0]);
     mouseData.push([now, hash[now]?.MouseCount ?? 0]);
   }
@@ -279,8 +297,8 @@ function showAppMinute(appName, chart) {
   opt.series[0].data = keyData
   opt.series[1].data = mouseData
   // 当前时间的前1小时，后10分钟
-  let startPer = ((lastMinute - base - 60 * oneMinute) / (24 * 60 * 60 * 1000)) * 100
-  let endPer = ((lastMinute + 10 * oneMinute - base) / (24 * 60 * 60 * 1000)) * 100
+  let startPer = ((lastMinute - firstMinute - 60 * oneMinute) / totalMs) * 100
+  let endPer = ((lastMinute + afterMinute * oneMinute - firstMinute) / totalMs ) * 100
   opt.dataZoom[0].start = startPer
   opt.dataZoom[0].end = endPer
   opt.title.top = 0,       // 设置标题靠顶部

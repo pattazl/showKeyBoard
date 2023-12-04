@@ -1,6 +1,31 @@
 const dayjs = require('dayjs');
 const sqlite3 = require('sqlite3').verbose();
 const dbName = 'records.db'
+let dataSetting = {}
+// 执行查询操作，返回记录集
+function runQuery(db, sql, params) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+// 不返回记录集
+function runExec(db, sql, params) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+  });
+}
 // 创建一个连接到数据库的对象
 // 创建表格（如果不存在）
 function insertData(records) {
@@ -152,37 +177,42 @@ function getRecords(begin, end) {
   })
 }
 // 将 events的旧数据统计后转移到stat 表中
-function doCleanData() {
+async function doCleanData() {
   const db = new sqlite3.Database(dbName);
   console.log('doCleanData')
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   // 执行sql处理，插入统计数据
-  db.all('SELECT tick FROM events where date<? limit 1', [strNow], function (err, rows) {
-    if (err) {
-      //reject(err);
-      return console.error(err.message);
-    }
+  try {
+    let rows = await runQuery(db, 'SELECT tick FROM events where date<? limit 1', [strNow])
     // 输出记录集
     if (rows.length > 0) {
-      db.run(`INSERT INTO stat (keyname, keycount,date) SELECT keyname, sum(keycount), date FROM events where date < ? group by date,keyname`,
-        [strNow], function (err) {
-          if (err) {
-            return console.error(err.message);
-          }
-          let lines = this.changes
-          console.log('转移数据条数: ', lines)
-          // 删除 events 中的旧数据
-          if (lines > 0) {
-            db.run('delete FROM events where date < ? ', [strNow], function (err) {
-              if (err) {
-                return console.error(err.message);
-              }
-              console.log('删除数据条数: ', this.changes)
-            });
-          }
-        });
+      let lines = await runExec(db, `INSERT INTO stat (keyname, keycount,date) SELECT keyname, sum(keycount), date FROM events where date < ? group by date,keyname`, [strNow])
+      console.log('转移数据条数: ', lines)
+      // 删除 events 中的旧数据
+      if (lines > 0) {
+        await runExec(db, 'delete FROM events where date < ? ', [strNow])
+      }
     }
-  });
+    // 如果 statFreq 表中的日期有小于指定日期的，需要 
+    let before = dataSetting.minuteKeepDays ?? 7
+    let beforeDays = dayjs().subtract(before, 'day').format('YYYY-MM-DD'); // 如果 statFreq中有小于 beforeDays 日期的数据则要执行删除动作
+    let lines = await runExec(db, `delete FROM statFreq where freqType = 0 and date < ? `, [beforeDays])
+    console.log('删除分钟统计条数: ', lines)
+    // 删除 events 中的旧数据
+    lines = await runExec(db, `delete FROM appFreq where freqType = 0 and date < ? `, [beforeDays])
+    console.log('删除分钟应用条数: ', lines)
+    // statFreq 的 小时日期数据小于昨天 则要进行24小时数据整理函数
+    rows = await runQuery(db, "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq where freqType = 1", [])
+    let maxDate = rows[0].maxDate;
+    let yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
+    console.log(maxDate , yesterday)
+    if(maxDate < yesterday ){
+      // 需要将  yesterday 天的数据按分钟统计，并插入到表中
+      console.log('create hours')
+    }
+  } catch (err) {
+    console.error(err);
+  }
   db.close();
 }
 /*
@@ -206,11 +236,11 @@ function getDataSetting() {
         reject(err);
       }
       // 输出记录集
-      let hash = {}
+      dataSetting = {}
       rows.forEach(r => {
-        hash[r.keyname] = r.val
+        dataSetting[r.keyname] = r.val
       })
-      resolve(hash)
+      resolve(dataSetting)
     });
     // 关闭数据库连接
     db.close();
@@ -401,7 +431,8 @@ async function deleteData(date, flag) {
   return new Promise((resolve, reject) => {
     // 查询记录集 
     let sql = ''
-    const placeholders = date.map(() => '?').join(',');
+    //const placeholders = date.map(() => '?').join(',');
+    const placeholders = date.map((x) => "'" + x + "'").join(',');
     if (flag == 0) {
       sql = 'delete FROM events where tick in(' + placeholders + ') '
     } else if (flag == 1) {
@@ -409,11 +440,11 @@ async function deleteData(date, flag) {
       delete FROM statFreq where date in(${placeholders}) ;
       delete FROM appFreq where date in(${placeholders}) ;
       `  // 需要支持多个SQL
-      date = date.concat(date, date);  // 有3个 placeholders 重复3次
+      // date = date.concat(date, date);  // 有3个 placeholders 重复3次
     }
     console.log(sql, date)
     if (sql != '') {
-      db.exec(sql, date, function (err) {
+      db.exec(sql, function (err) {
         if (err) {
           reject(err);
         }
@@ -536,9 +567,9 @@ async function getMinuteRecords(beginDate, endDate, freqType, isApp) {
   return new Promise((resolve, reject) => {
     // 查询记录集
     let arr = []
-    let sql = 'SELECT keyTime,keyCount,mouseCount,distance,date FROM statFreq where freqType = ? and date between ? and ?'
+    let sql = 'SELECT keyTime,keyCount,mouseCount,distance,date FROM statFreq where freqType = ? and date between ? and ? order by date,keyTime'
     if (isApp) {
-      sql = 'SELECT keyTime, keyCount , mouseCount,appPath,date  FROM appFreq where freqType = ? and date between ? and ?'
+      sql = 'SELECT keyTime, keyCount , mouseCount,appPath,date  FROM appFreq where freqType = ? and date between ? and ? order by date,keyTime'
     }
     db.all(sql, [freqType ?? 0, beginDate ?? '', endDate ?? ''], function (err, rows) {
       if (err) {
