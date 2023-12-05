@@ -15,7 +15,7 @@
         <n-anchor-link :title="contentText.intro171"  href="#intro171" />
       </n-anchor>
     </div>
-    <n-space vertical>
+    <n-space vertical class="fixedSelect">
       <n-space style="font-size:16px">
         {{ contentText.intro112 }}
         <n-select v-model:value="beginDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
@@ -597,7 +597,5 @@ export default defineComponent({
 })
 </script>
 <style scoped>
-.n-select {
-  width: 300px;
-}
+@import "@/res/common.css";
 </style>

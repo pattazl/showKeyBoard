@@ -3,14 +3,14 @@
 		<n-space vertical>
 			<n-space>
 				{{ contentText.intro120 }}
-				<n-select v-model:value="deleteTick" multiple clearable :options="todayList" />
+				<n-select class="fileSelect" v-model:value="deleteTick" multiple clearable :options="todayList" />
 				<n-button type="error" @click="handleDeleteTick">
 					{{ contentText.intro106 }}
 				</n-button>
 			</n-space>
 			<n-space>
 				{{ contentText.intro121 }}
-				<n-select v-model:value="deleteDate" multiple clearable :options="historyDate" />
+				<n-select class="fileSelect" v-model:value="deleteDate" multiple clearable :options="historyDate" />
 				<n-button type="error" @click="handleDeleteDate">
 					{{ contentText.intro106 }}
 				</n-button>
@@ -159,7 +159,5 @@ export default defineComponent({
 })
 </script>
 <style scoped>
-.n-select {
-	width: 500px;
-}
+@import "@/res/common.css";
 </style>

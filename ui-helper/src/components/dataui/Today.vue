@@ -3,17 +3,17 @@
     <div style="height: 120px ;margin-right: 90px;float: right;">
       <n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false" :ignore-gap="true"
         type='block' position='fix'>
-        <n-anchor-link :title="contentText.intro86"  href="#intro86" />
-        <n-anchor-link :title="contentText.intro97"  href="#intro97" />
-        <n-anchor-link :title="contentText.intro149"  href="#intro149" />
-        <n-anchor-link :title="contentText.intro149"  href="#intro149_" />
-        <n-anchor-link :title="contentText.intro87"  href="#intro87" />
-        <n-anchor-link :title="contentText.intro165"  href="#intro165" />
-        <n-anchor-link :title="contentText.intro167"  href="#intro167" />
-        <n-anchor-link :title="contentText.intro170"  href="#intro170" />
+        <n-anchor-link :title="contentText.intro86" href="#intro86" />
+        <n-anchor-link :title="contentText.intro97" href="#intro97" />
+        <n-anchor-link :title="contentText.intro149" href="#intro149" />
+        <n-anchor-link :title="contentText.intro149" href="#intro149_" />
+        <n-anchor-link :title="contentText.intro87" href="#intro87" />
+        <n-anchor-link :title="contentText.intro165" href="#intro165" />
+        <n-anchor-link :title="contentText.intro167" href="#intro167" />
+        <n-anchor-link :title="contentText.intro170" href="#intro170" />
       </n-anchor>
     </div>
-    <n-space vertical>
+    <n-space vertical class="fixedSelect">
       <n-space style="font-size:16px">
         {{ contentText.intro92 }}
         <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue" /> {{
@@ -29,10 +29,10 @@
       <n-card id="intro149" :title="contentText.intro149 + contentText.intro142 + updateTime">
         <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro149_" :title="contentText.intro149 + contentText.intro142 + updateTime">
+      <n-card id="intro149_" :title="contentText.intro149 + contentText.intro142 + updateTime">
         <n-data-table :columns="columns2" :data="appListData" />
       </n-card>
-      <n-card id="intro87"  :title="contentText.intro87 + contentText.intro142 + updateTime">
+      <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
         <template #header-extra>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
             <template #checked>
@@ -45,13 +45,14 @@
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
-      <n-card  id="intro165" :title="contentText.intro165">
+      <n-card id="intro165" :title="contentText.intro165">
         <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro167" :title="contentText.intro167">
+      <n-card id="intro167" :title="contentText.intro167">
+        <n-slider v-model:value="appRanger" range :step="1" :min="1" :max="200" :marks="appMarks" />
         <div id="main4" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro170" :title="contentText.intro170 + contentText.intro168"> 
+      <n-card id="intro170" :title="contentText.intro170 + contentText.intro168">
         <div id="main5" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
     </n-space>
@@ -62,12 +63,12 @@
 import { useAustinStore } from '../../App.vue'
 import { MinuteType } from '../../myType.d'
 import dayjs from 'dayjs'
-import { defineComponent, onMounted, PropType, ref, computed, h, watch ,onUnmounted} from 'vue'
+import { defineComponent, onMounted, PropType, ref, computed, h, watch, onUnmounted } from 'vue'
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { HeatmapChart, BarChart,PieChart } from 'echarts/charts';
+import { HeatmapChart, BarChart, PieChart } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -82,9 +83,9 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name,closeWS, ajax } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax } from '@/common';
 import content from '../../content.js';
-import {setMinuteEcharts,getMinuteOption} from './Minute';
+import { setMinuteEcharts, getMinuteOption } from './Minute';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
 echarts.use([
@@ -372,8 +373,8 @@ export default defineComponent({
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
-    let optionArr = [],myChartArr:Array<echarts.ECharts> =[],chartDomArr= [];
-    let domNameArr = ['main1','main2','main3','main4','main5'] // ,'main4','main5'
+    let optionArr = [], myChartArr: Array<echarts.ECharts> = [], chartDomArr = [];
+    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5'] // ,'main4','main5'
     let updateFlag = null;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
@@ -499,14 +500,14 @@ export default defineComponent({
     function updateKeyData(msg) {
       currMsg = msg; // 更新最新的数据
       // 不必每次都刷新数据，可以时间间隔可以为1秒
-      let ms = store.data.dataSetting.refreshTodayMs??2000;
+      let ms = store.data.dataSetting.refreshTodayMs ?? 2000;
       if (updateFlag == null && !firstUpdate) {
         updateFlag = setTimeout(() => {
           updateKeyDataCore()
           updateFlag = null
         }, ms);  // refreshTodayMs
       }
-      if(firstUpdate){
+      if (firstUpdate) {
         updateKeyDataCore() // 先立刻执行增强用户体验
         firstUpdate = false
       }
@@ -575,7 +576,7 @@ export default defineComponent({
       arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
       appListData.value = showAppChart(leftKey, keyStatHash, option2, myChartArr[1]
-      ,store.data.dataSetting.mergeAppName?appNameListMap:null);
+        , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       /**const appListData0 = [
         { appPath: 'c:/123',
           keyCount: 32,
@@ -609,59 +610,64 @@ export default defineComponent({
     function showLeftKeyRef() {
       dataTable.value = showLeftKey(leftKeySwitch.value, lastLeftKey, LastKeyStatHash)
     }
-    let lastMinute = '',minuteDataInterval = null;
-    function setupMinuteData(){
-      minuteDataInterval = setInterval(function(){
+    let lastMinute = '', minuteDataInterval = null;
+    function setupMinuteData() {
+      minuteDataInterval = setInterval(function () {
         // 当分钟数不一样时进行数据获取和刷新
         let nowMinute = dayjs(new Date()).format('YYYY-MM-DD HH:mm')
-        if(nowMinute != lastMinute)
-        {
+        if (nowMinute != lastMinute) {
           // ajax拉取数据
           updateMinuteData()
           lastMinute = nowMinute
         }
-      },2000) // 不必过于频繁，2秒检查一次即可
+      }, 2000) // 不必过于频繁，2秒检查一次即可
     }
-    function updateMinuteData(){
+    function updateMinuteData() {
       let strDay = dayjs(new Date()).format('YYYY-MM-DD')
       // 需要渲染 main1 图表
-      setMinuteEcharts(strDay,strDay,MinuteType.ByMinute,[myChartArr[2]],appNameListMap) // main3
-      setMinuteEcharts(strDay,strDay,MinuteType.Duration,[myChartArr[3],myChartArr[4]],appNameListMap) // main4
+      setMinuteEcharts(strDay, strDay, MinuteType.ByMinute, [myChartArr[2]], appNameListMap) // main3
+      setMinuteEcharts(strDay, strDay, MinuteType.Duration, [myChartArr[3], myChartArr[4]], appNameListMap) // main4
     }
     onMounted(() => {
       myChartArr = []
       chartDomArr = []
-      domNameArr.forEach(x=> {
+      domNameArr.forEach(x => {
         let chartDom = document.getElementById(x);
         let myChart = echarts.init(chartDom, store.myTheme);
         chartDomArr.push(chartDom)
         myChartArr.push(myChart)
       })
-      let arr:Array<any> = getMinuteOption([MinuteType.ByMinute,MinuteType.Duration,MinuteType.AppByMinute])
-      optionArr = [option,option2].concat(arr)
+      let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
+      optionArr = [option, option2].concat(arr)
       // console.log(optionArr)
       setWS(updateKeyData)
       setupMinuteData() // 启动定时获取分钟信息
     })
-    onUnmounted(()=>{
+    onUnmounted(() => {
       closeWS()
-      if(minuteDataInterval!=null){
+      if (minuteDataInterval != null) {
         clearInterval(minuteDataInterval)
         minuteDataInterval = null;
       }
     })
     watch(() => store.myTheme, (newValue, oldValue) => {
-      domNameArr.forEach((x,i)=> {
+      domNameArr.forEach((x, i) => {
         let dom = chartDomArr[i]
         myChartArr[i].dispose()
         myChartArr[i] = echarts.init(dom, newValue);
         let opt = optionArr[i]
-        if(opt!=null)myChartArr[i].setOption(opt);
+        if (opt != null) myChartArr[i].setOption(opt);
       })
       updateMinuteData()
     });
-
+    let appRanger = ref([0, 120])
+    let appMarks = ref({
+      1: 'Top 1',
+      200: 'Top 200'
+    })
     return {
+      appRanger,
+      appMarks,
       strLeftKeyVal,
       columns,
       columns0,
@@ -683,7 +689,5 @@ export default defineComponent({
 })
 </script>
 <style scoped>
-.n-select {
-  width: 300px;
-}
+@import "@/res/common.css";
 </style>
