@@ -14,47 +14,50 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px">
+      <n-space style="font-size:16px" :class="store.myTheme=='dark'?'mydark':'mylight'" >
         {{ contentText.intro92 }}
         <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue" /> {{
           contentText.intro93 }}
         <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
-      <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
-        <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
-      </n-card>
-      <n-card id="intro97" :title="contentText.intro97 + contentText.intro142 + updateTime">
-        <n-data-table :columns="columns0" :data="mouseTable" />
-      </n-card>
-      <n-card id="intro149" :title="contentText.intro149 + contentText.intro142 + updateTime">
-        <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
-      </n-card>
-      <n-card id="intro149_" :title="contentText.intro149 + contentText.intro142 + updateTime">
-        <n-data-table :columns="columns2" :data="appListData" />
-      </n-card>
-      <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
-        <template #header-extra>
-          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
-            <template #checked>
-              {{ contentText.intro143 }}
-            </template>
-            <template #unchecked>
-              {{ contentText.intro144 }}
-            </template>
-          </n-switch>
-        </template>
-        <n-data-table :columns="columns" :data="dataTable" />
-      </n-card>
-      <n-card id="intro165" :title="contentText.intro165">
-        <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
-      </n-card>
-      <n-card id="intro167" :title="contentText.intro167">
-        <n-slider v-model:value="appRanger" range :step="1" :min="1" :max="200" :marks="appMarks" />
-        <div id="main4" style="height: 500px; min-width: 800px;width:95%;"></div>
-      </n-card>
-      <n-card id="intro170" :title="contentText.intro170 + contentText.intro168">
-        <div id="main5" style="height: 250px; min-width: 800px;width:95%;"></div>
-      </n-card>
+      <div @click="getClickTime">
+        <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
+          <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
+        </n-card>
+        <n-card id="intro97" :title="contentText.intro97 + contentText.intro142 + updateTime">
+          <n-data-table :columns="columns0" :data="mouseTable" />
+        </n-card>
+        <n-card id="intro149" :title="contentText.intro149 + contentText.intro142 + updateTime">
+          <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
+        </n-card>
+        <n-card id="intro149_" :title="contentText.intro149 + contentText.intro142 + updateTime">
+          <n-data-table :columns="columns2" :data="appListData" />
+        </n-card>
+        <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
+          <template #header-extra>
+            <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
+              <template #checked>
+                {{ contentText.intro143 }}
+              </template>
+              <template #unchecked>
+                {{ contentText.intro144 }}
+              </template>
+            </n-switch>
+          </template>
+          <n-data-table :columns="columns" :data="dataTable" />
+        </n-card>
+        <n-card id="intro165" :title="contentText.intro165">
+          <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
+        </n-card>
+        <n-card id="intro167" :title="contentText.intro167">
+          <n-slider v-model:value="appRanger" range :step="1" :min="1" :max="maxAppLen" @update:value="slideApp"
+            :marks="appMarks" />
+          <div id="main4" style="height: 500px; min-width: 800px;width:95%;"></div>
+        </n-card>
+        <n-card id="intro170" :title="contentText.intro170 + contentText.intro168">
+          <div id="main5" style="height: 250px; min-width: 800px;width:95%;"></div>
+        </n-card>
+      </div>
     </n-space>
   </div>
 </template>
@@ -64,7 +67,7 @@ import { useAustinStore } from '../../App.vue'
 import { MinuteType } from '../../myType.d'
 import dayjs from 'dayjs'
 import { defineComponent, onMounted, PropType, ref, computed, h, watch, onUnmounted } from 'vue'
-import { useMessage, NTag } from 'naive-ui'
+import { useMessage, NTag, messageDark } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
@@ -83,9 +86,9 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy } from '@/common';
 import content from '../../content.js';
-import { setMinuteEcharts, getMinuteOption } from './Minute';
+import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
 // 注册必须的组件
 echarts.use([
@@ -361,6 +364,7 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const message = useMessage()
     // reset
     hashTxtData = {}; // 按键上显示的内容
     hashOriData = {}; // 原始定义的内容，提示框上显示
@@ -500,8 +504,8 @@ export default defineComponent({
     function updateKeyData(msg) {
       currMsg = msg; // 更新最新的数据
       // 不必每次都刷新数据，可以时间间隔可以为1秒
-      let ms = store.data.dataSetting.refreshTodayMs ?? 2000;
-      if (updateFlag == null && !firstUpdate) {
+      let ms = store.data.dataSetting.refreshTodayMs;
+      if (updateFlag == null && !firstUpdate && lefSecClick() < 0) {
         updateFlag = setTimeout(() => {
           updateKeyDataCore()
           updateFlag = null
@@ -615,18 +619,19 @@ export default defineComponent({
       minuteDataInterval = setInterval(function () {
         // 当分钟数不一样时进行数据获取和刷新
         let nowMinute = dayjs(new Date()).format('YYYY-MM-DD HH:mm')
-        if (nowMinute != lastMinute) {
+        if (nowMinute != lastMinute && lefSecClick() < 0) {
           // ajax拉取数据
           updateMinuteData()
           lastMinute = nowMinute
         }
       }, 2000) // 不必过于频繁，2秒检查一次即可
     }
-    function updateMinuteData() {
+    async function updateMinuteData(noLoad: Boolean = false) {
       let strDay = dayjs(new Date()).format('YYYY-MM-DD')
       // 需要渲染 main1 图表
-      setMinuteEcharts(strDay, strDay, MinuteType.ByMinute, [myChartArr[2]], appNameListMap) // main3
-      setMinuteEcharts(strDay, strDay, MinuteType.Duration, [myChartArr[3], myChartArr[4]], appNameListMap) // main4
+      setMinuteEcharts(strDay, strDay, MinuteType.ByMinute, [myChartArr[2]], appNameListMap, noLoad) // main3
+      await setMinuteEcharts(strDay, strDay, MinuteType.Duration, [myChartArr[3], myChartArr[4]], appNameListMap, noLoad) // main4
+      updateAppLenInfo()
     }
     onMounted(() => {
       myChartArr = []
@@ -642,12 +647,17 @@ export default defineComponent({
       // console.log(optionArr)
       setWS(updateKeyData)
       setupMinuteData() // 启动定时获取分钟信息
+      detectClickMsg() //启动检查提示框显示
     })
     onUnmounted(() => {
       closeWS()
       if (minuteDataInterval != null) {
         clearInterval(minuteDataInterval)
         minuteDataInterval = null;
+      }
+      if (clickInterval != null) {
+        clearInterval(clickInterval)
+        messageReactive?.destroy()
       }
     })
     watch(() => store.myTheme, (newValue, oldValue) => {
@@ -658,14 +668,66 @@ export default defineComponent({
         let opt = optionArr[i]
         if (opt != null) myChartArr[i].setOption(opt);
       })
-      updateMinuteData()
+      updateMinuteData(true)
     });
-    let appRanger = ref([0, 120])
-    let appMarks = ref({
-      1: 'Top 1',
-      200: 'Top 200'
-    })
+    // 如下参数和点击操作后延时刷新有关
+    let lastClickTime = 0, messageReactive = null, clickInterval = null;
+    let afterClickTodayMs = parseInt(store.data.dataSetting.afterClickTodayMs, 10)
+    function detectClickMsg() {
+      clickInterval = setInterval(function () {
+        // 检测点击提示按钮是否需要继续或关闭
+        let sec = (afterClickTodayMs / 1000).toString()
+        let leftSec = Math.floor(lefSecClick())
+        let msg = contentText.value.intro173.replace(/\?/, leftSec + '/' + sec)
+        if (!messageReactive) {
+          if (leftSec > 0) { // 创建并显示
+            messageReactive = message.info(msg, {
+              duration: 0
+            })
+          }
+        } else {
+          if (leftSec < 0) {
+            messageReactive.destroy()
+            messageReactive = null
+          } else {
+            messageReactive.content = msg  // 更新提示数据
+          }
+        }
+      }, 500)
+    }
+    // 获取点击的时间
+    function getClickTime() {
+      lastClickTime = new Date().getTime()
+    }
+    // 手工操作后剩余多少秒 
+    function lefSecClick() {
+      let res = (afterClickTodayMs - ((new Date()).getTime() - lastClickTime)) / 1000;
+      // console.log(lastClickTime, res)
+      return res
+    }
+    // 更新应用时间区间数据
+    let appRanger = ref([]) // 获取的数据
+    let appMarks = ref({})
+    let maxAppLen = ref(0)
+    function updateAppLenInfo() {
+      maxAppLen.value = appInfoList.length
+      appRanger.value = [1, maxAppLen.value];
+      appMarks.value = {
+        1: 'Top 1',
+        [maxAppLen.value]: 'Top ' + maxAppLen.value
+      }
+    }
+    function slideApp() {
+      let arr = deepCopy(appRanger.value);
+      if (arr[0] > arr[1]) {
+        appRanger.value = [arr[1], arr[0]]
+      }
+      showAppDuration(appRanger.value)
+    }
     return {
+      slideApp,
+      getClickTime,
+      maxAppLen,
       appRanger,
       appMarks,
       strLeftKeyVal,
@@ -684,6 +746,7 @@ export default defineComponent({
       showLeftKeyRef,
       railStyle,
       appListData,
+      store,
     }
   },
 })

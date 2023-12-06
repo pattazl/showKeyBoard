@@ -20,6 +20,7 @@ export interface MinuteAppData {
   Apps: number;
   MouseCount: number;
   KeyCount: number;
+  Duration: number;
   Date: string;
 }
 export interface seriesData {

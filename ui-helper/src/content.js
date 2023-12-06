@@ -188,7 +188,7 @@ export default {
 	intro158: '相同名称的应用是否进行合并统计',
 	intro159: '单日期查询',
 	intro160: '时间段到',
-	intro161: '今日数据中，操作过N毫秒后才会显示到界面上，避免频繁刷新',
+	intro161: '今日数据中，数据过N毫秒后才会显示到界面上，避免频繁刷新',
 	intro162: '默认语言',
 	intro163: '自动备份数据保留天数',
 	intro164: '如果为0则不进行自动备份,备份在安装目录下的backup目录，每次客户端启动均备份一次',
@@ -199,6 +199,8 @@ export default {
 	intro169: '分钟数据保留天数',
 	intro170: '应用操作分钟统计',
 	intro171: '应用操作小时统计',
+	intro172: '今日数据中，界面操作时N毫秒内界面不刷新，避免影响操作',
+	intro173: '操作中，?秒后刷新',
 
   },
   'en-US': {
@@ -391,7 +393,7 @@ export default {
 	intro158: 'Whether the same app name will be merged in statistic',
 	intro159: 'Single date query',
 	intro160: 'Query date until',
-	intro161: 'Will fresh the data after N ms in Today panel, avoid refreshing too frequently',
+	intro161: 'Will fresh the data after N ms on Today panel, avoid refreshing too frequently',
 	intro162: 'Default language',
 	intro163: 'Keep days when auto backup data',
 	intro164: 'If zero will not backup data, backup fold is install dir/backup, will backup once when client launch',
@@ -402,5 +404,7 @@ export default {
 	intro169: 'Keep days for Minute data',
 	intro170: 'Apps Operate by minutes',
 	intro171: 'Apps Operate by hours',
+	intro172: 'Stop refresh in N ms when click on Today panel, Avoid affecting operations',
+	intro173: 'In operating, refresh in ? seconds',
   }
 };

@@ -96,7 +96,8 @@ export default defineComponent({
         data.dataSetting.mergeControl = data.dataSetting.mergeControl??false
         data.dataSetting.fillDate = data.dataSetting.fillDate??false
         data.dataSetting.mergeAppName = data.dataSetting.mergeAppName??true
-        data.dataSetting.refreshTodayMs = data.dataSetting.refreshTodayMs??2000
+        data.dataSetting.refreshTodayMs = data.dataSetting.refreshTodayMs??1000
+        data.dataSetting.afterClickTodayMs = data.dataSetting.afterClickTodayMs??10000
         data.dataSetting.autoBackupDays = data.dataSetting.autoBackupDays??3
         data.dataSetting.minuteKeepDays = data.dataSetting.minuteKeepDays??7
         data.config.common.defaultLang = data.config.common.defaultLang??'zh-CN'  // 配置文件默认中文

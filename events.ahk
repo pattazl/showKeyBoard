@@ -38,7 +38,7 @@ Init(){
     }
     catch
     {
-        MsgBox 'Can not create XMLHTTP ,' msgNotLaunch
+        MsgBox msgXML msgNotLaunch
     }
 }
 ; 发送数据
@@ -66,10 +66,10 @@ CheckServer(){
 	global CheckServerCount
 	if CheckServerCount < CheckServerMax
 	{
-		ShowTxt('Try ' (CheckServerCount+1) ' times,')
+		ShowTxt(msgTry (CheckServerCount+1) msgTimes )
 		StartHttp('connect','/version','')
 	}else{
-		MsgBox 'Try ' CheckServerCount ' times, but fail: ' msgNotLaunch
+		MsgBox msgTry CheckServerCount msgTimes msgNotLaunch
 	}
 	CheckServerCount +=1
 	Sleep 3000
@@ -98,7 +98,7 @@ ServerCore()
         {
             ; 成功启动后端服务
 			global serverState := 1
-            ShowTxt 'Start Server succ!'
+            ShowTxt msgLaunchSucc
 			; 准备发送一些数据给后端
 			SendPCInfo(0)
         }else{
@@ -170,7 +170,7 @@ startServer()
 		Run cmd,httpPath,ShowFlag, &OutputVarPID
 		Sleep 1000  ;启动服务需要等待
 	}catch{
-		MsgBox 'Launch node fail'
+		MsgBox msgLaunch
 	}
 }
 ; 自动发送 AllKeyRecord 数据

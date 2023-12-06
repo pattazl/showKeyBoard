@@ -133,7 +133,6 @@ AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec 
 
 ; events 中变量控制
 reqXMLHTTP := 0 
-msgNotLaunch := 'Start Server fail, can not set parameter and data statistics!'
 lastModified := FileGetTime(IniFile)
 global HttpCtrlObj := Map()  ; 和http任务相关的数据
 HttpCtrlObj['resp'] := '' ; 返回的数据

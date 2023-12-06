@@ -8,11 +8,22 @@
 
 .fixedSelect>div:first-child>div:first-child {
     position: fixed;
+    margin-left: 200px;
     padding: 5px;
     z-index: 1000;
-    background-color: aliceblue;
+        /* background-color: aliceblue; */
 }
 
 .fixedSelect>div:nth-child(2)>div:first-child {
     margin-top: 40px;
+}
+
+.mylight {
+    background-color: aliceblue;
+    /* light 主题的背景色 */
+}
+
+.mydark {
+    background-color:  #333
+    /* dark 主题的背景色 #333;*/
 }

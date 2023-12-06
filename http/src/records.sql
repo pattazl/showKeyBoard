@@ -57,7 +57,7 @@ CREATE TABLE appFreq (
   appPath TEXT,   -- 应用路径
   keyCount INTEGER, -- 按键次数
   mouseCount INTEGER, -- 鼠标次数
-  freqType INTEGER,   -- 0=分钟，1=小时
+  freqType INTEGER,   -- 0=分钟，>0 表示该小时内的占用的分钟数
   date TEXT    -- 具体日期，用于方便分析统计
 );
 CREATE INDEX appFreq_date_IDX ON appFreq (date);

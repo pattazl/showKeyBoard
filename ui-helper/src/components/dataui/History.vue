@@ -3,20 +3,20 @@
     <div style="height: 120px ;margin-right: 90px;float: right;">
       <n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false" :ignore-gap="true"
         type='block' position='fix'>
-        <n-anchor-link :title="contentText.intro86"  href="#intro86" />
-        <n-anchor-link :title="contentText.intro97"  href="#intro97" />
-        <n-anchor-link :title="contentText.intro149"  href="#intro149" />
-        <n-anchor-link :title="contentText.intro149"  href="#intro149_" />
-        <n-anchor-link :title="contentText.intro87"  href="#intro87" />
-        <n-anchor-link :title="contentText.intro165"  href="#intro165" />
-        <n-anchor-link :title="contentText.intro166"  href="#intro166" />
-        <n-anchor-link :title="contentText.intro167"  href="#intro167" />
-        <n-anchor-link :title="contentText.intro170"  href="#intro170" />
-        <n-anchor-link :title="contentText.intro171"  href="#intro171" />
+        <n-anchor-link :title="contentText.intro86" href="#intro86" />
+        <n-anchor-link :title="contentText.intro97" href="#intro97" />
+        <n-anchor-link :title="contentText.intro149" href="#intro149" />
+        <n-anchor-link :title="contentText.intro149" href="#intro149_" />
+        <n-anchor-link :title="contentText.intro87" href="#intro87" />
+        <n-anchor-link :title="contentText.intro165" href="#intro165" />
+        <n-anchor-link :title="contentText.intro166" href="#intro166" />
+        <n-anchor-link :title="contentText.intro167" href="#intro167" />
+        <n-anchor-link :title="contentText.intro170" href="#intro170" />
+        <n-anchor-link :title="contentText.intro171" href="#intro171" />
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px">
+      <n-space style="font-size:16px" :class="store.myTheme=='dark'?'mydark':'mylight' ">
         {{ contentText.intro112 }}
         <n-select v-model:value="beginDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
 
@@ -58,19 +58,21 @@
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
-      <n-card  id="intro165" :title="contentText.intro165">
+      <n-card id="intro165" :title="contentText.intro165">
         <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro166" :title="contentText.intro166">
+      <n-card id="intro166" :title="contentText.intro166">
         <div id="main4" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro167" :title="contentText.intro167">
+      <n-card id="intro167" :title="contentText.intro167">
+        <n-slider v-model:value="appRanger" range :step="1" :min="1" :max="maxAppLen" @update:value="slideApp"
+          :marks="appMarks" />
         <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro170" :title="contentText.intro170">
+      <n-card id="intro170" :title="contentText.intro170">
         <div id="main6" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card  id="intro171" :title="contentText.intro171">
+      <n-card id="intro171" :title="contentText.intro171">
         <div id="main7" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
     </n-space>
@@ -85,7 +87,7 @@ import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
 // 引入柱状图图表，图表后缀都为 Chart
-import { HeatmapChart, BarChart,PieChart } from 'echarts/charts';
+import { HeatmapChart, BarChart, PieChart } from 'echarts/charts';
 // 引入提示框，标题，直角坐标系，数据集，内置数据转换器组件，组件后缀都为 Component
 import {
   TitleComponent,
@@ -101,9 +103,9 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy } from '@/common';
 import content from '../../content.js';
-import {setMinuteEcharts,getMinuteOption} from './Minute';
+import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
 echarts.use([
   TitleComponent,
@@ -333,8 +335,8 @@ export default defineComponent({
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
-    let optionArr = [],myChartArr:Array<echarts.ECharts> =[],chartDomArr= [];
-    let domNameArr = ['main1','main2','main3','main4','main5','main6','main7'] // ,'main6','main7'
+    let optionArr = [], myChartArr: Array<echarts.ECharts> = [], chartDomArr = [];
+    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5', 'main6', 'main7'] // ,'main6','main7'
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
     let mouseTable = ref([])
@@ -533,27 +535,29 @@ export default defineComponent({
     function showLeftKeyRef() {
       dataTable.value = showLeftKey(leftKeySwitch.value, lastLeftKey, LastKeyStatHash)
     }
-    function updateMinuteData(){
+    async function updateMinuteData() {
       let b = beginDate.value, e = endDate.value;
       if (beginDate.value > endDate.value) {
         b = beginDate.value
         e = beginDate.value
       }
       // 需要渲染 main1 图表
-      setMinuteEcharts(b,e,MinuteType.ByMinute,[myChartArr[2]],appNameListMap) // main3
-      setMinuteEcharts(b,e,MinuteType.Duration,[myChartArr[4],myChartArr[5]],appNameListMap) // main5 6
+      setMinuteEcharts(b, e, MinuteType.ByMinute, [myChartArr[2]], appNameListMap) // main3
+      setMinuteEcharts(b, e, MinuteType.ByHour, [myChartArr[3]], appNameListMap) // main4
+      await setMinuteEcharts(b, e, MinuteType.Duration, [myChartArr[4], myChartArr[5], myChartArr[6]], appNameListMap) // main5 6
+      updateAppLenInfo()
     }
     onMounted(async () => {
       myChartArr = []
       chartDomArr = []
-      domNameArr.forEach(x=> {
+      domNameArr.forEach(x => {
         let chartDom = document.getElementById(x);
         let myChart = echarts.init(chartDom, store.myTheme);
         chartDomArr.push(chartDom)
         myChartArr.push(myChart)
       })
-      let arr:Array<any> = getMinuteOption([MinuteType.ByMinute,MinuteType.Duration,MinuteType.AppByMinute])
-      optionArr = [option,option2].concat(arr)
+      let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
+      optionArr = [option, option2].concat(arr)
       // 设置下拉选择
       let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
@@ -565,17 +569,41 @@ export default defineComponent({
       }
 
     })
+    // let myTheme = ref()  
     watch(() => store.myTheme, (newValue, oldValue) => {
-      domNameArr.forEach((x,i)=> {
+      domNameArr.forEach((x, i) => {
         let dom = chartDomArr[i]
         myChartArr[i].dispose()
         myChartArr[i] = echarts.init(dom, newValue);
         let opt = optionArr[i]
-        if(opt!=null)myChartArr[i].setOption(opt);
+        if (opt != null) myChartArr[i].setOption(opt);
       })
       updateMinuteData()
     });
+    // 更新应用时间区间数据
+    let appRanger = ref([]) // 获取的数据
+    let appMarks = ref({})
+    let maxAppLen = ref(0)
+    function updateAppLenInfo() {
+      maxAppLen.value = appInfoList.length
+      appRanger.value = [1, maxAppLen.value];
+      appMarks.value = {
+        1: 'Top 1',
+        [maxAppLen.value]: 'Top ' + maxAppLen.value
+      }
+    }
+    function slideApp() {
+      let arr = deepCopy(appRanger.value);
+      if (arr[0] > arr[1]) {
+        appRanger.value = [arr[1], arr[0]]
+      }
+      showAppDuration(appRanger.value)
+    }
     return {
+      slideApp,
+      appRanger,
+      appMarks,
+      maxAppLen,
       strLeftKeyVal,
       columns,
       columns0,
@@ -592,6 +620,7 @@ export default defineComponent({
       railStyle,
       appListData,
       showEndDate,
+      store,
     }
   },
 })

@@ -12,7 +12,7 @@
 			</n-anchor>
 		</div>
 		<n-space vertical class="fixedSelect">
-			<n-space style="font-size:16px">
+			<n-space style="font-size:16px" :class="store.myTheme=='dark'?'mydark':'mylight'">
 				{{ contentText.intro112 }}
 				<n-select v-model:value="beginDate" filterable :options="historyDate" />
 				{{ contentText.intro93 }}
@@ -339,6 +339,7 @@ export default defineComponent({
 			appTopN,
 			railStyle,
 			fillDate,
+			store,
 		}
 	},
 })

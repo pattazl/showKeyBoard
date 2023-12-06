@@ -66,7 +66,7 @@ async function insertData(records) {
   const values = arr.reduce((acc, curr) => acc.concat([curr.name, curr.count, curr.tick, tickDate]), []);
   // 执行一次性插入
   changes = await runExec(db, `INSERT INTO events (keyname, keycount , tick , date) VALUES ${placeholders}`, values)
-  console.log(`A total of ${this.changes} rows have been inserted`);
+  console.log(`A total of ${changes} rows have been inserted`);
   // 检查 events 是否有小于当天的数据,如果有，则需要触发转移
   setTimeout(doCleanData, 3000); // 过3秒后再处理，因为上面一行代码可能还在执行
   // 关闭数据库连接
@@ -182,7 +182,7 @@ async function doCleanData() {
     rows = await runQuery(db, "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq where freqType = 1", [])
     let maxDate = rows[0].maxDate;
     let yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
-    console.log(maxDate, yesterday)
+    console.log(before, beforeDays, maxDate, yesterday)
     if (maxDate < yesterday) {
       // 需要将  yesterday 天的数据按分钟统计，并插入到表中
       console.log('create hours')
@@ -192,7 +192,7 @@ async function doCleanData() {
       `, [maxDate, yesterday])
       console.log('插入小时统计条数: ', lines)
       lines = await runExec(db, `INSERT INTO appFreq (keyTime,appPath, keyCount,mouseCount,freqType,date) 
-      SELECT SUBSTR(keyTime,0,11) as kt, appPath, sum(keyCount),sum(mouseCount),1,date FROM appFreq 
+      SELECT SUBSTR(keyTime,0,11) as kt, appPath, sum(keyCount),sum(mouseCount),count(keyTime),date FROM appFreq 
       where freqType = 0 and date between ? and ? group by appPath, kt
       `, [maxDate, yesterday])
       console.log('插入小时应用条数: ', lines)
@@ -484,15 +484,20 @@ async function getLastMinute() {
 async function getMinuteRecords(beginDate, endDate, freqType, isApp) {
   const db = new sqlite3.Database(dbName);
   // 查询记录集
+  freqType = parseInt(freqType, 10)
+  let sqlFreqType = `freqType = ${freqType} ` // 分钟数据
   let arr = []
-  let sql = 'SELECT keyTime,keyCount,mouseCount,distance,date FROM statFreq where freqType = ? and date between ? and ?'
+  let sql = 'SELECT keyTime,keyCount,mouseCount,distance,date FROM statFreq where ' + sqlFreqType + ' and date between ? and ? order by date'
   if (isApp) {
-    sql = 'SELECT keyTime, keyCount , mouseCount,appPath,date  FROM appFreq where freqType = ? and date between ? and ?'
+    if (freqType > 0) {
+      sqlFreqType = 'freqType > 0'  // 此时表示为分钟数
+    }
+    sql = 'SELECT keyTime, keyCount , mouseCount,appPath,date,freqType FROM appFreq where ' + sqlFreqType + ' and date between ? and ? order by date'
   }
-  let rows = await runQuery(db, sql, [freqType ?? 0, beginDate ?? '', endDate ?? ''])
+  let rows = await runQuery(db, sql, [beginDate ?? '', endDate ?? ''])
   rows.forEach((row) => {
     if (isApp) {
-      arr.push({ "Apps": row.appPath, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date });
+      arr.push({ "Apps": row.appPath, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date, "Duration": row.freqType });
     }
     else {
       arr.push({ "Distance": row.distance, "KeyCount": row.keyCount, "Minute": row.keyTime, "MouseCount": row.mouseCount, "Date": row.date });
