@@ -69,7 +69,7 @@
           :marks="appMarks" />
         <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card id="intro170" :title="contentText.intro170">
+      <n-card id="intro170" :title="contentText.intro170 + contentText.intro168">
         <div id="main6" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card id="intro171" :title="contentText.intro171">

@@ -163,12 +163,15 @@ async function doCleanData() {
     let rows = await runQuery(db, 'SELECT tick FROM events where date<? limit 1', [strNow])
     // 输出记录集
     if (rows.length > 0) {
-      let lines = await runExec(db, `INSERT INTO stat (keyname, keycount,date) SELECT keyname, sum(keycount), date FROM events where date < ? group by date,keyname`, [strNow])
-      console.log('转移数据条数: ', lines)
-      // 删除 events 中的旧数据
-      if (lines > 0) {
-        await runExec(db, 'delete FROM events where date < ? ', [strNow])
-      }
+      // let lines = 
+      await runBatchExec(db, `
+      INSERT INTO stat (keyname, keycount,date) SELECT keyname, sum(keycount), date FROM events where date < '${strNow}' group by date,keyname;
+      delete FROM events where date < '${strNow}'; `)
+      // console.log('转移数据条数: ', lines)
+      // 删除 events 中的旧数据 改为批量执行，避免异常数据
+      //if (lines > 0) {
+      //  await runExec(db, ' ', [strNow])
+      //}
     }
     // 如果 statFreq 表中的日期有小于指定日期的，需要 
     let before = dataSetting.minuteKeepDays ?? 7
@@ -191,9 +194,17 @@ async function doCleanData() {
       where freqType = 0 and date between ? and ? group by kt
       `, [maxDate, yesterday])
       console.log('插入小时统计条数: ', lines)
+      // 更新新的统计算法，如果一分钟内有多个应用激活，那么多个应用将平分这一分钟时间
       lines = await runExec(db, `INSERT INTO appFreq (keyTime,appPath, keyCount,mouseCount,freqType,date) 
-      SELECT SUBSTR(keyTime,0,11) as kt, appPath, sum(keyCount),sum(mouseCount),count(keyTime),date FROM appFreq 
-      where freqType = 0 and date between ? and ? group by appPath, kt
+      with tempApp as (
+              SELECT keyTime, appPath,keyCount,mouseCount,date FROM appFreq 
+              where freqType = 0 and date between '2023-12-09' and '2023-12-09'
+              )
+              ,tempApp2 as (  
+              SELECT a.*,1.0/b.times as times FROM tempApp a left join ( SELECT keyTime,count(keyTime) as times FROM tempApp group by keyTime ) b 
+              on b.keyTime = a.keyTime 
+              )
+      select SUBSTR(keyTime,0,11) as kt, appPath, sum(keyCount),sum(mouseCount), sum(times),date from tempApp2	group by appPath, kt		
       `, [maxDate, yesterday])
       console.log('插入小时应用条数: ', lines)
     }

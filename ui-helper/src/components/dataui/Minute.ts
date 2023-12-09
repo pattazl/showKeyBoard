@@ -48,7 +48,7 @@ let optByMinute = {
       // 左侧 Y 轴配置
       name: 'Count',
       type: 'value',
-      boundaryGap: [0, '50%'],
+      boundaryGap: [0, 0.2],
     },
     {
       // 右侧 Y 轴配置
@@ -102,7 +102,7 @@ let optDuration = {
     trigger: 'item',
     formatter: function (params) {
       // 'Click to show detail <br/>{b}: {c} ({d}%)'  // percent name value
-      let strHours = Math.floor(params.value / 60) + ' hours ' + (params.value % 60) + ' minutes'
+      let strHours = Math.floor(params.value / 60) + ' hours ' + (params.value % 60).toFixed(1) + ' minutes'
       return `${params.name} <br/> ${params.value} [${strHours}] (${params.percent}%) <span style='color:blue'>Click to show detail<span>`
     }
   },
@@ -145,13 +145,13 @@ optAppByMinute.series.pop();
 optAppByMinute.yAxis.pop();
 optAppByMinute.yAxis[0].boundaryGap = false
 optAppByMinute.title.top = 0; // 设置标题靠顶部
-optAppByMinute.legend.top = 30 
+optAppByMinute.legend.top = 30
 
 let optAppByHour = deepCopy(optByMinute)
 optAppByHour.yAxis[1].name = 'Acitved Minutes per Hour',
-optAppByHour.series[2].name = 'Acitved Minutes',
-optAppByHour.title.top = 0; // 设置标题靠顶部
-optAppByHour.legend.top = 30 
+  optAppByHour.series[2].name = 'Acitved Minutes',
+  optAppByHour.title.top = 0; // 设置标题靠顶部
+optAppByHour.legend.top = 30
 // 返回Option
 function getMinuteOption(typeFlag: Array<MinuteType>): Array<any> {
   let hashMap = {
@@ -279,15 +279,24 @@ function setChartByHour(data, charts) {
 function setChartByDura() {
   let hash = {} // 记录APP的出现次数，既为分钟数
   let firstMinuteDate = '9999-99-99' // 分钟数据的第一天，需要和小时数据结合起来
+  let hashMinites = {} // 用于计算每分钟的应用数量，从而统计分钟占比
+  lastAppData.forEach(x => {
+    let minute = x.Minute
+    if (hashMinites[minute] == null) {
+      hashMinites[minute] = 0
+    }
+    hashMinites[minute] += 1  // 统计每分钟的应用计数，用于计算分钟占用时间
+  })
   lastAppData.forEach(x => {
     if (firstMinuteDate == '') {
       firstMinuteDate = x.Date  // lastAppData 是按日期排序好的
     }
     let app = x.Apps
     if (hash[app] == null) {
-      hash[app] = 1
+      hash[app] = 0
     }
-    hash[app] += 1
+    // 更新新的统计算法，如果一分钟内有多个应用激活，那么多个应用将平分这一分钟时间
+    hash[app] += 1 / hashMinites[x.Minute]  // 每个应用每分钟的占用时间
   })
   // lastAppHourData 数据也要参与其中共同组合为 应用统计列表
   lastAppHourData.forEach(x => {
@@ -304,7 +313,7 @@ function setChartByDura() {
   let appList = Object.keys(hash)
   appInfoList = []
   appList.forEach(x => {
-    appInfoList.push({ name: x, value: hash[x] })
+    appInfoList.push({ name: x, value: Math.round(hash[x] * 10) / 10 }) // 保留小数后一位即可
   })
   // 可以对 appInfoList 排序
   appInfoList.sort((x, y) => y.value - x.value)
@@ -354,10 +363,13 @@ function showAppMinute(appName) {
       if (firstMinute == 0) {
         firstMinute = minute
       }
-      lastMinute = minute
+      lastMinute = minute + oneMinute // 可能需要增加1分钟，否则最后一条可能看不到
       hash[minute] = x
     }
   })
+  // console.log(lastAppData)
+  // console.log(lastMinute)
+
   // let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
   let keyData = [], mouseData = [];
   let afterMinute = 0;// 延后10分钟
@@ -382,7 +394,10 @@ function showAppMinute(appName) {
 // 显示应用小时数据
 function showAppHour(appName) {
   if (chartAppHour == null) {
-    console.log('showAppHour fail')
+    if (lastAppHourData.length > 0) {
+      // 有小时数据，但没显示对象了可以提示
+      console.log('showAppHour fail')
+    }
     return
   }
   let hash = {}, firstHour = 0, lastHour = 0;
@@ -392,11 +407,11 @@ function showAppHour(appName) {
       if (firstHour == 0) {
         firstHour = minute
       }
-      lastHour = minute
+      lastHour = minute + oneHour // 可能需要增加1小时，否则最后一条可能看不到
       hash[minute] = x
     }
   })
-  let keyData = [], mouseData = [], durationData= [];
+  let keyData = [], mouseData = [], durationData = [];
   let totalMs = lastHour - firstHour
   let totalHour = totalMs / 1000 / 60 / 60
   for (let i = 0; i < totalHour; i++) {
