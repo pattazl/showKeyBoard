@@ -117,6 +117,11 @@
                 <n-switch :round="false" v-model:value="allConfig.common.statProcInfo" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro174 }}
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.activeAppShow" />
+              </template>
+            </n-list-item>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
@@ -244,6 +249,17 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro55 }}
               <n-dynamic-tags v-model:value="skipShowRef" />
+            </n-list-item>
+            <h4>{{ contentText.intro174 }}</h4>
+            <n-list-item>{{ contentText.intro175 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.activeAppShowX" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro176 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.activeAppShowY" />
+              </template>
             </n-list-item>
           </n-list>
 

@@ -380,6 +380,10 @@ GetProcPath(){
             ProcPath := 'Unknown'
         }
     }
+    ; 显示当前激活的应用路径
+    if( activeAppShow = 1 ){
+        ToolTip(ProcPath, activeAppShowX, activeAppShowY)
+    }
     return ProcPath
 }
 ; 更新活动窗口信息

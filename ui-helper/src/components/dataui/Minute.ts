@@ -148,9 +148,9 @@ optAppByMinute.title.top = 0; // 设置标题靠顶部
 optAppByMinute.legend.top = 30
 
 let optAppByHour = deepCopy(optByMinute)
-optAppByHour.yAxis[1].name = 'Acitved Minutes per Hour',
-  optAppByHour.series[2].name = 'Acitved Minutes',
-  optAppByHour.title.top = 0; // 设置标题靠顶部
+optAppByHour.yAxis[1].name = 'Actived Minutes per Hour';
+optAppByHour.series[2].name = 'Actived Minutes';
+optAppByHour.title.top = 0; // 设置标题靠顶部
 optAppByHour.legend.top = 30
 // 返回Option
 function getMinuteOption(typeFlag: Array<MinuteType>): Array<any> {
@@ -219,6 +219,7 @@ function setChartByMinute(data, charts) {
   })
   // let base = today.getTime()
   //let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
+  lastMinute += oneMinute  // 需要增加1单元以便于显示最后一个
   let keyData = [], mouseData = [], disData = [];
   let afterMinute = 0;// 延后10分钟
   let totalMs = lastMinute - firstMinute + afterMinute * 60 * 1000
@@ -254,6 +255,7 @@ function setChartByHour(data, charts) {
   })
   // let base = today.getTime()
   //let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
+  lastHour += oneHour  // 需要增加1单元以便于显示最后一个
   let keyData = [], mouseData = [], disData = [];
   let totalMs = lastHour - firstHour
   let totalHour = totalMs / 1000 / 60 / 60
@@ -418,7 +420,7 @@ function showAppHour(appName) {
     let now = +new Date(firstHour + oneHour * i);
     keyData.push([now, hash[now]?.KeyCount ?? 0]);
     mouseData.push([now, hash[now]?.MouseCount ?? 0]);
-    durationData.push([now, hash[now]?.Duration ?? 0]);
+    durationData.push([now, (hash[now]?.Duration ?? 0).toFixed(2)]);
   }
   let opt = getMinuteOption([MinuteType.AppByHour])[0]
   opt.series[0].data = keyData

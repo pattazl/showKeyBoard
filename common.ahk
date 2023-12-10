@@ -112,6 +112,10 @@ ctrlTextSize :=DescRead("dialog","ctrlTextSize", 20 ) ; 字体大小
 ctrlList := StrSplit(DescRead("dialog","ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock"),"|") ; 哪些按键长按会单独显示出来
 skipShow := StrSplit(DescRead("dialog","skipShow", ""),"|") ; 哪些按键不会显示，但会记录
 
+activeAppShow :=DescRead("common","activeAppShow", 0 ) ; 是否显示当前激活的窗体所在应用路径
+activeAppShowX :=DescRead("dialog","activeAppShowX", 0 ) ; 应用路径显示的X轴位置
+activeAppShowY :=DescRead("dialog","activeAppShowY", 0 ) ; 应用路径显示的Y轴位置
+
 ; 部分变量设置
 serverUrl := "http://127.0.0.1:" serverPort
 ; 内部参数

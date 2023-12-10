@@ -71,6 +71,7 @@ SendMouse()
 		PushTxt(GetKeyName(StrReplace(A_ThisHotkey,'~','')),True)
 	}
 }
+CoordMode "ToolTip", "Screen"
 CoordMode "Mouse", "Screen"
 GetDistance(){
 	MouseGetPos &currentX, &currentY

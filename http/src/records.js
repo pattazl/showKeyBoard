@@ -198,7 +198,7 @@ async function doCleanData() {
       lines = await runExec(db, `INSERT INTO appFreq (keyTime,appPath, keyCount,mouseCount,freqType,date) 
       with tempApp as (
               SELECT keyTime, appPath,keyCount,mouseCount,date FROM appFreq 
-              where freqType = 0 and date between '2023-12-09' and '2023-12-09'
+              where freqType = 0 and date between ? and ?
               )
               ,tempApp2 as (  
               SELECT a.*,1.0/b.times as times FROM tempApp a left join ( SELECT keyTime,count(keyTime) as times FROM tempApp group by keyTime ) b 
