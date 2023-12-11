@@ -16,7 +16,7 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px" :class="store.myTheme=='dark'?'mydark':'mylight' ">
+      <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
         {{ contentText.intro112 }}
         <n-select v-model:value="beginDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
 
@@ -58,7 +58,8 @@
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
-      <n-card id="intro165" :title="contentText.intro165">
+      <n-card id="intro165"
+        :title="contentText.intro165 + ',' + contentText.intro169 + ':' + store.data.dataSetting?.minuteKeepDays">
         <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card id="intro166" :title="contentText.intro166">
@@ -69,7 +70,8 @@
           :marks="appMarks" />
         <div id="main5" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card id="intro170" :title="contentText.intro170 + contentText.intro168">
+      <n-card id="intro170"
+        :title="contentText.intro170 + ',' + contentText.intro169 + ':' + store.data.dataSetting?.minuteKeepDays + contentText.intro168">
         <div id="main6" style="height: 250px; min-width: 800px;width:95%;"></div>
       </n-card>
       <n-card id="intro171" :title="contentText.intro171">
