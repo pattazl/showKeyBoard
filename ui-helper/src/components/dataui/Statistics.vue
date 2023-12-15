@@ -12,11 +12,11 @@
 			</n-anchor>
 		</div>
 		<n-space vertical class="fixedSelect">
-			<n-space style="font-size:16px" :class="store.myTheme=='dark'?'mydark':'mylight'">
+			<n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
 				{{ contentText.intro112 }}
-				<n-select v-model:value="beginDate" filterable :options="historyDate" />
+				<n-date-picker type="date" v-model:value="beginDate" :is-date-disabled="dateDisabled" />
 				{{ contentText.intro93 }}
-				<n-select v-model:value="endDate" filterable :options="historyDate" />
+				<n-date-picker type="date" v-model:value="endDate" :is-date-disabled="dateDisabled" />
 				<n-button type="primary" @click="handleQuery">{{ contentText?.intro113 }}</n-button>
 				<n-switch :round="false" :rail-style="railStyle" v-model:value="fillDate" @update:value="handleQuery">
 					<template #checked>
@@ -78,7 +78,7 @@ echarts.use([
 	UniversalTransition
 ]);
 
-import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat } from '@/common';
 import content from '../../content.js';
 let option = []; // 用数组代替
 option[0] = {
@@ -164,8 +164,8 @@ export default defineComponent({
 		const store = useAustinStore();
 		const contentText = computed(() => content[props.lang])
 		const message = useMessage()
-		const beginDate = ref('');
-		const endDate = ref('');
+		const beginDate = ref(0);
+		const endDate = ref(0);
 		const historyDate = ref([]);
 		const topN = ref(0)
 		const appTopN = ref(0)
@@ -214,7 +214,8 @@ export default defineComponent({
 		}
 		let chartDom = [], myChart = [];
 		async function handleQuery() {
-			let b = beginDate.value, e = endDate.value
+			let b = dayjs(beginDate.value).format(dateFormat), e = dayjs(endDate.value).format(dateFormat)
+			// console.log(b,e)
 			if (/^\d{4}-\d{2}-\d{2}$/.test(b) && /^\d{4}-\d{2}-\d{2}$/.test(e) && e >= b) {
 				let res = await ajax('statData', { "beginDate": b, "endDate": e }) //数组，3个内容
 				if (res.length < 4) {
@@ -224,13 +225,12 @@ export default defineComponent({
 				let pixHash = { name: 'Pix Distance', data: [], smooth: true, type: 'line' }
 				let screenHash = { name: 'Screen Distance(Meter)', data: [], smooth: true, type: 'line' }
 				let phyHash = { name: 'Physical Distance(Meter)', data: [], smooth: true, type: 'line' }
-				const df = 'YYYY-MM-DD'
 				// 需要循环补充到 x.date 这天
 				if (fillDate.value) {
-					let ed = dayjs(endDate.value, df).add(1, 'day');
-					let currentDate = dayjs(beginDate.value, df);
+					let ed = dayjs(endDate.value, dateFormat).add(1, 'day');
+					let currentDate = dayjs(beginDate.value, dateFormat);
 					while (currentDate.isBefore(ed)) {
-						dateArr.push(currentDate.format('YYYY-MM-DD'));
+						dateArr.push(currentDate.format(dateFormat));
 						currentDate = currentDate.add(1, 'day');
 					}
 				} else {
@@ -317,8 +317,8 @@ export default defineComponent({
 				if (dateArr.length < 7) {
 					beginIndex = dateArr.length - 1
 				}
-				beginDate.value = dateArr[beginIndex];// 设置选择第一个
-				endDate.value = dateArr[0];// 设置选择第一个
+				beginDate.value = dayjs(dateArr[beginIndex], dateFormat).valueOf();// 设置选择第一个
+				endDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
 				handleQuery()
 			}
 		})
@@ -329,6 +329,12 @@ export default defineComponent({
 				v.setOption(option[i]);
 			})
 		});
+		function dateDisabled(ts: number) {
+			const date = dayjs(ts).format(dateFormat)
+			return !historyDate.value.some(x => {
+				return x.value == date
+			})
+		}
 		return {
 			contentText,
 			beginDate,
@@ -340,6 +346,7 @@ export default defineComponent({
 			railStyle,
 			fillDate,
 			store,
+			dateDisabled,
 		}
 	},
 })

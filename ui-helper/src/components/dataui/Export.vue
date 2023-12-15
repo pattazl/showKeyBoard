@@ -39,18 +39,18 @@
 import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'vue'
 import content from '../../content.js';
 import { useMessage, useDialog } from 'naive-ui'
-import { getHistory, ajax, getServer } from '@/common';
+import { getHistory, ajax, getServer,dateFormat,timeFormat } from '@/common';
 import { useAustinStore } from '../../App.vue'
 import dayjs from 'dayjs'
 
 // 获取今天的全部启动次数信息
 async function getTodayData(todayList) {
-	let str = dayjs(new Date()).format('YYYY-MM-DD')
+	let str = dayjs(new Date()).format(dateFormat)
 	let historyData = await getHistory(str, str)
 	let tickSet = new Set();
 	historyData.forEach(x => tickSet.add(x.tick))
 	tickSet.forEach(x => {
-		todayList.push({ label: dayjs(new Date(<number>x)).format('YYYY-MM-DD HH:mm:ss.SSS'), value: x })
+		todayList.push({ label: dayjs(new Date(<number>x)).format(timeFormat), value: x })
 	})
 }
 async function getHistoryDate(historyDate) {
@@ -79,7 +79,7 @@ export default defineComponent({
 
 		async function handleDeleteTick() {
 			myDialog.warning({
-				title: contentText.value.intro122 + deleteTick.value.map(x => dayjs(new Date(x)).format('YYYY-MM-DD HH:mm:ss.SSS')),
+				title: contentText.value.intro122 + deleteTick.value.map(x => dayjs(new Date(x)).format(timeFormat)),
 				positiveText: contentText.value.intro109,
 				negativeText: contentText.value.intro110,
 				maskClosable: false,
@@ -133,7 +133,7 @@ export default defineComponent({
 		const handleFinish = ({ file, event }) => {
 			//console.log(event)
 			serverInfo.value = JSON.parse((event?.target as XMLHttpRequest).response)
-			serverInfo.value.now = dayjs(new Date()).format('YYYY-MM-DD HH:mm:ss.SSS')
+			serverInfo.value.now = dayjs(new Date()).format(timeFormat)
 			if(serverInfo.value.code == 200 ){
 				message.success( contentText.value.intro128 )
 			}else{

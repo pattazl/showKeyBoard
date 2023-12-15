@@ -18,8 +18,8 @@
     <n-space vertical class="fixedSelect">
       <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
         {{ contentText.intro112 }}
-        <n-select v-model:value="beginDate" filterable :options="historyDate" @update:value="handleUpdateValue" />
-
+        <n-date-picker type="date" v-model:value="beginDate" :is-date-disabled="dateDisabled"
+          @update:value="handleUpdateValue" />
         <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate" @update:value="endDate = beginDate">
           <template #unchecked>
             {{ contentText.intro159 }}
@@ -28,11 +28,9 @@
             {{ contentText.intro160 }}
           </template>
         </n-switch>
-        <n-select v-show="showEndDate" v-model:value="endDate" filterable :options="historyDate"
+        <n-date-picker type="date" v-show="showEndDate" v-model:value="endDate" :is-date-disabled="dateDisabled"
           @update:value="handleUpdateValue" />
       </n-space>
-
-
       <n-card id="intro86" :title="contentText.intro86">
         <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
       </n-card>
@@ -105,7 +103,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -345,8 +343,8 @@ export default defineComponent({
     const columns = ref([]);
     const columns0 = ref([]);
     const historyDate = ref([]);
-    const beginDate = ref('');
-    const endDate = ref('');
+    const beginDate = ref(0);
+    const endDate = ref(0);
     const columns2 = ref([]);
     const appListData = ref([]);
     const showEndDate = ref(0);
@@ -468,7 +466,9 @@ export default defineComponent({
         b = beginDate.value
         e = endDate.value
       }
-      historyData = await getHistory(b, e)
+      let bs = dayjs(b).format(dateFormat)
+      let es = dayjs(e).format(dateFormat)
+      historyData = await getHistory(bs, es)
       let keyStatHash = getHash('')
       showHash(keyStatHash)
       updateMinuteData()
@@ -543,10 +543,12 @@ export default defineComponent({
         b = beginDate.value
         e = beginDate.value
       }
+      let bs = dayjs(b).format(dateFormat)
+      let es = dayjs(e).format(dateFormat)
       // 需要渲染 main1 图表
-      setMinuteEcharts(b, e, MinuteType.ByMinute, [myChartArr[2]], appNameListMap) // main3
-      setMinuteEcharts(b, e, MinuteType.ByHour, [myChartArr[3]], appNameListMap) // main4
-      await setMinuteEcharts(b, e, MinuteType.Duration, [myChartArr[4], myChartArr[5], myChartArr[6]], appNameListMap) // main5 6
+      setMinuteEcharts(bs, es, MinuteType.ByMinute, [myChartArr[2]], appNameListMap) // main3
+      setMinuteEcharts(bs, es, MinuteType.ByHour, [myChartArr[3]], appNameListMap) // main4
+      await setMinuteEcharts(bs, es, MinuteType.Duration, [myChartArr[4], myChartArr[5], myChartArr[6]], appNameListMap) // main5 6
       updateAppLenInfo()
     }
     onMounted(async () => {
@@ -566,7 +568,7 @@ export default defineComponent({
         return { label: x, value: x }
       })
       if (dateArr.length > 0) {
-        beginDate.value = dateArr[0];// 设置选择第一个
+        beginDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
         handleUpdateValue(dateArr[0])
       }
 
@@ -601,6 +603,12 @@ export default defineComponent({
       }
       showAppDuration(appRanger.value)
     }
+    function dateDisabled(ts: number) {
+      const date = dayjs(ts).format(dateFormat)
+      return !historyDate.value.some(x => {
+        return x.value == date
+      })
+    }
     return {
       slideApp,
       appRanger,
@@ -623,6 +631,7 @@ export default defineComponent({
       appListData,
       showEndDate,
       store,
+      dateDisabled,
     }
   },
 })

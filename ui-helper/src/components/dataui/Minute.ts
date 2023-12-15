@@ -218,7 +218,7 @@ function setChartByMinute(data, charts) {
     hash[minute] = x
   })
   // let base = today.getTime()
-  //let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
+  //let firstDay = dayjs(firstDate, dateFormat).valueOf()
   lastMinute += oneMinute  // 需要增加1单元以便于显示最后一个
   let keyData = [], mouseData = [], disData = [];
   let afterMinute = 0;// 延后10分钟
@@ -254,7 +254,7 @@ function setChartByHour(data, charts) {
     hash[minute] = x
   })
   // let base = today.getTime()
-  //let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
+  //let firstDay = dayjs(firstDate, dateFormat).valueOf()
   lastHour += oneHour  // 需要增加1单元以便于显示最后一个
   let keyData = [], mouseData = [], disData = [];
   let totalMs = lastHour - firstHour
@@ -354,7 +354,7 @@ function showAppMinute(appName) {
     return
   }
   // let today = new Date();
-  // let strToday = dayjs(today).format('YYYY-MM-DD')
+  // let strToday = dayjs(today).format(dateFormat)
   // let now = new Date().getTime()
   // 将时分秒设置为 0
   // today.setHours(0, 0, 0, 0);
@@ -372,7 +372,7 @@ function showAppMinute(appName) {
   // console.log(lastAppData)
   // console.log(lastMinute)
 
-  // let firstDay = dayjs(firstDate, 'YYYY-MM-DD').valueOf()
+  // let firstDay = dayjs(firstDate, dateFormat).valueOf()
   let keyData = [], mouseData = [];
   let afterMinute = 0;// 延后10分钟
   let totalMs = lastMinute - firstMinute + afterMinute * 60 * 1000

@@ -86,7 +86,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy,dateFormat,timeFormat } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -297,7 +297,7 @@ function getKeyVal(key, mapkey, keyStatHash, leftKey) {
 }
 // 获取今天的全部启动次数信息
 async function getTodayData(historyDate, contentText) {
-  let str = dayjs(new Date()).format('YYYY-MM-DD')
+  let str = dayjs(new Date()).format(dateFormat)
   historyData = await getHistory(str, str)
   historyData.forEach(x => tickSet.add(x.tick))
   let hasNow = false
@@ -307,11 +307,11 @@ async function getTodayData(historyDate, contentText) {
       mark = '(' + contentText.intro91 + ')'
       hasNow = true
     }
-    historyDate.push({ label: dayjs(new Date(<number>x)).format('YYYY-MM-DD HH:mm:ss.SSS') + mark, value: x })
+    historyDate.push({ label: dayjs(new Date(<number>x)).format(timeFormat) + mark, value: x })
   })
   // 如果数据中没有当前数据，需要强行插入一个
   if (!hasNow && currTick > 0) {
-    historyDate.push({ label: dayjs(new Date(<number>currTick)).format('YYYY-MM-DD HH:mm:ss.SSS') + '(' + contentText.intro91 + ')', value: currTick })
+    historyDate.push({ label: dayjs(new Date(<number>currTick)).format(timeFormat) + '(' + contentText.intro91 + ')', value: currTick })
   }
 }
 // 获取对应时间的Hash
@@ -627,7 +627,7 @@ export default defineComponent({
       }, 2000) // 不必过于频繁，2秒检查一次即可
     }
     async function updateMinuteData(noLoad: Boolean = false) {
-      let strDay = dayjs(new Date()).format('YYYY-MM-DD')
+      let strDay = dayjs(new Date()).format(dateFormat)
       // 需要渲染 main1 图表
       setMinuteEcharts(strDay, strDay, MinuteType.ByMinute, [myChartArr[2]], appNameListMap, noLoad) // main3
       await setMinuteEcharts(strDay, strDay, MinuteType.Duration, [myChartArr[3], myChartArr[4]], appNameListMap, noLoad) // main4

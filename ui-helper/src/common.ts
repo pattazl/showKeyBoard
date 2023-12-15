@@ -182,7 +182,7 @@ function showAppChart(leftKey, keyStatHash, opt, chart, mergeApp) {
 // 获取历史时间
 async function getHistory(beginDate, endDate) {
   let res = [];
-  // format('YYYY-MM-DD')
+  // format(dateFormat)
   if (/^\d{4}-\d{2}-\d{2}$/.test(beginDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= beginDate) {
     res = await ajax('historyData', { beginDate, endDate })
   }
@@ -262,7 +262,11 @@ function appPath2Name(val, map) {
   }
   return newName
 }
+const dateFormat = 'YYYY-MM-DD'
+const timeFormat = 'YYYY-MM-DD HH:mm:ss.SSS'
+
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
-  getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS
+  getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
+  dateFormat,timeFormat,
 }

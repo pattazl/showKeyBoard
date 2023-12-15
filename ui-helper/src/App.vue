@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme="theme">
+  <n-config-provider :theme="theme" :locale="lang" :date-locale="dateLang">
     <n-message-provider>
       <n-dialog-provider>
       <ServerPage />
@@ -10,6 +10,7 @@
 
 <script lang="ts">
 import { computed, defineComponent ,ref } from 'vue';
+import { zhCN, enUS,dateZhCN,dateEnUS } from 'naive-ui'
 import { defineStore ,storeToRefs } from 'pinia'
 import {
   NMessageProvider,
@@ -41,7 +42,9 @@ export default defineComponent({
     const store= useAustinStore();
     //const { myTheme } = storeToRefs(store)
     return {
-      theme: computed(() => (store.myTheme === 'dark' ? darkTheme : lightTheme))
+      theme: computed(() => (store.myTheme === 'dark' ? darkTheme : lightTheme)),
+      lang: computed(() => (store.lang === 'zh-CN' ? zhCN : enUS)),
+      dateLang: computed(() => (store.lang === 'zh-CN' ? dateZhCN : dateEnUS)),
     };
   },
 });
