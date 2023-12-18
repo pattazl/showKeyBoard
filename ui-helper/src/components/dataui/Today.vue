@@ -14,12 +14,13 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px" :class="store.myTheme=='dark'?'mydark':'mylight'" >
+      <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'" v-if="beginDate != 0">
         {{ contentText.intro92 }}
         <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue" /> {{
           contentText.intro93 }}
         <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
+      <n-alert v-if="beginDate == 0" type="error">{{ contentText.intro177 }}</n-alert>
       <div @click="getClickTime">
         <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
           <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
@@ -86,7 +87,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy,dateFormat,timeFormat } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';

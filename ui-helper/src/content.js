@@ -204,6 +204,7 @@ export default {
 	intro174: '是否显示当前激活的应用全路径',
 	intro175: '应用全路径显示的X位置',
 	intro176: '应用全路径显示的Y位置',
+	intro177: '客户端通讯异常，请重启客户端或重启系统',
 
   },
   'en-US': {
@@ -412,5 +413,6 @@ export default {
 	intro174: 'Whether show activated App path',
 	intro175: 'Tooltip of App path X position',
 	intro176: 'Tooltip of App path Y position',
+	intro177: 'Communication of Client error, please restart the client or system',
   }
 };
