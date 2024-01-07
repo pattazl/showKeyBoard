@@ -63,6 +63,13 @@ async function insertData(records) {
   // 构建插入语句
   const placeholders = arr.map(() => '(?, ? , ? , ?)').join(', ');
   let tickDate = dayjs(new Date(tick)).format('YYYY-MM-DD')  // 需要用记录中的时间作为日期
+  // 如果 tickDate 的数据在 stat 中已经出现，说明已经完成过统计，不能再插入数据，否则将导致重复统计
+  let rows = await runQuery(db,`select date from stat where date = '${tickDate}' limit 1 `)
+  if(rows.length>0){
+    console.error(`Exist rows in ${tickDate}`);
+    db.close();
+    return 0
+  }
   const values = arr.reduce((acc, curr) => acc.concat([curr.name, curr.count, curr.tick, tickDate]), []);
   // 执行一次性插入
   changes = await runExec(db, `INSERT INTO events (keyname, keycount , tick , date) VALUES ${placeholders}`, values)
@@ -517,7 +524,28 @@ async function getMinuteRecords(beginDate, endDate, freqType, isApp) {
   db.close();
   return arr
 }
+// 清理异常的统计数据
+async function cleanErrStat() {
+  const db = new sqlite3.Database(dbName);
+  console.log('cleanErrStat')
+  //  日期和按键有重复的数据
+  const sql = `DROP TABLE IF EXISTS statTemp;
+  CREATE TABLE statTemp (
+      keyname text,
+      keycount INTEGER,
+      date text
+  );
+  INSERT INTO statTemp 
+  SELECT DISTINCT keyname,keycount,date FROM 
+    stat WHERE date in( SELECT date FROM stat group by keyname,date having count(1)>1);
+  delete FROM stat WHERE date in ( select date from statTemp );
+  INSERT INTO stat
+  select keyname,sum(keycount),date from statTemp group by keyname,date;`
+  await runBatchExec(db,sql);
+  db.close()
+}
+  
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords
+  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords,cleanErrStat
 };

@@ -4,7 +4,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
 const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName,
-  updateDBStruct, insertMiniute, getLastMinute } = require('./records');
+  updateDBStruct, insertMiniute, getLastMinute,cleanErrStat } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -380,6 +380,7 @@ function patchLastData() {
     }
     fs.unlinkSync(lastRecordPath)
   }
+  cleanErrStat()
 }
 // 对 insertData 函数封装处理下
 async function insertDataFun(records) {
