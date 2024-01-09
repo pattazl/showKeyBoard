@@ -343,6 +343,7 @@ function bindAppCharts() {
     chartAppDur.on('click', function (params) {
       // 控制台打印数据的名称
       showAppMinute(params.name);
+      showAppHour(params.name)  // 显示小时统计
     });
     chartAppDur['hasBind'] = true
   }
