@@ -175,7 +175,7 @@ export default {
 	intro145: '应用显示前N个',
 	intro146: '应用执行程序全路径',
 	intro147: '应用程序显示名',
-	intro148: '应用程序名转换清单，默认取执行程序文件名',
+	intro148: '应用程序名转换清单，默认取执行程序文件名,支持正则表达式用Reg:开头配置',
 	intro149: '应用按键统计',
 	intro150: '跳过没有数据的日期',
 	intro151: '用空数据填充日期',
@@ -205,6 +205,7 @@ export default {
 	intro175: '应用全路径显示的X位置',
 	intro176: '应用全路径显示的Y位置',
 	intro177: '客户端通讯异常，请重启客户端或重启系统',
+	intro178: '后台通讯中...',
 
   },
   'en-US': {
@@ -384,7 +385,7 @@ export default {
 	intro145: 'App display Top N',
 	intro146: 'App full path',
 	intro147: 'App display Name',
-	intro148: 'App name mapping list, basename is default',
+	intro148: 'App name mapping list, basename is default, start with Reg: for regular expression support',
 	intro149: 'App keypress statistic',
 	intro150: 'Ignore date that no data',
 	intro151: 'Fill date that no data',
@@ -414,5 +415,6 @@ export default {
 	intro175: 'Tooltip of App path X position',
 	intro176: 'Tooltip of App path Y position',
 	intro177: 'Communication of Client error, please restart the client or system',
+	intro178: 'Communicate with backend...',
   }
 };

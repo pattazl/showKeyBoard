@@ -20,7 +20,8 @@
           contentText.intro93 }}
         <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />
       </n-space>
-      <n-alert v-if="beginDate == 0" type="error">{{ contentText.intro177 }}</n-alert>
+      <n-alert v-if="firstUpdate" type="warning">{{ contentText.intro178 }}</n-alert>
+      <n-alert v-if="!firstUpdate && beginDate == 0" type="error">{{ contentText.intro177 }}</n-alert>
       <div @click="getClickTime">
         <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
           <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
@@ -392,6 +393,7 @@ export default defineComponent({
     const endDate = ref(0);
     const updateTime = ref('');
     const appListData = ref([]);
+    let firstUpdate = ref(true); // 用于控制第一次显示时没有延时，其他均有延时显示
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
 
@@ -500,21 +502,20 @@ export default defineComponent({
       let keyStatHash = getRealStatHash({}, beginDate.value, endDate.value)
       showHash(keyStatHash)
     }
-    let firstUpdate = true; // 用于控制第一次显示时没有延时，其他均有延时显示
     let currMsg = ''
     function updateKeyData(msg) {
       currMsg = msg; // 更新最新的数据
       // 不必每次都刷新数据，可以时间间隔可以为1秒
       let ms = store.data.dataSetting.refreshTodayMs;
-      if (updateFlag == null && !firstUpdate && lefSecClick() < 0) {
+      if (updateFlag == null && !firstUpdate.value && lefSecClick() < 0) {
         updateFlag = setTimeout(() => {
           updateKeyDataCore()
           updateFlag = null
         }, ms);  // refreshTodayMs
       }
-      if (firstUpdate) {
+      if (firstUpdate.value) {
         updateKeyDataCore() // 先立刻执行增强用户体验
-        firstUpdate = false
+        firstUpdate.value = false
       }
     }
     function updateKeyDataCore() {
@@ -748,6 +749,7 @@ export default defineComponent({
       railStyle,
       appListData,
       store,
+      firstUpdate,
     }
   },
 })

@@ -46,7 +46,7 @@ async function ajax(path, data = null) {
 // 布尔类型清单,bool list
 const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans',
   'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd', 'mergeControl', 'fillDate', 'statProcInfo',
-  'mergeAppName','activeAppShow']
+  'mergeAppName', 'activeAppShow']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {
@@ -142,7 +142,7 @@ function showAppChart(leftKey, keyStatHash, opt, chart, mergeApp) {
     let total = mouse + key
     // 如果能找到且需要合并名称
     if (mergeApp != null) {
-      appName = mergeApp[appName] ?? appName
+      appName = getMatchAppname(appName, mergeApp)
     }
     if (myList.indexOf(appName) == -1) {
       // 不存在就插入，并找对应的鼠标和键盘信息
@@ -254,9 +254,27 @@ function railStyle({
   }
   return style
 }
+// 如果 map中的名字以Reg:开头则为正则
+function getMatchAppname(val, map) {
+  // 循环获取 map 中是否有 Reg:开头的
+  try {
+    for (let key in map) {
+      if (key.indexOf('Reg:') == 0) {
+        let regStr = key.substring(4);
+        let reg = new RegExp(regStr, 'i')
+        if (reg.test(val)) {
+          return map[key]
+        }
+      }
+    }
+  } catch (e) {
+    console.log('getMatchAppname error', e)
+  }
+  return map[val] ?? val;
+}
 // 应用程序名转换为显示名
 function appPath2Name(val, map) {
-  let newName = map[val] ?? val.split(/[\\\/]/).pop().replace(/\.exe$/i, '')
+  let newName = getMatchAppname(val, map).split(/[\\\/]/).pop().replace(/\.exe$/i, '')
   if (newName.length > 20) {
     newName = newName.substring(0, 18) + '...'
   }
@@ -268,5 +286,5 @@ const timeFormat = 'YYYY-MM-DD HH:mm:ss.SSS'
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat,timeFormat,
+  dateFormat, timeFormat,
 }
