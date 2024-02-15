@@ -56,6 +56,7 @@ function checkPort(port) {
       if (err.code === 'EADDRINUSE') {
         resolve(true); // 端口被占用
       } else {
+        console.log('reject:'+err,err.code) //  Error: listen EACCES: permission denied 127.0.0.1:9900
         reject(err); // 发生其他错误
       }
     });
@@ -139,6 +140,7 @@ async function startUp() {
         break;
       }
     } catch (e) {
+      console.log('checkPort error')
       hasError = true
       break;
     }
@@ -229,7 +231,7 @@ function oneInstance() {
   });
   process.on('beforeExit', (code) => {
     if (fs.existsSync(pidfilePath)) fs.unlinkSync(pidfilePath); // 无法操作数据库删除
-    console.log('exit')
+    console.log('beforeExit')
   });
   // 处理 SIGINT 和 SIGTERM 信号，确保应用程序正常退出时删除 pidfile 文件
   //   'CTRL + C ,
@@ -374,7 +376,10 @@ function patchLastData() {
   if (fs.existsSync(lastRecordPath) && fs.existsSync(updateTimePath)) {
     let json = JSON.parse(fs.readFileSync(lastRecordPath))
     let updateTime = fs.readFileSync(updateTimePath)
-    if (json['updateTime'] >= updateTime) { // 一般相同值是手工退出的，大于时是关机退出
+    // 获取现在的时间
+    let nowStr = dayjs(new Date()).format('YYYYMMDDHHmmSS')
+    // console.log(json['updateTime'] , nowStr,json['updateTime'] < nowStr)
+    if (json['updateTime'] >= updateTime && json['updateTime'] < nowStr ) { // 一般相同值是手工退出的，大于时是关机退出，因为是历史数据，所以需要小于当前时间
       console.log('patchLastData')
       insertDataFun(json)
     }
