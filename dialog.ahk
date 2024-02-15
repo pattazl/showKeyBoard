@@ -49,11 +49,14 @@ ShowTxt(text)
 		; 直接修改最近的输入框内容
 			;lastGui.edit.Destroy()
 			;调用API删除旧对象
-			DllCall("user32\DestroyWindow", "Ptr", ControlGetHwnd(lastGui.edit))
-			;ControlHide lastGui.edit  ; 原生代码不能销毁重新创建，只能隐藏
-			MyGui := lastGui.gui
-			textArr := lastGui.textArr
-			needNewGui := 0
+			; 如果有异常则跳过
+			try {
+				DllCall("user32\DestroyWindow", "Ptr", ControlGetHwnd(lastGui.edit))
+				;ControlHide lastGui.edit  ; 原生代码不能销毁重新创建，只能隐藏
+				MyGui := lastGui.gui
+				textArr := lastGui.textArr
+				needNewGui := 0
+			}
 		}
 	}
 	if needNewGui=1 {

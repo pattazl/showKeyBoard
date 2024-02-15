@@ -7,8 +7,9 @@
 }
 
 .fixedSelect>div:first-child>div:first-child {
+    cursor:move;
     position: fixed;
-    margin-left: 200px;
+    margin-left: 0px;
     padding: 5px;
     z-index: 1000;
         /* background-color: aliceblue; */

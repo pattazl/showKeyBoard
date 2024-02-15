@@ -12,7 +12,7 @@
 			</n-anchor>
 		</div>
 		<n-space vertical class="fixedSelect">
-			<n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
+			<n-space style="font-size:16px" id="fixedDiv" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
 				{{ contentText.intro112 }}
 				<n-date-picker type="date" v-model:value="beginDate" :is-date-disabled="dateDisabled" />
 				{{ contentText.intro93 }}
@@ -78,7 +78,7 @@ echarts.use([
 	UniversalTransition
 ]);
 
-import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener } from '@/common';
 import content from '../../content.js';
 let option = []; // 用数组代替
 option[0] = {
@@ -321,6 +321,7 @@ export default defineComponent({
 				endDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
 				handleQuery()
 			}
+			addExtListener(myChart);
 		})
 		watch(() => store.myTheme, (newValue, oldValue) => {
 			myChart.forEach((v, i) => {

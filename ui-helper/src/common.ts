@@ -283,8 +283,56 @@ function appPath2Name(val, map) {
 const dateFormat = 'YYYY-MM-DD'
 const timeFormat = 'YYYY-MM-DD HH:mm:ss.SSS'
 
+// 额外window的绑定事件
+function addExtListener(chartArr) {
+  // 时间框可拖动
+  addDragFixedSelect();
+  // 调整窗口大小
+  if (chartArr != null) {
+    winResize(chartArr)
+  }
+}
+// window 调整窗口
+let lastChartArr = [] // 保存当前 echarts 清单
+function winResizeCore() {
+  // console.log('winResizeCore')
+  // 调用 ECharts 提供的 resize 方法，动态重绘图表
+  lastChartArr?.forEach(x => {
+    x.resize()
+  })
+}
+function winResize(chartArr) {
+  if (lastChartArr?.length == 0) {
+    window.addEventListener('resize', winResizeCore);
+  }
+  lastChartArr = chartArr
+}
+// 以下为拖动时间选项
+var isDragging = false;
+var offset = { x: 0, y: 0 };
+function addDragFixedSelect() {
+  var myDiv = document.querySelector('#fixedDiv') as HTMLElement;
+  if (myDiv == null) {
+    setTimeout(addExtListener, 1000)
+    return;
+  }
+  myDiv.addEventListener('mousedown', function (event: any) {
+    isDragging = true;
+    offset.x = event.offsetX;
+    offset.y = event.offsetY;
+  });
+  document.addEventListener('mousemove', function (event: any) {
+    if (isDragging) {
+      myDiv.style.left = (event.clientX - offset.x) + 'px';
+      myDiv.style.top = (event.clientY - offset.y) + 'px';
+    }
+  });
+  document.addEventListener('mouseup', function (event) {
+    isDragging = false;
+  });
+}
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat,
+  dateFormat, timeFormat, addExtListener
 }

@@ -14,7 +14,7 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'" v-if="beginDate != 0">
+      <n-space style="font-size:16px" id="fixedDiv" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'" v-if="beginDate != 0">
         {{ contentText.intro92 }}
         <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue" /> {{
           contentText.intro93 }}
@@ -88,7 +88,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -650,6 +650,7 @@ export default defineComponent({
       setWS(updateKeyData)
       setupMinuteData() // 启动定时获取分钟信息
       detectClickMsg() //启动检查提示框显示
+      addExtListener(myChartArr);
     })
     onUnmounted(() => {
       closeWS()

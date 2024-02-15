@@ -76,6 +76,7 @@ CheckServer(){
 	
 }
 ; 服务核心处理
+countOfConnectFail := 0
 ServerCore()
 {
     state := HttpCtrlObj['state'] ; 此值会随时变化，先记录下
@@ -112,6 +113,14 @@ ServerCore()
         ; 常规数据发送处理
         if state !='succ'{
             ShowTxt HttpCtrlObj['task'] ',connect fail!'   ; 可能后端服务被关闭了
+            OutputDebug 'connect fail'
+            global countOfConnectFail += 1
+            if(countOfConnectFail >= maxCountOfConnectFail){
+                MsgBox msgTry countOfConnectFail msgTimes msgConnectFail
+                countOfConnectFail := 0 ; 成功一次则复位
+            }
+        }Else{
+            countOfConnectFail := 0 ; 成功一次则复位
         }
     }
 }
@@ -217,15 +226,20 @@ SendPCInfo(flag)
     }
 }
 ; 数据回调和核心发送
+preReadyState := 0  ; http前一个状态
 Ready() {
-    if reqXMLHTTP = 0 
-        return
-    if (reqXMLHTTP.readyState != 4)  ; Not done yet.
-    {
-        ; HttpCtrlObj['state'] := 'wait'
+    if reqXMLHTTP = 0 {
         return
     }
-    if (reqXMLHTTP.status == 200)
+    ; OutputDebug 'readyState : ' reqXMLHTTP.readyState
+    if (reqXMLHTTP.readyState !=4 )  ; Not done yet.
+    {
+        ; HttpCtrlObj['state'] := 'wait'
+        global preReadyState := reqXMLHTTP.readyState  ; 获取前一个状态
+        return
+    }
+    ; OutputDebug 'state : ' reqXMLHTTP.status ' preReadyState:' preReadyState
+    if (reqXMLHTTP.status == 200 && preReadyState == 3)  ; 不知道为何 status == 200 不能判断，所以需要增加一个前一个状态为3的判断
     {    ; OK.
         HttpCtrlObj['state'] := 'succ'
         ; 可能出现 Error: (0x8000000A) 完成该操作所需的数据还不可使用。屏蔽掉
@@ -243,6 +257,7 @@ sendData(route,data:=''){
     HttpCtrlObj['state'] := 'wait'
 	reqXMLHTTP.open('POST', serverUrl route , true)
 	reqXMLHTTP.setRequestHeader("Content-Type", "application/json")
+	; reqXMLHTTP.setRequestHeader("Cache-Control", "no-cache")
 	; Set our callback function.application/json  text/plain"
 	reqXMLHTTP.onreadystatechange := Ready
 	; Send the reqXMLHTTPuest.  Ready() will be called when it's complete.

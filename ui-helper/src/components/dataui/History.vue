@@ -16,7 +16,7 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
+      <n-space style="font-size:16px" id="fixedDiv" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
         {{ contentText.intro112 }}
         <n-date-picker type="date" v-model:value="beginDate" :is-date-disabled="dateDisabled"
           @update:value="handleUpdateValue" />
@@ -103,7 +103,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -571,7 +571,7 @@ export default defineComponent({
         beginDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
         handleUpdateValue(dateArr[0])
       }
-
+      addExtListener(myChartArr);
     })
     // let myTheme = ref()  
     watch(() => store.myTheme, (newValue, oldValue) => {

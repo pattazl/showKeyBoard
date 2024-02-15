@@ -116,6 +116,8 @@ activeAppShow :=DescRead("common","activeAppShow", 0 ) ; 是否显示当前激�
 activeAppShowX :=DescRead("dialog","activeAppShowX", 0 ) ; 应用路径显示的X轴位置
 activeAppShowY :=DescRead("dialog","activeAppShowY", 0 ) ; 应用路径显示的Y轴位置
 
+CheckServerMax :=DescRead("common","CheckServerMax", 9 ) ; 启动时最大重启尝试连接次数
+maxCountOfConnectFail :=DescRead("common","maxCountOfConnectFail", 60 ) ; 连续通讯失败多少次后提示报错
 ; 部分变量设置
 serverUrl := "http://127.0.0.1:" serverPort
 ; 内部参数
@@ -144,7 +146,6 @@ HttpCtrlObj['task'] := '' ; 任务名
 HttpCtrlObj['state'] := '' ; 当前状态 wait succ error
 serverState := -1  ; 是否连接到服务器， -1 还未启动过，0连失败，1 成功连接 
 CheckServerCount :=0
-CheckServerMax := 8
 ; 鼠标开始的位置和距离
 mouseStartX := 0
 mouseStartY := 0
