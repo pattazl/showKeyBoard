@@ -14,8 +14,8 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px" id="fixedDiv" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'" v-if="beginDate != 0">
-        {{ contentText.intro92 }}
+      <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'" v-if="beginDate != 0">
+        <span id="fixedSpan">{{ contentText.intro92 }}</span>
         <n-select v-model:value="beginDate" :options="historyDate" @update:value="handleUpdateValue" /> {{
           contentText.intro93 }}
         <n-select v-model:value="endDate" :options="historyDate" @update:value="handleUpdateValue" />

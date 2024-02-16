@@ -311,12 +311,13 @@ function winResize(chartArr) {
 var isDragging = false;
 var offset = { x: 0, y: 0 };
 function addDragFixedSelect() {
-  var myDiv = document.querySelector('#fixedDiv') as HTMLElement;
-  if (myDiv == null) {
+  var mySpan = document.querySelector('#fixedSpan') as HTMLElement;
+  var myDiv = document.querySelector('.fixedSelect>div:first-child>div:first-child') as HTMLElement;
+  if (mySpan == null || myDiv == null) {
     setTimeout(addExtListener, 1000)
     return;
   }
-  myDiv.addEventListener('mousedown', function (event: any) {
+  mySpan.addEventListener('mousedown', function (event: any) {
     isDragging = true;
     offset.x = event.offsetX;
     offset.y = event.offsetY;

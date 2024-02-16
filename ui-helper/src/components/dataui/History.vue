@@ -16,8 +16,8 @@
       </n-anchor>
     </div>
     <n-space vertical class="fixedSelect">
-      <n-space style="font-size:16px" id="fixedDiv" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
-        {{ contentText.intro112 }}
+      <n-space style="font-size:16px" :class="store.myTheme == 'dark' ? 'mydark' : 'mylight'">
+        <span id="fixedSpan">{{ contentText.intro112 }}</span>
         <n-date-picker type="date" v-model:value="beginDate" :is-date-disabled="dateDisabled"
           @update:value="handleUpdateValue" />
         <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate" @update:value="endDate = beginDate">
