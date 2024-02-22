@@ -660,10 +660,6 @@ export default defineComponent({
           str2Type(config.common, 1)
           str2Type(config.dialog, 1)
 
-          // 转换数组为字符串
-          config.common.skipRecord = skipRecordRef.value.join('|')
-          config.dialog.ctrlList = ctrlListRef.value.join('|')
-          config.dialog.skipShow = skipShowRef.value.join('|')
           // 更新颜色信息
           updateColor(config.dialog, guiBgcolorRef.value)
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
@@ -704,6 +700,10 @@ export default defineComponent({
       }
       let keyList = KVListTo(keyMappingRef.value);
       dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
+      // 转换数组为字符串
+      data.config.common.skipRecord = skipRecordRef.value.join('|')
+      data.config.dialog.ctrlList = ctrlListRef.value.join('|')
+      data.config.dialog.skipShow = skipShowRef.value.join('|')
       // 对比 config.common ，config.dialog ,store.preData.keyList
       getDiffHash(hash, data.config.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
       getDiffHash(hash, data.config.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)
