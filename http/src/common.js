@@ -4,7 +4,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
 const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName,
-  updateDBStruct, insertMiniute, getLastMinute,cleanErrStat } = require('./records');
+  updateDBStruct, insertMiniute, getLastMinute, cleanErrStat } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
 const app = express()
@@ -56,7 +56,7 @@ function checkPort(port) {
       if (err.code === 'EADDRINUSE') {
         resolve(true); // 端口被占用
       } else {
-        console.log('reject:'+err,err.code) //  Error: listen EACCES: permission denied 127.0.0.1:9900
+        console.log('reject:' + err, err.code) //  Error: listen EACCES: permission denied 127.0.0.1:9900
         reject(err); // 发生其他错误
       }
     });
@@ -374,14 +374,17 @@ async function dataFun(req, res) {
 // 补充上一次的数据
 function patchLastData() {
   if (fs.existsSync(lastRecordPath) && fs.existsSync(updateTimePath)) {
-    let json = JSON.parse(fs.readFileSync(lastRecordPath))
-    let updateTime = fs.readFileSync(updateTimePath)
-    // 获取现在的时间
-    let nowStr = dayjs(new Date()).format('YYYYMMDDHHmmSS')
-    // console.log(json['updateTime'] , nowStr,json['updateTime'] < nowStr)
-    if (json['updateTime'] >= updateTime && json['updateTime'] < nowStr ) { // 一般相同值是手工退出的，大于时是关机退出，因为是历史数据，所以需要小于当前时间
-      console.log('patchLastData')
-      insertDataFun(json)
+    try {
+      let json = JSON.parse(fs.readFileSync(lastRecordPath))
+      let updateTime = fs.readFileSync(updateTimePath)
+      // 获取现在的时间
+      let nowStr = dayjs(new Date()).format('YYYYMMDDHHmmSS')
+      // console.log(json['updateTime'] , nowStr,json['updateTime'] < nowStr)
+      if (json['updateTime'] >= updateTime && json['updateTime'] < nowStr) { // 一般相同值是手工退出的，大于时是关机退出，因为是历史数据，所以需要小于当前时间
+        console.log('patchLastData')
+        insertDataFun(json)
+      }
+    } catch (error) {
     }
     fs.unlinkSync(lastRecordPath)
   }
@@ -593,30 +596,30 @@ async function zipUpload(req, res) {
 // 根据参数自动备份
 function autoBackup() {
   let days = parseInt(dataSetting.autoBackupDays ?? 3, 10)
-  function getDayStr(before) {
-    let beforeDays = dayjs().subtract(before, 'day');
+  // 获取指定时间差的日期字符串
+  function getDateStr(before, flag) {
+    let beforeDays = dayjs().subtract(before, flag);
     return `skb_${beforeDays.format('YYYY-MM-DD-HH-mm-ss')}.zip`
   }
   if (!fs.existsSync(backupPath)) {
     fs.mkdirSync(backupPath)
   }
-  let lastBackUp = backupPath + getDayStr(0)
+  let lastBackUp = backupPath + getDateStr(0, 'day')
   if (days > 0) {
-    // backup 下保存文件
-    zipCore(function (content) {
-      // see FileSaver.js
-      fs.writeFileSync(lastBackUp, content);
-    })
-
     // 清理 days前的文件
-    let beforeStr = getDayStr(days)
+    let beforeStr = getDateStr(days, 'day')
     fs.readdir(backupPath, (err, files) => {
       if (err) {
         console.error('无法读取文件夹内容', err);
         return;
       }
       // 遍历文件列表
+      let maxFile = ''
       files.forEach((file) => {
+        // 取符合格式的文件名 `skb_${beforeDays.format('YYYY-MM-DD-HH-mm-ss')}.zip`
+        if (!/^skb_\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.zip$/i.test(file)) {
+          return
+        }
         if (file < beforeStr) {
           // 如果文件名表示的数字小于阈值数字，就删除该文件
           fs.unlink(path.join(backupPath, file), (err) => {
@@ -627,9 +630,20 @@ function autoBackup() {
             }
           });
         }
+        // 取符合格式的最大文件名
+        maxFile = file > maxFile ? file : maxFile
       });
-    });
+      // backup 下保存文件
+      let minBackUp = backupPath + getDateStr(3, 'minutes') // 备份时间间隔需要小于3分钟，防止持续重复备份
+      // 只有当前备份的时间大于已经备份的最大时间 3分钟
+      if (minBackUp > maxFile) {
+        zipCore(function (content) {
+          // see FileSaver.js
+          fs.writeFileSync(lastBackUp, content);
+        })
+      });
   }
+}
 }
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
