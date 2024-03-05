@@ -607,6 +607,7 @@ function autoBackup() {
   let lastBackUp = backupPath + getDateStr(0, 'day')
   if (days > 0) {
     // 清理 days前的文件
+    let maxFile = ''
     let beforeStr = getDateStr(days, 'day')
     fs.readdir(backupPath, (err, files) => {
       if (err) {
@@ -614,7 +615,6 @@ function autoBackup() {
         return;
       }
       // 遍历文件列表
-      let maxFile = ''
       files.forEach((file) => {
         // 取符合格式的文件名 `skb_${beforeDays.format('YYYY-MM-DD-HH-mm-ss')}.zip`
         if (!/^skb_\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.zip$/i.test(file)) {
@@ -633,18 +633,19 @@ function autoBackup() {
         // 取符合格式的最大文件名
         maxFile = file > maxFile ? file : maxFile
       });
-      // backup 下保存文件
-      let minBackUp = backupPath + getDateStr(3, 'minutes') // 备份时间间隔需要小于3分钟，防止持续重复备份
-      // 只有当前备份的时间大于已经备份的最大时间 3分钟
-      if (minBackUp > maxFile) {
-        zipCore(function (content) {
-          // see FileSaver.js
-          fs.writeFileSync(lastBackUp, content);
-        })
-      });
+    });
+    // backup 下保存文件
+    let minBackUp = backupPath + getDateStr(3, 'minutes') // 备份时间间隔需要小于3分钟，防止持续重复备份
+    // 只有当前备份的时间大于已经备份的最大时间 3分钟
+    if (minBackUp > maxFile) {
+      zipCore(function (content) {
+        // see FileSaver.js
+        fs.writeFileSync(lastBackUp, content);
+      })
+    }
   }
 }
-}
+
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
   deleteDataFun, zipDownload, zipUpload

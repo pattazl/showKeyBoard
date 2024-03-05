@@ -76,7 +76,6 @@ CheckServer(){
 	
 }
 ; 服务核心处理
-countOfConnectFail := 0
 ServerCore()
 {
     state := HttpCtrlObj['state'] ; 此值会随时变化，先记录下
@@ -111,10 +110,11 @@ ServerCore()
         }
     }else{
         ; 常规数据发送处理
+        global countOfConnectFail
         if state !='succ'{
             ShowTxt HttpCtrlObj['task'] ',connect fail!'   ; 可能后端服务被关闭了
             OutputDebug 'connect fail'
-            global countOfConnectFail += 1
+            countOfConnectFail += 1
             if(countOfConnectFail >= maxCountOfConnectFail){
                 MsgBox msgTry countOfConnectFail msgTimes msgConnectFail
                 countOfConnectFail := 0 ; 成功一次则复位

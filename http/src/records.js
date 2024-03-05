@@ -241,6 +241,8 @@ async function getDataSetting() {
   rows.forEach(r => {
     dataSetting[r.keyname] = r.val
   })
+  globalTopN = dataSetting.topN??globalTopN
+  globalAppTopN = dataSetting.appTopN??globalAppTopN
   return dataSetting
   // 关闭数据库连接
 }

@@ -134,6 +134,7 @@ global maxBottom := 0
 global ctrlKeyCount := 0
 global repeatRecord := 0
 
+global countOfConnectFail := 0
 ; 获取1970年开始的时间戳
 AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数
 
