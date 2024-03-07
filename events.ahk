@@ -213,14 +213,14 @@ SendPCInfo(flag)
             global minTop := Min(minTop,Top)
             global maxRight := Max(maxRight,Right)
             global maxBottom := Max(maxBottom,Bottom)
-            tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom ',"flag":' flag '}'
+            tmp := '{"Left":' Left ',"Top":' Top ',"Right":' Right ',"Bottom":' Bottom '}'
             JSONStr := JSONStr tmp
         }catch{
             ; 出现异常无需发送数据
             return 
         }
 	}
-	JSONStr := JSONStr ']}'
+	JSONStr := JSONStr '],"flag":' flag '}'
 	if serverState = 1 {
         StartHttp('sendPCInfo','/sendPCInfo',JSONStr,timeout:=8000)
     }

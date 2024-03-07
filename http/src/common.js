@@ -604,43 +604,47 @@ function autoBackup() {
   if (!fs.existsSync(backupPath)) {
     fs.mkdirSync(backupPath)
   }
-  let lastBackUp = backupPath + getDateStr(0, 'day')
+  let currentFile = getDateStr(0, 'day')
+  let lastBackUpPath = backupPath + currentFile
   if (days > 0) {
     // 清理 days前的文件
     let maxFile = ''
     let beforeStr = getDateStr(days, 'day')
-    fs.readdir(backupPath, (err, files) => {
-      if (err) {
-        console.error('无法读取文件夹内容', err);
-        return;
+    let files = []
+    try {
+      files = fs.readdirSync(backupPath);
+    } catch (err) {
+      console.error('无法读取文件夹内容:', err);
+      return;
+    }
+    // 遍历文件列表
+    files.forEach((file) => {
+      // 取符合格式的文件名 `skb_${beforeDays.format('YYYY-MM-DD-HH-mm-ss')}.zip`
+      if (!/^skb_\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.zip$/i.test(file)) {
+        return
       }
-      // 遍历文件列表
-      files.forEach((file) => {
-        // 取符合格式的文件名 `skb_${beforeDays.format('YYYY-MM-DD-HH-mm-ss')}.zip`
-        if (!/^skb_\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.zip$/i.test(file)) {
-          return
-        }
-        if (file < beforeStr) {
-          // 如果文件名表示的数字小于阈值数字，就删除该文件
-          fs.unlink(path.join(backupPath, file), (err) => {
-            if (err) {
-              console.error('无法删除文件', file, err);
-            } else {
-              console.log('已删除文件', file);
-            }
-          });
-        }
-        // 取符合格式的最大文件名
+      if (file < beforeStr) {
+        // 如果文件名表示的数字小于阈值数字，就删除该文件
+        fs.unlink(path.join(backupPath, file), (err) => {
+          if (err) {
+            console.error('无法删除文件', file, err);
+          } else {
+            console.log('已删除文件', file);
+          }
+        });
+      }
+      // 取符合格式的最大文件名,必须是小于当前要写入文件的时间
+      if(file<currentFile){
         maxFile = file > maxFile ? file : maxFile
-      });
+      }
     });
     // backup 下保存文件
-    let minBackUp = backupPath + getDateStr(3, 'minutes') // 备份时间间隔需要小于3分钟，防止持续重复备份
+    let minBackUp = getDateStr(3, 'minutes') // 备份时间间隔需要小于3分钟，防止持续重复备份
     // 只有当前备份的时间大于已经备份的最大时间 3分钟
     if (minBackUp > maxFile) {
       zipCore(function (content) {
         // see FileSaver.js
-        fs.writeFileSync(lastBackUp, content);
+        fs.writeFileSync(lastBackUpPath, content);
       })
     }
   }
