@@ -142,7 +142,7 @@ GetCommand(procId)
 ; 启动服务
 startServer()
 {
-    cmdExe := 'node.exe '  ; Node命令带空格支持后面的参数
+    cmdExe := serverExecName ' '  ; Node命令带空格支持后面的参数
     cmd := cmdExe '"' httpPath 'server.js"'  ; 完整命令行
     global serverState :=0 ; 假设启动失败
     ; 读取 httpPath+ kbserver.pid 进程文件检查是否是node的
@@ -163,7 +163,7 @@ startServer()
                         canKill := ((OutDir '\') = httpPath)
                     }
                     if canKill {
-                        ProcessClose(iPid) ;如果是 node.exe则杀进程
+                        ProcessClose(iPid) ;如果是 自己的进程则杀进程
                     }
                 }
             }
@@ -179,7 +179,7 @@ startServer()
 		Run cmd,httpPath,ShowFlag, &OutputVarPID
 		Sleep 1000  ;启动服务需要等待
 	}catch{
-		MsgBox msgLaunch
+		MsgBox msgLaunch "`n" cmd
 	}
 }
 ; 自动发送 AllKeyRecord 数据

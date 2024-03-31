@@ -83,6 +83,9 @@ hideInWinPwd :=DescRead("common","hideInWinPwd", "0" )
 statProcInfo :=DescRead("common","statProcInfo", "1" )
 ; 是否发送按键对应的进程信息，可用于统计不同进程下的按键数
 defaultLang :=DescRead("common","defaultLang", "zh-CN" )
+
+; 后端服务执行程序文件名
+serverExecName :=DescRead("common","serverExecName", "node.exe" )
 ; 默认语言
 ; 配置参数
 guiWidth :=DescRead("dialog","guiWidth", 300  ) ; 宽度

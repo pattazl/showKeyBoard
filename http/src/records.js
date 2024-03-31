@@ -264,13 +264,19 @@ async function getKeymaps() {
   return arr
 }
 // 保存统计的相关配置
+function flattenArray(arr) {
+  return arr.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenArray(val)) : acc.concat(val), []);
+}
+
 async function setDataSetting(hash) {
   const db = new sqlite3.Database(dbName);
   // 动态保存参数  mapDetail 参数在另外的表中，无需保存
   delete hash['mapDetail'];
   const placeholders = Object.keys(hash).map(() => '(?, ?)').join(', ');
   // 需要将内容全部按数组顺序排列
-  const values = Object.entries(hash).flat(3); // Infinity 数组展开配置参数表
+  const entries = Object.entries(hash);
+  const values = flattenArray(entries); // Infinity 数组展开配置参数表 
+  // const values = Object.entries(hash).flat(3); // Infinity 数组展开配置参数表  node 10不支持 flat
   await runExec(db, `INSERT OR REPLACE INTO dataSetting2 (keyname, val) VALUES ${placeholders}`, values)
   // 输出记录集
   globalTopN = hash.topN
