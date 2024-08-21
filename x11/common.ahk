@@ -1,7 +1,7 @@
-; 全局通用变量和函数
+﻿; 全局通用变量和函数
 IniFile := "showKeyBoard.ini"
-AllKeyRecord := Map()
-MinuteRecords := Array()
+AllKeyRecord := {}
+MinuteRecords := []
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
@@ -11,26 +11,27 @@ skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
 DescIniPath := "", httpDistPath := "",httpPath := "" , needRecordKey := -1
 
 DescRead(sect,key,defaultVal) {
-    if DescIniPath = "" {
-        httpDistPath :=IniRead(IniFile,"common","httpDistPath", "\httpdist\dist\" )
+    if (DescIniPath = "") {
+        IniRead, httpDistPath,IniFile,"common","httpDistPath", "\httpdist\dist\" 
         httpPath := A_WorkingDir httpDistPath   ; node 脚本所在目录
-        if !FileExist(httpPath){
+        if (!FileExist(httpPath)){
             needRecordKey := 0  ; 如果不存在则不用启动后端,后续也无需读取参数
         }
         tmpDescIni := A_WorkingDir httpDistPath "showKeyBoard.desc.ini"
-        if !FileExist(tmpDescIni){
+        if (!FileExist(tmpDescIni)){
             DescIniPath := "NotFound"
         }else{
             DescIniPath := tmpDescIni
         }
     }
-    if DescIniPath != "NotFound" {
+    if (DescIniPath != "NotFound") {
     ; 存在默认配置文件，可以开始读取数据
-        defaultVal := IniRead(DescIniPath,sect,key,defaultVal)
+         IniRead ,defaultVal,DescIniPath,sect,key,defaultVal
     }
-    return IniRead(IniFile,sect,key,defaultVal)
+	IniRead, descReadVal, IniFile,sect,key,defaultVal
+    return descReadVal
 }
-skipRecord := StrSplit(DescRead("common","skipRecord",""),'|')
+skipRecord := StrSplit(DescRead("common","skipRecord",""),"|")
 ; 哪些按键要忽略记录
 skipCtrlKey := DescRead("common","skipCtrlKey","0")
 ; 是否忽略单独的控制键，不记录
@@ -44,7 +45,7 @@ needShowKey := DescRead("common","needShowKey","1")
 preNeedShowKey := needShowKey
 ; 是否显示按键
 
-if needRecordKey = -1 {
+if(needRecordKey = -1){
     needRecordKey := DescRead("common","needRecordKey","1")
 }
 ; 是否记录按键
@@ -58,8 +59,8 @@ ctrlState :=DescRead("common","ctrlState",1 )
 serverPortDect := 19999
 serverPort :=DescRead("common","serverPort",serverPortDect ) 
 ; 尝试判断是否文件无法读取正确内容
-if serverPort = serverPortDect{
-    MsgBox('Can not read file: [' IniFile '], will exit!!')
+if (serverPort = serverPortDect){
+    MsgBox, "Can not read file: [" IniFile "], will exit!!"
     ExitApp
 }
 ; 是否显示 控制键状态，如果出现则显示
@@ -120,10 +121,10 @@ maxCountOfConnectFail :=DescRead("common","maxCountOfConnectFail", 60 ) ; 连续
 ; 部分变量设置
 serverUrl := "http://127.0.0.1:" serverPort
 ; 内部参数
-guiArr := Array() ; 保存guiObj 对象
-inArr := Array() ; 保存传入进来的数组
+guiArr := [] ; 保存guiObj 对象
+inArr := [] ; 保存传入进来的数组
 guiShowing := 0
-KeyMapping:=Map()
+KeyMapping:={}
 
 minLeft := 0
 minTop := 0
@@ -134,16 +135,21 @@ ctrlKeyCount := 0
 repeatRecord := 0
 
 countOfConnectFail := 0
+DateDiff(DateTime1, DateTime2, TimeUnits)
+{
+    EnvSub ,DateTime1, DateTime2, %TimeUnits%
+    return DateTime1
+}
 ; 获取1970年开始的时间戳
-AllKeyRecord['tick'] := DateDiff(A_NowUTC, '19700101', 'Seconds')*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数
+AllKeyRecord["tick"] := DateDiff(A_NowUTC, "19700101000000", "Seconds")*1000 + A_MSec ; tick数据不一样表示程序重启过，需要累计计数
 
 ; events 中变量控制
 reqXMLHTTP := 0 
-lastModified := FileGetTime(IniFile)
-HttpCtrlObj := Map()  ; 和http任务相关的数据
-HttpCtrlObj['resp'] := '' ; 返回的数据
-HttpCtrlObj['task'] := '' ; 任务名
-HttpCtrlObj['state'] := '' ; 当前状态 wait succ error
+FileGetTime,lastModified,IniFile
+HttpCtrlObj := {} ; 和http任务相关的数据
+HttpCtrlObj["resp"] := "" ; 返回的数据
+HttpCtrlObj["task"] := "" ; 任务名
+HttpCtrlObj["state"] := "" ; 当前状态 wait succ error
 serverState := -1  ; 是否连接到服务器， -1 还未启动过，0连失败，1 成功连接 
 CheckServerCount :=0
 ; 鼠标开始的位置和距离
@@ -153,5 +159,5 @@ mouseDistance := 0
 ; 全局键盘鼠标统计
 globalKeyCount := 0
 globalMouseCount := 0
-globalAppPath := ''  ; 当前激活的窗口路径
+globalAppPath := ""  ; 当前激活的窗口路径
 GetMinuteDataFlag := False  ; 标记正在处理分钟数据
