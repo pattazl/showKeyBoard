@@ -280,9 +280,26 @@ EditIsPWD(){
     }
     return isPASS
 }
-; 将数据放到数组中
+; 将按键数据放到数组中
 PushTxt(txt,isMouse:=False)
 {
+	; 只监控指定进程
+	if monitorProc != ''{
+        ; 获取活跃窗口 WinGetProcessName
+        activeWnd := WinExist("A")
+        if(activeWnd !=0 ){
+            procName := WinGetProcessName(activeWnd)
+            FoundPos := RegExMatch(procName, monitorProc )
+            ; 没有找到匹配则退出,不记录相关数据
+            if FoundPos = 0{
+                return
+            }
+        }else{
+			; 没有获取进程信息,也不记录
+            return
+        }
+		; 进程匹配则继续
+    }
     ; 界面显示内容
     if( needShowKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,2)=1 ))){
         maskTxt := txt

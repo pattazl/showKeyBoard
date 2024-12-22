@@ -9,6 +9,7 @@ export default {
 	ctrlState:'intro9',
 	serverPort:'intro11',
 	activeWindowProc:'intro12',
+	monitorProc:'intro179',
 	hotkey4Show:'intro14',
 	guiMonitorNum:'intro44',
 	guiWidth:'intro18',

@@ -65,6 +65,12 @@
                 <n-input-number v-model:value="allConfig.common.serverPort" :min="80" :max="65535" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro179}}
+              <template #suffix>
+                <n-input v-model:value="allConfig.common.monitorProc" type="text"
+                  :placeholder="contentText.intro13" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro12 }}
               <template #suffix>
                 <n-input v-model:value="allConfig.common.activeWindowProc" type="text"

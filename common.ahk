@@ -68,6 +68,9 @@ if serverPort = serverPortDect{
 activeWindowProc :=DescRead("common","activeWindowProc","" ) 
 ; 按键显示仅仅针对活跃窗口，正则匹配
 
+monitorProc :=DescRead("common","monitorProc", "" )
+; 监控的进程名,默认匹配所有进程
+
 showHttpDebug :=DescRead("common","showHttpDebug","0" ) 
 ; 是否显示http调试框
 
@@ -83,10 +86,11 @@ hideInWinPwd :=DescRead("common","hideInWinPwd", "0" )
 statProcInfo :=DescRead("common","statProcInfo", "1" )
 ; 是否发送按键对应的进程信息，可用于统计不同进程下的按键数
 defaultLang :=DescRead("common","defaultLang", "zh-CN" )
-
-; 后端服务执行程序文件名
-serverExecName :=DescRead("common","serverExecName", "node.exe" )
 ; 默认语言
+
+serverExecName :=DescRead("common","serverExecName", "node.exe" )
+; 后端服务执行程序文件名
+
 ; 配置参数
 guiWidth :=DescRead("dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=DescRead("dialog","guiHeigth", 0 ) ;高度 0 为自动高度

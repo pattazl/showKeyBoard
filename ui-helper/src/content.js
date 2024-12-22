@@ -206,6 +206,7 @@ export default {
 	intro176: '应用全路径显示的Y位置',
 	intro177: '客户端通讯异常，请重启客户端或重启系统',
 	intro178: '后台通讯中...',
+	intro179: '仅针对指定进程记录按键,注:显示是基于按键的',
 
   },
   'en-US': {
@@ -416,5 +417,6 @@ export default {
 	intro176: 'Tooltip of App path Y position',
 	intro177: 'Communication of Client error, please restart the client or system',
 	intro178: 'Communicate with backend...',
+	intro179: 'Record for defined active process , note: display is based on record',
   }
 };
