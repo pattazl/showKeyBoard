@@ -71,7 +71,10 @@ function doFile(picArr: string[]) {
         var filePath = path.join(parentPath, name);
         var stat = fs.statSync(filePath);
         if (stat.isFile()) {
-            var orifile = name.toLowerCase();
+            // 不太懂这里为什么要toLowerCase，这反而会导致文件名带有大写字母的图片被误判删除
+            // 感觉是Bug，我先注释了
+            // var orifile = name.toLowerCase();
+            var orifile = name;
             var extName = path.extname(orifile);
             if (extArr.indexOf(extName) > -1) // 必须是图片
             {

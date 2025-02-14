@@ -142,6 +142,11 @@
 					"enum": ["auto", "yes", "no"],
 					"description": "%markdown-image-manage.hasBracket%"
 				},
+        "markdown-image-manage.matchAngleBrackets": {
+					"type": "boolean",
+					"default": true,
+					"description": "%markdown-image-manage.matchAngleBrackets%"
+				},
         "markdown-image-manage.imageSaveFolder": {
 					"type": "string",
 					"default": "<filename>.assets",
