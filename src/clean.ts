@@ -67,15 +67,12 @@ function doFile(picArr: string[]) {
     // 循环走文件，如果是图片，但是不在 mdFile 中，则进行处理
     var removeArr: string[] = [];
     // 获取 prePath 目录下所有文件
-    fs.readdirSync(parentPath).forEach(function (name) {
+    fs.readdirSync(parentPath).forEach(function (name:string) {
         var filePath = path.join(parentPath, name);
         var stat = fs.statSync(filePath);
         if (stat.isFile()) {
-            // 不太懂这里为什么要toLowerCase，这反而会导致文件名带有大写字母的图片被误判删除
-            // 感觉是Bug，我先注释了
-            // var orifile = name.toLowerCase();
             var orifile = name;
-            var extName = path.extname(orifile);
+            var extName = path.extname(orifile).toLowerCase();
             if (extArr.indexOf(extName) > -1) // 必须是图片
             {
                 if (mdFile.indexOf(orifile) === -1) {

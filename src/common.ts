@@ -78,7 +78,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         
         // 如果需要匹配尖括号格式的图片，重新设置正则并再次匹配
         if (imageMatchAngleBrackets) {
-            reg = /<img src="(.+?)" .*?>/g; // 匹配尖括号格式的图片
+            reg = /<img src="(.+?)".*?>/g; // 匹配尖括号格式的图片
             findImage(reg, str, false, picArrNet, picArrLocal, picArrInvalid, oriMapping);
         }
 
