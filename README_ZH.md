@@ -55,13 +55,14 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 
 1. removeFolder: 本地图片目录清理时，其他图片移动的目标文件夹
 2. hasBracket: 图片路径中是否包括右括号
-3. imageSaveFolder: 图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)
-4. updateLink: 上传/下载/移动时是否需要更新md文件的图片链接
-5. skipSelectChange: 当光标或选择范围改变后是否依然更新图片链接
-6. rename: 上传/下载/移动图片时是否需要重命名图片
-7. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)。
-8. clipboardPath: 剪切板图片的路径和名称，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)。
-9. urlFormatted: 图片URL格式是否转义，转义后有兼容性强可读性弱，插入本地图片时生效
+3. matchAngleBrackets: 是否匹配尖括号中的图片链接
+4. imageSaveFolder: 图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)
+5. updateLink: 上传/下载/移动时是否需要更新md文件的图片链接
+6. skipSelectChange: 当光标或选择范围改变后是否依然更新图片链接
+7. rename: 上传/下载/移动图片时是否需要重命名图片
+8. remotePath: 图床上需要添加的远程路径，可区分不同md文件的图片，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)。
+9. clipboardPath: 剪切板图片的路径和名称，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)。
+10. urlFormatted: 图片URL格式是否转义，转义后有兼容性强可读性弱，插入本地图片时生效
 
 ## 已知问题
 

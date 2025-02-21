@@ -59,13 +59,14 @@ Get details in the extension, some of setting as below:
 
 1. removeFolder: The folder where image will move to when clean local image folder
 2. hasBracket: Whether the image path include right bracket
-3. imageSaveFolder: Local folder which the images will save to, support absolute or relative path. support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
-4. updateLink: Whether update the picture link in md file(Clean,Download,Upload,Move)
-5. skipSelectChange: Whether still update picture link when selection/position changed
-6. rename: Whether rename the image files(Download,Upload,Move
-7. remotePath: Which be added at beginning of PicBed path, support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
-8. clipboardPath: Clipboard image's path and name, support `<filename>` and date format`<YYYYMMDD>` variable (dayjs)
-9. urlFormatted: Whether escape image URL when insert local image
+3. matchAngleBrackets: Whether match the image link in angle brackets
+4. imageSaveFolder: Local folder which the images will save to, support absolute or relative path. support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
+5. updateLink: Whether update the picture link in md file(Clean,Download,Upload,Move)
+6. skipSelectChange: Whether still update picture link when selection/position changed
+7. rename: Whether rename the image files(Download,Upload,Move
+8. remotePath: Which be added at beginning of PicBed path, support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
+9. clipboardPath: Clipboard image's path and name, support `<filename>` and date format`<YYYYMMDD>` variable (dayjs)
+10. urlFormatted: Whether escape image URL when insert local image
 
 ## Known Issues
 

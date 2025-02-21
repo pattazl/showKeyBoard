@@ -23,6 +23,7 @@ export let urlFormatted = true; // URL格式神需要转义
 let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
 let imagePathBracket = 'auto'; // 文件名中包含括号
+let imageMatchAngleBrackets = true; // 是否支持尖括号格式图片
 
 export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: Record<string, any>, content: string } {
     var picArrLocal: string[] = [];
@@ -74,6 +75,13 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         // const imgList = str.match(pattern) || [] // ![img](http://hello.com/image.png)
         // let tmpPicArrNet: string[] = [],tmpPicArrLocal: string[]=[],tmpPicArrInvalid: string[]=[],tmpOriMapping={};
         findImage(reg, str, imagePathBracket == 'auto', picArrNet, picArrLocal, picArrInvalid, oriMapping);
+        
+        // 如果需要匹配尖括号格式的图片，重新设置正则并再次匹配
+        if (imageMatchAngleBrackets) {
+            reg = /<img src="(.+?)" .*?>/g; // 匹配尖括号格式的图片
+            findImage(reg, str, false, picArrNet, picArrLocal, picArrInvalid, oriMapping);
+        }
+
         /*if(picArrInvalid.length>0 && )
         {
             // 尝试有括号重新查找
@@ -257,10 +265,11 @@ export let logger = {
     }
 };
 // 设置相关内部变量
-export function setPara(bracket: string, ren: boolean, read: boolean, skip: boolean
+export function setPara(bracket: string, matchAngleBrackets: boolean,ren: boolean, read: boolean, skip: boolean
     , local: string, remote: string, rem: string
     , dl: number, ul: number, cb: string, urlf: boolean) {
     imagePathBracket = bracket;
+    imageMatchAngleBrackets = matchAngleBrackets;
     rename = ren;
     skipSelectChange = skip;
     readonly = !read; // 含义相反
