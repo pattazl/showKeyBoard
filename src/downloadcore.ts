@@ -22,7 +22,8 @@ async function download(url: string, dest: string, options:{}) {
       //const len = parseInt(res.headers["content-length"], 10);
       fs.ensureDirSync(dest);
       if (rename) {
-        filename = newName() + path.extname(filename); // 36 进制
+        let file = path.parse(filename) 
+        filename = newName(file.name) + file.ext; // path.extname(filename); // 36 进制
       }
 
       if (res.statusCode === 200) {

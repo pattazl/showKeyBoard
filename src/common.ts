@@ -13,6 +13,8 @@ export let readonly = false; // 是否只读，默认修改内容
 export let skipSelectChange = false; // 是否只读，默认修改内容
 export let overwriteFile = false; // 是否覆盖原先的md文件，此选项不用
 export let rename = false; // 是否下载的图片重新命名
+export let nameFormat = '[D]'; // 重命名默认格式
+export let fileN = 1; // 文件序号计数
 export let remotePath = ''; // 远程路径
 export let removeFolder = ''; // 移入的文件夹
 export let dlTimeout = 10; // 下载超时
@@ -75,7 +77,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         // const imgList = str.match(pattern) || [] // ![img](http://hello.com/image.png)
         // let tmpPicArrNet: string[] = [],tmpPicArrLocal: string[]=[],tmpPicArrInvalid: string[]=[],tmpOriMapping={};
         findImage(reg, str, imagePathBracket == 'auto', picArrNet, picArrLocal, picArrInvalid, oriMapping);
-        
+
         // 如果需要匹配尖括号格式的图片，重新设置正则并再次匹配
         if (imageMatchAngleBrackets) {
             reg = /<img src="(.+?)".*?>/g; // 匹配尖括号格式的图片
@@ -265,9 +267,9 @@ export let logger = {
     }
 };
 // 设置相关内部变量
-export function setPara(bracket: string, matchAngleBrackets: boolean,ren: boolean, read: boolean, skip: boolean
+export function setPara(bracket: string, matchAngleBrackets: boolean, ren: boolean, read: boolean, skip: boolean
     , local: string, remote: string, rem: string
-    , dl: number, ul: number, cb: string, urlf: boolean) {
+    , dl: number, ul: number, cb: string, urlf: boolean,renFormat:string) {
     imagePathBracket = bracket;
     imageMatchAngleBrackets = matchAngleBrackets;
     rename = ren;
@@ -280,6 +282,7 @@ export function setPara(bracket: string, matchAngleBrackets: boolean,ren: boolea
     ulTimeout = ul;
     clipboardPath = cb;
     urlFormatted = urlf;
+    nameFormat = renFormat
 }
 // 本地文件的通用检查 , 检查后备份相关相关变量
 export function mdCheck(file: string): boolean {
@@ -324,17 +327,20 @@ export function localCheck() {
     localFolder = targetFolder
     return true;
 }
-// 简单参数option的统一赋值
-export function getOpt(options: { readonly: null; overwriteFile: null; rename: null; }) {
-    let readonly = (options.readonly != null);
-    let overwriteFile = (options.overwriteFile != null);
-    let rename = (options.rename != null);
-    return { readonly, overwriteFile, rename }; // 返回
-}
 // 重新命名新文件名
-export function newName() {
+export function newName(fileName: string) {
+    // 需要根据 nameFormat 来重命名
+    // 1. [D]默认名,具体规则为时间戳+2位随机数,确保不重复
+    // 2. [N]表示原文件名
+    // 3. [N#-#]表示原文件名的字符范围,
+    // 4. [C]表示自动计数默认从1开始
+    // 5. [C0009]表示数字长度为4,从9开始计数
+    // 6. 为防止重复,规则中必须包含[D]或[C]之一,如果缺少则自动在结尾加[C]
+    // if(nameFormat=='D')
     let num = Math.random().toString().slice(2, 4);// 增加2位随机数防止时间冲突
-    return new Date().getTime().toString(36) + num;
+    let D = new Date().getTime().toString(36) + num;
+    fileN++;
+    return D
 }
 // 将URL地址进行转义和还原
 export function myEncodeURI(url: string, flag: boolean) {
@@ -343,7 +349,7 @@ export function myEncodeURI(url: string, flag: boolean) {
     try {
         newPath = decodeURI(newPath); // 防止重复encode，先decode
         newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
-    } catch(e) {
+    } catch (e) {
         console.log(e);
     }
     return newPath;
@@ -357,17 +363,16 @@ export function getAutoPath(newfile: string) {
 // 转换为路径 path.resolve('c:/aa/b','相对路径')
 function getAutoPathCore(dir: string, newfile: string) {
 
-        let relativeFile = path.relative(dir, newfile);
-        // 如果不是上级目录的文件
-        if (relativeFile.indexOf('..\\') == -1) {
-            newfile = relativeFile;
-        }
-        return newfile;
+    let relativeFile = path.relative(dir, newfile);
+    // 如果不是上级目录的文件
+    if (relativeFile.indexOf('..\\') == -1) {
+        newfile = relativeFile;
+    }
+    return newfile;
 }
 // 进行绝对路径和相对路径转换
-export function switchPath(strPath:string,relativeFlag: boolean = true)
-{
-    if(relativeFlag){
+export function switchPath(strPath: string, relativeFlag: boolean = true) {
+    if (relativeFlag) {
         // 转相对路径
         return path.relative(oMdFile.dir, strPath);
     } else {

@@ -60,6 +60,10 @@
         "title": "%markdown-image-manage.menuMove%"
       },
       {
+        "command": "markdown-image-manage.copy",
+        "title": "%markdown-image-manage.menuCopy%"
+      },
+      {
         "command": "markdown-image-manage.cleanlink",
         "title": "%markdown-image-manage.menuCleanLink%"
       },
@@ -99,6 +103,10 @@
         },
         {
           "command": "markdown-image-manage.move",
+          "group": "2_workspace"
+        },
+        {
+          "command": "markdown-image-manage.copy",
           "group": "2_workspace"
         },
         {

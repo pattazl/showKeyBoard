@@ -8,7 +8,7 @@ import { getImages,escapeStringRegexp,logger,mdFile,rename,
 // let overwriteFile = false; // 是否覆盖原先的md文件
 // let rename = false; // 是否对所有的图片重新命名
 
-export async function move(lf:string) // ,thread:number
+export async function move(lf:string,copyFlag:boolean) // ,thread:number
 {
     let localFolder = lf;
     let fileObj = getImages();
@@ -43,15 +43,20 @@ export async function move(lf:string) // ,thread:number
             logger.error(`get new image file name[${newFile}] fail!`);
             return '';
         }
-        logger.info(`[${file}] move to [${newFile}], ${count}/${len}`,false);
+        logger.info(`[${file}] move/copy to [${newFile}], ${count}/${len}`,false);
         try{
-            fs.renameSync(file,newFile);
+            if(copyFlag)
+            {
+                fs.copyFileSync(file,newFile);
+            }else{
+                fs.renameSync(file,newFile);
+            }
             var reg = new RegExp( '!\\[([^\\]]*)\\]\\('+ escapeStringRegexp(fileMapping[file]) +'\\)','ig');
             content =  content.replace(reg,'![$1]('+ getAutoPath( newFile) +')'); // 内容替换
             count++;
         }catch(e)
         {
-            logger.error('move error:');
+            logger.error('move/copy error:');
             console.log(e);
         }
     }

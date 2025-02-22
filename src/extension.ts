@@ -64,7 +64,11 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 	let dispMove = vscode.commands.registerCommand("markdown-image-manage.move", async () => {
 		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
-		vscMove();
+		vscMove(false);
+	})
+	let dispCopy = vscode.commands.registerCommand("markdown-image-manage.copy", async () => {
+		if(!initPara()){return;} // 参数可能更新，重新从配置中获取初始化参数
+		vscMove(true);
 	})
 	context.subscriptions.push(dispAnalyze);
 	context.subscriptions.push(dispClean);
@@ -74,6 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(dispInsertClip);
 	context.subscriptions.push(dispConvertImageFormat);
 	context.subscriptions.push(dispMove);
+	context.subscriptions.push(dispCopy);
 }
 
 // this method is called when your extension is deactivated

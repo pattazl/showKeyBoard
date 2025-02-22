@@ -72,6 +72,7 @@ export function initPara() {
     let updateLink = vscode.workspace.getConfiguration(extendName).get('updateLink') as boolean;
     let skipSelectChange = vscode.workspace.getConfiguration(extendName).get('skipSelectChange') as boolean;
     let rename = vscode.workspace.getConfiguration(extendName).get('rename') as boolean;
+    let nameFormat: string = vscode.workspace.getConfiguration(extendName).get('nameFormat') ||'[D]';
     let remotePath: string = vscode.workspace.getConfiguration(extendName).get('remotePath') || '<filename>';
     let imageSaveFolder: string = vscode.workspace.getConfiguration(extendName).get('imageSaveFolder') || '<filename>.assets';
     let removeFolder: string = vscode.workspace.getConfiguration(extendName).get('removeFolder') || 'md-img-remove';
@@ -83,7 +84,7 @@ export function initPara() {
     if(ulTimeout<=0) {ulTimeout =10;}
     //const isAsync: boolean = vscode.workspace.getConfiguration().get('downloadImageInMarkdown.isAsync') as boolean;
     setPara(hasBracket, matchAngleBrackets,rename, updateLink,skipSelectChange, imageSaveFolder, remotePath
-        , removeFolder,dlTimeout,ulTimeout,clipboardPath,urlFormatted);
+        , removeFolder,dlTimeout,ulTimeout,clipboardPath,urlFormatted,nameFormat);
 
     let file = vscode.window.activeTextEditor?.document.uri.fsPath || '';
     if (!mdCheck(file)) {
@@ -93,7 +94,7 @@ export function initPara() {
     return true;
 }
 
-export async function vscMove() {
+export async function vscMove(copyFlag:boolean) {
     const result = await vscode.window.showOpenDialog({
         canSelectFiles: false,
         canSelectFolders: true,
@@ -106,7 +107,7 @@ export async function vscMove() {
     }
 
     let localFolder: string = result[0].fsPath;
-    console.log(`Will Move images to localFolder[${localFolder}]`)
-    await move(localFolder);
+    console.log(`Will Move/Copy images to localFolder[${localFolder}]`)
+    await move(localFolder,copyFlag);
     showInVscode();
 }

@@ -7,6 +7,7 @@
     "markdown-image-manage.menuUpload": "MIM:Upload Select",
     "markdown-image-manage.menuUploadClip": "MIM:Upload Clipboard",
     "markdown-image-manage.menuMove": "MIM:Move Local Image",
+    "markdown-image-manage.menuCopy": "MIM:Copy Local Image",
     "markdown-image-manage.menuClipImage": "MIM:Insert Clipboard Image",
     "markdown-image-manage.menuConvertFormat": "MIM:Convert Selected Path Format",
     "markdown-image-manage.menuConvertLink": "MIM:Convert Path Relative<->Absolute",
