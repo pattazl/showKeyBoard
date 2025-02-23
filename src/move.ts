@@ -33,7 +33,7 @@ export async function move(lf:string,copyFlag:boolean) // ,thread:number
         if(rename)
         {
             //文件重命名
-            newFileName = newName()+ imageFile.ext;
+            newFileName = newName(imageFile.name)+ imageFile.ext;
         }else{
             // 仅仅更换目录
             newFileName = imageFile.base;
@@ -43,7 +43,7 @@ export async function move(lf:string,copyFlag:boolean) // ,thread:number
             logger.error(`get new image file name[${newFile}] fail!`);
             return '';
         }
-        logger.info(`[${file}] move/copy to [${newFile}], ${count}/${len}`,false);
+        logger.info(`[${file}] ${copyFlag?'copy':'move'} to [${newFile}], ${count}/${len}`,false);
         try{
             if(copyFlag)
             {

@@ -14,7 +14,7 @@ export let skipSelectChange = false; // 是否只读，默认修改内容
 export let overwriteFile = false; // 是否覆盖原先的md文件，此选项不用
 export let rename = false; // 是否下载的图片重新命名
 export let nameFormat = '[D]'; // 重命名默认格式
-export let fileN = 1; // 文件序号计数
+export let fileNum = 0; // 文件序号计数
 export let remotePath = ''; // 远程路径
 export let removeFolder = ''; // 移入的文件夹
 export let dlTimeout = 10; // 下载超时
@@ -80,7 +80,7 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
 
         // 如果需要匹配尖括号格式的图片，重新设置正则并再次匹配
         if (imageMatchAngleBrackets) {
-            reg = /<img src="(.+?)".*?>/g; // 匹配尖括号格式的图片
+            reg = /<img src="(.+?)".*?>/ig; // 匹配尖括号格式的图片
             findImage(reg, str, false, picArrNet, picArrLocal, picArrInvalid, oriMapping);
         }
 
@@ -269,7 +269,7 @@ export let logger = {
 // 设置相关内部变量
 export function setPara(bracket: string, matchAngleBrackets: boolean, ren: boolean, read: boolean, skip: boolean
     , local: string, remote: string, rem: string
-    , dl: number, ul: number, cb: string, urlf: boolean,renFormat:string) {
+    , dl: number, ul: number, cb: string, urlf: boolean, renFormat: string) {
     imagePathBracket = bracket;
     imageMatchAngleBrackets = matchAngleBrackets;
     rename = ren;
@@ -282,7 +282,8 @@ export function setPara(bracket: string, matchAngleBrackets: boolean, ren: boole
     ulTimeout = ul;
     clipboardPath = cb;
     urlFormatted = urlf;
-    nameFormat = renFormat
+    nameFormat = renFormat;
+    fileNum = 0 ; // 文件计数需要复位
 }
 // 本地文件的通用检查 , 检查后备份相关相关变量
 export function mdCheck(file: string): boolean {
@@ -339,8 +340,42 @@ export function newName(fileName: string) {
     // if(nameFormat=='D')
     let num = Math.random().toString().slice(2, 4);// 增加2位随机数防止时间冲突
     let D = new Date().getTime().toString(36) + num;
-    fileN++;
-    return D
+    fileNum++;
+    // 需要判断 nameFormat 中是否有 [D] 或 [C]以防止文件名重复
+    if (!/\[D\]|\[C\d*\]/.test(nameFormat)) {
+        nameFormat += '[C]'  // 如果缺少则自动在结尾加[C]
+    }
+    let newFileName = nameFormat
+    newFileName = newFileName.replace(/\[D\]/g, D)
+    newFileName = newFileName.replace(/\[N\]/g, fileName)
+    newFileName = newFileName.replace(/\[C\]/g, fileNum.toString())
+    newFileName = newFileName.replace(/\[N(\d*)-?(\d*)\]/g, function (a, b, c) {
+        let endIndex = fileName.length
+        let startIndex = 0
+        if (b != '') {
+            startIndex = parseInt(b) - 1
+            if (c != '') {
+                endIndex = parseInt(c)
+            }
+        } else {
+            // 倒数
+            if (c != '') {
+                startIndex = endIndex - parseInt(c)
+            }
+        }
+        console.log(startIndex, endIndex)
+        return fileName.substring(startIndex, endIndex)
+    })
+    newFileName = newFileName.replace(/\[C(\d+)\]/g, function (a, b) {
+        let num = parseInt(b)
+        let newNum = fileNum
+        if (!isNaN(num)) {
+            newNum += num - 1 // 默认就从1开始了
+        }
+        // 用长度补0
+        return String(newNum).padStart(b.length, '0');
+    })
+    return newFileName
 }
 // 将URL地址进行转义和还原
 export function myEncodeURI(url: string, flag: boolean) {

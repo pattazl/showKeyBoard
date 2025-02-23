@@ -99,7 +99,7 @@ export async function vscMove(copyFlag:boolean) {
         canSelectFiles: false,
         canSelectFolders: true,
         canSelectMany: false,
-        openLabel: getLang('moveHint')
+        openLabel: getLang(copyFlag?'copyHint':'moveHint')
     });
 
     if (!result || result.length === 0) {

@@ -76,3 +76,19 @@ All notable changes to this project will be documented in this file.
 ## [0.1.0] - 2022-10-19
 
 Use esbuild
+
+## [0.1.1] - 2023-6-25
+
+Some bugs were fixed based on the code contributed by shaolonger.
+
+1. When creating a local folder, a recursive method is used to ensure success even when intermediate levels do not exist.
+2. Fixed the bug where an abnormal error was reported when the VSCode language was not within the default values.
+3. Added a new function that, when the image extension does not exist  after removing illegal characters, automatically obtains and fills back  the extension based on the file buffer.
+4. Fixed the problem where the program exited abnormally due to illegal characters in the URL address when encoding and decoding the URL.
+
+## [0.1.2] - 2025-2-23
+
+1. Local files support images in the `<img src="">` format, adopting the PR from Romantoscalion.
+2. Custom renaming formats are supported when renaming files. For details, see Readme.md -> Renaming Rules.
+3. Added a menu option: Copy Local Images. This option copies the images to a new directory and updates the link content.
+4. The limit of VSCode change to 1.75
