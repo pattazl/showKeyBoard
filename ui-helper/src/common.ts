@@ -205,13 +205,17 @@ function getKeyDesc(keyName) {
     .replace(/>#/g, 'RWin ')
     .replace(/#/g, 'Win ')
 }
-function showLeftKey(switchVal, leftKey, keyStatHash) {
+function showLeftKey(leftAll,switchVal, leftKey,allKey,keyStatHash) {
   // 需要合并 左右控制键
   let newArr = new Set<string>();
   let newItemHash = {};
-  let tempLeftKey = leftKey;
+  let keys = allKey
+  if(leftAll == 0){
+    keys = leftKey
+  }
+  let tempLeftKey = keys;
   if (switchVal) { // 合并
-    leftKey.forEach(function (item) {
+    keys.forEach(function (item) {
       let newItem = item.replace(/[<>]/g, '')
       if (newItem != item) {
         if (newItemHash[newItem] == null) {

@@ -37,7 +37,8 @@
         </n-card>
         <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
           <template #header-extra>
-            <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
+            <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch"
+              @update:value="showLeftKeyRef">
               <template #checked>
                 {{ contentText.intro143 }}
               </template>
@@ -396,7 +397,7 @@ export default defineComponent({
     let firstUpdate = ref(true); // 用于控制第一次显示时没有延时，其他均有延时显示
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
-
+    const leftAllKeySwitch = ref(0);
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
     let screenPixlSize = 0;
@@ -548,11 +549,15 @@ export default defineComponent({
       }
       showHash(keyStatHash)
     }
-    let lastLeftKey = [], LastKeyStatHash = {};
+    let lastLeftKey = [], LastKeyStatHash = {}, lastAllKey = [];
     // 显示数据
     function showHash(keyStatHash) {
       let keyArr = []  // 已经统计的数据清单
-      let leftKey = Object.keys(keyStatHash)  // 剩余的匹配清单
+      let allKey = Object.keys(keyStatHash)
+      // tick 和 mouseDistance 不属于按键，排除
+      arrRemove(allKey, 'tick');
+      arrRemove(allKey, 'mouseDistance');
+      let leftKey = [...allKey]  // 变量存储剩余的匹配清单，后续改变
       option.series[0].data = keyData.map(function (item) {
         let val: string | number = 0, key: string, keyMap;
         keyMap = item[3]
@@ -578,8 +583,6 @@ export default defineComponent({
       option && myChartArr[0].setOption(option);
       // 显示未统计进去的数据 leftKey
       //let leftHash = {};
-      arrRemove(leftKey, 'tick'); // 去掉
-      arrRemove(leftKey, 'mouseDistance'); // 去掉
       // 显示 chart2
       appListData.value = showAppChart(leftKey, keyStatHash, option2, myChartArr[1]
         , store.data.dataSetting.mergeAppName ? appNameListMap : null);
@@ -592,8 +595,8 @@ export default defineComponent({
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
-      lastLeftKey = leftKey, LastKeyStatHash = keyStatHash;
-      dataTable.value = showLeftKey(leftKeySwitch.value, leftKey, keyStatHash)
+      lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
+      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey, keyStatHash)
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
         let pixel = keyStatHash['mouseDistance']; //获取像素移动距离

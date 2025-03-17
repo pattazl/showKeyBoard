@@ -106,7 +106,7 @@ export default {
 	intro84:'没有改变',
 	intro85:'数据读取失败!',
 	intro86:'键盘显示',
-	intro87:'其他按键统计',
+	intro87:'按键次数清单',
 	intro88:'键名',
 	intro89:'按键说明',
 	intro90:'统计数据',
@@ -207,6 +207,8 @@ export default {
 	intro177: '客户端通讯异常，请重启客户端或重启系统',
 	intro178: '后台通讯中...',
 	intro179: '仅针对指定进程记录按键,注:显示是基于按键的',
+	intro180: '全部按键',
+	intro181: '剩余按键',
 
   },
   'en-US': {
@@ -316,7 +318,7 @@ export default {
 	intro84: 'No changed',
 	intro85:'Read data fail!',
 	intro86:'Show in keyboard',
-	intro87:'Other Keypress',
+	intro87:'List of Keypress',
 	intro88:'KeyName',
 	intro89:'Key Description',
 	intro90:'Key Count',
@@ -418,5 +420,7 @@ export default {
 	intro177: 'Communication of Client error, please restart the client or system',
 	intro178: 'Communicate with backend...',
 	intro179: 'Record for defined active process , note: display is based on record',
+	intro180: 'All keys',
+	intro181: 'Left keys',
   }
 };
