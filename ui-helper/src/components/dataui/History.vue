@@ -6,7 +6,7 @@
         <n-anchor-link :title="contentText.intro86" href="#intro86" />
         <n-anchor-link :title="contentText.intro97" href="#intro97" />
         <n-anchor-link :title="contentText.intro149" href="#intro149" />
-        <n-anchor-link :title="contentText.intro149" href="#intro149_" />
+        <n-anchor-link :title="contentText.intro182" href="#intro149_" />
         <n-anchor-link :title="contentText.intro87" href="#intro87" />
         <n-anchor-link :title="contentText.intro165" href="#intro165" />
         <n-anchor-link :title="contentText.intro166" href="#intro166" />
@@ -40,11 +40,12 @@
       <n-card id="intro149" :title="contentText.intro149">
         <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
       </n-card>
-      <n-card id="intro149_" :title="contentText.intro149">
+      <n-card id="intro149_" :title="contentText.intro182">
         <n-data-table :columns="columns2" :data="appListData" />
       </n-card>
       <n-card id="intro87" :title="contentText.intro87">
         <template #header-extra>
+          <n-space>
           <n-switch :round="false" :rail-style="railStyle" v-model:value="leftAllKeySwitch" @update:value="showLeftKeyRef">
             <template #checked>
               {{ contentText.intro180 }}
@@ -61,6 +62,7 @@
               {{ contentText.intro144 }}
             </template>
           </n-switch>
+        </n-space>
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
@@ -490,6 +492,10 @@ export default defineComponent({
       // tick 和 mouseDistance 不属于按键，排除
       arrRemove(allKey, 'tick');  
       arrRemove(allKey, 'mouseDistance');  
+      // 显示 chart2 应用数据，并且剥离掉 APP数据
+      appListData.value = showAppChart(allKey, keyStatHash, option2, myChartArr[1]
+      , store.data.dataSetting.mergeAppName ? appNameListMap : null);
+      // 剩余按键信息
       let leftKey = [...allKey]  // 变量存储剩余的匹配清单，后续改变
       option.series[0].data = keyData.map(function (item) {
         let val: string | number = 0, key: string, keyMap;
@@ -516,9 +522,6 @@ export default defineComponent({
       option && myChartArr[0].setOption(option);
       // 显示未统计进去的数据 leftKey
       //let leftHash = {};
-      // 显示 chart2
-      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChartArr[1]
-        , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       //leftKey.sort((a, b) => keyStatHash[b] - keyStatHash[a])  // 排序
       //let leftKeyVal = []
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))

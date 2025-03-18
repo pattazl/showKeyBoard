@@ -490,7 +490,13 @@ function zipCore(cbFun) {
   fileContent = fs.readFileSync(dbName);
   zip.file(dbName, fileContent);
 
-  zip.generateAsync({ type: "nodebuffer" }).then(function (content) {
+  zip.generateAsync({ 
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: {
+        level: 5  /** 压缩比 0-9 低到高 */
+    }
+  }).then(function (content) {
     // see FileSaver.js
     cbFun(content)
   });

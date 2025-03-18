@@ -56,7 +56,7 @@ function str2Type(hash, flag) {
         return;
       }
       if (boolArr.indexOf(k) > -1) {
-        hash[k] = hash[k] == 1
+        hash[k] = (parseInt(hash[k]) == 1) as boolean
       } else if (/^-?(?!0\d)\d+$/.test(hash[k])) { // 如果不是0，但是用0开头的数字，则为字符串，解决颜色的bug
         hash[k] = Number(hash[k]);
       }
@@ -125,7 +125,7 @@ function arrRemove(arr /*out */, key) {
   })
 }
 // 控制应用图形显示,将 leftKey 中 App-开头的按键剥离出去
-function showAppChart(leftKey, keyStatHash, opt, chart, mergeApp) {
+function showAppChart(leftKey/**out */, keyStatHash, opt, chart, mergeApp) {
   let appArr = leftKey.filter(x => x.indexOf('App-') > -1)
   arrRemove(leftKey, appArr) // 清除应用信息
   // 所有应用的数组清单

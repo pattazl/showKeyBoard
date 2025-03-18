@@ -6,7 +6,7 @@
         <n-anchor-link :title="contentText.intro86" href="#intro86" />
         <n-anchor-link :title="contentText.intro97" href="#intro97" />
         <n-anchor-link :title="contentText.intro149" href="#intro149" />
-        <n-anchor-link :title="contentText.intro149" href="#intro149_" />
+        <n-anchor-link :title="contentText.intro182" href="#intro149_" />
         <n-anchor-link :title="contentText.intro87" href="#intro87" />
         <n-anchor-link :title="contentText.intro165" href="#intro165" />
         <n-anchor-link :title="contentText.intro167" href="#intro167" />
@@ -32,20 +32,29 @@
         <n-card id="intro149" :title="contentText.intro149 + contentText.intro142 + updateTime">
           <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
         </n-card>
-        <n-card id="intro149_" :title="contentText.intro149 + contentText.intro142 + updateTime">
+        <n-card id="intro149_" :title="contentText.intro182 + contentText.intro142 + updateTime">
           <n-data-table :columns="columns2" :data="appListData" />
         </n-card>
         <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
           <template #header-extra>
-            <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch"
-              @update:value="showLeftKeyRef">
-              <template #checked>
-                {{ contentText.intro143 }}
-              </template>
-              <template #unchecked>
-                {{ contentText.intro144 }}
-              </template>
-            </n-switch>
+            <n-space>
+              <n-switch :round="false" :rail-style="railStyle" v-model:value="leftAllKeySwitch" @update:value="showLeftKeyRef">
+                <template #checked>
+                  {{ contentText.intro180 }}
+                </template>
+                <template #unchecked>
+                  {{ contentText.intro181 }}
+                </template>
+              </n-switch>
+              <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
+                <template #checked>
+                  {{ contentText.intro143 }}
+                </template>
+                <template #unchecked>
+                  {{ contentText.intro144 }}
+                </template>
+              </n-switch>
+            </n-space>
           </template>
           <n-data-table :columns="columns" :data="dataTable" />
         </n-card>
@@ -557,6 +566,9 @@ export default defineComponent({
       // tick 和 mouseDistance 不属于按键，排除
       arrRemove(allKey, 'tick');
       arrRemove(allKey, 'mouseDistance');
+      // 显示 chart2 应用数据，并且剥离掉 APP数据
+      appListData.value = showAppChart(allKey, keyStatHash, option2, myChartArr[1]
+        , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       let leftKey = [...allKey]  // 变量存储剩余的匹配清单，后续改变
       option.series[0].data = keyData.map(function (item) {
         let val: string | number = 0, key: string, keyMap;
@@ -583,9 +595,6 @@ export default defineComponent({
       option && myChartArr[0].setOption(option);
       // 显示未统计进去的数据 leftKey
       //let leftHash = {};
-      // 显示 chart2
-      appListData.value = showAppChart(leftKey, keyStatHash, option2, myChartArr[1]
-        , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       /**const appListData0 = [
         { appPath: 'c:/123',
           keyCount: 32,
@@ -596,7 +605,7 @@ export default defineComponent({
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
-      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey, keyStatHash)
+      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey,allKey,keyStatHash)
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
         let pixel = keyStatHash['mouseDistance']; //获取像素移动距离
@@ -617,7 +626,7 @@ export default defineComponent({
       }
     }
     function showLeftKeyRef() {
-      dataTable.value = showLeftKey(leftKeySwitch.value, lastLeftKey, LastKeyStatHash)
+      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, lastLeftKey,lastAllKey,LastKeyStatHash)
     }
     let lastMinute = '', minuteDataInterval = null;
     function setupMinuteData() {
@@ -749,6 +758,7 @@ export default defineComponent({
       mouseTable,
       updateTime,
       leftKeySwitch,
+      leftAllKeySwitch,
       showLeftKeyRef,
       railStyle,
       appListData,

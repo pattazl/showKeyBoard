@@ -209,6 +209,7 @@ export default {
 	intro179: '仅针对指定进程记录按键,注:显示是基于按键的',
 	intro180: '全部按键',
 	intro181: '剩余按键',
+	intro182: '应用按键明细',
 
   },
   'en-US': {
@@ -422,5 +423,6 @@ export default {
 	intro179: 'Record for defined active process , note: display is based on record',
 	intro180: 'All keys',
 	intro181: 'Left keys',
+	intro182: 'App keypress detail',
   }
 };
