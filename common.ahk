@@ -163,3 +163,5 @@ globalKeyCount := 0
 globalMouseCount := 0
 globalAppPath := ''  ; 当前激活的窗口路径
 GetMinuteDataFlag := False  ; 标记正在处理分钟数据
+; 主显示器编号
+LastScreenNum := MonitorGetPrimary()

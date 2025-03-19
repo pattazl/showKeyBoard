@@ -210,6 +210,7 @@ export default {
 	intro180: '全部按键',
 	intro181: '剩余按键',
 	intro182: '应用按键明细',
+	intro183: '跟随激活窗口',
 
   },
   'en-US': {
@@ -424,5 +425,6 @@ export default {
 	intro180: 'All keys',
 	intro181: 'Left keys',
 	intro182: 'App keypress detail',
+	intro183: 'Follow Active App',
   }
 };

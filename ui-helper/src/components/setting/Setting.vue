@@ -135,8 +135,7 @@
           {{ contentText.intro17 }}
           <n-list hoverable v-if="allConfig.dialog">
             <n-list-item>{{ contentText.intro44 }}<div :class="screenInfo.length > 0 ? 'intro' : 'error'">{{
-              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{
-    screenInfo[allConfig.dialog.guiMonitorNum - 1] }}</div>
+              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{screenInfo[allConfig.dialog.guiMonitorNum] }}</div>
               <template #suffix>
                 <n-select v-model:value="allConfig.dialog.guiMonitorNum" :options="screenNum" />
               </template>
@@ -566,7 +565,7 @@ export default defineComponent({
     const skipRecordRef = ref([])
     const ctrlListRef = ref([])
     const skipShowRef = ref([])
-    const screenInfo = ref('')  // 屏幕数据
+    const screenInfo = ref([])  // 屏幕数据
     const screenNum = ref([])  // 屏幕
     const dataSetting = ref<any>({})  // 屏幕
     const keymapsRef = ref([])  // 选择的键盘清单
@@ -593,8 +592,9 @@ export default defineComponent({
 
       const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
       if (sinfo != null) {
+        sinfo.unshift( contentText.value.intro183 );
         screenInfo.value = sinfo
-        screenNum.value = toVSelectList([...Array(sinfo.length).keys()].map(x => x + 1))
+        screenNum.value = toVSelectList([...Array(sinfo.length).keys()])
       }
       //console.log('data.config', data.config)
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
