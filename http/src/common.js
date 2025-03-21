@@ -31,7 +31,7 @@ var port = parseInt(config.common?.serverPort ?? 9900)
 var remoteType = parseInt(config.common?.remoteType ?? 0)
 
 let hostAddress = remoteType == 0 ? '127.0.0.1' : '0.0.0.0'
-console.log(hostAddress)
+console.log('localhost',hostAddress)
 let handleAutoSave = null  // 自动保存到DB的句柄
 
 let networkIP = []

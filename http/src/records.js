@@ -195,23 +195,70 @@ async function doCleanData() {
     console.log(before, beforeDays, maxDate, yesterday)
     if (maxDate < yesterday) {
       // 需要将  yesterday 天的数据按分钟统计，并插入到表中
+      // 此处很容易导致多次插入重复数据
       console.log('create hours')
-      lines = await runExec(db, `INSERT INTO statFreq (keyTime, keyCount,mouseCount,distance,freqType,date) 
-      SELECT SUBSTR(keyTime,0,11) as kt ,sum(keyCount),sum(mouseCount),sum(distance),1,date FROM statFreq 
-      where freqType = 0 and date between ? and ? group by kt
-      `, [maxDate, yesterday])
+      lines = await runExec(db, `INSERT INTO statFreq (keyTime, keyCount, mouseCount, distance, freqType, date) 
+SELECT 
+    SUBSTR(keyTime, 0, 11) as kt, 
+    SUM(keyCount),
+    SUM(mouseCount),
+    SUM(distance),
+    1,
+    date 
+FROM 
+    statFreq 
+WHERE 
+    freqType = 0 
+    AND date BETWEEN ? AND ?
+    AND NOT EXISTS (
+        SELECT 1 
+        FROM statFreq sf 
+        WHERE sf.keyTime = SUBSTR(statFreq.keyTime, 0, 11)
+    )
+GROUP BY 
+    kt;`, [maxDate, yesterday])
       console.log('插入小时统计条数: ', lines)
       // 更新新的统计算法，如果一分钟内有多个应用激活，那么多个应用将平分这一分钟时间
-      lines = await runExec(db, `INSERT INTO appFreq (keyTime,appPath, keyCount,mouseCount,freqType,date) 
-      with tempApp as (
-              SELECT keyTime, appPath,keyCount,mouseCount,date FROM appFreq 
-              where freqType = 0 and date between ? and ?
-              )
-              ,tempApp2 as (  
-              SELECT a.*,1.0/b.times as times FROM tempApp a left join ( SELECT keyTime,count(keyTime) as times FROM tempApp group by keyTime ) b 
-              on b.keyTime = a.keyTime 
-              )
-      select SUBSTR(keyTime,0,11) as kt, appPath, sum(keyCount),sum(mouseCount), sum(times),date from tempApp2	group by appPath, kt		
+      lines = await runExec(db, `	 
+WITH tempApp AS (
+    SELECT keyTime, appPath, keyCount, mouseCount, date 
+    FROM appFreq 
+    WHERE freqType = 0 AND date BETWEEN ? AND ?
+),
+tempApp2 AS (
+    SELECT a.*, 1.0 / b.times AS times 
+    FROM tempApp a 
+    LEFT JOIN (
+        SELECT keyTime, COUNT(keyTime) AS times 
+        FROM tempApp 
+        GROUP BY keyTime
+    ) b ON b.keyTime = a.keyTime
+),
+tempInsertData AS (
+    SELECT 
+        SUBSTR(keyTime, 0, 11) AS kt, 
+        appPath, 
+        SUM(keyCount) AS keyCount, 
+        SUM(mouseCount) AS mouseCount, 
+        SUM(times) AS times, 
+        date 
+    FROM tempApp2
+    GROUP BY appPath, SUBSTR(keyTime, 0, 11)
+)
+INSERT INTO appFreq (keyTime, appPath, keyCount, mouseCount, freqType, date) 
+SELECT 
+    kt, 
+    appPath, 
+    keyCount, 
+    mouseCount, 
+    1, 
+    date 
+FROM tempInsertData
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM appFreq 
+    WHERE keyTime = tempInsertData.kt AND appPath = tempInsertData.appPath
+);	
       `, [maxDate, yesterday])
       console.log('插入小时应用条数: ', lines)
     }
@@ -552,8 +599,45 @@ async function cleanErrStat() {
   await runBatchExec(db,sql);
   db.close()
 }
-  
+
+// 清理异常的统计数据
+async function cleanErrAppStat() {
+  console.log('cleanErrAppStat...')
+  const db = new sqlite3.Database(dbName);
+  //  日期和按键有重复的数据
+  const sql = ` -- 清理appFreq
+  DROP TABLE IF EXISTS temp_table;
+  CREATE TEMPORARY TABLE temp_table AS
+SELECT MIN(rowid) AS rowid_to_keep
+FROM appFreq
+GROUP BY keyTime, appPath;
+
+-- 删除原表中不在临时表中的记录
+DELETE FROM appFreq
+WHERE rowid NOT IN (SELECT rowid_to_keep FROM temp_table);
+
+-- 删除临时表
+DROP TABLE temp_table;
+-- 清理 statFreq
+CREATE TEMPORARY TABLE temp_table AS
+SELECT MIN(rowid) AS rowid_to_keep
+FROM statFreq
+GROUP BY keyTime;
+
+-- 删除原表中不在临时表中的记录
+DELETE FROM statFreq
+WHERE rowid NOT IN (SELECT rowid_to_keep FROM temp_table);
+
+-- 删除临时表
+DROP TABLE temp_table;
+`
+  await runBatchExec(db,sql);
+  db.close()
+  console.log('cleanErrStat succ!')
+}
+
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords,cleanErrStat
+  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords,cleanErrStat,
+  cleanErrAppStat
 };
