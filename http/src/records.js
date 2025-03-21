@@ -630,10 +630,13 @@ WHERE rowid NOT IN (SELECT rowid_to_keep FROM temp_table);
 
 -- 删除临时表
 DROP TABLE temp_table;
+
+-- 进行空间收缩
+VACUUM;
 `
   await runBatchExec(db,sql);
   db.close()
-  console.log('cleanErrStat succ!')
+  console.log('cleanErrAppStat succ!')
 }
 
 module.exports = {

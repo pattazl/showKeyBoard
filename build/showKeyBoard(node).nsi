@@ -3,7 +3,7 @@
 
 ; 安装程序初始定义常量
 !define PRODUCT_NAME $(ToolLang)
-!define PRODUCT_VERSION "v1.37"
+!define PRODUCT_VERSION "v1.38"
 !define /date DATESTR "%y%m%d"
 !define ExeName "showKeyBoard.exe"
 !define PRODUCT_PUBLISHER "Austin.Young"
@@ -125,6 +125,7 @@ Section $(mainSect) mainSect
   SetOutPath "$INSTDIR"
   SetOverwrite on
     File "release\${ExeName}"
+    File "release\fixStat修复统计数据.bat"
 ; 配置文件如果存在不能覆盖
   SetOverwrite off
     File "release\showKeyBoard.ini"
@@ -209,6 +210,7 @@ Section Uninstall
     Delete "$INSTDIR\Website.url"
     Delete "$INSTDIR\uninst.exe"
     Delete "$INSTDIR\${ExeName}"
+    Delete "$INSTDIR\fixStat修复统计数据.bat"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk"
     Delete "$DESKTOP\ShowKeyBoard.lnk"

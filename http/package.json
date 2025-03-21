@@ -1,6 +1,6 @@
 {
   "main": "server.js",
-  "version": "1.36.0",
+  "version": "1.38.0",
   "name": "httpserver",
   "binary": {
     "module_name": "node_sqlite3",
