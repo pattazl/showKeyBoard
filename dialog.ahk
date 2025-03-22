@@ -45,25 +45,9 @@ GetActiveWindowScreenNumber(screenCount) {
 ; 创建或显示内容
 ShowTxt(text)
 {
-	if text = "" or needShowKey = 0 {
+	if text = "" {
 		return 
 	}
-    ; 获取活跃窗口进程匹配 FoundPos := RegExMatch(Haystack, NeedleRegEx [, &OutputVar, StartingPos])
-    if activeWindowProc != ''{
-        ; 获取活跃窗口 WinGetProcessName
-        activeWnd := WinExist("A")
-        if(activeWnd !=0 ){
-            procName := WinGetProcessName(activeWnd)
-            FoundPos := RegExMatch(procName, activeWindowProc )
-            ; 没有找到匹配则不显示
-            if FoundPos = 0{
-                return
-            }
-        }else{
-            return
-        }
-    }
-    
 	textArr := []
 	; 如果正在处理中，则不要销毁窗口
 	global guiShowing := 1
@@ -217,17 +201,17 @@ CloseSelf()
 CallShow()
 {
 	if inArr.Length > 0 {
-        val1 := inArr[1]
-        bShow := 1
-        loop skipShow.Length {
-            if skipShow[A_Index] = val1 {
-                bShow := 0
-                break  ; 在不显示列表中跳过
-            }
-        }
-        if(bShow=1){
-            ShowTxt( ConvertTxt(val1) )
-        }
+		val1 := inArr[1]
+		bShow := 1
+		loop skipShow.Length {
+			if skipShow[A_Index] = val1 {
+				bShow := 0
+				break  ; 在不显示列表中跳过
+			}
+		}
+		if(bShow=1){
+			ShowTxt( ConvertTxt(val1) )
+		}
 		inArr.RemoveAt(1)
 	}
 }
@@ -321,27 +305,34 @@ EditIsPWD(){
     }
     return isPASS
 }
+
 ; 将按键数据放到数组中
 PushTxt(txt,isMouse:=False)
 {
+	activeWindowProcResult := 0
 	; 只监控指定进程
-	if monitorProc != ''{
-        ; 获取活跃窗口 WinGetProcessName
-        activeWnd := WinExist("A")
-        if(activeWnd !=0 ){
-            procName := WinGetProcessName(activeWnd)
-            FoundPos := RegExMatch(procName, monitorProc )
-            ; 没有找到匹配则退出,不记录相关数据
-            if FoundPos = 0{
-                return
-            }
-        }else{
+	if(monitorProc != '' || activeWindowProc!=''){
+		; 获取激活窗口判断满足相关条件,默认找不到窗口
+		; 获取活跃窗口 WinGetProcessName
+		activeWnd := WinExist("A")
+		if(activeWnd !=0 ){
+			procName := WinGetProcessName(activeWnd)
+			;  FoundPos := RegExMatch(Haystack, NeedleRegEx [, &OutputVar, StartingPos])
+			FoundPos := RegExMatch(procName, activeWindowProc )
+			if FoundPos > 0 {
+				activeWindowProcResult := 1
+			}
+			FoundPos := RegExMatch(procName, monitorProc )
+			; 没有找到匹配则退出,不记录相关数据
+			if FoundPos = 0{
+				return
+			}
+		}else{
 			; 没有获取进程信息,也不记录
-            return
-        }
-		; 进程匹配则继续
+			return
+		}
     }
-    ; 界面显示内容
+    ; 控制界面显示内容
     if( needShowKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,2)=1 ))){
         maskTxt := txt
         if hideInWinPwd = 1 && (!isMouse) {
@@ -350,7 +341,10 @@ PushTxt(txt,isMouse:=False)
                 maskTxt := '*'  ; 使用掩码
             }
         }
-        inArr.push(maskTxt)
+		; 不是指定的显示进程
+		if(!(activeWindowProc != '' && activeWindowProcResult = 0)){
+			inArr.push(maskTxt)
+		}
     }
 	; 按键数量统计
 	; OutputDebug "AutoHotkey - " txt
@@ -441,7 +435,11 @@ GetProcPath(){
 			; 进行路径转换
 			if(preAppNameEnable = 1)
 			{
-				; 需要支持正则转换 preAppNameList
+				; 需要支持正则转换 preAppNameList -> preAppNameListMap
+				for _, value in preAppNameListMap {
+					if( InStr())
+					MsgBox(_ ':' value)
+				}
 			}
         }catch{
             try {   ; 当无法获取进程路径和名称时用进程的标题名代替

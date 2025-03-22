@@ -9,6 +9,7 @@
 #Requires AutoHotkey v2
 #SingleInstance Ignore
 global APPName:="ShowKeyBoard", ver:="1.39" 
+#Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
 #Include events.ahk

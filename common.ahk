@@ -94,6 +94,7 @@ serverExecName :=DescRead("common","serverExecName", "node.exe" )
 preAppNameEnable :=DescRead("common","preAppNameEnable", "0" )
 ; 是否启用文件转换
 preAppNameList :=DescRead("common","preAppNameList", "{}" )
+preAppNameListMap := JSON.parse(preAppNameList)
 ; 文件转换规则
 
 ; 配置参数
