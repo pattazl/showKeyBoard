@@ -1,0 +1,10 @@
+{
+  "version": "1.39",
+  "name": "node",
+  "scripts": {
+    "build": "node ./build/buildMain.js"
+  },
+  "devDependencies": {
+    "iconv-lite": "^0.6.3"
+  }
+}

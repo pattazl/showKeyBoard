@@ -13,20 +13,19 @@ GetActiveWindowScreenNumber(screenCount) {
 	try{
 		activeWnd := WinExist("A")
         if(activeWnd !=0 ){
-			strWnd := "ahk_id " hwnd
 			OutputDebug("active :"  activeWnd)
-			ProcPath := WinGetProcessPath(strWnd)
+			ProcPath := WinGetProcessPath(activeWnd)
 			OutputDebug("ProcPath :"  ProcPath)
-			Title := Trim(WinGetTitle(strWnd))
+			Title := Trim(WinGetTitle(activeWnd))
 			OutputDebug("Title :"  Title)
 			MouseGetPos(&x, &y)
 			OutputDebug("Mouse  :"  x ", " y )
-			WinGetClass(strWnd)
+			winClass := WinGetClass(activeWnd)
 			if(winClass = "Progman" or winClass = "WorkerW")
 			{
-				ProcPath = "Desktop"
+				ProcPath := "Desktop"
 			}
-			WinGetPos &x, &y, &width, &height, "A" 
+			WinGetPos &x, &y, &width, &height, activeWnd 
 			; OutputDebug(" 窗口位置 " x ", " y ) ; "ahk_id " hwnd
 			Loop screenCount {
 				MonitorGet A_Index, &L, &T, &R, &B
@@ -431,12 +430,12 @@ GetProcPath(){
         try{
             ProcPath := WinGetProcessPath(FocusedHwnd)
 			; 桌面识别
-			if(InStr(ProcPath,"explorer.exe")
+			if(InStr(ProcPath,"explorer.exe"))
 			{
-				winClass := WinGetClass("ahk_id " FocusedHwnd)
+				winClass := WinGetClass(FocusedHwnd)
 				if(winClass = "Progman" or winClass = "WorkerW")
 				{
-					ProcPath = "Desktop"
+					ProcPath := "Desktop"
 				}
 			}
 			; 进行路径转换
