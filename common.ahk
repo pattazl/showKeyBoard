@@ -91,6 +91,11 @@ defaultLang :=DescRead("common","defaultLang", "zh-CN" )
 serverExecName :=DescRead("common","serverExecName", "node.exe" )
 ; 后端服务执行程序文件名
 
+preAppNameEnable :=DescRead("common","preAppNameEnable", "0" )
+; 是否启用文件转换
+preAppNameList :=DescRead("common","preAppNameList", "{}" )
+; 文件转换规则
+
 ; 配置参数
 guiWidth :=DescRead("dialog","guiWidth", 300  ) ; 宽度
 guiHeigth :=DescRead("dialog","guiHeigth", 0 ) ;高度 0 为自动高度

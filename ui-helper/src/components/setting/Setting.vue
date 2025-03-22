@@ -128,6 +128,27 @@
                 <n-switch :round="false" v-model:value="allConfig.common.activeAppShow" />
               </template>
             </n-list-item>
+            <div v-show="allConfig.common.activeAppShow">
+              <n-list-item>{{ contentText.intro175 }}
+                <template #suffix>
+                  <n-input-number v-model:value="allConfig.dialog.activeAppShowX" />
+                </template>
+              </n-list-item>
+              <n-list-item>{{ contentText.intro176 }}
+                <template #suffix>
+                  <n-input-number v-model:value="allConfig.dialog.activeAppShowY" />
+                </template>
+              </n-list-item>
+            </div>
+            <n-list-item>{{ contentText.intro184 }}
+              <template #suffix>
+                <n-switch v-model:value="allConfig.common.preAppNameEnable" :round="false" />
+              </template>
+            </n-list-item>
+            <n-list-item v-show="allConfig.common.preAppNameEnable">{{ contentText.intro148 }}
+              <n-dynamic-input v-model:value="preAppNameListRef" preset="pair" :key-placeholder="contentText.intro146"
+                :value-placeholder="contentText.intro147" />
+            </n-list-item>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
@@ -255,17 +276,6 @@
             <n-list-item>{{ contentText.intro55 }}
               <n-dynamic-tags v-model:value="skipShowRef" />
             </n-list-item>
-            <h4>{{ contentText.intro174 }}</h4>
-            <n-list-item>{{ contentText.intro175 }}
-              <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.activeAppShowX" />
-              </template>
-            </n-list-item>
-            <n-list-item>{{ contentText.intro176 }}
-              <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.activeAppShowY" />
-              </template>
-            </n-list-item>
           </n-list>
 
         </n-card>
@@ -329,9 +339,9 @@
                 <n-switch v-model:value="dataSetting.mergeAppName" :round="false" />
               </template>
             </n-list-item>
-            <n-list-item>{{ contentText.intro148 }}
+            <n-list-item v-show="dataSetting.mergeAppName">{{ contentText.intro148 }}
               <n-dynamic-input v-model:value="appNameListRef" preset="pair" :key-placeholder="contentText.intro146"
-                @update:value="validAppNameList" :value-placeholder="contentText.intro147" />
+                 :value-placeholder="contentText.intro147" />
             </n-list-item>
             <n-list-item>{{ contentText.intro99 }}<div class="intro" style="white-space: pre-line;">{{
               contentText.intro100 }}</div>
@@ -379,7 +389,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, PropType, ref, computed } from 'vue'
+import { defineComponent, onMounted, PropType, ref, computed, Ref } from 'vue'
 import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
@@ -504,6 +514,9 @@ function toVSelectList(arr: Array<string | number>) {
 // 生成界面上key,value数组
 function toKVList(obj: {}) {
   let resArr = [];
+  if(obj==null){
+    return resArr
+  }
   for (let k in obj) {
     resArr.push({ key: k, value: obj[k] })
   }
@@ -562,6 +575,7 @@ export default defineComponent({
     const allFontRef = ref([]) // 字体清单
     const keyMappingRef = ref([])  // 按键匹配清单
     const appNameListRef = ref([])  // 应用名称匹配清单
+    const preAppNameListRef = ref([])  // 前置应用名称匹配清单
     const skipRecordRef = ref([])
     const ctrlListRef = ref([])
     const skipShowRef = ref([])
@@ -600,6 +614,7 @@ export default defineComponent({
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
       keyMappingRef.value = toKVList(data.keyList)
       appNameListRef.value = toKVList(JSON.parse(data.dataSetting.appNameList))
+      preAppNameListRef.value = toKVList(JSON.parse(allConfig.value.common.preAppNameList??'{}'))
       skipRecordRef.value = splitArr(allConfig.value.common.skipRecord)
       ctrlListRef.value = splitArr(allConfig.value.dialog.ctrlList)
       skipShowRef.value = splitArr(allConfig.value.dialog.skipShow)
@@ -672,6 +687,7 @@ export default defineComponent({
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
           dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
+          config.common.preAppNameList = JSON.stringify(KVListTo(preAppNameListRef.value), null, 2);
           // 需要将数据保存给服务器
           console.log('setPara')
           const saving = message.loading(contentText.value.intro75, { duration: 0 })
@@ -705,7 +721,11 @@ export default defineComponent({
         return hash
       }
       let keyList = KVListTo(keyMappingRef.value);
+      // 对 appNameListRef 进行空格清理
+      // validAppNameList(appNameListRef)
+      // validAppNameList(preAppNameListRef)
       dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
+      data.config.common.preAppNameList = JSON.stringify(KVListTo(preAppNameListRef.value), null, 2);
       // 转换数组为字符串
       data.config.common.skipRecord = skipRecordRef.value.join('|')
       data.config.dialog.ctrlList = ctrlListRef.value.join('|')
@@ -835,15 +855,14 @@ export default defineComponent({
       updateColor(allConfig.value.dialog, value)
     }
     // 去掉空格等
-    function validAppNameList(value) {
-      setTimeout(function () {
-        appNameListRef.value.forEach(x => {
-          x.key = x.key.trim()
-        });
-      }, 1000)  // 延时执行便于输入空格等
-    }
+    // function validAppNameList(targetRef) {
+    //   setTimeout( function(){
+    //     targetRef.value.forEach(x => {
+    //       x.key = x.key.trim()
+    //     });
+    //   },1000)
+    // }
     return {
-      validAppNameList,
       keyboardApply,
       myBorder,
       scrollTo,
@@ -874,6 +893,7 @@ export default defineComponent({
       guiTextColorRef,
       handleUpdateColor,
       IPlinks,
+      preAppNameListRef,
     }
   },
 })

@@ -11,16 +11,32 @@ GetActiveWindowScreenNumber(screenCount) {
 	offset := -64 ; 窗口最大化的时候左上角位置会有负数,一般为 -4 -8 -16 受窗口边框宽度高度影响
     ; 获取激活窗口的位置和大小
 	try{
-		WinGetPos &x, &y, &width, &height, "A" 
-		; OutputDebug(" 窗口位置 " x ", " y ) ; "ahk_id " hwnd
-		Loop screenCount {
-			MonitorGet A_Index, &L, &T, &R, &B
-			L := L + offset
-			T := T + offset
-			; 判断窗口左上角是否在当前屏幕范围内
-			if (x >= L && x < R && y >= T && y < B) {
-				LastScreenNum := A_Index
-				return LastScreenNum
+		activeWnd := WinExist("A")
+        if(activeWnd !=0 ){
+			strWnd := "ahk_id " hwnd
+			OutputDebug("active :"  activeWnd)
+			ProcPath := WinGetProcessPath(strWnd)
+			OutputDebug("ProcPath :"  ProcPath)
+			Title := Trim(WinGetTitle(strWnd))
+			OutputDebug("Title :"  Title)
+			MouseGetPos(&x, &y)
+			OutputDebug("Mouse  :"  x ", " y )
+			WinGetClass(strWnd)
+			if(winClass = "Progman" or winClass = "WorkerW")
+			{
+				ProcPath = "Desktop"
+			}
+			WinGetPos &x, &y, &width, &height, "A" 
+			; OutputDebug(" 窗口位置 " x ", " y ) ; "ahk_id " hwnd
+			Loop screenCount {
+				MonitorGet A_Index, &L, &T, &R, &B
+				L := L + offset
+				T := T + offset
+				; 判断窗口左上角是否在当前屏幕范围内
+				if (x >= L && x < R && y >= T && y < B) {
+					LastScreenNum := A_Index
+					return LastScreenNum
+				}
 			}
 		}
 	}
@@ -414,6 +430,20 @@ GetProcPath(){
     ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
         try{
             ProcPath := WinGetProcessPath(FocusedHwnd)
+			; 桌面识别
+			if(InStr(ProcPath,"explorer.exe")
+			{
+				winClass := WinGetClass("ahk_id " FocusedHwnd)
+				if(winClass = "Progman" or winClass = "WorkerW")
+				{
+					ProcPath = "Desktop"
+				}
+			}
+			; 进行路径转换
+			if(preAppNameEnable = 1)
+			{
+				; 需要支持正则转换 preAppNameList
+			}
         }catch{
             try {   ; 当无法获取进程路径和名称时用进程的标题名代替
                 ProcPath := Trim(WinGetTitle(FocusedHwnd))

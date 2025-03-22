@@ -185,7 +185,7 @@ export default {
 	intro155: '是否发送应用信息，以用于统计不同应用的使用情况',
 	intro156: '应用程序路径',
 	intro157: '数据类型',
-	intro158: '相同名称的应用是否进行合并统计',
+	intro158: '相同名称的应用是否进行合并统计(展示)',
 	intro159: '单日期查询',
 	intro160: '时间段到',
 	intro161: '今日数据中，数据过N毫秒后才会显示到界面上，避免频繁刷新',
@@ -211,6 +211,7 @@ export default {
 	intro181: '剩余按键',
 	intro182: '应用按键明细',
 	intro183: '跟随激活窗口',
+	intro184: '是否上传时根据规则转换应用名称',
 
   },
   'en-US': {
@@ -400,7 +401,7 @@ export default {
 	intro155: 'Whether send App Info for App statistic',
 	intro156: 'App path',
 	intro157: 'Data Type',
-	intro158: 'Whether the same app name will be merged in statistic',
+	intro158: 'Whether the same app name will be merged in statistic(Display)',
 	intro159: 'Single date query',
 	intro160: 'Query date until',
 	intro161: 'Will fresh the data after N ms on Today panel, avoid refreshing too frequently',
@@ -426,5 +427,6 @@ export default {
 	intro181: 'Left keys',
 	intro182: 'App keypress detail',
 	intro183: 'Follow Active App',
+	intro184: 'Whether convert the application name by rules when uploading',
   }
 };
