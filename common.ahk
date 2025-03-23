@@ -135,7 +135,7 @@ maxCountOfConnectFail :=DescRead("common","maxCountOfConnectFail", 60 ) ; 连续
 serverUrl := "http://127.0.0.1:" serverPort
 ; 内部参数
 global guiArr := Array() ; 保存guiObj 对象
-global inArr := Array() ; 保存传入进来的数组
+global inShowArr := Array() ; 保存传入进来的数组用于显示
 global guiShowing := 0
 global KeyMapping:=Map()
 

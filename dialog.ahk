@@ -13,19 +13,20 @@ GetActiveWindowScreenNumber(screenCount) {
 	try{
 		activeWnd := WinExist("A")
         if(activeWnd !=0 ){
-			OutputDebug("active :"  activeWnd)
-			ProcPath := WinGetProcessPath(activeWnd)
-			OutputDebug("ProcPath :"  ProcPath)
-			Title := Trim(WinGetTitle(activeWnd))
-			OutputDebug("Title :"  Title)
-			MouseGetPos(&x, &y)
-			OutputDebug("Mouse  :"  x ", " y )
+			;ProcPath := WinGetProcessPath(activeWnd)
+			;OutputDebug("ProcPath :"  ProcPath)
+			;Title := Trim(WinGetTitle(activeWnd))
+			;OutputDebug("Title :"  Title)
 			winClass := WinGetClass(activeWnd)
 			if(winClass = "Progman" or winClass = "WorkerW")
 			{
-				ProcPath := "Desktop"
+				; 桌面时候根据鼠标位置判断
+				MouseGetPos(&x, &y)
+				;OutputDebug("Mouse  :"  x ", " y )
+			}else{
+				; 根据窗口位置判断
+				WinGetPos &x, &y, &width, &height, activeWnd 
 			}
-			WinGetPos &x, &y, &width, &height, activeWnd 
 			; OutputDebug(" 窗口位置 " x ", " y ) ; "ahk_id " hwnd
 			Loop screenCount {
 				MonitorGet A_Index, &L, &T, &R, &B
@@ -200,8 +201,8 @@ CloseSelf()
 ; 循环检查需要放入的数据
 CallShow()
 {
-	if inArr.Length > 0 {
-		val1 := inArr[1]
+	if inShowArr.Length > 0 {
+		val1 := inShowArr[1]
 		bShow := 1
 		loop skipShow.Length {
 			if skipShow[A_Index] = val1 {
@@ -212,7 +213,7 @@ CallShow()
 		if(bShow=1){
 			ShowTxt( ConvertTxt(val1) )
 		}
-		inArr.RemoveAt(1)
+		inShowArr.RemoveAt(1)
 	}
 }
 ; 定时器，自动从填写的队列中取数据
@@ -341,9 +342,14 @@ PushTxt(txt,isMouse:=False)
                 maskTxt := '*'  ; 使用掩码
             }
         }
-		; 不是指定的显示进程
-		if(!(activeWindowProc != '' && activeWindowProcResult = 0)){
-			inArr.push(maskTxt)
+		; 指定的显示进程
+		if(activeWindowProc != '' ){
+			if(activeWindowProcResult = 1)
+			{
+				inShowArr.push(maskTxt)
+			}
+		}else{
+			inShowArr.push(maskTxt)
 		}
     }
 	; 按键数量统计
@@ -436,9 +442,20 @@ GetProcPath(){
 			if(preAppNameEnable = 1)
 			{
 				; 需要支持正则转换 preAppNameList -> preAppNameListMap
-				for _, value in preAppNameListMap {
-					if( InStr())
-					MsgBox(_ ':' value)
+				for keyName, value in preAppNameListMap {
+					if( SubStr(keyName,1,4) = 'Reg:'){
+						; 进行正则匹配
+						strReg := SubStr(keyName,5)
+						FoundPos := RegExMatch(ProcPath, strReg )
+						if( FoundPos > 0 ){
+							ProcPath := value
+						}
+					}else{
+						; 名字相同则用 value 代替
+						if( keyName = ProcPath){
+							ProcPath := value
+						}
+					}
 				}
 			}
         }catch{
