@@ -1,4 +1,5 @@
 const fs = require('fs');
+const iconv = require('iconv-lite');
 const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
@@ -21,7 +22,7 @@ const updateTimePath = path.join(__dirname, 'updateTime.txt');
 const lastRecordPath = path.join(__dirname, 'lastRecord.json');
 const pidfilePath = path.join(__dirname, 'kbserver.pid');
 if (fs.existsSync(iniPath)) {
-  var config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+  var config = ini.parse(iniAnsiRead(iniPath))
 }
 
 var keyList; // 用于保存KeyList.txt 的文件信息
@@ -107,12 +108,25 @@ function createServer() {
     console.log('创建服务异常');
   })
 }
+// 因为 ini文件是和客户端共用,只支持ANSI/gbk格式
+// 根据路径, ANSI->UTF8 读取
+function iniAnsiRead(file){
+  const buffer = fs.readFileSync(file);
+  content = iconv.decode(buffer, 'gbk');
+  return content
+}
+// 根据路径,将 UTF8->ANSI 写入文件
+function iniAnsiWrite(file,content){
+  const encodedData = iconv.encode(content, 'gbk');
+  // 将二进制数据写入文件
+  fs.writeFileSync(file, encodedData);
+}
 // 解决 \# 的转义问题
 function myIniwrite(config) {
   let s = ini.stringify(config)
   s = s.replace(/\\#/g, '#')
   s = s.replace(/=(.*#.*)/g, '="$1"')
-  fs.writeFileSync(iniPath, s)
+  iniAnsiWrite(iniPath, s)
 }
 function writePort() {
   if (port != parseInt(config.common.serverPort)) {
@@ -262,7 +276,7 @@ async function getParaFun(req, res) {
   console.log('getPara')
   // 重新再读取一次
   keyList = {}
-  config = ini.parse(fs.readFileSync(iniPath, 'utf-8'))
+  config = ini.parse(iniAnsiRead(iniPath))
   if (fs.existsSync(defaultIniPath)) {
     var defaultConfig = ini.parse(fs.readFileSync(defaultIniPath, 'utf-8'))
   }

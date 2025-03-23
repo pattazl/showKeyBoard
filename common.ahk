@@ -31,6 +31,13 @@ DescRead(sect,key,defaultVal){
     }
     return IniRead(IniFile,sect,key,defaultVal)
 }
+; 将JS写入的ini文件中的格式进行转换
+CovertJosn(s){
+    s := StrReplace(s,'\\','\')
+    s := StrReplace(s,'\"','"')
+    s := StrReplace(s,'\n','`n')
+    return s
+}
 skipRecord := StrSplit(DescRead("common","skipRecord",""),'|')
 ; 哪些按键要忽略记录
 skipCtrlKey := DescRead("common","skipCtrlKey","0")
@@ -94,8 +101,12 @@ serverExecName :=DescRead("common","serverExecName", "node.exe" )
 preAppNameEnable :=DescRead("common","preAppNameEnable", "0" )
 ; 是否启用文件转换
 preAppNameList :=DescRead("common","preAppNameList", "{}" )
-preAppNameListMap := JSON.parse(preAppNameList)
 ; 文件转换规则
+if(preAppNameEnable=1){
+    preAppNameList := CovertJosn(preAppNameList)
+    preAppNameListMap := JSON.parse(preAppNameList)
+}
+
 
 ; 配置参数
 guiWidth :=DescRead("dialog","guiWidth", 300  ) ; 宽度

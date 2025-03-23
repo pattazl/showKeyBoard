@@ -77,7 +77,7 @@ function getVersion(packFile) {
     console.log('Version:', packageJson.version)
     return packageJson.version
 }
-function replaceVer(filePath, isGb2312, ver,RegExps) {
+function replaceVer(filePath, isGbk, ver,RegExps) {
     let res = true
     try {
         // 以二进制模式同步读取文件
@@ -87,10 +87,10 @@ function replaceVer(filePath, isGb2312, ver,RegExps) {
                 return false
             }
             let content = ''
-            // 将 GB2312 编码的二进制数据转换为 UTF-8 字符串
-            if (isGb2312) {
+            // 将 gbk/ GB2312 编码的二进制数据转换为 UTF-8 字符串
+            if (isGbk) {
                 const buffer = fs.readFileSync(file);
-                content = iconv.decode(buffer, 'gb2312');
+                content = iconv.decode(buffer, 'gbk');
             } else {
                 content = fs.readFileSync(file, 'utf-8');
             }
@@ -104,8 +104,8 @@ function replaceVer(filePath, isGb2312, ver,RegExps) {
                 })
             });
             // 写入原文件
-            if (isGb2312) {
-                const encodedData = iconv.encode(newContent, 'gb2312');
+            if (isGbk) {
+                const encodedData = iconv.encode(newContent, 'gbk');
                 // 将二进制数据写入文件
                 fs.writeFileSync(file, encodedData);
             } else {
