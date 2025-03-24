@@ -268,5 +268,6 @@ sendData(route,data:=''){
 			str := data   ; 普通字符串
 		}
     }
+	; OutputDebug('POST ' str)
 	reqXMLHTTP.send( str )
 }

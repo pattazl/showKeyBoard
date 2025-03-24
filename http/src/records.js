@@ -635,8 +635,19 @@ DROP TABLE temp_table;
 VACUUM;
 `
   await runBatchExec(db,sql);
-  db.close()
   console.log('cleanErrAppStat succ!')
+  console.log('清理时间异常数据... ')
+  let today =  dayjs(new Date()).format('YYYY-MM-DD')
+  let lines = await runExec(db, `DELETE FROM statFreq WHERE DATE >  ? `, [today])
+  console.log('删除statFreq时间异常条数: ', lines)
+  let lines2 = await runExec(db, `DELETE FROM appFreq WHERE DATE >  ? `, [today])
+  console.log('删除appFreq时间异常条数: ', lines2)
+  if(lines+lines2 > 0){
+    console.log('由于之前数据不对，请完全重启服务端 ')
+  }
+  
+  db.close()
+  
 }
 
 module.exports = {
