@@ -8,7 +8,7 @@
 ; 自定义函数：判断当前激活窗口位于第几个屏幕
 GetActiveWindowScreenNumber(screenCount) {
     global LastScreenNum
-	offset := -64 ; 窗口最大化的时候左上角位置会有负数,一般为 -4 -8 -16 受窗口边框宽度高度影响
+	offset := -32 ; 窗口最大化的时候左上角位置会有负数,一般为 -4 -8 -16 受窗口边框宽度高度影响
     ; 获取激活窗口的位置和大小
 	try{
 		activeWnd := WinExist("A")
@@ -30,8 +30,11 @@ GetActiveWindowScreenNumber(screenCount) {
 			; OutputDebug(" 窗口位置 " x ", " y ) ; "ahk_id " hwnd
 			Loop screenCount {
 				MonitorGet A_Index, &L, &T, &R, &B
+				; 需要整体移动 offset 个像素
 				L := L + offset
 				T := T + offset
+				R := R + offset
+				B := B + offset
 				; 判断窗口左上角是否在当前屏幕范围内
 				if (x >= L && x < R && y >= T && y < B) {
 					LastScreenNum := A_Index
