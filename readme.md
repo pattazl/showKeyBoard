@@ -11,7 +11,7 @@
 5. Support remote statistics and settings
 6. For privacy and security, showKeyBoard only records statistical information, do not record specific content, and save the content locally
 7. Support the statstics of mouse and keyboard of different application programs
-8. Supports the analysis of the usage time of each application. The basic principle is as follows: count the list of applications used every minute, and then allocate and summarize the usage time to each application.
+8. Supports the analysis of the usage time of each application. The basic principle is as follows: count the list of applications used every minute, and then allocate and summarize the usage time to each application,Note: The application requires mouse or keyboard operation.
 
 ## System Requirements
 
