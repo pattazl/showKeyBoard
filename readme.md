@@ -36,7 +36,16 @@ Follow the prompts to select during installation, such as whether to keep the co
 
 **Note**:
 1. Due to the use of system hooks, some computers may report viruses by mistake and need to be trusted.
+
 2. On some systems, you may need to run in administrator mode, otherwise showKeyBoard will not be able to listen to the keys
+
+3. Some companies may have installed encryption software, which will encrypt the configuration files, causing all parameters to become invalid. In this case, you can rename `./httpdist/dist/node.exe` in the installation directory to `./httpdist/dist/chrome.exe`, and modify the `showKeyBoard.ini` file in the installation directory by adding the parameter `serverExecName=./httpdist/dist/chrome.exe`.
+
+4. If the system time is incorrect, for example, the time of a certain day changes to N years later, it may lead to the loss of application usage duration data. Please run the `fixStat修复统计数据.bat` file in the installation directory. 
+
+   
+
+   分享
 
 ## Screenshot
 
