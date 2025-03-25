@@ -32,7 +32,7 @@ var port = parseInt(config.common?.serverPort ?? 9900)
 var remoteType = parseInt(config.common?.remoteType ?? 0)
 
 let hostAddress = remoteType == 0 ? '127.0.0.1' : '0.0.0.0'
-console.log('localhost',hostAddress)
+console.log('localhost', hostAddress)
 let handleAutoSave = null  // 自动保存到DB的句柄
 
 let networkIP = []
@@ -110,13 +110,13 @@ function createServer() {
 }
 // 因为 ini文件是和客户端共用,只支持ANSI/gbk格式
 // 根据路径, ANSI->UTF8 读取
-function iniAnsiRead(file){
+function iniAnsiRead(file) {
   const buffer = fs.readFileSync(file);
   content = iconv.decode(buffer, 'gbk');
   return content
 }
 // 根据路径,将 UTF8->ANSI 写入文件
-function iniAnsiWrite(file,content){
+function iniAnsiWrite(file, content) {
   const encodedData = iconv.encode(content, 'gbk');
   // 将二进制数据写入文件
   fs.writeFileSync(file, encodedData);
@@ -393,6 +393,10 @@ function patchLastData() {
       let updateTime = fs.readFileSync(updateTimePath)
       // 获取现在的时间
       let nowStr = dayjs(new Date()).format('YYYYMMDDHHmmSS')
+      // 历史时间不可能比现在时间还晚
+      if (updateTime > nowStr) {
+        updateTime = nowStr
+      }
       // console.log(json['updateTime'] , nowStr,json['updateTime'] < nowStr)
       if (json['updateTime'] >= updateTime && json['updateTime'] < nowStr) { // 一般相同值是手工退出的，大于时是关机退出，因为是历史数据，所以需要小于当前时间
         console.log('patchLastData')
@@ -504,11 +508,11 @@ function zipCore(cbFun) {
   fileContent = fs.readFileSync(dbName);
   zip.file(dbName, fileContent);
 
-  zip.generateAsync({ 
+  zip.generateAsync({
     type: 'nodebuffer',
     compression: 'DEFLATE',
     compressionOptions: {
-        level: 5  /** 压缩比 0-9 低到高 */
+      level: 5  /** 压缩比 0-9 低到高 */
     }
   }).then(function (content) {
     // see FileSaver.js
@@ -654,7 +658,7 @@ function autoBackup() {
         });
       }
       // 取符合格式的最大文件名,必须是小于当前要写入文件的时间
-      if(file<currentFile){
+      if (file < currentFile) {
         maxFile = file > maxFile ? file : maxFile
       }
     });
