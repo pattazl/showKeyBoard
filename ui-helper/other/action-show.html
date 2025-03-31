@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIV Animation</title>
+    <style>
+        .container {
+            position: relative;
+            width: 700px;
+            height: 500px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+        }
+
+        .new-div {
+            position: absolute;
+            width: 200px;
+            height: 30px;
+            background-color: rgba(0, 123, 255, 0.3);
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="container"></div>
+    <script>
+        function createAnimatedDivs(containerId, direction) {
+            const container = document.getElementById(containerId);
+
+            setInterval(() => {
+                const newDiv = document.createElement('div');
+                newDiv.classList.add('new-div');
+                switch (direction) {
+                    case 'up':
+                        newDiv.style.bottom = '0px';
+                        break;
+                    case 'down':
+                        newDiv.style.top = '0px';
+                        break;
+                    case 'left':
+                        newDiv.style.right = '0px';
+                        break;
+                    case 'right':
+                        newDiv.style.left = '0px';
+                        break;
+                }
+                newDiv.textContent = `New Key - ${new Date().toLocaleTimeString()}`;
+                container.appendChild(newDiv);
+
+                const existingDivs = container.querySelectorAll('.new-div');
+                existingDivs.forEach(div => {
+                    if (div !== newDiv) {
+                        let prePos = 0,selfSize = 0,offset = 10;
+                        switch (direction) {
+                            case 'up':
+                                prePos = parseInt(getComputedStyle(div).bottom) || 0;
+                                selfSize = parseInt(getComputedStyle(div).height)
+                                div.style.bottom = (prePos + offset + selfSize) + 'px';
+                                break;
+                            case 'down':
+                                prePos = parseInt(getComputedStyle(div).top) || 0;
+                                selfSize = parseInt(getComputedStyle(div).height)
+                                div.style.top = (prePos + offset + selfSize) + 'px';
+                                break;
+                            case 'left':
+                                prePos = parseInt(getComputedStyle(div).right) || 0;
+                                selfSize = parseInt(getComputedStyle(div).width)
+                                div.style.right = (prePos + offset + selfSize) + 'px';
+                                break;
+                            case 'right':
+                                prePos = parseInt(getComputedStyle(div).left) || 0;
+                                selfSize = parseInt(getComputedStyle(div).width)
+                                div.style.left = (prePos + offset + selfSize) + 'px';
+                                break;
+                        }
+                    }
+                });
+
+                setTimeout(() => {
+                    //newDiv.classList.add('hidden');
+                    setTimeout(() => {
+                        container.removeChild(newDiv);
+                    }, 0);
+                }, 5000);
+            }, 2000);
+        }
+
+        // 调用函数，传入容器 ID 和移动方向
+        createAnimatedDivs('container', 'right');
+    </script>
+</body>
+
+</html>

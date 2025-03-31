@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+    <title> New Document </title>
+    <meta name="Generator" content="NPP-Plugin">
+    <meta name="Author" content="">
+    <meta name="Keywords" content="">
+    <meta name="Description" content="">
+</head>
+<style>
+    .color-changing-div {
+        border: 1px blue solid;
+        animation: colorShift 18s infinite linear;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @keyframes colorShift {
+        0% {
+            background-color: #00B7EB;
+        }
+
+        16.67% {
+            background-color: #C8D7E3;
+        }
+
+        33.33% {
+            background-color: #7AC142;
+        }
+
+        50% {
+            background-color: #003366;
+        }
+
+        66.67% {
+            background-color: #0078D7;
+        }
+
+        83.33% {
+            background-color: #8E44AD;
+        }
+
+        100% {
+            background-color: #00B7EB;
+        }
+    }
+
+    .allContain {
+        width: 800px;
+        height: 600px;
+        border: blue 1px solid;
+        margin: 0px;
+        padding: 0px;
+        text-align: center;
+        border: 1px solid #ccc;
+        margin: 50px auto;
+        position: relative;
+    }
+
+    .container {
+        position: absolute;
+    }
+</style>
+
+<body>
+    111
+    22
+    <br><br><br>
+    <div style="background-color: aliceblue;border: 1px red solid;" id="bgDiv">
+        位置显示 <div style="float: right;">关闭</div>
+        <div class="allContain">
+            <div style="top:0px;left:0px;" class="container">
+                <div id="monitorId1" style="width:192px;height:108px;" class="color-changing-div">
+                    <button onclick="fullScreen(1)">全屏1</button>
+                </div>
+
+            </div>
+
+            <div style="top:200px;left:192px" class="container">
+                <div id="monitorId2" style="width:192px;height:108px;" class="color-changing-div">
+                    <button onclick="fullScreen(2)">全屏2</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script type="text/javascript">
+    // 监视器信息
+    let monitorInfo = [{ "Left": 0, "Top": 0, "Right": 1920, "Bottom": 1080 }, { "Left": 1920, "Top": 0, "Right": 1920 * 2, "Bottom": 1080 }]
+    // 创建一个窗口显示 Div
+    let winOpt = {
+        guiWidth: 240,
+        guiHeigth: 0,
+        guiBgcolor: "8611AA",
+        guiBgTrans: 0,
+        guiTrans: 1,
+        guiOpacity: 38,
+        guiTextFont: "Verdana",
+        guiTextSize: 26,
+        guiTextWeight: "bold",
+        guiTextColor: "FFEE00",
+        guiLife: 7000,
+        guiInterval: 1000,
+        guiPos: "BR",
+        guiPosXY: "Y",
+        guiPosOffsetX: 0,
+        guiPosOffsetY: -50,
+        guiDpiscale: 0,
+        guiMonitorNum: 0, // 第几个显示器
+        guiMargin: 5,
+        guiEdge: 1,
+        txtSplit: " ",
+        ctrlX: 10,
+        ctrlY: 5,
+        ctrlTextSize: 19,
+        activeAppShowX: 600,
+        activeAppShowY: 0,
+        // 大开关
+        needShowKey: 1, // 是否显示按键
+        activeAppShow: 0, // 是否显示进程名
+        ctrlState: 1,  // 是否显示控制键
+
+    }
+    // 用于显示窗口演示
+    // scale: 20%; transform-origin: 0 0;
+    function createShowTxt(winOpt) {
+        // 生成屏幕的2个DIV
+        monitorInfo.forEach(x => {
+
+        })
+
+    }
+    // 全屏代码
+    function fullScreen(id) {
+        const myDiv = document.getElementById('monitorId' + id);
+        toggleFullscreen(myDiv)
+    }
+
+    function toggleFullscreen(myDiv) {
+        if (document.fullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        } else {
+            if (myDiv.requestFullscreen) {
+                myDiv.requestFullscreen();
+            } else if (myDiv.webkitRequestFullscreen) {
+                myDiv.webkitRequestFullscreen();
+            } else if (myDiv.mozRequestFullScreen) {
+                myDiv.mozRequestFullScreen();
+            } else if (myDiv.msRequestFullscreen) {
+                myDiv.msRequestFullscreen();
+            }
+
+        }
+    }
+
+
+    document.addEventListener('fullscreenchange', function () {
+        console.log(document.fullscreenElement)
+    });
+
+    document.addEventListener('fullscreenerror', function () {
+        console.error('全屏操作出错');
+    });
+    // 自动修改背景色
+
+</script>
+
+</html>
