@@ -6,32 +6,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIV Animation</title>
     <style>
-        .container {
-            position: relative;
-            width: 700px;
-            height: 500px;
-            border: 1px solid #ccc;
-            overflow: hidden;
+        .color-changing-div {
+        border: 1px blue solid;
+        animation: colorShift 18s infinite linear;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    @keyframes colorShift {
+        0% {
+            background-color: #00B7EB;
         }
+        16.67% {
+            background-color: #C8D7E3;
+        }
+        33.33% {
+            background-color: #7AC142;
+        }
+        50% {
+            background-color: #003366;
+        }
+        66.67% {
+            background-color: #0078D7;
+        }
+        83.33% {
+            background-color: #8E44AD;
+        }
+        100% {
+            background-color: #00B7EB;
+        }
+    }
+    .allContain {
+        width: 800px;
+        border: blue 1px solid;
+        margin: 0px;
+        padding: 2px;
+        text-align: center;
+        border: 1px solid #ccc;
+        position: relative;
+    }
 
-        .new-div {
-            position: absolute;
-            width: 200px;
-            height: 30px;
-            background-color: rgba(0, 123, 255, 0.3);
-            color: white;
-            text-align: center;
-            line-height: 30px;
-            opacity: 1;
-        }
-    </style>
+    .container {
+        position: absolute;
+    }
+    .container2 {
+        position: relative;
+        width: 300px;
+        height: 200px;
+        border: 1px solid #ccc;
+        overflow: hidden;
+    }
+
+    .new-div {
+        position: absolute;
+        width: 200px;
+        height: 30px;
+        background-color: rgba(0, 123, 255, 0.3);
+        color: white;
+        text-align: center;
+        line-height: 30px;
+        opacity: 1;
+    }
+</style>
 </head>
-
 <body>
-    <div class="container" id="container"></div>
+    <div class="container2" id="container"></div>
+
+    <div style="background-color: aliceblue;border: 1px red solid;" id="bgDiv">
+        位置显示 <div style="float: right;">关闭</div>
+        <div class="allContain" id="mainContain">
+        </div>
+    </div>
     <script>
+        // { "Left": -2880, "Top": 0, "Right": -1440, "Bottom": 900 } 
+        // { "Left": -2880, "Top": 0, "Right": -960, "Bottom": 1200 }
+        let monitorInfo = [ { "Left": -2880, "Top": 0, "Right": 0, "Bottom": 1800 } ,  { "Left": 0, "Top": 0, "Right": 2560, "Bottom": 1440 }]
+    // 创建一个窗口显示 Div
+    let winOpt = {
+        guiWidth: 240,
+        guiHeigth: 0,
+        guiBgcolor: "8611AA",
+        guiBgTrans: 0,
+        guiTrans: 1,
+        guiOpacity: 38,
+        guiTextFont: "Verdana",
+        guiTextSize: 26,
+        guiTextWeight: "bold",
+        guiTextColor: "FFEE00",
+        guiLife: 7000,
+        guiInterval: 1000,
+        guiPos: "BR",
+        guiPosXY: "Y",
+        guiPosOffsetX: 0,
+        guiPosOffsetY: -50,
+        guiDpiscale: 0,
+        guiMonitorNum: 0, // 第几个显示器
+        guiMargin: 5,
+        guiEdge: 1,
+        txtSplit: " ",
+        ctrlX: 10,
+        ctrlY: 5,
+        ctrlTextSize: 19,
+        activeAppShowX: 600,
+        activeAppShowY: 0,
+        // 大开关
+        needShowKey: 1, // 是否显示按键
+        activeAppShow: 0, // 是否显示进程名
+        ctrlState: 1,  // 是否显示控制键
+    }
         function createAnimatedDivs(containerId, direction) {
             const container = document.getElementById(containerId);
+            // 创建前先清空DIV
+            container.innerHTML = ''
 
             setInterval(() => {
                 const newDiv = document.createElement('div');
@@ -84,15 +170,105 @@
 
                 setTimeout(() => {
                     //newDiv.classList.add('hidden');
-                    setTimeout(() => {
-                        container.removeChild(newDiv);
-                    }, 0);
+                    container.removeChild(newDiv);
                 }, 5000);
             }, 2000);
         }
-
+        // 要取最大范围，转换 monitorInfo 的负数位置
+        // 
+        function getOffset(demoWidth){
+            let maxInfo = { "Left": 0, "Top": 0, "Right": 0, "Bottom": 0 }  // 最小的 Left Top ，最大的 Right Bottom
+            monitorInfo.forEach(x=>{
+                maxInfo.Left = Math.min(x.Left,maxInfo.Left)
+                maxInfo.Top = Math.min(x.Top,maxInfo.Top)
+                maxInfo.Right = Math.max(x.Right,maxInfo.Right)
+                maxInfo.Bottom = Math.max(x.Bottom,maxInfo.Bottom)
+            })
+            // 坐标全部变成正数
+            let offsetX = 0, offsetY =0
+            if(maxInfo.Left<0){
+                offsetX = - maxInfo.Left
+            }
+            if(maxInfo.Right<0){
+                offsetY = - maxInfo.Right
+            }
+            let scale = demoWidth / (maxInfo.Right - maxInfo.Left)
+            console.log('scale',maxInfo.Bottom - maxInfo.Top)
+            let height = parseInt(scale*(maxInfo.Bottom - maxInfo.Top))
+            // 需要根据最大最小计算缩放比，根据宽度计算缩放比，demoWidth
+            return {offsetX,offsetY,scale,height}
+        }
+        function getNewInfo()
+        {
+            let {offsetX,offsetY} = getOffset(400)
+            // 计算偏移，修改为 Width 或 Height
+            let newMonitro = monitorInfo.map(x=>{
+                return {"Left": x.Left + offsetX, "Top":  x.Top + offsetY, "Width": x.Right-x.Left, "Height": x.Bottom-x.Top }
+            })
+            console.log(JSON.stringify(newMonitro))
+        }
+        // getNewInfo()
+        function initContain(){
+            // 800的宽度
+            let {offsetX,offsetY,scale,height} = getOffset(800)
+            let newMonitro = monitorInfo.map(x=>{
+                return {"Left": x.Left + offsetX, "Top":  x.Top + offsetY, "Width": x.Right-x.Left, "Height": x.Bottom-x.Top }
+            })
+            console.log('newMonitro:',JSON.stringify(newMonitro))
+            let main = document.getElementById("mainContain")
+            main.style.height = height +'px'
+            let arrHTML = newMonitro.map((x,i)=>{
+                let screenHTML = `<div style="top:${x.Top*scale}px;left:${x.Left*scale}px;" class="container">
+                <div id="monitorId${i+1}" style="width:${x.Width*scale}px;height:${x.Height*scale}px;" class="color-changing-div">
+                    <button onclick="fullScreen(${i+1})">全屏${i+1}</button>
+                </div>
+            </div>`
+            return screenHTML
+            })
+            main.innerHTML = arrHTML.join('')
+        }
+        initContain()
         // 调用函数，传入容器 ID 和移动方向
-        createAnimatedDivs('container', 'right');
+        // createAnimatedDivs('container', 'right');
+         // 全屏代码
+    function fullScreen(id) {
+        const myDiv = document.getElementById('monitorId' + id);
+        toggleFullscreen(myDiv)
+    }
+
+    function toggleFullscreen(myDiv) {
+        if (document.fullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        } else {
+            if (myDiv.requestFullscreen) {
+                myDiv.requestFullscreen();
+            } else if (myDiv.webkitRequestFullscreen) {
+                myDiv.webkitRequestFullscreen();
+            } else if (myDiv.mozRequestFullScreen) {
+                myDiv.mozRequestFullScreen();
+            } else if (myDiv.msRequestFullscreen) {
+                myDiv.msRequestFullscreen();
+            }
+
+        }
+    }
+
+
+    document.addEventListener('fullscreenchange', function () {
+        console.log(document.fullscreenElement)
+    });
+
+    document.addEventListener('fullscreenerror', function () {
+        console.error('全屏操作出错');
+    });
     </script>
 </body>
 
