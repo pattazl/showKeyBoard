@@ -7,6 +7,7 @@
     <title>DIV Animation</title>
     <style>
         .color-changing-div {
+            position: relative;
             border: 1px blue solid;
             animation: colorShift 18s infinite linear;
             display: flex;
@@ -45,7 +46,7 @@
         }
 
         .allContain {
-            width: 800px;
+            min-width: 1000px;
             border: blue 1px solid;
             margin: 0px;
             padding: 2px;
@@ -61,18 +62,14 @@
         .container2 {
             position: relative;
             width: 800px;
-            height: 200px;
+            height: 50px;
             border: 1px solid #ccc;
             overflow: hidden;
         }
 
         .new-div {
             position: absolute;
-            background-color: rgba(0, 123, 255, 0.3);
-            color: white;
             text-align: center;
-            line-height: 30px;
-            opacity: 1;
         }
     </style>
 </head>
@@ -106,12 +103,12 @@
         guiTextColor: "FFEE00",
         guiLife: 7000,
         guiInterval: 1000,
-        guiPos: "BR",
+        guiPos: "TL",
         guiPosXY: "Y",
-        guiPosOffsetX: 0,
-        guiPosOffsetY: -50,
+        guiPosOffsetX: 50,
+        guiPosOffsetY: 50,
         guiDpiscale: 0,
-        guiMonitorNum: 0, // 第几个显示器
+        guiMonitorNum: 2, // 第几个显示器
         guiMargin: 5,
         guiEdge: 1,
         txtSplit: " ",
@@ -126,48 +123,26 @@
         ctrlState: 1,  // 是否显示控制键
     }
     let globalScale = 1;
-    function createAnimatedDivs() {
-        let textArr = ['k e y', 'p r e s×2', 't e s t', '🖱️×3 ^+v', '⇧+c ␣×12', '⊞+d', 'Caps', 'Del×4'];
-        textArr = textArr.map(x => {
-            return x.replace(/ /g, winOpt.txtSplit);
-        })
-        // 创建前先清空DIV
-        container.innerHTML = ''
-        textArr.forEach((text, i) => {
-            // 间隔多少秒产生新的
-            setTimeout(() => {
-                createNewTxt(text)
-            }, winOpt.guiInterval * i);
-        })
-    }
-    function createNewTxt(text, scale) {
-        const newDiv = document.createElement('div');
-        newDiv.classList.add('new-div');
-        // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
-        newDiv.textContent = text;
-        newDiv.style.width = winOpt.guiWidth * scale + 'px';
-        if (winOpt.guiHeigth != 0) {
-            newDiv.style.height = winOpt.guiHeigth * scale + 'px';
-        }
-        newDiv.style.backgroundColor = '#' + winOpt.guiBgcolor
-        newDiv.style.opacity = winOpt.guiOpacity / 100
-        newDiv.style.fontSize = winOpt.guiTextSize * scale + 'px';
-        newDiv.style.fontFamily = winOpt.guiTextFont
-        newDiv.style.lineHeight = winOpt.guiTextSize * scale + 'px';
-        newDiv.style.fontWeight = winOpt.guiTextWeight
-        newDiv.style.color = '#' + winOpt.guiTextColor
+    let globalSmallScale = 1;
+    let globalMonitor = 1
+    let timeOutList = [] // 产生新text的定时器句柄
 
+    function clearTimeout(){
+        timeOutList.forEach(x=>{
+            clearInterval(x)
+        })
+        timeOutList = []
+    }
+
+    // 根据 宽度和位置确定初始位置
+    function getInitPos(editHeight) {
         // 方向根据 guiPos 和 guiPosXY 决定 guiPosOffsetX: 0, guiPosOffsetY: -50,
         // 默认 TL
         let guiX = winOpt.guiPosOffsetX
         let guiY = winOpt.guiPosOffsetY
-        let editHeight = getComputedStyle(newDiv).height
-        monitorIndex = winOpt.guiMonitorNum
-        if (monitorIndex > newMonitor.length || monitorIndex == 0) {
-            monitorIndex = 1
-        }
-        let width = newMonitor[monitorIndex].Width
-        let height = newMonitor[monitorIndex].Height
+
+        let width = newMonitor[globalMonitor - 1].Width
+        let height = newMonitor[globalMonitor - 1].Height
         // 此处坐标需要转换为不同屏幕的，每个屏幕默认起始点为 0 0
         switch (winOpt.guiPos) {
             case 'TR':
@@ -181,18 +156,83 @@
                 guiY = guiY + height - editHeight
                 break;
         }
-        newDiv.style.top = guiX * scale + 'px'
-        newDiv.style.left = guiY * scale + 'px'
+        return { guiX, guiY }
+    }
+    // 根据参数获取移动方向
+    function getDirection() {
+        switch (winOpt.guiPosXY) {
+            // 上下
+            case 'Y':
+                if (winOpt.guiPos.indexOf('T') > -1) {
+                    // 向下
+                    direction = 'down'
+                } else {
+                    // 向上
+                    direction = 'up'
+                }
+                break;
+            case 'X':
+                if (winOpt.guiPos.indexOf('L') > -1) {
+                    // 向右
+                    direction = 'right'
+                } else {
+                    // 向左
+                    direction = 'left'
+                }
+                break;
+        }
+        return direction
+    }
+    function createAnimatedDivs() {
+        let textArr = ['k e y', 'p r e s×2', 't e s t', '🖱️×3 ^+v', '⇧+c ␣×12', '⊞+d', 'Caps', 'Del×4'];
+        textArr = textArr.map(x => {
+            return x.replace(/ /g, winOpt.txtSplit);
+        })
+        clearTimeout() // 清理定时器
+        // 创建前先清空DIV
+        clearDivs(objContainer)
+        textArr.forEach((text, i) => {
+            // 间隔多少秒产生新的
+            let handle = setTimeout(() => {
+                createNewTxt(text, globalScale)
+            }, winOpt.guiInterval * i);
+            timeOutList.push(handle)
+        })
+    }
+    function createNewTxt(text, scale) {
+        const newDiv = document.createElement('div');
+        newDiv.classList.add('new-div');
+        // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
+        newDiv.textContent = text;
+        newDiv.style.width = winOpt.guiWidth * scale + 'px';
+        newDiv.style.fontSize = winOpt.guiTextSize * scale + 'px';
+        newDiv.style.fontFamily = winOpt.guiTextFont
+        let editHeight = winOpt.guiTextSize
+        if (winOpt.guiHeigth != 0) {
+            newDiv.style.height = winOpt.guiHeigth * scale + 'px';
+            editHeight = winOpt.guiHeigth
+        }
+        newDiv.style.backgroundColor = '#' + winOpt.guiBgcolor
+        newDiv.style.opacity = winOpt.guiOpacity / 100
+
+        newDiv.style.lineHeight = winOpt.guiTextSize * scale + 'px';
+        newDiv.style.fontWeight = winOpt.guiTextWeight
+        newDiv.style.color = '#' + winOpt.guiTextColor
+
+        let { guiX, guiY } = getInitPos(editHeight)
+        newDiv.style.top = guiY * scale + 'px'
+        newDiv.style.left = guiX * scale + 'px'
         objContainer.appendChild(newDiv);
-        const existingDivs = []; //objContainer.querySelectorAll('.new-div');
+        const existingDivs = objContainer.querySelectorAll('.new-div');
         existingDivs.forEach(div => {
             if (div !== newDiv) {
+                let direction = getDirection()
                 let prePos = 0, selfSize = 0, offset = winOpt.guiMargin;
                 switch (direction) {
                     case 'up':
-                        prePos = parseInt(getComputedStyle(div).bottom) || 0;
+                        prePos = parseInt(getComputedStyle(div).top) || 0;
                         selfSize = parseInt(getComputedStyle(div).height)
-                        div.style.bottom = (prePos + offset + selfSize) + 'px';
+                        div.style.top = (prePos - offset - selfSize) + 'px';
                         break;
                     case 'down':
                         prePos = parseInt(getComputedStyle(div).top) || 0;
@@ -200,9 +240,9 @@
                         div.style.top = (prePos + offset + selfSize) + 'px';
                         break;
                     case 'left':
-                        prePos = parseInt(getComputedStyle(div).right) || 0;
+                        prePos = parseInt(getComputedStyle(div).left) || 0;
                         selfSize = parseInt(getComputedStyle(div).width)
-                        div.style.right = (prePos + offset + selfSize) + 'px';
+                        div.style.left = (prePos - offset - selfSize) + 'px';
                         break;
                     case 'right':
                         prePos = parseInt(getComputedStyle(div).left) || 0;
@@ -214,8 +254,7 @@
         });
         // 超时后清理掉
         setTimeout(() => {
-            //newDiv.classList.add('hidden');
-            objContainer.removeChild(newDiv);
+            try { objContainer.removeChild(newDiv); } catch (e) { }
         }, winOpt.guiLife);
     }
 
@@ -242,16 +281,28 @@
         // 需要根据最大最小计算缩放比，根据宽度计算缩放比，demoWidth
         return { offsetX, offsetY, scale, height }
     }
+    function findDivs(parent) {
+        const result = [];
+        const allDivs = parent.querySelectorAll('div');
+        return allDivs.length > 0;
+    }
+    function clearDivs(parent) {
+        const childDivs = parent.querySelectorAll('div');
+        childDivs.forEach(div => {
+            div.remove();
+        });
+    }
     // getNewInfo()
     function initContain() {
-        // 800的宽度
-        let { offsetX, offsetY, scale, height } = getOffset(800)
+        let main = document.getElementById("mainContain")
+        // 获取宽度
+        let { offsetX, offsetY, scale, height } = getOffset(parseInt(getComputedStyle(main).width))
         // 计算偏移，修改为 Width 或 Height
         newMonitor = monitorInfo.map(x => {
             return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
         })
         console.log('newMonitor:', JSON.stringify(newMonitor))
-        let main = document.getElementById("mainContain")
+        
         main.style.height = height + 'px'
         let arrHTML = newMonitor.map((x, i) => {
             let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="container">
@@ -262,7 +313,18 @@
             return screenHTML
         })
         main.innerHTML = arrHTML.join('')
+        // 开始观察 myDiv 元素
+        newMonitor.map((x, i) => {
+            let myDiv = document.getElementById(`monitorId${i + 1}`)
+            observer.observe(myDiv);
+        })
+        globalSmallScale = scale
         globalScale = scale
+        let monitorIndex = winOpt.guiMonitorNum
+        if (monitorIndex > newMonitor.length || monitorIndex == 0) {
+            monitorIndex = 1
+        }
+        globalMonitor = monitorIndex
     }
     // 全屏代码
     function fullScreen(id) {
@@ -295,17 +357,40 @@
         }
     }
     document.addEventListener('fullscreenchange', function () {
-        console.log(document.fullscreenElement)
+        console.log('fullscreenchange',document.fullscreenElement)
+        if(document.fullscreenElement==null)
+        {
+            globalScale = globalSmallScale // 退回普通状态
+            createAnimatedDivs()
+        }else{
+            if (document.fullscreenElement == objContainer) {
+                globalScale = 1
+                createAnimatedDivs()
+            }
+        }
     });
 
     document.addEventListener('fullscreenerror', function () {
         console.error('全屏操作出错');
     });
+    // 监控变化
+    const observer = new ResizeObserver(entries => {
+        // for (const entry of entries) {
+        //     const { width, height } = entry.contentRect;
+        //     // 需要重新演示动画
+        //     console.log(entry.target, objContainer)
+        //     if (entry.target == objContainer) {
+        //         createAnimatedDivs()
+        //         console.log('createAnimatedDivs2222')
+        //     }
+        // }
+    });
     // 初始化容器
     initContain()
-    let objContainer = document.getElementById('container'); // 容器显示
+    let objContainer = document.getElementById('monitorId' + globalMonitor); // 容器显示
     // 调用函数，传入容器 ID 和移动方向
-    setInterval(() => { if (objContainer.innerHTML.trim() == '') { createAnimatedDivs(); } }, 1000)
+    //createAnimatedDivs();
+    setInterval(() => { if (!findDivs(objContainer)) { createAnimatedDivs(); } }, 1000)
 </script>
 
 </html>
