@@ -46,28 +46,17 @@
         }
 
         .allContain {
-            min-width: 1000px;
-            border: blue 1px solid;
+            width: calc(100% - 6px);
             margin: 0px;
             padding: 2px;
-            text-align: center;
             border: 1px solid #ccc;
             position: relative;
         }
 
-        .container {
-            position: absolute;
-        }
-
-        .container2 {
-            position: relative;
-            width: 800px;
-            height: 50px;
-            border: 1px solid #ccc;
-            overflow: hidden;
-        }
-
-        .new-div , .ctrl-div ,.app-div {
+        .container,
+        .new-div,
+        .ctrl-div,
+        .app-div {
             position: absolute;
             text-align: center;
         }
@@ -75,18 +64,12 @@
 </head>
 
 <body>
-    <div class="container2" id="container"></div>
-
-    <div style="background-color: aliceblue;border: 1px red solid;display: inline-block;" id="bgDiv">
-        位置显示 <div style="float: right;">关闭</div>
-        <div class="allContain" id="mainContain">
-        </div>
+    <div style="background-color: aliceblue;border: 1px red solid;">
+        位置显示
+        <div class="allContain" id="mainContain"></div>
     </div>
-
 </body>
 <script>
-    // { "Left": -2880, "Top": 0, "Right": -1440, "Bottom": 900 } 
-    // { "Left": -2880, "Top": 0, "Right": -960, "Bottom": 1200 }
     let monitorInfo = [{ "Left": -2880, "Top": 0, "Right": -1440, "Bottom": 900 }, { "Left": 0, "Top": 0, "Right": 2560, "Bottom": 1440 }]
     let newMonitor = [] // 转换后的监视器信息
     // 创建一个窗口显示 Div
@@ -195,18 +178,18 @@
         // 创建前先清空DIV
         clearDivs(objContainer)
         clearTimeout() // 清理定时器
-        if(winOpt.needShowKey==1){
+        if (winOpt.needShowKey == 1) {
             showKey()
         }
-        if(winOpt.ctrlState==1){
+        if (winOpt.ctrlState == 1) {
             showCtrl()
         }
-        if(winOpt.activeAppShow==1){
+        if (winOpt.activeAppShow == 1) {
             showApp()
         }
     }
-    function showCtrl(){
-        let textArr =['Caps','^ Caps','⊞ ⎇','^ ⇧ ⊞ ⎇','^ ⇧ ⊞ ⎇ Caps'] ;
+    function showCtrl() {
+        let textArr = ['Caps', '^ Caps', '⊞ ⎇', '^ ⇧ ⎇', '^ ⇧ ⊞ ⎇', '^ ⇧ ⊞ ⎇ Caps'];
         const newDiv = document.createElement('div');
         newDiv.classList.add('ctrl-div');
         let scale = globalScale
@@ -229,7 +212,7 @@
             // 间隔多少秒产生新的
             let handle = setTimeout(() => {
                 newDiv.textContent = text
-            }, 1000*i);
+            }, 1000 * i);
             timeOutList.push(handle)
         })
         let h = setTimeout(() => {
@@ -237,8 +220,8 @@
         }, ctrlAppSec);
         timeOutList.push(h)
     }
-    function showApp(){
-        let textArr =['Notepad.exe','Desktop','Chrome.exe','C:\\Windows\\explorer.exe','C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
+    function showApp() {
+        let textArr = ['SysDefault', 'Desktop','C:\\Windows\\explorer.exe', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
         const newDiv = document.createElement('div');
         newDiv.classList.add('app-div');
         let scale = globalScale
@@ -257,7 +240,7 @@
             // 间隔多少秒产生新的
             let handle = setTimeout(() => {
                 newDiv.textContent = text
-            }, 1000*i);
+            }, 1000 * i);
             timeOutList.push(handle)
         })
         let h = setTimeout(() => {
