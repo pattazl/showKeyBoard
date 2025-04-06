@@ -194,6 +194,9 @@
         newDiv.classList.add('new-div');
         // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
         newDiv.textContent = text;
+        if(winOpt.guiEdge == 1){
+            newDiv.style.border = '1px solid'
+        }
         newDiv.style.width = winOpt.guiWidth * scale + 'px';
         newDiv.style.fontSize = winOpt.guiTextSize * scale + 'px';
         newDiv.style.fontFamily = winOpt.guiTextFont
