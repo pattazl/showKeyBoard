@@ -152,6 +152,10 @@
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
+        <n-card style="border:1px #18a058 solid">
+          位置显示
+            <div class="allContain" id="mainContain"></div>
+        </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
           {{ contentText.intro17 }}
           <n-list hoverable v-if="allConfig.dialog">
@@ -899,55 +903,5 @@ export default defineComponent({
 })
 </script>
 <style scoped>
-.intro {
-  font-size: smaller;
-  color: #2080f0;
-  ;
-}
-
-.error {
-  font-size: smaller;
-  color: #f02020;
-  ;
-}
-
-.n-input-number {
-  width: 150px
-}
-
-.n-color-picker,
-.n-select {
-  width: 220px;
-}
-
-.n-input {
-  width: 300px;
-}
-
-.n-anchor-link {
-  font-size: 16px;
-}
-
-.n-space {
-  margin: 3px
-}
-
-body {
-  scroll-behavior: smooth;
-  /* 添加平滑滚动效果 */
-}
-
-@keyframes flash {
-  from {
-    background-color: orange;
-  }
-
-  to {
-    background-color: #ffffff;
-  }
-}
-
-.saveBlink {
-  animation: flash 0.6s infinite alternate;
-}
+@import "@/res/setting.css";
 </style>
