@@ -67,7 +67,7 @@
             overflow: hidden;
         }
 
-        .new-div {
+        .new-div , .ctrl-div ,.app-div {
             position: absolute;
             text-align: center;
         }
@@ -112,23 +112,31 @@
         guiMargin: 5,
         guiEdge: 1,
         txtSplit: " ",
-        ctrlX: 10,
-        ctrlY: 5,
-        ctrlTextSize: 19,
+        ctrlX: 500,
+        ctrlY: 50,
         activeAppShowX: 600,
         activeAppShowY: 0,
         // 大开关
         needShowKey: 1, // 是否显示按键
-        activeAppShow: 0, // 是否显示进程名
+        activeAppShow: 1, // 是否显示进程名
         ctrlState: 1,  // 是否显示控制键
+
+        ctrlWidth: 240,
+        ctrlBgcolor: "11AA99",
+        ctrlOpacity: 150,
+        ctrlTextFont: "Verdana",
+        ctrlTextSize: 20,
+        ctrlTextWeight: "bold",
+        ctrlTextColor: "FF0000",
     }
     let globalScale = 1;
     let globalSmallScale = 1;
     let globalMonitor = 1
     let timeOutList = [] // 产生新text的定时器句柄
+    let ctrlAppSec = 12000  // ctrl 和 app的显示时间
 
-    function clearTimeout(){
-        timeOutList.forEach(x=>{
+    function clearTimeout() {
+        timeOutList.forEach(x => {
             clearInterval(x)
         })
         timeOutList = []
@@ -184,13 +192,84 @@
         return direction
     }
     function createAnimatedDivs() {
+        // 创建前先清空DIV
+        clearDivs(objContainer)
+        clearTimeout() // 清理定时器
+        if(winOpt.needShowKey==1){
+            showKey()
+        }
+        if(winOpt.ctrlState==1){
+            showCtrl()
+        }
+        if(winOpt.activeAppShow==1){
+            showApp()
+        }
+    }
+    function showCtrl(){
+        let textArr =['Caps','^ Caps','⊞ ⎇','^ ⇧ ⊞ ⎇','^ ⇧ ⊞ ⎇ Caps'] ;
+        const newDiv = document.createElement('div');
+        newDiv.classList.add('ctrl-div');
+        let scale = globalScale
+        // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
+        newDiv.textContent = '';
+        newDiv.style.width = winOpt.ctrlWidth * scale + 'px';
+        newDiv.style.fontSize = winOpt.ctrlTextSize * scale + 'px';
+        newDiv.style.fontFamily = winOpt.ctrlTextFont
+        newDiv.style.backgroundColor = '#' + winOpt.ctrlBgcolor
+        newDiv.style.opacity = winOpt.ctrlOpacity / 255
+        newDiv.style.lineHeight = winOpt.ctrlTextSize * scale + 'px';
+        newDiv.style.fontWeight = winOpt.ctrlTextWeight
+        newDiv.style.color = '#' + winOpt.ctrlTextColor
+
+        newDiv.style.top = winOpt.ctrlY * scale + 'px'
+        newDiv.style.left = winOpt.ctrlX * scale + 'px'
+        objContainer.appendChild(newDiv);
+        // 3s后清理掉
+        textArr.forEach((text, i) => {
+            // 间隔多少秒产生新的
+            let handle = setTimeout(() => {
+                newDiv.textContent = text
+            }, 1000*i);
+            timeOutList.push(handle)
+        })
+        let h = setTimeout(() => {
+            try { objContainer.removeChild(newDiv); } catch (e) { }
+        }, ctrlAppSec);
+        timeOutList.push(h)
+    }
+    function showApp(){
+        let textArr =['Notepad.exe','Desktop','Chrome.exe','C:\\Windows\\explorer.exe','C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
+        const newDiv = document.createElement('div');
+        newDiv.classList.add('app-div');
+        let scale = globalScale
+        let fontSize = 12
+        // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
+        newDiv.textContent = '';
+        newDiv.style.fontSize = fontSize * scale + 'px'; // 默认12号字体
+        newDiv.style.backgroundColor = '#F5F5F5'
+        newDiv.style.lineHeight = fontSize * scale + 'px';
+
+        newDiv.style.top = winOpt.activeAppShowY * scale + 'px'
+        newDiv.style.left = winOpt.activeAppShowX * scale + 'px'
+        objContainer.appendChild(newDiv);
+        // 3s后清理掉
+        textArr.forEach((text, i) => {
+            // 间隔多少秒产生新的
+            let handle = setTimeout(() => {
+                newDiv.textContent = text
+            }, 1000*i);
+            timeOutList.push(handle)
+        })
+        let h = setTimeout(() => {
+            try { objContainer.removeChild(newDiv); } catch (e) { }
+        }, ctrlAppSec);
+        timeOutList.push(h)
+    }
+    function showKey() {
         let textArr = ['k e y', 'p r e s×2', 't e s t', '🖱️×3 ^+v', '⇧+c ␣×12', '⊞+d', 'Caps', 'Del×4'];
         textArr = textArr.map(x => {
             return x.replace(/ /g, winOpt.txtSplit);
         })
-        clearTimeout() // 清理定时器
-        // 创建前先清空DIV
-        clearDivs(objContainer)
         textArr.forEach((text, i) => {
             // 间隔多少秒产生新的
             let handle = setTimeout(() => {
@@ -212,8 +291,10 @@
             newDiv.style.height = winOpt.guiHeigth * scale + 'px';
             editHeight = winOpt.guiHeigth
         }
+        editHeight *= scale
+        console.log(editHeight)
         newDiv.style.backgroundColor = '#' + winOpt.guiBgcolor
-        newDiv.style.opacity = winOpt.guiOpacity / 100
+        newDiv.style.opacity = winOpt.guiOpacity / 255
 
         newDiv.style.lineHeight = winOpt.guiTextSize * scale + 'px';
         newDiv.style.fontWeight = winOpt.guiTextWeight
@@ -257,7 +338,6 @@
             try { objContainer.removeChild(newDiv); } catch (e) { }
         }, winOpt.guiLife);
     }
-
     // 要取最大范围，转换 monitorInfo 的负数位置
     function getOffset(demoWidth) {
         let maxInfo = { "Left": 0, "Top": 0, "Right": 0, "Bottom": 0 }  // 最小的 Left Top ，最大的 Right Bottom
@@ -302,7 +382,7 @@
             return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
         })
         console.log('newMonitor:', JSON.stringify(newMonitor))
-        
+
         main.style.height = height + 'px'
         let arrHTML = newMonitor.map((x, i) => {
             let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="container">
@@ -357,12 +437,11 @@
         }
     }
     document.addEventListener('fullscreenchange', function () {
-        console.log('fullscreenchange',document.fullscreenElement)
-        if(document.fullscreenElement==null)
-        {
+        console.log('fullscreenchange', document.fullscreenElement)
+        if (document.fullscreenElement == null) {
             globalScale = globalSmallScale // 退回普通状态
             createAnimatedDivs()
-        }else{
+        } else {
             if (document.fullscreenElement == objContainer) {
                 globalScale = 1
                 createAnimatedDivs()

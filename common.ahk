@@ -118,7 +118,7 @@ guiOpacity :=DescRead("dialog","guiOpacity", 150 ) ; 0-255
 guiTextFont := DescRead("dialog","guiTextFont", "Verdana" ) ; 字体
 guiTextSize := DescRead("dialog","guiTextSize", 26 ) ; 字体大小
 guiTextWeight :=DescRead("dialog","guiTextWeight", "bold" ) ; 是否粗体
-guiTextColor :=DescRead("dialog","guiTextColor", "FF0000" ) ; 是否粗体
+guiTextColor :=DescRead("dialog","guiTextColor", "FF0000" ) ; 文字颜色
 guiLife :=DescRead("dialog","guiLife", 7000 ) ; 显示多少毫秒消失
 guiInterval :=DescRead("dialog","guiInterval", 1000 ) ; 窗体间隔毫秒
 guiPos :=DescRead("dialog","guiPos", "BR" ) ; TL,TR,BL,BR 上下左右位置
@@ -133,6 +133,13 @@ txtSplit :=DescRead("dialog","txtSplit"," " ) ; 按键的分隔符
 ctrlX :=DescRead("dialog","ctrlX",10 ) ; 控制键X位置
 ctrlY :=DescRead("dialog","ctrlY",10 ) ; 控制键Y位置
 ctrlTextSize :=DescRead("dialog","ctrlTextSize", 20 ) ; 字体大小
+ctrlWidth :=DescRead("dialog","ctrlWidth",240 ) 
+ctrlBgcolor :=DescRead("dialog","ctrlBgcolor","11AA99"  ) 
+ctrlOpacity :=DescRead("dialog","ctrlOpacity",150 ) 
+ctrlTextFont :=DescRead("dialog","ctrlTextFont","Verdana" ) 
+ctrlTextWeight :=DescRead("dialog","ctrlTextWeight","bold" ) 
+ctrlTextColor :=DescRead("dialog","ctrlTextColor",  "FF0000"  )
+
 ctrlList := StrSplit(DescRead("dialog","ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock"),"|") ; 哪些按键长按会单独显示出来
 skipShow := StrSplit(DescRead("dialog","skipShow", ""),"|") ; 哪些按键不会显示，但会记录
 

@@ -430,48 +430,54 @@ GetProcPath(){
     }
     if(FocusedHwnd>0){
     ; 获取进程路径 ; WinGetProcessName(FocusedHwnd)
-        try{
-            ProcPath := WinGetProcessPath(FocusedHwnd)
-			; 桌面识别
-			if(InStr(ProcPath,"explorer.exe"))
-			{
-				winClass := WinGetClass(FocusedHwnd)
-				if(winClass = "Progman" or winClass = "WorkerW")
-				{
-					ProcPath := "Desktop"
-				}
-			}
-			; 进行路径转换
-			if(preAppNameEnable = 1)
-			{
-				; 需要支持正则转换 preAppNameList -> preAppNameListMap
-				for keyName, value in preAppNameListMap {
-					if( SubStr(keyName,1,4) = 'Reg:'){
-						; 进行正则匹配
-						strReg := SubStr(keyName,5)
-						FoundPos := RegExMatch(ProcPath, strReg )
-						if( FoundPos > 0 ){
-							ProcPath := value
-						}
-					}else{
-						; 名字相同则用 value 代替
-						if( keyName = ProcPath){
-							ProcPath := value
-						}
-					}
-				}
-			}
-        }catch{
-            try {   ; 当无法获取进程路径和名称时用进程的标题名代替
-                ProcPath := Trim(WinGetTitle(FocusedHwnd))
-                if ProcPath != '' {
-                    ProcPath := 'Title:' ProcPath
-                }
+      try{
+          ProcPath := WinGetProcessPath(FocusedHwnd)
+        ; 桌面识别
+        if(InStr(ProcPath,"explorer.exe"))
+        {
+          winClass := WinGetClass(FocusedHwnd)
+          if(winClass = "Progman" or winClass = "WorkerW")
+          {
+            ProcPath := "Desktop"
+          }
+        }
+        ; UWP程序识别
+        if(InStr(ProcPath,"ApplicationFrameHost.exe"))
+        {
+          winTitle := Trim(WinGetTitle(FocusedHwnd)) ; WinGetClass(FocusedHwnd) ApplicationFrameWindow
+          ProcPath := ProcPath ":" winTitle  ; 加上标题名
+        }
+      ; 进行路径转换
+      if(preAppNameEnable = 1)
+      {
+        ; 需要支持正则转换 preAppNameList -> preAppNameListMap
+        for keyName, value in preAppNameListMap {
+          if( SubStr(keyName,1,4) = 'Reg:'){
+            ; 进行正则匹配
+            strReg := SubStr(keyName,5)
+            FoundPos := RegExMatch(ProcPath, strReg )
+            if( FoundPos > 0 ){
+              ProcPath := value
             }
+          }else{
+            ; 名字相同则用 value 代替
+            if( keyName = ProcPath){
+              ProcPath := value
+            }
+          }
         }
-        if ProcPath = ''{
-            ProcPath := 'Unknown'
-        }
+      }
+      }catch{
+          try {   ; 当无法获取进程路径和名称时用进程的标题名代替
+              ProcPath := Trim(WinGetTitle(FocusedHwnd))
+              if ProcPath != '' {
+                  ProcPath := 'Title:' ProcPath
+              }
+          }
+      }
+      if ProcPath = '' {
+          ProcPath := 'Unknown'
+      }
     }
     ; 显示当前激活的应用路径
     if( activeAppShow = 1 ){
@@ -572,8 +578,8 @@ ShowCtrlState(){
 }
 CreateCtrlState()
 {
-	global ctrlStateGui := CreateGui(ctrlTextSize)
-	textOpt := "-Border x0 y0 c" guiTextColor
+	global ctrlStateGui := CreateCtrlGui(ctrlTextSize)
+	textOpt := "-Border x0 y0 c" ctrlTextColor
 	; 重新创建新的对象，便于计算新的高度，旧对象删除即可
 	txt :=""
 	Loop ctrlList.Length{
@@ -587,7 +593,7 @@ CreateCtrlState()
 	ControlGetPos &ex, &ey, &ew, &editHeight, ctrlTextGui
 	; 真正显示
 	if(ctrlState=1){
-		ctrlStateGui.Show("NoActivate x" ctrlX " y" ctrlY " w" ew " h" editHeight)
+		ctrlStateGui.Show("NoActivate x" ctrlX " y" ctrlY " w" ctrlWidth " h" editHeight)
 		; 显示控制键
 		SetTimer(ShowCtrlState, 50)
 	}
@@ -618,5 +624,20 @@ CreateGui(TextSize)
 	transColor := transColor " " guiOpacity ; 设置窗体透明度
 	WinSetTransColor(transColor, MyGui)  ; 窗口背景色设置
 	MyGui.SetFont("s" TextSize " " guiTextWeight, guiTextFont)  ; Set a large font size (32-point).
+	return MyGui
+}
+CreateCtrlGui(TextSize)
+{
+	MyGui := Gui()
+	; 设置窗体特性
+	guiOpt := "+AlwaysOnTop -Caption +ToolWindow +Owner"  ; MyGui.Opt("+LastFound")
+	MyGui.Opt(guiOpt) 
+	MyGui.BackColor := ctrlBgcolor  ; 设定任意颜色，然后下一行代码后设置窗口完全透明
+	transColor := "" ; 默认透明度
+	; 不支持窗口完全透明
+	transColor := ctrlBgcolor  "A "  ; 只需要背景颜色和透明色不一样即可，这里颜色后面加了个A
+	transColor := transColor " " ctrlOpacity ; 设置窗体透明度
+	WinSetTransColor(transColor, MyGui)  ; 窗口背景色设置
+	MyGui.SetFont("s" TextSize " " ctrlTextWeight, ctrlTextFont)  ; Set a large font size (32-point).
 	return MyGui
 }
