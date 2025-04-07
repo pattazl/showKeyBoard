@@ -422,7 +422,7 @@ AddRecord(key,isMouse){
 }
 ; 获取活动窗口的路径
 GetProcPath(){
-    ProcPath := 'SysDefault'  ; 当没有默认窗口时
+    ProcPath := 'NotFoundActive'  ; 当没有默认窗口时 SysDefault
     try {
         FocusedHwnd := WinActive("A")  ; ControlGetFocus("A") WinExist("A") ;
     }catch{
@@ -447,26 +447,6 @@ GetProcPath(){
           winTitle := Trim(WinGetTitle(FocusedHwnd)) ; WinGetClass(FocusedHwnd) ApplicationFrameWindow
           ProcPath := ProcPath ":" winTitle  ; 加上标题名
         }
-      ; 进行路径转换
-      if(preAppNameEnable = 1)
-      {
-        ; 需要支持正则转换 preAppNameList -> preAppNameListMap
-        for keyName, value in preAppNameListMap {
-          if( SubStr(keyName,1,4) = 'Reg:'){
-            ; 进行正则匹配
-            strReg := SubStr(keyName,5)
-            FoundPos := RegExMatch(ProcPath, strReg )
-            if( FoundPos > 0 ){
-              ProcPath := value
-            }
-          }else{
-            ; 名字相同则用 value 代替
-            if( keyName = ProcPath){
-              ProcPath := value
-            }
-          }
-        }
-      }
       }catch{
           try {   ; 当无法获取进程路径和名称时用进程的标题名代替
               ProcPath := Trim(WinGetTitle(FocusedHwnd))
@@ -485,13 +465,35 @@ GetProcPath(){
     }
     return ProcPath
 }
+
 ; 更新活动窗口信息
 GetAppInfo(isMouse){
     appName := 'App-'
-    global globalAppPath := GetProcPath()  ; 设置全局变量激活窗口信息
-    if globalAppPath = ''{
+    ProcPath:= GetProcPath()  ; 设置全局变量激活窗口信息
+    ; 进行路径转换
+    if(preAppNameEnable = 1)
+    {
+        ; 需要支持正则转换 preAppNameList -> preAppNameListMap
+        for keyName, value in preAppNameListMap {
+          if( SubStr(keyName,1,4) = 'Reg:'){
+            ; 进行正则匹配
+            strReg := SubStr(keyName,5)
+            FoundPos := RegExMatch(ProcPath, strReg )
+            if( FoundPos > 0 ){
+              ProcPath := value
+            }
+          }else{
+            ; 名字相同则用 value 代替
+            if( keyName = ProcPath){
+              ProcPath := value
+            }
+          }
+        }
+    }
+    if ProcPath = ''{
         return
     }
+    global globalAppPath := ProcPath
     if isMouse {
         appName .= 'Mouse-' globalAppPath  
     }else{

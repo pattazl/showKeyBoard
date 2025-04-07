@@ -147,7 +147,7 @@
             </n-list-item>
             <n-list-item v-show="allConfig.common.preAppNameEnable">{{ contentText.intro148 }}
               <n-dynamic-input v-model:value="preAppNameListRef" preset="pair" :key-placeholder="contentText.intro146"
-                :value-placeholder="contentText.intro147" />
+                :value-placeholder="contentText.intro185" />
             </n-list-item>
           </n-list>
         </n-card>

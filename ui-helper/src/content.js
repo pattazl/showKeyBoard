@@ -212,6 +212,7 @@ export default {
 	intro182: '应用按键明细',
 	intro183: '跟随激活窗口',
 	intro184: '是否上传时根据规则转换应用名称',
+	intro185: '程序转换后名称，留空表示忽略此程序',
 
   },
   'en-US': {
@@ -428,5 +429,6 @@ export default {
 	intro182: 'App keypress detail',
 	intro183: 'Follow Active App',
 	intro184: 'Whether convert the application name by rules when uploading',
+	intro185: 'The name of the app after conversion. Blank means ignoring this app.',
   }
 };
