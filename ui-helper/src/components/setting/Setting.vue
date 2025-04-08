@@ -31,6 +31,9 @@
                 <n-switch :round="false" v-model:value="allConfig.common.needShowKey" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro55 }}
+              <n-dynamic-tags v-model:value="skipShowRef" />
+            </n-list-item>
             <n-list-item>{{ contentText.intro9 }}
               <div class="intro">{{ contentText.intro10 }}</div>
               <template #suffix>
@@ -269,16 +272,45 @@
                 <n-input-number v-model:value="allConfig.dialog.ctrlY" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro18 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.ctrlWidth" :min="1" :max="65535" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro19 }}<div class="intro">{{ contentText.intro20 }}</div>
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.guiHeigth" :min="0" :max="65535" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro21 }}
+              <template #suffix>
+                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']" @update:value="handleUpdateColor" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro24 }}<div class="intro">{{ contentText.intro25 }}</div>
+              <template #suffix>
+                <n-select v-model:value="allConfig.dialog.ctrlTextFont" :options="allFontRef" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro53 }}
               <template #suffix>
                 <n-input-number v-model:value="allConfig.dialog.ctrlTextSize" :min="1" :max="100" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro27 }}
+              <template #suffix>
+                <n-select v-model:value="allConfig.dialog.ctrlTextWeight"
+                  :options="[{ label: contentText.intro67, value: 'norm' }, { label: contentText.intro68, value: 'bold' }, { label: contentText.intro69, value: 'italic' },
+                  { label: contentText.intro70, value: 'strike' }, { label: contentText.intro71, value: 'underline' }]" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro28 }}
+              <template #suffix>
+                <n-color-picker v-model:value="ctrlTextColorRef" :show-alpha="false" :modes="['hex']" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro54 }}
               <n-dynamic-tags v-model:value="ctrlListRef" />
-            </n-list-item>
-            <n-list-item>{{ contentText.intro55 }}
-              <n-dynamic-tags v-model:value="skipShowRef" />
             </n-list-item>
           </n-list>
 
@@ -592,6 +624,10 @@ export default defineComponent({
     const keyboardSaveInfo = ref('')    // 键盘保存按钮
     const guiBgcolorRef = ref('')    // 颜色需要额外处理
     const guiTextColorRef = ref('')    // 颜色需要额外处理
+
+    const ctrlBgcolorRef = ref('')    // 颜色需要额外处理
+    const ctrlTextColorRef = ref('')    // 颜色需要额外处理
+
     let IPlinks = []   // IP地址清单
 
     let chartDom, myChart
@@ -895,6 +931,8 @@ export default defineComponent({
       keyboardDelete,
       guiBgcolorRef,
       guiTextColorRef,
+      ctrlBgcolorRef,
+      ctrlTextColorRef,
       handleUpdateColor,
       IPlinks,
       preAppNameListRef,
