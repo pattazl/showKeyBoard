@@ -263,7 +263,7 @@ sendData(route,data:=''){
     str := ''
     if(data!=''){
 		if( Type(data) = 'Map'){
-			str := JSON.stringify(data)
+			str := JSON.stringify(data,0) ; 无需换行或缩进
 		}else{
 			str := data   ; 普通字符串
 		}

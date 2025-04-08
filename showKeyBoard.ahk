@@ -369,7 +369,7 @@ ExitFunc(ExitReason, ExitCode)
             last['Distance'] := mouseDistance - last['Distance']
             last['LastFlag'] := 1  ; 标注为最后的一次
         }
-		FileAppend(JSON.stringify(AllKeyRecord), lastRecordPath)
+		FileAppend(JSON.stringify(AllKeyRecord,0), lastRecordPath)
 	}
 }
 
