@@ -72,6 +72,13 @@
 <script>
     let monitorInfo = [{ "Left": -2880, "Top": 0, "Right": -1440, "Bottom": 900 }, { "Left": 0, "Top": 0, "Right": 2560, "Bottom": 1440 }]
     let newMonitor = [] // 转换后的监视器信息
+    let globalScale = 1;
+    let globalinFullScreen = false
+    let globalSmallScale = 1; // 恢复常态时的比例
+    let globalMonitor = 1
+    let timeOutList = [] // 产生新text的定时器句柄
+    let ctrlAppSec = 12000  // ctrl 和 app的显示时间
+    let objContainer = null
     // 创建一个窗口显示 Div
     let winOpt = {
         guiWidth: 240,
@@ -112,11 +119,7 @@
         ctrlTextWeight: "bold",
         ctrlTextColor: "FF0000",
     }
-    let globalScale = 1;
-    let globalSmallScale = 1;
-    let globalMonitor = 1
-    let timeOutList = [] // 产生新text的定时器句柄
-    let ctrlAppSec = 12000  // ctrl 和 app的显示时间
+
 
     function clearTimeout() {
         timeOutList.forEach(x => {
@@ -221,7 +224,7 @@
         timeOutList.push(h)
     }
     function showApp() {
-        let textArr = ['SysDefault', 'Desktop','C:\\Windows\\explorer.exe', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
+        let textArr = ['SysDefault', 'Desktop', 'C:\\Windows\\explorer.exe', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
         const newDiv = document.createElement('div');
         newDiv.classList.add('app-div');
         let scale = globalScale
@@ -266,7 +269,7 @@
         newDiv.classList.add('new-div');
         // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
         newDiv.textContent = text;
-        if(winOpt.guiEdge == 1){
+        if (winOpt.guiEdge == 1) {
             newDiv.style.border = '1px solid'
         }
         newDiv.style.width = winOpt.guiWidth * scale + 'px';
@@ -278,7 +281,6 @@
             editHeight = winOpt.guiHeigth
         }
         editHeight *= scale
-        console.log(editHeight)
         newDiv.style.backgroundColor = '#' + winOpt.guiBgcolor
         newDiv.style.opacity = winOpt.guiOpacity / 255
 
@@ -325,7 +327,8 @@
         }, winOpt.guiLife);
     }
     // 要取最大范围，转换 monitorInfo 的负数位置
-    function getOffset(demoWidth) {
+    function getOffset(main) {
+        demoWidth = parseInt(getComputedStyle(main).width)
         let maxInfo = { "Left": 0, "Top": 0, "Right": 0, "Bottom": 0 }  // 最小的 Left Top ，最大的 Right Bottom
         monitorInfo.forEach(x => {
             maxInfo.Left = Math.min(x.Left, maxInfo.Left)
@@ -344,10 +347,15 @@
         let scale = demoWidth / (maxInfo.Right - maxInfo.Left)
         console.log('scale', maxInfo.Bottom - maxInfo.Top)
         let height = parseInt(scale * (maxInfo.Bottom - maxInfo.Top))
-        // 需要根据最大最小计算缩放比，根据宽度计算缩放比，demoWidth
-        return { offsetX, offsetY, scale, height }
+
+        // 调整高度
+        main.style.height = height + 'px'
+        globalSmallScale = scale  // 小的比例
+        globalScale = scale      // 引用的比例
+        return { offsetX, offsetY, scale }
     }
     function findDivs(parent) {
+
         const result = [];
         const allDivs = parent.querySelectorAll('div');
         return allDivs.length > 0;
@@ -360,37 +368,10 @@
     }
     // getNewInfo()
     function initContain() {
-        let main = document.getElementById("mainContain")
         // 获取宽度
-        let { offsetX, offsetY, scale, height } = getOffset(parseInt(getComputedStyle(main).width))
-        // 计算偏移，修改为 Width 或 Height
-        newMonitor = monitorInfo.map(x => {
-            return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
-        })
-        console.log('newMonitor:', JSON.stringify(newMonitor))
-
-        main.style.height = height + 'px'
-        let arrHTML = newMonitor.map((x, i) => {
-            let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="container">
-            <div id="monitorId${i + 1}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="color-changing-div">
-                <button onclick="fullScreen(${i + 1})">全屏${i + 1}</button>
-            </div>
-        </div>`
-            return screenHTML
-        })
-        main.innerHTML = arrHTML.join('')
-        // 开始观察 myDiv 元素
-        newMonitor.map((x, i) => {
-            let myDiv = document.getElementById(`monitorId${i + 1}`)
-            observer.observe(myDiv);
-        })
-        globalSmallScale = scale
-        globalScale = scale
-        let monitorIndex = winOpt.guiMonitorNum
-        if (monitorIndex > newMonitor.length || monitorIndex == 0) {
-            monitorIndex = 1
-        }
-        globalMonitor = monitorIndex
+        let main = initMain()
+        // 开始观察 主框架 元素
+        observer.observe(main);
     }
     // 全屏代码
     function fullScreen(id) {
@@ -423,11 +404,13 @@
         }
     }
     document.addEventListener('fullscreenchange', function () {
-        console.log('fullscreenchange', document.fullscreenElement)
+        // console.log('fullscreenchange', document.fullscreenElement)
         if (document.fullscreenElement == null) {
             globalScale = globalSmallScale // 退回普通状态
+            globalinFullScreen = false
             createAnimatedDivs()
         } else {
+            globalinFullScreen = true
             if (document.fullscreenElement == objContainer) {
                 globalScale = 1
                 createAnimatedDivs()
@@ -440,19 +423,47 @@
     });
     // 监控变化
     const observer = new ResizeObserver(entries => {
-        // for (const entry of entries) {
-        //     const { width, height } = entry.contentRect;
-        //     // 需要重新演示动画
-        //     console.log(entry.target, objContainer)
-        //     if (entry.target == objContainer) {
-        //         createAnimatedDivs()
-        //         console.log('createAnimatedDivs2222')
-        //     }
-        // }
+        for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            // 需要重新演示动画
+            if (entry.target.id == 'mainContain') {
+                // 全屏时候忽略
+                if (globalinFullScreen ) {
+                    return
+                }
+                initMain()
+            }
+        }
     });
+    // 初始化主窗口
+    function initMain() {
+        let main = document.getElementById("mainContain")
+        let { offsetX, offsetY, scale } = getOffset(main)
+        // 计算偏移，修改为 Width 或 Height
+        newMonitor = monitorInfo.map(x => {
+            return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
+        })
+        // console.log('newMonitor:', JSON.stringify(newMonitor))
+        let arrHTML = newMonitor.map((x, i) => {
+            let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="container">
+            <div id="monitorId${i + 1}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="color-changing-div">
+                <button onclick="fullScreen(${i + 1})">全屏${i + 1}</button>
+            </div>
+        </div>`
+            return screenHTML
+        })
+        main.innerHTML = arrHTML.join('')
+        // 设定具体哪个模块中显示
+        let monitorIndex = winOpt.guiMonitorNum
+        if (monitorIndex > monitorInfo.length || monitorIndex == 0) {
+            monitorIndex = 1
+        }
+        globalMonitor = monitorIndex
+        objContainer = document.getElementById('monitorId' + globalMonitor); // 容器显示
+        return main;
+    }
     // 初始化容器
     initContain()
-    let objContainer = document.getElementById('monitorId' + globalMonitor); // 容器显示
     // 调用函数，传入容器 ID 和移动方向
     //createAnimatedDivs();
     setInterval(() => { if (!findDivs(objContainer)) { createAnimatedDivs(); } }, 1000)
