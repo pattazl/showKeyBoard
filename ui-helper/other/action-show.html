@@ -328,7 +328,7 @@
     }
     // 要取最大范围，转换 monitorInfo 的负数位置
     function getOffset(main) {
-        demoWidth = parseInt(getComputedStyle(main).width)
+        let demoWidth = parseInt(getComputedStyle(main).width)
         let maxInfo = { "Left": 0, "Top": 0, "Right": 0, "Bottom": 0 }  // 最小的 Left Top ，最大的 Right Bottom
         monitorInfo.forEach(x => {
             maxInfo.Left = Math.min(x.Left, maxInfo.Left)

@@ -213,6 +213,8 @@ export default {
 	intro183: '跟随激活窗口',
 	intro184: '是否上传时根据规则转换应用名称',
 	intro185: '程序转换后名称，留空表示忽略此程序',
+	intro186: '按键显示位置模拟显示',
+	intro187: '全屏',
 
   },
   'en-US': {
@@ -430,5 +432,7 @@ export default {
 	intro183: 'Follow Active App',
 	intro184: 'Whether convert the application name by rules when uploading',
 	intro185: 'The name of the app after conversion. Blank means ignoring this app.',
+	intro186: 'Simulated display of UI positions',
+	intro187: 'FullScreen',
   }
 };

@@ -1,0 +1,54 @@
+.demo-color-changing-div {
+    position: relative;
+    border: 1px blue solid;
+    animation: colorShift 18s infinite linear;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes colorShift {
+    0% {
+        background-color: #00B7EB;
+    }
+
+    16.67% {
+        background-color: #C8D7E3;
+    }
+
+    33.33% {
+        background-color: #7AC142;
+    }
+
+    50% {
+        background-color: #003366;
+    }
+
+    66.67% {
+        background-color: #0078D7;
+    }
+
+    83.33% {
+        background-color: #8E44AD;
+    }
+
+    100% {
+        background-color: #00B7EB;
+    }
+}
+
+.demo-allContain {
+    width: calc(100% - 6px);
+    margin: 0px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    position: relative;
+}
+
+.demo-Container,
+.demo-new-div,
+.demo-ctrl-div,
+.demo-app-div {
+    position: absolute;
+    text-align: center;
+}

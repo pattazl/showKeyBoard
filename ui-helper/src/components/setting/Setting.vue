@@ -155,7 +155,7 @@
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card style="border:1px #18a058 solid">
-          位置显示
+          {{ contentText.intro186 }}
           <div class="allContain" id="mainContain"></div>
         </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
@@ -429,6 +429,7 @@ import { defineComponent, onMounted, PropType, ref, computed, Ref } from 'vue'
 import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
+import { initContain, createAnimatedDivs, fullScreen,findDivs } from '../../showAnimateUI.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
 import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
@@ -645,11 +646,12 @@ export default defineComponent({
       keymapsRef.value = data.keymaps.map(x => { return { label: x.mapName, value: x.mapName } });
 
       const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
-      if (sinfo != null) {
+      // 只需要添加一次
+      if (sinfo != null && sinfo[0] != contentText.value.intro183) {
         sinfo.unshift(contentText.value.intro183);
-        screenInfo.value = sinfo
-        screenNum.value = toVSelectList([...Array(sinfo.length).keys()])
       }
+      screenInfo.value = sinfo
+      screenNum.value = toVSelectList([...Array(sinfo.length).keys()])
       //console.log('data.config', data.config)
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
       keyMappingRef.value = toKVList(data.keyList)
@@ -674,6 +676,14 @@ export default defineComponent({
       myChart = echarts.init(chartDom);
       // 更新键盘图和数据
       handleUpdateValue(store.data.dataSetting.keymap)
+      // 进行屏幕界面模拟演示
+      if (screenInfo.value.length > 1) {
+        initContain(screenInfo.value.slice(1),contentText.value.intro187); // 从第二个取到最后
+        // 绑定全屏事件
+        setTimeout(bindFullScreen,10)
+        // 动态演示
+        setInterval(() => { if (!findDivs()) { createAnimatedDivs(); } }, 1000)
+      }
     })
     //let preAnchor = null
     let myBorder = ref({
@@ -714,6 +724,15 @@ export default defineComponent({
     function resetPara() {
       store.data = deepCopy(store.preData);
       loadPara()
+    }
+    // 绑定动态创建的全屏事件
+    function bindFullScreen() {
+      let buttons = document.querySelectorAll('.demo-color-changing-div>button')
+      buttons.forEach((x, i) => {
+        x.addEventListener('click', () => {
+          fullScreen(i + 1);
+        });
+      })
     }
     // 将数据进行转换和保存 allConfig,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef
     async function savePara() {
@@ -957,4 +976,7 @@ export default defineComponent({
 </script>
 <style scoped>
 @import "@/res/setting.css";
+</style>
+<style>
+@import "@/res/demo-screen.css";
 </style>
