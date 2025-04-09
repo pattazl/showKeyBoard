@@ -35,5 +35,11 @@ export default {
 	ctrlTextSize:'intro53',
 	ctrlListRef:'intro54',
 	skipShowRef:'intro55',
+	ctrlWidth:'intro18',
+	ctrlHeigth:'intro19',
+	ctrlBgcolor:'intro21',
+	ctrlTextFont:'intro24',
+	ctrlTextWeight:'intro27',
+	ctrlTextColor:'intro28',
 
 };

@@ -68,10 +68,9 @@
                 <n-input-number v-model:value="allConfig.common.serverPort" :min="80" :max="65535" />
               </template>
             </n-list-item>
-            <n-list-item>{{ contentText.intro179}}
+            <n-list-item>{{ contentText.intro179 }}
               <template #suffix>
-                <n-input v-model:value="allConfig.common.monitorProc" type="text"
-                  :placeholder="contentText.intro13" />
+                <n-input v-model:value="allConfig.common.monitorProc" type="text" :placeholder="contentText.intro13" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro12 }}
@@ -157,13 +156,14 @@
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card style="border:1px #18a058 solid">
           位置显示
-            <div class="allContain" id="mainContain"></div>
+          <div class="allContain" id="mainContain"></div>
         </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
-          {{ contentText.intro17 }}
+          <h4>{{ contentText.intro17 }}</h4>
           <n-list hoverable v-if="allConfig.dialog">
             <n-list-item>{{ contentText.intro44 }}<div :class="screenInfo.length > 0 ? 'intro' : 'error'">{{
-              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }} {{screenInfo[allConfig.dialog.guiMonitorNum] }}</div>
+              screenInfo.length > 0 ? contentText.intro45 : contentText.intro72 }}
+                {{ screenInfo[allConfig.dialog.guiMonitorNum] }}</div>
               <template #suffix>
                 <n-select v-model:value="allConfig.dialog.guiMonitorNum" :options="screenNum" />
               </template>
@@ -284,7 +284,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']" @update:value="handleUpdateColor" />
+                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']" @update:value="handleUpdateCtrlColor" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro24 }}<div class="intro">{{ contentText.intro25 }}</div>
@@ -377,7 +377,7 @@
             </n-list-item>
             <n-list-item v-show="dataSetting.mergeAppName">{{ contentText.intro148 }}
               <n-dynamic-input v-model:value="appNameListRef" preset="pair" :key-placeholder="contentText.intro146"
-                 :value-placeholder="contentText.intro147" />
+                :value-placeholder="contentText.intro147" />
             </n-list-item>
             <n-list-item>{{ contentText.intro99 }}<div class="intro" style="white-space: pre-line;">{{
               contentText.intro100 }}</div>
@@ -550,7 +550,7 @@ function toVSelectList(arr: Array<string | number>) {
 // 生成界面上key,value数组
 function toKVList(obj: {}) {
   let resArr = [];
-  if(obj==null){
+  if (obj == null) {
     return resArr
   }
   for (let k in obj) {
@@ -579,7 +579,7 @@ function getDiffHash(hash/*out */, hash1, hash2, named, contentText) {
     for (let k in hash1) {
       let before = hash2[k]
       let after = hash1[k]
-      let keyName = mapping[k] == null ? k : (contentText[mapping[k]] ?? k);
+      let keyName = k + ' ' + (mapping[k] == null ? '' : (contentText[mapping[k]] ?? ''));// 可以增加额外描述，但变量名一直保留
       if (before != after) {
         oldArr.push(`${keyName}: ${before}`)
         newArr.push(`${keyName}: ${after}`)
@@ -646,7 +646,7 @@ export default defineComponent({
 
       const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
       if (sinfo != null) {
-        sinfo.unshift( contentText.value.intro183 );
+        sinfo.unshift(contentText.value.intro183);
         screenInfo.value = sinfo
         screenNum.value = toVSelectList([...Array(sinfo.length).keys()])
       }
@@ -654,13 +654,16 @@ export default defineComponent({
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
       keyMappingRef.value = toKVList(data.keyList)
       appNameListRef.value = toKVList(JSON.parse(data.dataSetting.appNameList))
-      preAppNameListRef.value = toKVList(JSON.parse(allConfig.value.common.preAppNameList??'{}'))
+      preAppNameListRef.value = toKVList(JSON.parse(allConfig.value.common.preAppNameList ?? '{}'))
       skipRecordRef.value = splitArr(allConfig.value.common.skipRecord)
       ctrlListRef.value = splitArr(allConfig.value.dialog.ctrlList)
       skipShowRef.value = splitArr(allConfig.value.dialog.skipShow)
 
       guiBgcolorRef.value = '#' + allConfig.value.dialog.guiBgcolor + parseInt(allConfig.value.dialog.guiOpacity, 10).toString(16)
       guiTextColorRef.value = '#' + allConfig.value.dialog.guiTextColor
+
+      ctrlBgcolorRef.value = '#' + allConfig.value.dialog.ctrlBgcolor + parseInt(allConfig.value.dialog.ctrlOpacity, 10).toString(16)
+      ctrlTextColorRef.value = '#' + allConfig.value.dialog.ctrlTextColor
 
       IPlinks = data.networkIP.map(x => location.origin.replace(location.host, x))
       //console.log(IPlinks)
@@ -695,11 +698,17 @@ export default defineComponent({
       // preAnchor = href
     }
     // 更新颜色相关的变量
-    function updateColor(dialogHash, colorVal) {
+    function updateColor(dialogHash, colorVal, flag = 0) {
       let color = colorVal.replace(/#/, '')
-      dialogHash.guiBgcolor = color.substr(0, 6);
-      dialogHash.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
-      dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? '1' : '0'
+      if (flag == 0) {
+        dialogHash.guiBgcolor = color.substr(0, 6);
+        dialogHash.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
+        dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? '1' : '0'
+      } else if (flag == 1) {
+        // 控制模块显示
+        dialogHash.ctrlBgcolor = color.substr(0, 6);
+        dialogHash.ctrlOpacity = parseInt(color.substr(6, 2), 16).toString()
+      }
     }
     // 还原数据
     function resetPara() {
@@ -724,6 +733,8 @@ export default defineComponent({
           // 更新颜色信息
           updateColor(config.dialog, guiBgcolorRef.value)
           config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
+          updateColor(config.dialog, ctrlBgcolorRef.value, 1)
+          config.dialog.ctrlTextColor = ctrlTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
           dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
@@ -894,6 +905,9 @@ export default defineComponent({
     function handleUpdateColor(value) {
       updateColor(allConfig.value.dialog, value)
     }
+    function handleUpdateCtrlColor(value) {
+      updateColor(allConfig.value.dialog, value, 1)
+    }
     // 去掉空格等
     // function validAppNameList(targetRef) {
     //   setTimeout( function(){
@@ -934,6 +948,7 @@ export default defineComponent({
       ctrlBgcolorRef,
       ctrlTextColorRef,
       handleUpdateColor,
+      handleUpdateCtrlColor,
       IPlinks,
       preAppNameListRef,
     }
