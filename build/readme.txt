@@ -10,3 +10,8 @@ nsis需要安装 LogicLib.nsh 和 nsProcess 库
 4. 修改 buildMain.config.js 中的编译脚本目录
 5. 根目录下 执行 npm run build ,注意:第一次需执行 npm install
 6. 将自动调用本目录的buildMain.js 文件
+
+版本号位置
+主程序和打包文件的版本号：\package.json
+web-UI的版本号：\ui-helper\src\version.ts
+http版本号：\http\package.json

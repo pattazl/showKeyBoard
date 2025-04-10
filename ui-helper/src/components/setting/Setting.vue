@@ -154,7 +154,7 @@
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
-        <n-card style="border:1px #18a058 solid">
+        <n-card style="border:1px #18a058 solid;overflow: auto;">
           {{ contentText.intro186 }} <div style="float:right">
             <input value="-" type="button" title="smaller" @click="changeContainSize(-1)" />
             <input value="0" type="button" title="reset" @click="changeContainSize(0)" />
@@ -960,12 +960,14 @@ export default defineComponent({
     }
     function changeContainSize(flag) {
       let main = document.getElementById('mainContain');
+      let defaultWidth = '80%'  // 同CSS中一致
+      let preWidth = main.style.width||defaultWidth
       if (flag == 0) {
-        main.style.width = "80%"
+        main.style.width = defaultWidth
       } else if (flag < 0) {
-        main.style.width = (parseInt(main.style.width) - 10) + "%"
+        main.style.width = (parseInt(preWidth) - 10) + "%"
       } else {
-        main.style.width = (parseInt(main.style.width) + 10) + "%"
+        main.style.width = (parseInt(preWidth) + 10) + "%"
       }
 
     }
