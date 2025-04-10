@@ -156,7 +156,7 @@
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card style="border:1px #18a058 solid">
           {{ contentText.intro186 }}
-          <div class="allContain" id="mainContain"></div>
+          <div class="demo-allContain" id="mainContain"></div>
         </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
           <h4>{{ contentText.intro17 }}</h4>
@@ -180,7 +180,12 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" @update:value="handleUpdateColor" />
+                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 0)" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro188 }}
+              <template #suffix>
+                <n-switch v-model:value="allConfig.dialog.guiBgTrans" :round="false" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro22 }}<div class="intro">{{ contentText.intro23 }}</div>
@@ -207,7 +212,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro28 }}
               <template #suffix>
-                <n-color-picker v-model:value="guiTextColorRef" :show-alpha="false" :modes="['hex']" />
+                <n-color-picker v-model:value="guiTextColorRef" :show-alpha="false" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 2)"/>
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro29 }}
@@ -284,7 +289,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']" @update:value="handleUpdateCtrlColor" />
+                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 1)" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro24 }}<div class="intro">{{ contentText.intro25 }}</div>
@@ -306,7 +311,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro28 }}
               <template #suffix>
-                <n-color-picker v-model:value="ctrlTextColorRef" :show-alpha="false" :modes="['hex']" />
+                <n-color-picker v-model:value="ctrlTextColorRef" :show-alpha="false" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 3)"/>
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro54 }}
@@ -410,9 +415,10 @@
           <n-space>
             <n-button type="warning" @click="resetPara">{{ contentText?.intro81 }}</n-button>
             <n-button type="primary" @click="savePara">{{ contentText?.intro82 }}</n-button>
-            <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{ Object.keys(diffJsonList).length
-              > 0 ?
-              contentText?.intro83 : contentText?.intro84 }}</n-tag>
+            <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{
+              Object.keys(diffJsonList).length
+                > 0 ?
+                contentText?.intro83 : contentText?.intro84 }}</n-tag>
           </n-space>
           <code-diff v-for="(item, key) in diffJsonList" :lang="lang" :key="key" :old-string="item['old']"
             :new-string="item['new']" :context="50" :file-name="key" output-format="side-by-side"
@@ -425,11 +431,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, PropType, ref, computed, Ref } from 'vue'
+import { defineComponent, onMounted, PropType, ref, computed,watch, Ref } from 'vue'
 import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
-import { initContain, createAnimatedDivs, fullScreen,findDivs } from '../../showAnimateUI.js';
+import { initContain, updateWinOpt } from '../../showAnimateUI.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
 import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
@@ -625,7 +631,6 @@ export default defineComponent({
     const keyboardSaveInfo = ref('')    // 键盘保存按钮
     const guiBgcolorRef = ref('')    // 颜色需要额外处理
     const guiTextColorRef = ref('')    // 颜色需要额外处理
-
     const ctrlBgcolorRef = ref('')    // 颜色需要额外处理
     const ctrlTextColorRef = ref('')    // 颜色需要额外处理
 
@@ -663,7 +668,6 @@ export default defineComponent({
 
       guiBgcolorRef.value = '#' + allConfig.value.dialog.guiBgcolor + parseInt(allConfig.value.dialog.guiOpacity, 10).toString(16)
       guiTextColorRef.value = '#' + allConfig.value.dialog.guiTextColor
-
       ctrlBgcolorRef.value = '#' + allConfig.value.dialog.ctrlBgcolor + parseInt(allConfig.value.dialog.ctrlOpacity, 10).toString(16)
       ctrlTextColorRef.value = '#' + allConfig.value.dialog.ctrlTextColor
 
@@ -671,6 +675,21 @@ export default defineComponent({
       //console.log(IPlinks)
     }
     loadPara();
+    // 要监听的属性列表
+    let watchedProps = ['guiWidth','guiHeigth','guiBgcolor','guiBgTrans','guiOpacity',
+    'guiTextFont','guiTextSize','guiTextWeight','guiTextColor','guiLife','guiInterval','guiPos','guiPosXY','guiPosOffsetX','guiPosOffsetY','guiDpiscale','guiMonitorNum',
+    'guiMargin','guiEdge','txtSplit','ctrlX','ctrlY','activeAppShowX','activeAppShowY','needShowKey','activeAppShow','ctrlState','ctrlWidth','ctrlBgcolor','ctrlOpacity',
+    'ctrlTextFont','ctrlTextSize','ctrlTextWeight','ctrlTextColor']  
+    watchedProps.forEach(prop => {
+      watch(
+        () => allConfig.value.dialog[prop],
+        (newValue, oldValue) => {
+          console.log(`${prop} 发生变化，新值: ${newValue}，旧值: ${oldValue}`);
+          updateWinOpt(allConfig.value.dialog)
+        },
+        { deep: false }
+      );
+    });
     onMounted(() => {
       chartDom = document.getElementById('main');
       myChart = echarts.init(chartDom);
@@ -678,11 +697,11 @@ export default defineComponent({
       handleUpdateValue(store.data.dataSetting.keymap)
       // 进行屏幕界面模拟演示
       if (screenInfo.value.length > 1) {
-        initContain(screenInfo.value.slice(1),contentText.value.intro187); // 从第二个取到最后
-        // 绑定全屏事件
-        setTimeout(bindFullScreen,10)
-        // 动态演示
-        setInterval(() => { if (!findDivs()) { createAnimatedDivs(); } }, 1000)
+        // 初始化需要延时下，便于界面布局完毕
+        setTimeout(() => {
+          initContain(screenInfo.value.slice(1), contentText.value.intro187, allConfig.value.dialog); // 从第二个取到最后
+        }, 100);
+        
       }
     })
     //let preAnchor = null
@@ -711,28 +730,26 @@ export default defineComponent({
     function updateColor(dialogHash, colorVal, flag = 0) {
       let color = colorVal.replace(/#/, '')
       if (flag == 0) {
+        // 按键背景颜色
         dialogHash.guiBgcolor = color.substr(0, 6);
         dialogHash.guiOpacity = parseInt(color.substr(6, 2), 16).toString()
-        dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? '1' : '0'
+        dialogHash.guiBgTrans = (dialogHash.guiOpacity == 0) ? true : false   // 仅仅是表示背景透明
       } else if (flag == 1) {
-        // 控制模块显示
+        // 控制模块显示 背景颜色
         dialogHash.ctrlBgcolor = color.substr(0, 6);
         dialogHash.ctrlOpacity = parseInt(color.substr(6, 2), 16).toString()
+      } else if (flag == 2) {
+        // 字体颜色
+        dialogHash.guiTextColor = color.substr(0, 6);
+      } else if (flag == 3) {
+        // 控制字体颜色
+        dialogHash.ctrlTextColor = color.substr(0, 6);
       }
     }
     // 还原数据
     function resetPara() {
       store.data = deepCopy(store.preData);
       loadPara()
-    }
-    // 绑定动态创建的全屏事件
-    function bindFullScreen() {
-      let buttons = document.querySelectorAll('.demo-color-changing-div>button')
-      buttons.forEach((x, i) => {
-        x.addEventListener('click', () => {
-          fullScreen(i + 1);
-        });
-      })
     }
     // 将数据进行转换和保存 allConfig,keyMappingRef,skipRecordRef,ctrlListRef,skipShowRef
     async function savePara() {
@@ -749,11 +766,6 @@ export default defineComponent({
           str2Type(config.common, 1)
           str2Type(config.dialog, 1)
 
-          // 更新颜色信息
-          updateColor(config.dialog, guiBgcolorRef.value)
-          config.dialog.guiTextColor = guiTextColorRef.value.replace(/#/, '')
-          updateColor(config.dialog, ctrlBgcolorRef.value, 1)
-          config.dialog.ctrlTextColor = ctrlTextColorRef.value.replace(/#/, '')
           // 转换keyList
           let keyList = KVListTo(keyMappingRef.value);
           dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
@@ -921,11 +933,9 @@ export default defineComponent({
     function keyboardDelete() {
       keyboardOptDialog('', 0, contentText.value.intro106)
     }
-    function handleUpdateColor(value) {
-      updateColor(allConfig.value.dialog, value)
-    }
-    function handleUpdateCtrlColor(value) {
-      updateColor(allConfig.value.dialog, value, 1)
+    // 颜色需要特殊方式修改
+    function handleUpdateColor(value,flag) {
+      updateColor(allConfig.value.dialog, value,flag)
     }
     // 去掉空格等
     // function validAppNameList(targetRef) {
@@ -967,7 +977,6 @@ export default defineComponent({
       ctrlBgcolorRef,
       ctrlTextColorRef,
       handleUpdateColor,
-      handleUpdateCtrlColor,
       IPlinks,
       preAppNameListRef,
     }

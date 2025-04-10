@@ -13,7 +13,6 @@ let winOpt = {
     guiHeigth: 0,
     guiBgcolor: "8611AA",
     guiBgTrans: 0,
-    guiTrans: 1,
     guiOpacity: 38,
     guiTextFont: "Verdana",
     guiTextSize: 26,
@@ -82,7 +81,7 @@ function getInitPos(editHeight) {
 }
 // 根据参数获取移动方向
 function getDirection() {
-    let direction=''
+    let direction = ''
     switch (winOpt.guiPosXY) {
         // 上下
         case 'Y':
@@ -106,10 +105,14 @@ function getDirection() {
     }
     return direction
 }
-function createAnimatedDivs() {
+// 清空相关对象
+function clearAll() {
     // 创建前先清空DIV
     clearDivs(objContainer)
     clearTimeout() // 清理定时器
+}
+function createAnimatedDivs() {
+    clearAll()
     if (winOpt.needShowKey == 1) {
         showKey()
     }
@@ -130,7 +133,13 @@ function showCtrl() {
     newDiv.style.width = winOpt.ctrlWidth * scale + 'px';
     newDiv.style.fontSize = winOpt.ctrlTextSize * scale + 'px';
     newDiv.style.fontFamily = winOpt.ctrlTextFont
-    newDiv.style.backgroundColor = '#' + winOpt.ctrlBgcolor
+    let bgColor = ''
+    if(winOpt.guiBgTrans==1){
+        bgColor = 'transparent'
+    }else{
+        bgColor = '#' + winOpt.ctrlBgcolor
+    }
+    newDiv.style.backgroundColor = bgColor
     newDiv.style.opacity = winOpt.ctrlOpacity / 255
     newDiv.style.lineHeight = winOpt.ctrlTextSize * scale + 'px';
     newDiv.style.fontWeight = winOpt.ctrlTextWeight
@@ -138,7 +147,8 @@ function showCtrl() {
 
     newDiv.style.top = winOpt.ctrlY * scale + 'px'
     newDiv.style.left = winOpt.ctrlX * scale + 'px'
-    objContainer.appendChild(newDiv);
+
+    mainAddInfo(newDiv, '.demo-ctrl-div')
     // 3s后清理掉
     textArr.forEach((text, i) => {
         // 间隔多少秒产生新的
@@ -147,10 +157,6 @@ function showCtrl() {
         }, 1000 * i);
         timeOutList.push(handle)
     })
-    let h = setTimeout(() => {
-        try { objContainer.removeChild(newDiv); } catch (e) { }
-    }, ctrlAppSec);
-    timeOutList.push(h)
 }
 function showApp() {
     let textArr = ['SysDefault', 'Desktop', 'C:\\Windows\\explorer.exe', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
@@ -166,7 +172,7 @@ function showApp() {
 
     newDiv.style.top = winOpt.activeAppShowY * scale + 'px'
     newDiv.style.left = winOpt.activeAppShowX * scale + 'px'
-    objContainer.appendChild(newDiv);
+    mainAddInfo(newDiv, '.demo-app-div')
     // 3s后清理掉
     textArr.forEach((text, i) => {
         // 间隔多少秒产生新的
@@ -175,10 +181,15 @@ function showApp() {
         }, 1000 * i);
         timeOutList.push(handle)
     })
-    let h = setTimeout(() => {
-        try { objContainer.removeChild(newDiv); } catch (e) { }
-    }, ctrlAppSec);
-    timeOutList.push(h)
+}
+function mainAddInfo(newDiv, className) {
+    let main = document.getElementById("mainContain")
+    // 需要先移除旧的
+    let olds = document.querySelectorAll(className)
+    olds.forEach(x => {
+        main.removeChild(x);
+    })
+    main.appendChild(newDiv);
 }
 function showKey() {
     let textArr = ['k e y', 'p r e s×2', 't e s t', '🖱️×3 ^+v', '⇧+c ␣×12', '⊞+d', 'Caps', 'Del×4'];
@@ -204,13 +215,20 @@ function createNewTxt(text, scale) {
     newDiv.style.width = winOpt.guiWidth * scale + 'px';
     newDiv.style.fontSize = winOpt.guiTextSize * scale + 'px';
     newDiv.style.fontFamily = winOpt.guiTextFont
+    newDiv.style.color = '#' + winOpt.guiTextColor
     let editHeight = winOpt.guiTextSize
     if (winOpt.guiHeigth != 0) {
         newDiv.style.height = winOpt.guiHeigth * scale + 'px';
         editHeight = winOpt.guiHeigth
     }
     editHeight *= scale
-    newDiv.style.backgroundColor = '#' + winOpt.guiBgcolor
+    let bgColor = ''
+    if(winOpt.guiBgTrans==1){
+        bgColor = 'transparent'
+    }else{
+        bgColor = '#' + winOpt.guiBgcolor
+    }
+    newDiv.style.backgroundColor = bgColor
     newDiv.style.opacity = winOpt.guiOpacity / 255
 
     newDiv.style.lineHeight = winOpt.guiTextSize * scale + 'px';
@@ -258,6 +276,7 @@ function createNewTxt(text, scale) {
 // 要取最大范围，转换 monitorInfo 的负数位置
 function getOffset(main) {
     let demoWidth = parseInt(getComputedStyle(main).width)
+    // console.log('demoWidth', demoWidth)
     let maxInfo = { "Left": 0, "Top": 0, "Right": 0, "Bottom": 0 }  // 最小的 Left Top ，最大的 Right Bottom
     monitorInfo.forEach(x => {
         maxInfo.Left = Math.min(x.Left, maxInfo.Left)
@@ -283,14 +302,15 @@ function getOffset(main) {
     globalScale = scale      // 引用的比例
     return { offsetX, offsetY, scale }
 }
+// 判断内容是否被清空
 function findDivs() {
-    parent = objContainer
-    if(parent==null)return
+    parent = document.getElementById('monitorId' + globalMonitor)
+    if (parent == null) return true
     const allDivs = parent.querySelectorAll('div');
     return allDivs.length > 0;
 }
 function clearDivs(parent) {
-    if(parent==null)return
+    if (parent == null) return
     const childDivs = parent.querySelectorAll('div');
     childDivs.forEach(div => {
         div.remove();
@@ -298,17 +318,16 @@ function clearDivs(parent) {
 }
 // getNewInfo()
 let fullScreenTxt = ''
-function initContain(monitor,fsTxt) {
-    if( monitor==null)
-    {
-        return ;
+function initContain(monitor, fsTxt, opt) {
+    if (monitor == null) {
+        return;
     }
     fullScreenTxt = fsTxt
     monitorInfo = monitor
-    // 获取宽度
-    let main = initMain()
-    // 开始观察 主框架 元素
-    observer.observe(main);
+    // 更新参数并刷新
+    updateWinOpt(opt)
+    // 动态演示
+    keepAnimate()
 }
 // 全屏代码
 function fullScreen(id) {
@@ -361,21 +380,22 @@ document.addEventListener('fullscreenerror', function () {
 // 监控变化
 const observer = new ResizeObserver(entries => {
     for (const entry of entries) {
-        const { width, height } = entry.contentRect;
+        // const { width, height } = entry.contentRect;
         // 需要重新演示动画
         if (entry.target.id == 'mainContain') {
             // 全屏时候忽略
             if (globalinFullScreen) {
                 return
             }
-            initMain()
+            initMain(1)
         }
     }
 });
 // 初始化主窗口
-function initMain() {
+function initMain(resized = 0) {
     let main = document.getElementById("mainContain")
-    if(main==null)return;
+    if (main == null) return;
+    clearAll()
     let { offsetX, offsetY, scale } = getOffset(main)
     // 计算偏移，修改为 Width 或 Height
     newMonitor = monitorInfo.map(x => {
@@ -383,7 +403,7 @@ function initMain() {
     })
     // console.log('newMonitor:', JSON.stringify(newMonitor))
     let arrHTML = newMonitor.map((x, i) => {
-        let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="demo-ontainer">
+        let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="demo-container">
         <div id="monitorId${i + 1}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
             <button>${fullScreenTxt}${i + 1}</button>
         </div>
@@ -398,9 +418,36 @@ function initMain() {
     }
     globalMonitor = monitorIndex
     objContainer = document.getElementById('monitorId' + globalMonitor); // 容器显示
-    return main;
+    if (resized == 0) {
+        // 开始观察 主框架 元素
+        observer.observe(main);
+    }
+    // 绑定全屏事件
+    setTimeout(bindFullScreen, 10)
 }
-
+// 保持动画一直播放
+function keepAnimate() {
+    setInterval(() => { if (!findDivs()) { createAnimatedDivs(); } }, 1000)
+}
+// 参数变化需要更新,更新后需要强刷
+function updateWinOpt(opt) {
+    Object.entries(winOpt).forEach(([key]) => {
+        if (opt[key] !== undefined) {
+            winOpt[key] = opt[key];
+        }
+    });
+    // 后续修改值，需要刷新内容
+    initMain()
+}
+// 绑定动态创建的全屏事件
+function bindFullScreen() {
+    let buttons = document.querySelectorAll('.demo-color-changing-div>button')
+    buttons.forEach((x, i) => {
+        x.addEventListener('click', () => {
+            fullScreen(i + 1);
+        });
+    })
+}
 // 初始化容器
 //initContain()
 // 调用函数，传入容器 ID 和移动方向
@@ -409,8 +456,5 @@ function initMain() {
 console.log('showAnimate')
 export {
     initContain,
-    createAnimatedDivs,
-    fullScreen,
-    findDivs
+    updateWinOpt
 }
-

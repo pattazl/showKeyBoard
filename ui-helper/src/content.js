@@ -40,7 +40,7 @@ export default {
 	intro18:'宽度',
 	intro19:'高度',
 	intro20:'为0表示自适应',
-	intro21:'背景色和透明度',
+	intro21:'背景色和整体透明度',
 	intro22:'鼠标穿透',
 	intro23:'可以点击到提示框下方的窗体',
 	intro24:'字体',
@@ -66,7 +66,7 @@ export default {
 	intro44:'第几个屏幕',
 	intro45:'屏幕信息为',
 	intro46:'提示窗口间的间隔(px)',
-	intro47:'是否有细边框',
+	intro47:'是否有边框',
 	intro48:'按键分隔符,用于按键间的显示分割',
 	intro49:'推荐用空格',
 	intro50:'长按显示,主要用于控制键,如Ctrl、Alt、LWin、Shift、RWin、CapsLock等',
@@ -215,6 +215,7 @@ export default {
 	intro185: '程序转换后名称，留空表示忽略此程序',
 	intro186: '按键显示位置模拟显示',
 	intro187: '全屏',
+	intro188: '背景完全透明，影响按键和长按显示',
 
   },
   'en-US': {
@@ -258,7 +259,7 @@ export default {
 	intro18: 'Width',
 	intro19: 'Height',
 	intro20: '0 means auto-adaptation',
-	intro21: 'Background color and transparency',
+	intro21: 'Background color and whole transparency',
 	intro22: 'Mouse Penetration',
 	intro23: 'Can click the app under the Popup',
 	intro24: 'Font',
@@ -284,7 +285,7 @@ export default {
 	intro44: 'Screen number',
 	intro45: 'Screen Info is',
 	intro46: 'Margin of Popup(px)',
-	intro47: 'Have thin border',
+	intro47: 'Have border',
 	intro48: 'Key separator, used for displaying separation between keys',
 	intro49: 'Recommended to use a space',
 	intro50: 'Long press display, mainly used for control keys such as Ctrl, Alt, LWin, Shift, RWin, CapsLock etc.',
@@ -434,5 +435,6 @@ export default {
 	intro185: 'The name of the app after conversion. Blank means ignoring this app.',
 	intro186: 'Simulated display of UI positions',
 	intro187: 'FullScreen',
+	intro188: 'Background color is transparent, for keypress and long press display',
   }
 };
