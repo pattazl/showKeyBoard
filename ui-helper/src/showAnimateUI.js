@@ -1,12 +1,13 @@
 let monitorInfo = null; // [{ "Left": -2880, "Top": 0, "Right": -1440, "Bottom": 900 }, { "Left": 0, "Top": 0, "Right": 2560, "Bottom": 1440 }]
 let newMonitor = [] // 转换后的监视器信息
 let globalScale = 1;
-let globalinFullScreen = false
-let globalSmallScale = 1; // 恢复常态时的比例
+//let globalinFullScreen = false
+//let globalSmallScale = 1; // 恢复常态时的比例
 let globalMonitor = 1
 let timeOutList = [] // 产生新text的定时器句柄
-let ctrlAppSec = 12000  // ctrl 和 app的显示时间
 let objContainer = null
+let objMain = null
+let playState = 'running'
 // 创建一个窗口显示 Div
 let winOpt = {
     guiWidth: 240,
@@ -113,6 +114,11 @@ function clearAll() {
 }
 function createAnimatedDivs() {
     clearAll()
+    /*
+    console.log('createAnimatedDivs')
+    if(globalinFullScreen){
+        debugger
+    }  */
     if (winOpt.needShowKey == 1) {
         showKey()
     }
@@ -134,9 +140,9 @@ function showCtrl() {
     newDiv.style.fontSize = winOpt.ctrlTextSize * scale + 'px';
     newDiv.style.fontFamily = winOpt.ctrlTextFont
     let bgColor = ''
-    if(winOpt.guiBgTrans==1){
+    if (winOpt.guiBgTrans == 1) {
         bgColor = 'transparent'
-    }else{
+    } else {
         bgColor = '#' + winOpt.ctrlBgcolor
     }
     newDiv.style.backgroundColor = bgColor
@@ -183,13 +189,12 @@ function showApp() {
     })
 }
 function mainAddInfo(newDiv, className) {
-    let main = document.getElementById("mainContain")
     // 需要先移除旧的
     let olds = document.querySelectorAll(className)
     olds.forEach(x => {
-        main.removeChild(x);
+        objMain.removeChild(x);
     })
-    main.appendChild(newDiv);
+    objMain.appendChild(newDiv);
 }
 function showKey() {
     let textArr = ['k e y', 'p r e s×2', 't e s t', '🖱️×3 ^+v', '⇧+c ␣×12', '⊞+d', 'Caps', 'Del×4'];
@@ -223,9 +228,9 @@ function createNewTxt(text, scale) {
     }
     editHeight *= scale
     let bgColor = ''
-    if(winOpt.guiBgTrans==1){
+    if (winOpt.guiBgTrans == 1) {
         bgColor = 'transparent'
-    }else{
+    } else {
         bgColor = '#' + winOpt.guiBgcolor
     }
     newDiv.style.backgroundColor = bgColor
@@ -298,7 +303,7 @@ function getOffset(main) {
 
     // 调整高度
     main.style.height = height + 'px'
-    globalSmallScale = scale  // 小的比例
+    // globalSmallScale = scale  // 小的比例
     globalScale = scale      // 引用的比例
     return { offsetX, offsetY, scale }
 }
@@ -317,66 +322,67 @@ function clearDivs(parent) {
     });
 }
 // getNewInfo()
-let fullScreenTxt = ''
-function initContain(monitor, fsTxt, opt) {
+// let fullScreenTxt = ''
+function initContain(monitor, opt) {
     if (monitor == null) {
         return;
     }
-    fullScreenTxt = fsTxt
+    //fullScreenTxt = fsTxt
     monitorInfo = monitor
+    objMain = document.getElementById("mainContain")
+    if (objMain == null) return;
+    objMain.addEventListener('click', function () {
+        // 需要对内部的 demo-color-changing-div 对象进行暂停
+        if (playState == 'paused') {
+            // 继续动画
+            playState = 'running';
+        } else {
+            // 暂停动画
+            playState = 'paused';
+        }
+        let monitors = objMain.querySelectorAll('.demo-color-changing-div')
+        monitors.forEach(x => {
+            x.style.animationPlayState = playState;
+        })
+    });
+    observer.observe(objMain);
     // 更新参数并刷新
     updateWinOpt(opt)
     // 动态演示
     keepAnimate()
+    // fullScreenEvent
+    // fullScreenEvent()
 }
 // 全屏代码
-function fullScreen(id) {
-    const myDiv = document.getElementById('monitorId' + id);
-    toggleFullscreen(myDiv)
-}
+// function fullScreen(id) {
+//     const myDiv = document.getElementById('monitorId' + id);
+//     toggleFullscreen(myDiv)
+// }
 
-function toggleFullscreen(myDiv) {
-    if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
-    } else {
-        if (myDiv.requestFullscreen) {
-            myDiv.requestFullscreen();
-        } else if (myDiv.webkitRequestFullscreen) {
-            myDiv.webkitRequestFullscreen();
-        } else if (myDiv.mozRequestFullScreen) {
-            myDiv.mozRequestFullScreen();
-        } else if (myDiv.msRequestFullscreen) {
-            myDiv.msRequestFullscreen();
-        }
-
-    }
-}
-document.addEventListener('fullscreenchange', function () {
-    // console.log('fullscreenchange', document.fullscreenElement)
-    if (document.fullscreenElement == null) {
-        globalScale = globalSmallScale // 退回普通状态
-        globalinFullScreen = false
-        createAnimatedDivs()
-    } else {
-        globalinFullScreen = true
-        if (document.fullscreenElement == objContainer) {
-            globalScale = 1
-            createAnimatedDivs()
-        }
-    }
-});
-
-document.addEventListener('fullscreenerror', function () {
-    console.error('全屏操作出错');
-});
+// function toggleFullscreen(myDiv) {
+//     if (document.fullscreenElement) {
+//         if (document.exitFullscreen) {
+//             document.exitFullscreen();
+//         } else if (document.webkitExitFullscreen) {
+//             document.webkitExitFullscreen();
+//         } else if (document.mozCancelFullScreen) {
+//             document.mozCancelFullScreen();
+//         } else if (document.msExitFullscreen) {
+//             document.msExitFullscreen();
+//         }
+//     } else {
+//         if (myDiv.requestFullscreen) {
+//             myDiv.requestFullscreen();
+//         } else if (myDiv.webkitRequestFullscreen) {
+//             myDiv.webkitRequestFullscreen();
+//         } else if (myDiv.mozRequestFullScreen) {
+//             myDiv.mozRequestFullScreen();
+//         } else if (myDiv.msRequestFullscreen) {
+//             myDiv.msRequestFullscreen();
+//         }
+// 
+//     }
+// }
 // 监控变化
 const observer = new ResizeObserver(entries => {
     for (const entry of entries) {
@@ -384,19 +390,17 @@ const observer = new ResizeObserver(entries => {
         // 需要重新演示动画
         if (entry.target.id == 'mainContain') {
             // 全屏时候忽略
-            if (globalinFullScreen) {
-                return
-            }
-            initMain(1)
+            // if (globalinFullScreen) {
+            //     return
+            // }
+            initMain()
         }
     }
 });
 // 初始化主窗口
-function initMain(resized = 0) {
-    let main = document.getElementById("mainContain")
-    if (main == null) return;
+function initMain() {
     clearAll()
-    let { offsetX, offsetY, scale } = getOffset(main)
+    let { offsetX, offsetY, scale } = getOffset(objMain)
     // 计算偏移，修改为 Width 或 Height
     newMonitor = monitorInfo.map(x => {
         return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
@@ -404,13 +408,13 @@ function initMain(resized = 0) {
     // console.log('newMonitor:', JSON.stringify(newMonitor))
     let arrHTML = newMonitor.map((x, i) => {
         let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="demo-container">
-        <div id="monitorId${i + 1}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
-            <button>${fullScreenTxt}${i + 1}</button>
+        <div id="monitorId${i + 1}" oriWidth="${x.Width}" oriHeight="${x.Height}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
         </div>
     </div>`
         return screenHTML
     })
-    main.innerHTML = arrHTML.join('')
+    objMain.innerHTML = arrHTML.join('')
+
     // 设定具体哪个模块中显示
     let monitorIndex = winOpt.guiMonitorNum
     if (monitorIndex > monitorInfo.length || monitorIndex == 0) {
@@ -418,12 +422,6 @@ function initMain(resized = 0) {
     }
     globalMonitor = monitorIndex
     objContainer = document.getElementById('monitorId' + globalMonitor); // 容器显示
-    if (resized == 0) {
-        // 开始观察 主框架 元素
-        observer.observe(main);
-    }
-    // 绑定全屏事件
-    setTimeout(bindFullScreen, 10)
 }
 // 保持动画一直播放
 function keepAnimate() {
@@ -432,21 +430,16 @@ function keepAnimate() {
 // 参数变化需要更新,更新后需要强刷
 function updateWinOpt(opt) {
     Object.entries(winOpt).forEach(([key]) => {
-        if (opt[key] !== undefined) {
-            winOpt[key] = opt[key];
+        if (opt.dialog[key] !== undefined) {
+            winOpt[key] = opt.dialog[key];
+            return
+        }
+        if (opt.common[key] !== undefined) {
+            winOpt[key] = opt.common[key];
         }
     });
     // 后续修改值，需要刷新内容
     initMain()
-}
-// 绑定动态创建的全屏事件
-function bindFullScreen() {
-    let buttons = document.querySelectorAll('.demo-color-changing-div>button')
-    buttons.forEach((x, i) => {
-        x.addEventListener('click', () => {
-            fullScreen(i + 1);
-        });
-    })
 }
 // 初始化容器
 //initContain()

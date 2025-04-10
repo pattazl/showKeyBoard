@@ -38,7 +38,7 @@
 }
 
 .demo-allContain {
-    width: calc(100% - 6px);
+    width: 80%;
     margin: 0px;
     padding: 2px;
     border: 1px solid #ccc;

@@ -155,8 +155,12 @@
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card style="border:1px #18a058 solid">
-          {{ contentText.intro186 }}
-          <div class="demo-allContain" id="mainContain"></div>
+          {{ contentText.intro186 }} <div style="float:right">
+            <input value="-" type="button" title="smaller" @click="changeContainSize(-1)" />
+            <input value="0" type="button" title="reset" @click="changeContainSize(0)" />
+            <input value="+" type="button" title="bigger" @click="changeContainSize(1)" />
+          </div>
+          <div class="demo-allContain" id="mainContain" :title="contentText.intro187"></div>
         </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
           <h4>{{ contentText.intro17 }}</h4>
@@ -180,7 +184,8 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 0)" />
+                <n-color-picker v-model:value="guiBgcolorRef" :modes="['hex']"
+                  @update:value="(newValue) => handleUpdateColor(newValue, 0)" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro188 }}
@@ -212,7 +217,8 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro28 }}
               <template #suffix>
-                <n-color-picker v-model:value="guiTextColorRef" :show-alpha="false" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 2)"/>
+                <n-color-picker v-model:value="guiTextColorRef" :show-alpha="false" :modes="['hex']"
+                  @update:value="(newValue) => handleUpdateColor(newValue, 2)" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro29 }}
@@ -233,7 +239,8 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro37 }}<div class="intro">{{ contentText.intro38 }}</div>
               <template #suffix>
-                <n-select v-model:value="allConfig.dialog.guiPosXY" :options="[{ label: 'X' }, { label: 'Y' }]" />
+                <n-select v-model:value="allConfig.dialog.guiPosXY"
+                  :options="[{ label: 'X', value: 'X' }, { label: 'Y', value: 'Y' }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro39 }}<div class="intro">{{ contentText.intro40 }}</div>
@@ -289,7 +296,8 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
               <template #suffix>
-                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 1)" />
+                <n-color-picker v-model:value="ctrlBgcolorRef" :modes="['hex']"
+                  @update:value="(newValue) => handleUpdateColor(newValue, 1)" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro24 }}<div class="intro">{{ contentText.intro25 }}</div>
@@ -311,7 +319,8 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro28 }}
               <template #suffix>
-                <n-color-picker v-model:value="ctrlTextColorRef" :show-alpha="false" :modes="['hex']" @update:value="(newValue) => handleUpdateColor(newValue, 3)"/>
+                <n-color-picker v-model:value="ctrlTextColorRef" :show-alpha="false" :modes="['hex']"
+                  @update:value="(newValue) => handleUpdateColor(newValue, 3)" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro54 }}
@@ -417,8 +426,8 @@
             <n-button type="primary" @click="savePara">{{ contentText?.intro82 }}</n-button>
             <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{
               Object.keys(diffJsonList).length
-                > 0 ?
-                contentText?.intro83 : contentText?.intro84 }}</n-tag>
+              > 0 ?
+              contentText?.intro83 : contentText?.intro84 }}</n-tag>
           </n-space>
           <code-diff v-for="(item, key) in diffJsonList" :lang="lang" :key="key" :old-string="item['old']"
             :new-string="item['new']" :context="50" :file-name="key" output-format="side-by-side"
@@ -431,7 +440,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, PropType, ref, computed,watch, Ref } from 'vue'
+import { defineComponent, onMounted, PropType, ref, computed, watch, Ref } from 'vue'
 import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
@@ -676,16 +685,28 @@ export default defineComponent({
     }
     loadPara();
     // 要监听的属性列表
-    let watchedProps = ['guiWidth','guiHeigth','guiBgcolor','guiBgTrans','guiOpacity',
-    'guiTextFont','guiTextSize','guiTextWeight','guiTextColor','guiLife','guiInterval','guiPos','guiPosXY','guiPosOffsetX','guiPosOffsetY','guiDpiscale','guiMonitorNum',
-    'guiMargin','guiEdge','txtSplit','ctrlX','ctrlY','activeAppShowX','activeAppShowY','needShowKey','activeAppShow','ctrlState','ctrlWidth','ctrlBgcolor','ctrlOpacity',
-    'ctrlTextFont','ctrlTextSize','ctrlTextWeight','ctrlTextColor']  
+    let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
+      'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval', 'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
+      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey', 'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
+      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor']
     watchedProps.forEach(prop => {
       watch(
         () => allConfig.value.dialog[prop],
         (newValue, oldValue) => {
           console.log(`${prop} 发生变化，新值: ${newValue}，旧值: ${oldValue}`);
-          updateWinOpt(allConfig.value.dialog)
+          updateWinOpt(allConfig.value)
+        },
+        { deep: false }
+      );
+    });
+    // 要监听的属性列表
+    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState']
+    watchedCommonProps.forEach(prop => {
+      watch(
+        () => allConfig.value.common[prop],
+        (newValue, oldValue) => {
+          console.log(`${prop} 发生变化，新值: ${newValue}，旧值: ${oldValue}`);
+          updateWinOpt(allConfig.value)
         },
         { deep: false }
       );
@@ -699,9 +720,9 @@ export default defineComponent({
       if (screenInfo.value.length > 1) {
         // 初始化需要延时下，便于界面布局完毕
         setTimeout(() => {
-          initContain(screenInfo.value.slice(1), contentText.value.intro187, allConfig.value.dialog); // 从第二个取到最后
+          initContain(screenInfo.value.slice(1), allConfig.value); // 从第二个取到最后
         }, 100);
-        
+
       }
     })
     //let preAnchor = null
@@ -934,8 +955,19 @@ export default defineComponent({
       keyboardOptDialog('', 0, contentText.value.intro106)
     }
     // 颜色需要特殊方式修改
-    function handleUpdateColor(value,flag) {
-      updateColor(allConfig.value.dialog, value,flag)
+    function handleUpdateColor(value, flag) {
+      updateColor(allConfig.value.dialog, value, flag)
+    }
+    function changeContainSize(flag) {
+      let main = document.getElementById('mainContain');
+      if (flag == 0) {
+        main.style.width = "80%"
+      } else if (flag < 0) {
+        main.style.width = (parseInt(main.style.width) - 10) + "%"
+      } else {
+        main.style.width = (parseInt(main.style.width) + 10) + "%"
+      }
+
     }
     // 去掉空格等
     // function validAppNameList(targetRef) {
@@ -979,6 +1011,7 @@ export default defineComponent({
       handleUpdateColor,
       IPlinks,
       preAppNameListRef,
+      changeContainSize,
     }
   },
 })
