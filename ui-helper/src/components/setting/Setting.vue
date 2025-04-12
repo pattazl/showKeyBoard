@@ -659,9 +659,12 @@ export default defineComponent({
       dataSetting.value = data.dataSetting;
       keymapsRef.value = data.keymaps.map(x => { return { label: x.mapName, value: x.mapName } });
 
-      const sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
+      let sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
+      if(sinfo==null){
+        sinfo = [{Left:0, Top:0, Right:400, Bottom:300}]  // 默认值
+      }
       // 只需要添加一次
-      if (sinfo != null && sinfo[0] != contentText.value.intro183) {
+      if (sinfo[0] != contentText.value.intro183) {
         sinfo.unshift(contentText.value.intro183);
       }
       screenInfo.value = sinfo

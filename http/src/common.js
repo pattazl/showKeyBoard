@@ -249,12 +249,16 @@ function oneInstance() {
   });
   // 处理 SIGINT 和 SIGTERM 信号，确保应用程序正常退出时删除 pidfile 文件
   //   'CTRL + C ,
-  ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGKILL']
-    .forEach(signal => process.on(signal, async () => {
-      if (fs.existsSync(pidfilePath)) fs.unlinkSync(pidfilePath);
-      await exitFun()
-      //process.exit(0);
-    }));
+  try {
+    // SIGKILL 在MAC下无效
+    ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGKILL']
+      .forEach(signal => process.on(signal, async () => {
+        if (fs.existsSync(pidfilePath)) fs.unlinkSync(pidfilePath);
+        await exitFun()
+        //process.exit(0);
+      }));
+  } catch (e) { }
+
   return true;
 }
 // default 中存在的hash值复制到 obj 中
