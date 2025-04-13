@@ -322,7 +322,11 @@ function clearDivs(parent) {
     });
 }
 // getNewInfo()
-// let fullScreenTxt = ''
+let langText = {}
+function setLangText(obj){
+    langText = obj
+    showSize() // 刷新显示下
+}
 function initContain(monitor, opt) {
     if (monitor == null) {
         return;
@@ -397,6 +401,19 @@ const observer = new ResizeObserver(entries => {
         }
     }
 });
+// 显示当前的窗口像素 根据子窗口的大小显示真实长宽
+function showSize() {
+    setTimeout(() => {
+        let monitors = objMain.querySelectorAll('.demo-color-changing-div')
+        monitors.forEach((dom) => {
+            let w = parseInt(getComputedStyle(dom).width);
+            let h = parseInt(getComputedStyle(dom).height);
+            dom.querySelector('span').innerText = `${langText.intro187}(${w}*${h})`
+            // (dom as any).title = `${contentText.value.intro187}(${w}*${h})`
+            //console.log(dom, w, h)
+        })
+    }, 10)
+}
 // 初始化主窗口
 function initMain() {
     clearAll()
@@ -409,6 +426,7 @@ function initMain() {
     let arrHTML = newMonitor.map((x, i) => {
         let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="demo-container">
         <div id="monitorId${i + 1}" oriWidth="${x.Width}" oriHeight="${x.Height}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
+        <span style="background-color:lightgrey;color:black"></span>
         </div>
     </div>`
         return screenHTML
@@ -422,6 +440,7 @@ function initMain() {
     }
     globalMonitor = monitorIndex
     objContainer = document.getElementById('monitorId' + globalMonitor); // 容器显示
+    showSize()
 }
 // 保持动画一直播放
 function keepAnimate() {
@@ -441,6 +460,19 @@ function updateWinOpt(opt) {
     // 后续修改值，需要刷新内容
     initMain()
 }
+function changeContainSize(flag) {
+    let main = document.getElementById('mainContain');
+    let defaultWidth = '80%'  // 同CSS中一致
+    let preWidth = main.style.width || defaultWidth
+    if (flag == 0) {
+        main.style.width = defaultWidth
+    } else if (flag < 0) {
+        main.style.width = (parseInt(preWidth) - 10) + "%"
+    } else {
+        main.style.width = (parseInt(preWidth) + 10) + "%"
+    }
+    showSize()
+}
 // 初始化容器
 //initContain()
 // 调用函数，传入容器 ID 和移动方向
@@ -448,6 +480,8 @@ function updateWinOpt(opt) {
 //setInterval(() => { if (!findDivs(objContainer)) { createAnimatedDivs(); } }, 1000)
 console.log('showAnimate')
 export {
+    setLangText,
     initContain,
-    updateWinOpt
+    updateWinOpt,
+    changeContainSize
 }

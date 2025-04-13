@@ -160,7 +160,7 @@
             <input value="0" type="button" title="reset" @click="changeContainSize(0)" />
             <input value="+" type="button" title="bigger" @click="changeContainSize(1)" />
           </div>
-          <div class="demo-allContain" id="mainContain" :title="contentText.intro187"></div>
+          <div class="demo-allContain" id="mainContain"></div>
         </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
           <h4>{{ contentText.intro17 }}</h4>
@@ -426,8 +426,8 @@
             <n-button type="primary" @click="savePara">{{ contentText?.intro82 }}</n-button>
             <n-tag :type="Object.keys(diffJsonList).length > 0 ? 'error' : 'success'">{{
               Object.keys(diffJsonList).length
-              > 0 ?
-              contentText?.intro83 : contentText?.intro84 }}</n-tag>
+                > 0 ?
+                contentText?.intro83 : contentText?.intro84 }}</n-tag>
           </n-space>
           <code-diff v-for="(item, key) in diffJsonList" :lang="lang" :key="key" :old-string="item['old']"
             :new-string="item['new']" :context="50" :file-name="key" output-format="side-by-side"
@@ -444,7 +444,7 @@ import { defineComponent, onMounted, PropType, ref, computed, watch, Ref } from 
 import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
-import { initContain, updateWinOpt } from '../../showAnimateUI.js';
+import { setLangText, initContain, updateWinOpt, changeContainSize } from '../../showAnimateUI.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
 import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
@@ -616,7 +616,11 @@ export default defineComponent({
   setup(props) {
     const store = useAustinStore();  // 可通过 属性传递，也可通过pinia传递
     // const lang = computed(()=>store.lang) 
-    const contentText = computed(() => content[props.lang])
+    const contentText = computed(() => {
+      let newText = content[props.lang];
+      setLangText(newText); // 有特殊的JS引用，所以需要单独处理
+      return newText
+    })
     const message = useMessage()
     const myDialog = useDialog()
     //watch(() => store.lang, (newValue, oldValue) => {
@@ -647,6 +651,7 @@ export default defineComponent({
 
     let chartDom, myChart
     console.log('setup')
+    setLangText(contentText.value)
     // const allData = { data: {}, preData: {} }; // 重新更新数据
     // 拉取数据
     function loadPara() {
@@ -660,8 +665,8 @@ export default defineComponent({
       keymapsRef.value = data.keymaps.map(x => { return { label: x.mapName, value: x.mapName } });
 
       let sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
-      if(sinfo==null){
-        sinfo = [{Left:0, Top:0, Right:400, Bottom:300}]  // 默认值
+      if (sinfo == null) {
+        sinfo = [{ Left: 0, Top: 0, Right: 400, Bottom: 300 }]  // 默认值
       }
       // 只需要添加一次
       if (sinfo[0] != contentText.value.intro183) {
@@ -696,7 +701,7 @@ export default defineComponent({
       watch(
         () => allConfig.value.dialog[prop],
         (newValue, oldValue) => {
-          console.log(`${prop} 发生变化，新值: ${newValue}，旧值: ${oldValue}`);
+          // console.log(`${prop} 发生变化，新值: ${newValue}，旧值: ${oldValue}`);
           updateWinOpt(allConfig.value)
         },
         { deep: false }
@@ -960,19 +965,6 @@ export default defineComponent({
     // 颜色需要特殊方式修改
     function handleUpdateColor(value, flag) {
       updateColor(allConfig.value.dialog, value, flag)
-    }
-    function changeContainSize(flag) {
-      let main = document.getElementById('mainContain');
-      let defaultWidth = '80%'  // 同CSS中一致
-      let preWidth = main.style.width||defaultWidth
-      if (flag == 0) {
-        main.style.width = defaultWidth
-      } else if (flag < 0) {
-        main.style.width = (parseInt(preWidth) - 10) + "%"
-      } else {
-        main.style.width = (parseInt(preWidth) + 10) + "%"
-      }
-
     }
     // 去掉空格等
     // function validAppNameList(targetRef) {
