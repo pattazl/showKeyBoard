@@ -1,6 +1,8 @@
 let monitorInfo = null; // [{ "Left": -2880, "Top": 0, "Right": -1440, "Bottom": 900 }, { "Left": 0, "Top": 0, "Right": 2560, "Bottom": 1440 }]
 let newMonitor = [] // 转换后的监视器信息
 let globalScale = 1;
+let globalOffsetX = 0;
+let globalOffsetY = 0;
 //let globalinFullScreen = false
 //let globalSmallScale = 1; // 恢复常态时的比例
 let globalMonitor = 1
@@ -151,8 +153,8 @@ function showCtrl() {
     newDiv.style.fontWeight = winOpt.ctrlTextWeight
     newDiv.style.color = '#' + winOpt.ctrlTextColor
 
-    newDiv.style.top = winOpt.ctrlY * scale + 'px'
-    newDiv.style.left = winOpt.ctrlX * scale + 'px'
+    newDiv.style.top = (globalOffsetY+winOpt.ctrlY) * scale + 'px'
+    newDiv.style.left = (globalOffsetX+winOpt.ctrlX) * scale + 'px'
 
     mainAddInfo(newDiv, '.demo-ctrl-div')
     // 3s后清理掉
@@ -176,8 +178,8 @@ function showApp() {
     newDiv.style.backgroundColor = '#F5F5F5'
     newDiv.style.lineHeight = fontSize * scale + 'px';
 
-    newDiv.style.top = winOpt.activeAppShowY * scale + 'px'
-    newDiv.style.left = winOpt.activeAppShowX * scale + 'px'
+    newDiv.style.top = (globalOffsetY+winOpt.activeAppShowY) * scale + 'px'
+    newDiv.style.left =  (globalOffsetX+winOpt.activeAppShowX) * scale + 'px'
     mainAddInfo(newDiv, '.demo-app-div')
     // 3s后清理掉
     textArr.forEach((text, i) => {
@@ -305,7 +307,10 @@ function getOffset(main) {
     main.style.height = height + 'px'
     // globalSmallScale = scale  // 小的比例
     globalScale = scale      // 引用的比例
-    return { offsetX, offsetY, scale }
+    // 设置全局比例偏差
+    globalOffsetX = offsetX
+    globalOffsetY = offsetY
+    //return { offsetX, offsetY, scale }
 }
 // 判断内容是否被清空
 function findDivs() {
@@ -405,10 +410,10 @@ const observer = new ResizeObserver(entries => {
 function showSize() {
     setTimeout(() => {
         let monitors = objMain.querySelectorAll('.demo-color-changing-div')
-        monitors.forEach((dom) => {
+        monitors.forEach((dom,i) => {
             let w = parseInt(getComputedStyle(dom).width);
             let h = parseInt(getComputedStyle(dom).height);
-            dom.querySelector('span').innerText = `${langText.intro187}(${w}*${h})`
+            dom.querySelector('span').innerText = `${langText.intro187} #${i+1}(${w}x${h})`
             // (dom as any).title = `${contentText.value.intro187}(${w}*${h})`
             //console.log(dom, w, h)
         })
@@ -417,7 +422,8 @@ function showSize() {
 // 初始化主窗口
 function initMain() {
     clearAll()
-    let { offsetX, offsetY, scale } = getOffset(objMain)
+    getOffset(objMain)
+    let scale = globalScale, offsetX = globalOffsetX ,offsetY = globalOffsetY
     // 计算偏移，修改为 Width 或 Height
     newMonitor = monitorInfo.map(x => {
         return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
