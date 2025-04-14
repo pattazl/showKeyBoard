@@ -213,7 +213,7 @@ export default {
 	intro183: '跟随激活窗口',
 	intro184: '是否上传时根据规则转换应用名称',
 	intro185: '程序转换后名称，留空表示忽略此程序',
-	intro186: '模拟显示按键位置, 受本模块绝大部分参数及标记为**的参数影响',
+	intro186: '预览显示按键位置, 受本模块绝大部分参数及标记为**的参数影响',
 	intro187: '点击暂停/启动背景切换',
 	intro188: '背景完全透明，影响按键和长按显示',
 
@@ -433,7 +433,7 @@ export default {
 	intro183: 'Follow Active App',
 	intro184: 'Whether convert the application name by rules when uploading',
 	intro185: 'The name of the app after conversion. Blank means ignoring this app.',
-	intro186: 'Simulated display of UI positions. It is affected by most of the parameters in this module and the parameters marked with **.',
+	intro186: 'Preview UI positions. It is affected by most of the parameters in this module and the parameters marked with **.',
 	intro187: 'Click to pause/start the background switching',
 	intro188: 'Background color is transparent, for keypress and long press display',
   }
