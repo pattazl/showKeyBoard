@@ -367,7 +367,7 @@ function setParaFun(req, res) {
           client.send(ahkClientFlag + ':' + Date.now().toString()); // 发出通知
         }
       }
-    }
+    })
   }
 }
 // 接收客户端发送的PC相关信息，比如屏幕等
