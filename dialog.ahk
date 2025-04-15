@@ -525,27 +525,7 @@ ConvertTxt(t){
 	}
 	return t
 }
-; 按键转换清单
-GetKeyList(){
-    file := "KeyList.txt"
-    If !FileExist(file){
-        return
-    }
-	Section := FileRead(file, "`n UTF-8")
-	;MsgBox Section
-	arr := StrSplit(Section,["`n","`r"])
-	loop arr.Length{
-		arr2 := StrSplit(arr[A_Index],":")
-		if arr2.Length = 2{
-			v1 := Trim(arr2[1])
-			v2 := Trim(arr2[2])
-			if v1!="" && v2!=""{
-				KeyMapping[v1] := v2
-			}
-		}
-	}
-}
-GetKeyList()
+
 ;ShowTxt("测试代码123❌4567890123↩45⇧6⎇78⌃90123456 ⇧ ⊞  ⬅ ⬆︎ ⬇ ➞ ⇐, ⇑, ⇒, ⇓ ␣ ⌘ 【 】1[PageUp] ➕")
 
 

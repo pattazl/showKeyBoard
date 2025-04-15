@@ -71,6 +71,7 @@ function checkPort(port) {
     server.listen(port, hostAddress);
   });
 }
+let ahkClientFlag = 'ahkClient' // 标记识别为客户端
 // 创建WebSocket服务器
 const server = http.createServer(app);
 // 监听WS 连接事件
@@ -81,7 +82,13 @@ function startWS() {
     // 监听消息接收事件
     ws.on('message', (message) => {
       console.log('Received message:', message);
-
+      // 给客户端实例添加标记属性
+      ws.clientType = ''
+      if(message == ahkClientFlag)
+      {
+        console.log('ahkClientFlag clientType')
+        ws.clientType = message;
+      }
       // 发送消息给客户端
       //ws.send('Server received your message: ' + message);
       ws.send(JSON.stringify(preData));
@@ -337,12 +344,12 @@ function setParaFun(req, res) {
   if (data.config?.common?.autoSave2Db != config.common?.autoSave2Db) {
     autoSaveFun();
   }
-  // 当端口号改变时候需要服务重启，此步骤由客户端来完成
-  if (JSON.stringify(config) != newConf || isUpdate) {
+  // 当端口号改变时候需要服务重启，此步骤由客户端来完成 // 改为websocket方式
+  if (JSON.stringify(config) != newConf) {
     console.log('write ini')
     config = data.config
     myIniwrite(config)
-
+    isUpdate = true;
   }
   // 对于 dataSetting 需要更新数据库
   let newDataSetting = JSON.stringify(data.dataSetting)
@@ -351,6 +358,17 @@ function setParaFun(req, res) {
     console.log('setDataSetting')
   }
   res.send({ code: 200 });
+  // 发送websocket通知
+  if(isUpdate)
+  {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        if(ahkClientFlag == client.clientType ){
+          client.send(ahkClientFlag + ':' + Date.now().toString()); // 发出通知
+        }
+      }
+    }
+  }
 }
 // 接收客户端发送的PC相关信息，比如屏幕等
 function sendPCInfo(req, res) {
@@ -383,7 +401,9 @@ async function dataFun(req, res) {
   //myWS.send(JSON.stringify(data) );
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(data));
+      if( '' == client.clientType ){
+        client.send(JSON.stringify(data));
+      }
     }
   });
   // 如果 data.tick 不一样，则需要累计保存

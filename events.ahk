@@ -1,4 +1,5 @@
 ; 用于进行对外通讯，只读本地文件 和发送数据
+#Include "lib/WebSocket.ahk"
 ; 如果无需记录，那么将关闭界面设置功能
 if(needRecordKey=1){
 	Init()  ; 判断后端接口，启动相关程序
@@ -6,26 +7,32 @@ if(needRecordKey=1){
 	CheckServer()
 }
 ; 设置检测间隔，单位为毫秒
-SetTimer IniMonitor,2000
-IniMonitor(){
-    global lastModified
+; SetTimer IniMonitor,2000 ; websoket 代替
+; 此函数改为重新读取参数配置文件参数
+IniMonitor(reloadAll){
+    ; global lastModified
     if not FileExist(IniFile){
         return
     }
-    modified := FileGetTime(IniFile)
-    if (modified != lastModified)
+    ; modified := FileGetTime(IniFile)
+    ; if (modified != lastModified)
+    ; 如果端口发生了变化则需要完全重启
+    newPort :=IniRead(IniFile,"common","serverPort",9900 )
+    newRemoteType :=IniRead(IniFile,"common","remoteType",1 )
+    newShowHttpDebug :=IniRead(IniFile,"common","showHttpDebug",0 )
+    if newPort != serverPort || newRemoteType != remoteType || newShowHttpDebug != showHttpDebug
     {
-		; 如果端口发生了变化则需要完全重启
-		newPort :=IniRead(IniFile,"common","serverPort",9900 )
-		newRemoteType :=IniRead(IniFile,"common","remoteType",1 )
-		newShowHttpDebug :=IniRead(IniFile,"common","showHttpDebug",0 )
-		if newPort != serverPort || newRemoteType != remoteType || newShowHttpDebug != showHttpDebug
-		{
-			ExitServer()
-            Sleep(200)  ; 最好等待一会儿
-		}
+        ExitServer()
+        Sleep(200)  ; 最好等待一会儿
         ;  当文件发生变化后，需要重新载入
-        Reload()
+        Reload() 
+        return
+    }
+    ; 参数变化直接修改即可 调用 GetKeyList
+    if(reloadAll == 1)
+    {
+       ReadAllIni()
+       GetKeyList()
     }
 }
 
@@ -60,6 +67,7 @@ StartHttp(task,route,data,timeout:=8000)
 }
 ; 是否曾经启动或Cmd
 CheckServer(){
+    IniMonitor(0) ; 读取配置文件看是否有所变化
     ; 如果不能连接上则需要启动Node服务
 	global CheckServerCount
 	if CheckServerCount < CheckServerMax
@@ -71,7 +79,14 @@ CheckServer(){
 	}
 	CheckServerCount +=1
 	Sleep 3000
-	
+}
+; 绑定websocket回调事件
+BindWebSocket() {
+    ws := WebSocket(serverUrlWs, {
+        message: (self, data) => IniMonitor(1),  ; OutputDebug('AHK' Data '`n' '*' 'utf-8'),
+        close: (self, status, reason) => OutputDebug('AHK' status ' ' reason '`n' '*' 'utf-8')
+    })
+    ws.sendText('ahkClient')
 }
 ; 服务核心处理
 ServerCore()
@@ -99,6 +114,8 @@ ServerCore()
             ShowTxt msgLaunchSucc
 			; 准备发送一些数据给后端
 			SendPCInfo(0)
+            ; 绑定Websocket事件
+            BindWebSocket()
         }else{
 			 ; 需要重试，超过N次后判断失败
 			 if serverState = -1{
