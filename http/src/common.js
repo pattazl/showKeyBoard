@@ -91,7 +91,7 @@ function startWS() {
       }
       // 发送消息给客户端
       //ws.send('Server received your message: ' + message);
-      ws.send(JSON.stringify(preData));
+      //ws.send(JSON.stringify(preData));
     });
     // 监听断开连接事件
     ws.on('close', () => {
@@ -106,10 +106,10 @@ function startWS() {
 // 创建服务器函数
 function createServer() {
   // 尝试启动服务器
-  startWS()  // 配置WS服务
   server.listen(port, hostAddress, () => {
     console.log(`Express server正在监听端口 ${port}`);
     writePort()
+    startWS()  // 配置WS服务
   }).on('error', (err) => {
     // 端口被占用时的错误处理
     console.log('创建服务异常');

@@ -88,7 +88,7 @@ ReadAllIni() {
 
     global ctrlState,ctrlState := DescRead("common", "ctrlState", 1)
     ; 是否显示 控制键状态，如果出现则显示
-    global serverPortDect,serverPortDect := 19999
+    serverPortDect := 19999
     global serverPort,serverPort := DescRead("common", "serverPort", serverPortDect)
     ; 尝试判断是否文件无法读取正确内容
     if serverPort = serverPortDect {
@@ -182,6 +182,7 @@ serverName := "127.0.0.1"
 serverUrl := "http://" serverName ":" serverPort
 serverUrlWs := "ws://" serverName ":" serverPort
 ; 内部参数
+global handleWS   ; websocket 句柄
 global guiArr := Array() ; 保存guiObj 对象
 global inShowArr := Array() ; 保存传入进来的数组用于显示
 global guiShowing := 0

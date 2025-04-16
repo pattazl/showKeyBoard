@@ -17,20 +17,25 @@ IniMonitor(reloadAll){
     ; modified := FileGetTime(IniFile)
     ; if (modified != lastModified)
     ; 如果端口发生了变化则需要完全重启
+    ; OutputDebug('AHK IniMonitor') 
     newPort :=IniRead(IniFile,"common","serverPort",9900 )
     newRemoteType :=IniRead(IniFile,"common","remoteType",1 )
     newShowHttpDebug :=IniRead(IniFile,"common","showHttpDebug",0 )
     if newPort != serverPort || newRemoteType != remoteType || newShowHttpDebug != showHttpDebug
     {
         ExitServer()
-        Sleep(200)  ; 最好等待一会儿
+        if serverState = 1 {
+            Sleep(200)  ; 如果后台网络已经启动，退出最好等待一会儿
+        }
         ;  当文件发生变化后，需要重新载入
+        ; OutputDebug('AHK Reload') 
         Reload() 
         return
     }
     ; 参数变化直接修改即可 调用 GetKeyList
     if(reloadAll == 1)
     {
+       ; OutputDebug('AHK reloadAll') 
        ReadAllIni()
        GetKeyList()
     }
@@ -82,11 +87,13 @@ CheckServer(){
 }
 ; 绑定websocket回调事件
 BindWebSocket() {
-    ws := WebSocket(serverUrlWs, {
-        message: (self, data) => IniMonitor(1),  ; OutputDebug('AHK' Data '`n' '*' 'utf-8'),
-        close: (self, status, reason) => OutputDebug('AHK' status ' ' reason '`n' '*' 'utf-8')
+    global handleWS := WebSocket(serverUrlWs, {
+        message: (self, data) => (
+            IniMonitor(1) ; ,OutputDebug('AHK BindWebSocket') 
+        ),  ; OutputDebug('AHK' Data '`n' '*' 'utf-8'),
+        close: (self, status, reason) => '' ; OutputDebug('AHK' status ' ' reason '`n' '*' 'utf-8')
     })
-    ws.sendText('ahkClient')
+    handleWS.sendText('ahkClient')
 }
 ; 服务核心处理
 ServerCore()
@@ -286,7 +293,7 @@ sendData(route,data:=''){
 		}
     }
     if(showHttpDebug){
-      OutputDebug('POST ' str)
+      ; OutputDebug('POST ' str)
     }
 	reqXMLHTTP.send( str )
 }
