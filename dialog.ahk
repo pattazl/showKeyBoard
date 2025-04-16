@@ -133,7 +133,16 @@ ShowTxt(text)
 	}
 	; 真正显示
 	MyGui.Show("NoActivate x" guiX " y" guiY " w" guiWidth " h" editHeight)	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
-	
+
+	; 设置矩形圆角
+	if (guiRadius > 0) {
+		; 获取窗口句柄
+		WinHandle := myGui.Hwnd
+		Region := DllCall("CreateRoundRectRgn", "int", 0, "int", 0, "int", guiWidth, "int", editHeight, "int", guiRadius, "int", guiRadius, "ptr")
+		; 设置窗口区域
+		DllCall("SetWindowRgn", "ptr", WinHandle, "ptr", Region, "int", 1)
+	}
+
 	; 强制滚动到最后
 	;ControlSend "^{End}", MyEdit, MyGui ; 不能用这个会导致触发按键
 	SendMessage 0x0115, 7, 0, MyEdit
@@ -576,6 +585,14 @@ CreateCtrlState()
 	; 真正显示
 	if(ctrlState=1){
 		ctrlStateGui.Show("NoActivate x" ctrlX " y" ctrlY " w" ctrlWidth " h" editHeight)
+			; 设置矩形圆角
+		if (ctrlRadius > 0) {
+			; 获取窗口句柄
+			WinHandle := ctrlStateGui.Hwnd
+			Region := DllCall("CreateRoundRectRgn", "int", 0, "int", 0, "int", ctrlWidth, "int", editHeight, "int", ctrlRadius, "int", ctrlRadius, "ptr")
+			; 设置窗口区域
+			DllCall("SetWindowRgn", "ptr", WinHandle, "ptr", Region, "int", 1)
+		}
 		; 显示控制键
 		SetTimer(ShowCtrlState, 50)
 	}

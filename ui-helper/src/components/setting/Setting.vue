@@ -696,7 +696,7 @@ export default defineComponent({
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
       'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval', 'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
       'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey', 'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
-      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor']
+      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius']
     watchedProps.forEach(prop => {
       watch(
         () => allConfig.value.dialog[prop],

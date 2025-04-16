@@ -164,6 +164,9 @@ ReadAllIni() {
     global ctrlTextFont,ctrlTextFont := DescRead("dialog", "ctrlTextFont", "Verdana")
     global ctrlTextWeight,ctrlTextWeight := DescRead("dialog", "ctrlTextWeight", "bold")
     global ctrlTextColor,ctrlTextColor := DescRead("dialog", "ctrlTextColor", "FF0000")
+    global guiRadius,guiRadius  := DescRead("dialog", "guiRadius", 0) ; 按键显示的圆角半径
+    global ctrlRadius,ctrlRadius  := DescRead("dialog", "ctrlRadius", 0)  ; 控制键显示的圆角半径
+
 
     global ctrlList,ctrlList := StrSplit(DescRead("dialog", "ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock"), "|") ; 哪些按键长按会单独显示出来
     global skipShow,skipShow := StrSplit(DescRead("dialog", "skipShow", ""), "|") ; 哪些按键不会显示，但会记录
