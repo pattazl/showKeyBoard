@@ -541,11 +541,13 @@ ConvertTxt(t){
 ; 显示控制键
 global ctrlTextGui
 global ctrlStateGui := 0
+global ctrlPreTxt :=''  ;上一次显示的值
 ShowCtrlState(){
 	if(ctrlStateGui == 0 )
 	{
 		return
 	}
+	global ctrlPreTxt
 	ctrlTxt:=''
 	loop ctrlList.Length{
 		keyName := ctrlList[A_Index]
@@ -562,10 +564,14 @@ ShowCtrlState(){
 		}
 	}
 	global ctrlStateGui
+	; 避免刷新闪烁
 	if( ctrlTxt !=''){
-		global ctrlTextGui
-		ctrlTextGui.Text := ctrlTxt
-		ctrlStateGui.show("NoActivate")
+	    if(ctrlPreTxt != ctrlTxt){
+			global ctrlTextGui
+			ctrlTextGui.Text := ctrlTxt
+			ctrlStateGui.show("NoActivate")
+			ctrlPreTxt := ctrlTxt
+		}
 	}Else{
 		ctrlStateGui.hide()
 	}
