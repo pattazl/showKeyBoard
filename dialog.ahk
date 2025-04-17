@@ -541,11 +541,13 @@ ConvertTxt(t){
 ; 显示控制键
 global ctrlTextGui
 global ctrlStateGui := 0
+global ctrlPreTxt :='defaultValue'  ;上一次显示的值
 ShowCtrlState(){
 	if(ctrlStateGui == 0 )
 	{
 		return
 	}
+	global ctrlPreTxt
 	ctrlTxt:=''
 	loop ctrlList.Length{
 		keyName := ctrlList[A_Index]
@@ -562,13 +564,19 @@ ShowCtrlState(){
 		}
 	}
 	global ctrlStateGui
-	if( ctrlTxt !=''){
-		global ctrlTextGui
-		ctrlTextGui.Text := ctrlTxt
-		ctrlStateGui.show("NoActivate")
-	}Else{
-		ctrlStateGui.hide()
+	; 避免刷新闪烁
+	if(ctrlPreTxt != ctrlTxt){
+		if( ctrlTxt !=''){
+			global ctrlTextGui
+			ctrlTextGui.Text := ctrlTxt
+			; OutputDebug('AHK ctrlStateGui show')
+			ctrlStateGui.show("NoActivate")
+		}Else{
+			; OutputDebug('AHK ctrlStateGui hide')
+			ctrlStateGui.hide()
+		}
 	}
+	ctrlPreTxt := ctrlTxt
 }
 CreateCtrlState()
 {
