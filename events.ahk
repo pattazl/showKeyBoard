@@ -38,6 +38,11 @@ IniMonitor(reloadAll){
        ; OutputDebug('AHK reloadAll') 
        ReadAllIni()
        GetKeyList()
+       ; 可重新载入 ctrl 和 app
+       DestoryCtrlState()
+       CreateCtrlState()
+       ; 可清空当前 tooltip
+       ToolTip("")
     }
 }
 

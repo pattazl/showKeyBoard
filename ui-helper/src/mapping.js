@@ -41,5 +41,7 @@ export default {
 	ctrlTextFont:'intro24',
 	ctrlTextWeight:'intro27',
 	ctrlTextColor:'intro28',
+	ctrlRadius:'intro189',
+	guiRadius:'intro189',
 
 };

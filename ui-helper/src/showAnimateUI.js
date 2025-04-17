@@ -42,12 +42,16 @@ let winOpt = {
     ctrlState: 1,  // 是否显示控制键
 
     ctrlWidth: 240,
+    ctrlHeight: 0,
     ctrlBgcolor: "11AA99",
     ctrlOpacity: 150,
     ctrlTextFont: "Verdana",
     ctrlTextSize: 20,
     ctrlTextWeight: "bold",
     ctrlTextColor: "FF0000",
+
+    guiRadius :0,
+    ctrlRadius :0,
 }
 
 
@@ -139,6 +143,10 @@ function showCtrl() {
     // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
     newDiv.textContent = '';
     newDiv.style.width = winOpt.ctrlWidth * scale + 'px';
+    if (winOpt.ctrlHeight > 0) {
+        newDiv.style.height = winOpt.ctrlHeight * scale + 'px';
+    }
+    newDiv.style.borderRadius = winOpt.ctrlRadius * scale + 'px';
     newDiv.style.fontSize = winOpt.ctrlTextSize * scale + 'px';
     newDiv.style.fontFamily = winOpt.ctrlTextFont
     let bgColor = ''
@@ -220,6 +228,7 @@ function createNewTxt(text, scale) {
         newDiv.style.border = '1px solid'
     }
     newDiv.style.width = winOpt.guiWidth * scale + 'px';
+    newDiv.style.borderRadius = winOpt.guiRadius * scale + 'px';
     newDiv.style.fontSize = winOpt.guiTextSize * scale + 'px';
     newDiv.style.fontFamily = winOpt.guiTextFont
     newDiv.style.color = '#' + winOpt.guiTextColor

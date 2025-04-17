@@ -177,6 +177,11 @@
                 <n-input-number v-model:value="allConfig.dialog.guiWidth" :min="1" :max="65535" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro189 }}<div class="intro">{{ contentText.intro190 }}</div>
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.guiRadius" :min="0" :max="65535" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro19 }}<div class="intro">{{ contentText.intro20 }}</div>
               <template #suffix>
                 <n-input-number v-model:value="allConfig.dialog.guiHeigth" :min="0" :max="65535" />
@@ -291,7 +296,12 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro19 }}<div class="intro">{{ contentText.intro20 }}</div>
               <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.guiHeigth" :min="0" :max="65535" />
+                <n-input-number v-model:value="allConfig.dialog.ctrlHeight" :min="0" :max="65535" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro189 }}<div class="intro">{{ contentText.intro190 }}</div>
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.ctrlRadius" :min="0" :max="65535" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro21 }}
@@ -696,7 +706,7 @@ export default defineComponent({
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
       'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval', 'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
       'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey', 'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
-      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius']
+      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius','ctrlHeigth']
     watchedProps.forEach(prop => {
       watch(
         () => allConfig.value.dialog[prop],

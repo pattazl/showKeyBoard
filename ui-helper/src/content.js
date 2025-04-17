@@ -216,6 +216,8 @@ export default {
 	intro186: '预览显示按键位置, 受本模块绝大部分参数及标记为**的参数影响',
 	intro187: '点击暂停/启动背景切换',
 	intro188: '背景完全透明，影响按键和长按显示',
+	intro189: '圆角矩形半径',
+	intro190: '0表示无圆角，可能会影响边框显示',
 
   },
   'en-US': {
@@ -436,5 +438,7 @@ export default {
 	intro186: 'Preview UI positions. It is affected by most of the parameters in this module and the parameters marked with **.',
 	intro187: 'Click to pause/start the background switching',
 	intro188: 'Background color is transparent, for keypress and long press display',
+	intro189: 'Radius of the rounded rectangle',
+	intro190: '0 indicates no rounded corners, may affect the display of the border',
   }
 };

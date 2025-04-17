@@ -159,6 +159,7 @@ ReadAllIni() {
     global ctrlY,ctrlY := DescRead("dialog", "ctrlY", 10) ; 控制键Y位置
     global ctrlTextSize,ctrlTextSize := DescRead("dialog", "ctrlTextSize", 20) ; 字体大小
     global ctrlWidth,ctrlWidth := DescRead("dialog", "ctrlWidth", 240)
+    global ctrlHeight,ctrlHeight := DescRead("dialog", "ctrlHeight", 0)
     global ctrlBgcolor,ctrlBgcolor := DescRead("dialog", "ctrlBgcolor", "11AA99")
     global ctrlOpacity,ctrlOpacity := DescRead("dialog", "ctrlOpacity", 150)
     global ctrlTextFont,ctrlTextFont := DescRead("dialog", "ctrlTextFont", "Verdana")

@@ -540,9 +540,12 @@ ConvertTxt(t){
 
 ; 显示控制键
 global ctrlTextGui
-global ctrlStateGui
+global ctrlStateGui := 0
 ShowCtrlState(){
-	;if(ctrlState)
+	if(ctrlStateGui == 0 )
+	{
+		return
+	}
 	ctrlTxt:=''
 	loop ctrlList.Length{
 		keyName := ctrlList[A_Index]
@@ -583,6 +586,9 @@ CreateCtrlState()
 	}
 	ControlGetPos &ex, &ey, &ew, &editHeight, ctrlTextGui
 	; 真正显示
+	if(ctrlHeight !=0){
+		editHeight := ctrlHeight
+	}
 	if(ctrlState=1){
 		ctrlStateGui.Show("NoActivate x" ctrlX " y" ctrlY " w" ctrlWidth " h" editHeight)
 			; 设置矩形圆角
@@ -598,7 +604,15 @@ CreateCtrlState()
 	}
 }
 CreateCtrlState()
-
+DestoryCtrlState(){
+	; 销毁旧窗体
+	global ctrlStateGui
+	if( ctrlStateGui == 0){
+		return
+	}
+	ctrlStateGui.Destroy()
+	ctrlStateGui := 0
+}
 ; 创建窗口返回窗口对象
 CreateGui(TextSize)
 {
