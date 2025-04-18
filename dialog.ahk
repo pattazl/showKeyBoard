@@ -58,14 +58,14 @@ ShowTxt(text)
 	; 获取不同屏幕
 	MCount := MonitorGetCount()
 	guiMonNum := guiMonitorNum
-	if( guiMonNum > MCount )
-	{
-		guiMonNum := 1
-	}
 	; 自动适配屏幕
 	if( guiMonNum = 0)
 	{
 		guiMonNum := GetActiveWindowScreenNumber(MCount) 
+	}
+	if( guiMonNum > MCount )
+	{
+		guiMonNum := 1
 	}
 	MonitorGet(guiMonNum, &Left, &Top, &Right, &Bottom)
 	needNewGui :=1
