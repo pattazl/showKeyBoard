@@ -91,14 +91,16 @@ ShowTxt(text)
 	if needNewGui=1 {
 		MyGui := CreateGui(guiTextSize)
 	}
+	dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
+	dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
 	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动
-	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth " c" guiTextColor
+	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth/dpiScale " c" guiTextColor
 	if guiHeigth = 0
 	{
 		editOpt := editOpt " -VScroll"
 	}else
 	{
-		editOpt := editOpt " +VScroll h" guiHeigth
+		editOpt := editOpt " +VScroll h" guiHeigth/dpiScale
 	}
 	textArr.push(text)
 	newText := Trim(GetKeyText(textArr)) ; 去掉首尾空格
@@ -111,6 +113,7 @@ ShowTxt(text)
 	if guiEdge =0 {
 		WinSetExStyle  "-0x00000200", MyEdit
 	}
+	
 	ControlGetPos &ex, &ey, &ew, &editHeight, MyEdit
 	;MyEdit.Text := eh "-" text
 	;lineCount := EditGetLineCount(MyEdit)
@@ -132,26 +135,32 @@ ShowTxt(text)
 		WinSetExStyle  "+0x20", MyGui
 	}
 	; 真正显示
-	MyGui.Show("NoActivate x" guiX " y" guiY " w" guiWidth " h" editHeight)	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
+	; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
 
+	MyGui.Show("NoActivate  x" guiX " y" guiY " w" (guiWidth/dpiScale) " h" (editHeight/dpiScale))	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
+
+	; ControlGetPos &ex, &ey, &ew, &guiH, MyGui
+	; 如果高度不一样，需要分析
+	; OutputDebug('AHK ex ' ex ' guiX ' guiX  ' guiY ' guiY ' ey ' ey ' newHeight ' guiH ' editHeight ' editHeight)
 	; 设置矩形圆角
 	if (guiRadius > 0) {
 		; 获取窗口句柄
 		WinHandle := myGui.Hwnd
-		Region := DllCall("CreateRoundRectRgn", "int", 0, "int", 0, "int", guiWidth, "int", editHeight, "int", guiRadius, "int", guiRadius, "ptr")
+		Region := DllCall("CreateRoundRectRgn", "int", 0, "int", 0, "int", guiWidth/dpiScale, "int", editHeight/dpiScale, "int", guiRadius/dpiScale, "int", guiRadius/dpiScale, "ptr")
 		; 设置窗口区域
 		DllCall("SetWindowRgn", "ptr", WinHandle, "ptr", Region, "int", 1)
 	}
 
 	; 强制滚动到最后
 	;ControlSend "^{End}", MyEdit, MyGui ; 不能用这个会导致触发按键
+	; SendMessage(MyEdit.Hwnd, WM_VSCROLL, SB_BOTTOM, 0)
 	SendMessage 0x0115, 7, 0, MyEdit
 
 	if needNewGui{
 		guiArr.push(
 		{
 		gui:MyGui,edit:MyEdit,tick:A_TickCount,textArr:textArr,
-		x:guiX,y:guiY,w:guiWidth,h:editHeight
+		x:guiX,y:guiY,w:guiWidth,h:editHeight,dpi:dpiScale
 		})
 	}Else{
 		lastGui.edit := MyEdit
@@ -243,6 +252,7 @@ ReLayOut(x,y,w,h)
 		lastObj := guiArr[guiArr.Length-A_Index]
 		guiX := lastObj.x
 		guiY := lastObj.y
+		dpiScale := lastObj.dpi
 		if guiPosXY = "Y"{
 			Switch substr(guiPos,1,1)
 			{
@@ -264,11 +274,14 @@ ReLayOut(x,y,w,h)
 				guiX := px - lastObj.w - guiMargin
 			}
 		}
-		lastObj.gui.Move(guiX,guiY)
+		; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
+		lastObj.gui.Move(guiX/dpiScale,guiY/dpiScale)
 		px := guiX
 		pw := lastObj.w
 		py := guiY
 		ph := lastObj.h
+		;lastObj.gui.Show("NA") ; "NA" 表示不激活窗口但显示在最上层
+		OutputDebug('AHK Length:' guiArr.Length ' / ' A_Index ' px:' px ' pw:' pw ' py:' py ' ph:' ph )
 	}
 }
 ; 根据数组返回要显示的内容
@@ -581,13 +594,15 @@ ShowCtrlState(){
 CreateCtrlState()
 {
 	global ctrlStateGui := CreateCtrlGui(ctrlTextSize)
-	textOpt := "-Border x0 y0 c" ctrlTextColor
+	textOpt := "-Border w" ctrlWidth " x0 y0 c" ctrlTextColor
 	; 重新创建新的对象，便于计算新的高度，旧对象删除即可
 	txt :=""
-	Loop ctrlList.Length{
-		txt :=txt ConvertTxt(ctrlList[A_Index]) txtSplit
-	}
+	; Loop ctrlList.Length{
+	; 	txt :=txt ConvertTxt(ctrlList[A_Index]) txtSplit
+	; }
+	; 显示最大text的最大长度
 	global ctrlTextGui:= ctrlStateGui.Add("Text", textOpt, txt) ; 
+	
 	; 窗体穿透
 	if(guiTrans=1){
 		WinSetExStyle  "+0x20", ctrlStateGui
