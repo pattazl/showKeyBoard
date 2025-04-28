@@ -91,11 +91,12 @@ ShowTxt(text)
 	if needNewGui=1 {
 		MyGui := CreateGui(guiTextSize)
 	}
-	dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
+	dpiScale :=  1 ; 不缩放，为默认值1
 	if(guiDpiscale = 1){
-		dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
-	}else{
-		dpiScale :=  1 ; 不缩放，为默认值1
+		try{
+			dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
+			dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
+		}
 	}
 	OutputDebug('AHK DPIScale:' dpiScale)
 	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动 , editOpt 对象受缩放影响，需要控制比例
@@ -632,6 +633,9 @@ CreateCtrlState()
 }
 CreateCtrlState()
 DestoryCtrlState(){
+	; 停止定时刷新和复位值
+	SetTimer(ShowCtrlState, 0) ; 
+	global ctrlPreTxt :='defaultValue'
 	; 销毁旧窗体
 	global ctrlStateGui
 	if( ctrlStateGui == 0){
