@@ -92,15 +92,20 @@ ShowTxt(text)
 		MyGui := CreateGui(guiTextSize)
 	}
 	dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
-	dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
-	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动
+	if(guiDpiscale = 1){
+		dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
+	}else{
+		dpiScale :=  1 ; 不缩放，为默认值1
+	}
+	OutputDebug('AHK DPIScale:' dpiScale)
+	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动 , editOpt 对象受缩放影响，需要控制比例
 	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth/dpiScale " c" guiTextColor
 	if guiHeigth = 0
 	{
 		editOpt := editOpt " -VScroll"
 	}else
 	{
-		editOpt := editOpt " +VScroll h" guiHeigth/dpiScale
+		editOpt := editOpt " +VScroll h" guiHeigth
 	}
 	textArr.push(text)
 	newText := Trim(GetKeyText(textArr)) ; 去掉首尾空格
@@ -114,10 +119,9 @@ ShowTxt(text)
 		WinSetExStyle  "-0x00000200", MyEdit
 	}
 	
-	ControlGetPos &ex, &ey, &ew, &editHeight, MyEdit
-	;MyEdit.Text := eh "-" text
+	ControlGetPos &ex, &ey, &ew, &editHeight, MyEdit  ; 此函数受DPI影响
+	OutputDebug('AHK ew:' ew ' editHeight:' editHeight)
 	;lineCount := EditGetLineCount(MyEdit)
-	;MsgBox editHeight
 	; 需要获取屏幕分辨率 A_ScreenWidth A_ScreenHeight
 	guiX := guiPosOffsetX + Left , guiY:=guiPosOffsetY +Top  ;  默认TL
 	Switch guiPos
@@ -137,7 +141,7 @@ ShowTxt(text)
 	; 真正显示
 	; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
 
-	MyGui.Show("NoActivate  x" guiX " y" guiY " w" (guiWidth/dpiScale) " h" (editHeight/dpiScale))	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
+	MyGui.Show("NoActivate  x" guiX " y" guiY " w" (guiWidth) " h" (editHeight))	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
 
 	; ControlGetPos &ex, &ey, &ew, &guiH, MyGui
 	; 如果高度不一样，需要分析
@@ -146,7 +150,7 @@ ShowTxt(text)
 	if (guiRadius > 0) {
 		; 获取窗口句柄
 		WinHandle := myGui.Hwnd
-		Region := DllCall("CreateRoundRectRgn", "int", 0, "int", 0, "int", guiWidth/dpiScale, "int", editHeight/dpiScale, "int", guiRadius/dpiScale, "int", guiRadius/dpiScale, "ptr")
+		Region := DllCall("CreateRoundRectRgn", "int", 0, "int", 0, "int", guiWidth, "int", editHeight, "int", guiRadius, "int", guiRadius, "ptr")
 		; 设置窗口区域
 		DllCall("SetWindowRgn", "ptr", WinHandle, "ptr", Region, "int", 1)
 	}
