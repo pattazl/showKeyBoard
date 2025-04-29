@@ -93,6 +93,10 @@ ConfigFile -->|Reload|Client
 2. 目录 `httpdist/dist/records.db` 文件保存按键的统计信息和统计的相关配置信息
 3. 文件 `httpdist/dist/node.exe` 用于启动后端 `http/websocket` 服务
 
+## 已知问题
+
+1. 在按键速度非常快的情况下，比如每秒输入大于30个字符时，可能会丢失部分按键响应，丢失概率约 8%
+
 ## 感谢
 
 客户端功能参考 [KMCounter](https://github.com/telppa/KMCounter) 和 [Carnac](https://github.com/Code52/carnac) 的部分设计

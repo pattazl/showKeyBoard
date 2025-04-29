@@ -213,38 +213,46 @@ CloseSelf()
 		return
 	}
 	; 循环检查需要消失的窗口
-	loop guiArr.Length {
-		obj := guiArr[A_Index]
-	    if( A_TickCount - obj.tick> guiLife)
-		{
-			guiArr.RemoveAt(A_Index)
-			FadeUI(obj.gui)
-			break
-		}
-	}
-}
-; 需要对窗口渐变消失 guiFadeMs
-FadeUI(objGui){
-; 初始透明度
-  initialOpacity := guiOpacity
-  ; 最终透明度（0 为完全透明）
-  finalOpacity := 0
-  interval:=20  ; 修改透明度时间间隔ms
-  times := Floor(guiFadeMs/interval)
-  if(times>0){
-    step := Ceil( (initialOpacity - finalOpacity)/times)  ; 需要防止变成0
+  while (guiArr.Length > 0) {
+    ; 输出当前要移除的元素
+    obj := guiArr[1]
+    if( A_TickCount - obj.tick> guiLife)
+    {
+      guiArr.RemoveAt(1)
+      FadeUI(obj.gui)
+    }else{
+      break
+    }
   }
-  while (times > 0) {
-      initialOpacity -= step
-      if (initialOpacity < finalOpacity) {
-          initialOpacity := finalOpacity
-      }
-      WinSetTransparent( initialOpacity, objGui.hWnd )
-      Sleep(interval)
-      times -= 1
-  }
-  objGui.Destroy()
 }
+; 需要对窗口渐变消失 guiFadeMs,此死循环容易导致按键无响应，不能用sleep
+FadeUI(objGui) {
+    ; 初始透明度
+    initialOpacity := guiOpacity
+    ; 最终透明度（0 为完全透明）
+    finalOpacity := 0
+    interval := 20  ; 修改透明度时间间隔ms
+    times := Floor(guiFadeMs / interval)
+    if (times > 0) {
+        step := Ceil((initialOpacity - finalOpacity) / times)  ; 需要防止变成0
+    }
+    ; 定义一个内部函数，用于定时器调用
+    fadeStep(){
+        if (times > 0) {
+            initialOpacity -= step
+            if (initialOpacity < finalOpacity) {
+                initialOpacity := finalOpacity
+            }
+             WinSetTransparent( initialOpacity, objGui.hWnd )
+            times -= 1
+        } else {
+            SetTimer(fadeStep, 0)  ; 关闭定时器
+            objGui.Destroy()  ; 销毁窗口
+        }
+    }
+    SetTimer(fadeStep, interval)  ; 启动定时器
+}
+   
 ; 循环检查需要放入的数据
 CallShow()
 {

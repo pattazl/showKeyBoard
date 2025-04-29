@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.42.0.0
-;@Ahk2Exe-SetFileVersion 1.42.0.0
+;@Ahk2Exe-SetProductVersion 1.43.0.0
+;@Ahk2Exe-SetFileVersion 1.43.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.42" 
+global APPName:="ShowKeyBoard", ver:="1.43" 
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -86,14 +86,13 @@ CoordMode "ToolTip", "Screen"
 CoordMode "Mouse", "Screen"
 GetDistance(){
 	MouseGetPos &currentX, &currentY
-	
     if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
     {
         ; OutputDebug  'AutoHotkey currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         ; 暂时抛弃异常数据，更新屏幕信息
         ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         SendPCInfo(1)
-        Sleep(500) ; // 可能是锁屏状态，等待下，不必马上循环
+        ; Sleep(500) ;  可能是锁屏状态，等待下，不必马上循环 ; 防止影响按键响应取消sleep
         return
     }
     ; 计算鼠标移动距离

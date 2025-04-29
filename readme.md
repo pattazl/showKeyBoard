@@ -100,6 +100,10 @@ ConfigFile -->|Reload|Client
 2. `httpdist/dist/records.db` saves the statistical information of the keys and the related configuration information of the statistics
 3. `httpdist/dist/node.exe` is used to start the backend `http/websocket` service
 
+## Issue
+
+1. When the key-pressing speed is extremely fast, for example, when the input is more than 30 characters per second, there may be a loss of some key responses, with a probability of approximately 8%.
+
 ## Thanks
 
 The client function refers to part of the design of [KMCounter](https://github.com/telppa/KMCounter) and [Carnac](https://github.com/Code52/carnac)
