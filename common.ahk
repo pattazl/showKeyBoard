@@ -178,6 +178,8 @@ ReadAllIni() {
 
     global CheckServerMax,CheckServerMax := DescRead("common", "CheckServerMax", 9) ; 启动时最大重启尝试连接次数
     global maxCountOfConnectFail,maxCountOfConnectFail := DescRead("common", "maxCountOfConnectFail", 60) ; 连续通讯失败多少次后提示报错
+    
+    global guiFadeMs,guiFadeMs := DescRead("dialog", "guiFadeMs", 500) ; 窗口渐变消失ms数，0表示立刻消失
 }
 ReadAllIni()
 GetKeyList()

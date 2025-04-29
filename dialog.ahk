@@ -218,11 +218,32 @@ CloseSelf()
 	    if( A_TickCount - obj.tick> guiLife)
 		{
 			guiArr.RemoveAt(A_Index)
-			Sleep(100)   ; 需要等待一会儿再删
-			obj.gui.Destroy()
+			FadeUI(obj.gui)
 			break
 		}
 	}
+}
+; 需要对窗口渐变消失 guiFadeMs
+FadeUI(objGui){
+; 初始透明度
+  initialOpacity := guiOpacity
+  ; 最终透明度（0 为完全透明）
+  finalOpacity := 0
+  interval:=20  ; 修改透明度时间间隔ms
+  times := Floor(guiFadeMs/interval)
+  if(times>0){
+    step := Ceil( (initialOpacity - finalOpacity)/times)  ; 需要防止变成0
+  }
+  while (times > 0) {
+      initialOpacity -= step
+      if (initialOpacity < finalOpacity) {
+          initialOpacity := finalOpacity
+      }
+      WinSetTransparent( initialOpacity, objGui.hWnd )
+      Sleep(interval)
+      times -= 1
+  }
+  objGui.Destroy()
 }
 ; 循环检查需要放入的数据
 CallShow()
