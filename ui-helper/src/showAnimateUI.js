@@ -52,6 +52,7 @@ let winOpt = {
 
     guiRadius :0,
     ctrlRadius :0,
+    guiFadeMs :500,
 }
 
 
@@ -174,6 +175,31 @@ function showCtrl() {
         timeOutList.push(handle)
     })
 }
+// 对某个对象渐变消失
+function fadeDiv(targetElement){
+    // 动态设置渐变时长（单位：毫秒）
+    const fadeDuration = winOpt.guiFadeMs;
+    // 获取元素初始透明度
+    const initialOpacity = parseFloat(getComputedStyle(targetElement).opacity);
+    // 记录开始时间
+    const startTime = performance.now();
+    function fade() {
+        const currentTime = performance.now();
+        const elapsedTime = currentTime - startTime;
+        // 根据已过去的时间计算当前透明度
+        const currentOpacity = initialOpacity - (elapsedTime / fadeDuration) * initialOpacity;
+
+        if (currentOpacity > 0) {
+            targetElement.style.opacity = currentOpacity;
+            requestAnimationFrame(fade);
+        } else {
+            targetElement.style.opacity = 0;
+            // 渐变完成后移除元素
+            targetElement.parentNode.removeChild(targetElement);
+        }
+    }
+    requestAnimationFrame(fade);
+}
 function showApp() {
     let textArr = ['SysDefault', 'Desktop', 'C:\\Windows\\explorer.exe', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe']
     const newDiv = document.createElement('div');
@@ -286,7 +312,10 @@ function createNewTxt(text, scale) {
     });
     // 超时后清理掉
     setTimeout(() => {
-        try { objContainer.removeChild(newDiv); } catch (e) { }
+        try { 
+            // objContainer.removeChild(newDiv)
+            fadeDiv(newDiv)
+         } catch (e) { }
     }, winOpt.guiLife);
 }
 // 要取最大范围，转换 monitorInfo 的负数位置

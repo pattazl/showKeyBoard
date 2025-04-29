@@ -231,6 +231,11 @@
                 <n-input-number v-model:value="allConfig.dialog.guiLife" :step="100" :min="10" :max="100000" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro191 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.guiFadeMs" :step="20" :min="0" :max="10000" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro30 }}
               <template #suffix>
                 <n-input-number v-model:value="allConfig.dialog.guiInterval" :step="100" :min="10" :max="100000" />
@@ -704,9 +709,12 @@ export default defineComponent({
     loadPara();
     // 要监听的属性列表
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
-      'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval', 'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
-      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey', 'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
-      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius','ctrlHeigth']
+      'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval',
+       'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
+      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey',
+       'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
+      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius',
+      'ctrlHeigth','guiFadeMs']
     watchedProps.forEach(prop => {
       watch(
         () => allConfig.value.dialog[prop],
