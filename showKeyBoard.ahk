@@ -88,7 +88,11 @@ GetDistance(){
 	MouseGetPos &currentX, &currentY
     if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
     {
-        ; OutputDebug  'AutoHotkey currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+        ; OutputDebug  'AHK currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+        if (currentY> maxBottom*100 || currentX> maxRight*100){
+        ; 坐标差异太大，可能锁屏状态下直接抛弃数据
+          return
+        }
         ; 暂时抛弃异常数据，更新屏幕信息
         ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         SendPCInfo(1)
