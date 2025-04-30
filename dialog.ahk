@@ -95,10 +95,11 @@ ShowTxt(text)
 	if(guiDpiscale = 1){
 		try{
 			dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
+      ; 经测试对于自己创建的窗体好像无效，都是主窗口的DPI，但用notepad测试有效
 			dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
 		}
 	}
-	OutputDebug('AHK DPIScale:' dpiScale)
+	; OutputDebug('AHK DPIScale:' dpiScale)
 	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动 , editOpt 对象受缩放影响，需要控制比例
 	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth/dpiScale " c" guiTextColor
 	if guiHeigth = 0
@@ -121,7 +122,7 @@ ShowTxt(text)
 	}
 	
 	ControlGetPos &ex, &ey, &ew, &editHeight, MyEdit  ; 此函数受DPI影响
-	OutputDebug('AHK ew:' ew ' editHeight:' editHeight)
+	; OutputDebug('AHK ew:' ew ' editHeight:' editHeight)
 	;lineCount := EditGetLineCount(MyEdit)
 	; 需要获取屏幕分辨率 A_ScreenWidth A_ScreenHeight
 	guiX := guiPosOffsetX + Left , guiY:=guiPosOffsetY +Top  ;  默认TL
@@ -315,7 +316,7 @@ ReLayOut(x,y,w,h)
 		py := guiY
 		ph := lastObj.h
 		;lastObj.gui.Show("NA") ; "NA" 表示不激活窗口但显示在最上层
-		OutputDebug('AHK Length:' guiArr.Length ' / ' A_Index ' px:' px ' pw:' pw ' py:' py ' ph:' ph )
+		; OutputDebug('AHK Length:' guiArr.Length ' / ' A_Index ' px:' px ' pw:' pw ' py:' py ' ph:' ph )
 	}
 }
 ; 根据数组返回要显示的内容
