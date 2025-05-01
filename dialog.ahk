@@ -166,7 +166,7 @@ ShowTxt(text)
 		guiArr.push(
 		{
 		gui:MyGui,edit:MyEdit,tick:A_TickCount,textArr:textArr,
-		x:guiX,y:guiY,w:guiWidth,h:editHeight,dpi:dpiScale
+		x:guiX,y:guiY,w:guiWidth,h:editHeight,dpi:dpiScale,isFade:0
 		})
 	}Else{
 		lastGui.edit := MyEdit
@@ -209,25 +209,34 @@ Edit_Focus(thisEdit,Info) {  ; Declaring this parameter is optional.
 ; 清理无需的窗口
 CloseSelf()
 {
-	if guiShowing = 1
+ ; 显示的时候可能对 guiArr 进行循环，暂时跳过关闭窗口
+	if(guiShowing = 1)
 	{
 		return
 	}
-	; 循环检查需要消失的窗口
+  ; 首先清理需要移除的对象
   while (guiArr.Length > 0) {
-    ; 输出当前要移除的元素
-    obj := guiArr[1]
-    if( A_TickCount - obj.tick> guiLife)
+     obj := guiArr[1]
+     if( obj.isFade = 2){
+        guiArr.RemoveAt(1)
+     }else{
+        break
+     }
+   }
+   	; 循环检查需要消失的窗口
+   loop guiArr.Length {
+    obj := guiArr[A_Index]
+    if( obj.isFade=0 && (A_TickCount - obj.tick> guiLife) )
     {
-      guiArr.RemoveAt(1)
-      FadeUI(obj.gui)
-    }else{
-      break
+      ; 可以开始消失
+      FadeUI(obj)
     }
   }
 }
 ; 需要对窗口渐变消失 guiFadeMs,此死循环容易导致按键无响应，不能用sleep
-FadeUI(objGui) {
+FadeUI(obj) {
+    ; 表示进入消失过程中
+    obj.isFade := 1
     ; 初始透明度
     initialOpacity := guiOpacity
     ; 最终透明度（0 为完全透明）
@@ -244,11 +253,12 @@ FadeUI(objGui) {
             if (initialOpacity < finalOpacity) {
                 initialOpacity := finalOpacity
             }
-             WinSetTransparent( initialOpacity, objGui.hWnd )
+             WinSetTransparent( initialOpacity, obj.gui.hWnd )
             times -= 1
         } else {
             SetTimer(fadeStep, 0)  ; 关闭定时器
-            objGui.Destroy()  ; 销毁窗口
+            obj.gui.Destroy()  ; 销毁窗口
+            obj.isFade := 2  ; 完成消失,统一在CloseSelf中移除，防止影响其他 guiArr 的循环
         }
     }
     SetTimer(fadeStep, interval)  ; 启动定时器
@@ -285,6 +295,10 @@ ReLayOut(x,y,w,h)
 	ph := h
 	loop guiArr.Length-1 {
 		lastObj := guiArr[guiArr.Length-A_Index]
+    ; 窗口已经销毁，无需移动，跳过
+    if(lastObj.isFade = 2){
+      continue
+    }
 		guiX := lastObj.x
 		guiY := lastObj.y
 		dpiScale := lastObj.dpi
@@ -311,6 +325,7 @@ ReLayOut(x,y,w,h)
 		}
 		; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
 		lastObj.gui.Move(guiX/dpiScale,guiY/dpiScale)
+    ; 设置下一个窗口的起始位置
 		px := guiX
 		pw := lastObj.w
 		py := guiY
