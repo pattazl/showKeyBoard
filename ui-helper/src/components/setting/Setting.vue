@@ -80,9 +80,10 @@
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro14 }}
+              <div class="intro">{{ contentText.keyIntro }}</div>
               <template #suffix>
-                <div class="intro">{{ contentText.intro15 }}{{ contentText.keyIntro }}</div>
                 <n-input v-model:value="allConfig.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
+                <div class="intro">{{ contentText.intro15 }}</div>
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro131 }}
