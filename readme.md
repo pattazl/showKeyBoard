@@ -102,7 +102,6 @@ ConfigFile -->|Reload|Client
 
 ## Issue
 
-1. When the key-pressing speed is extremely fast, for example, when the input is more than 30 characters per second, there may be a loss of some key responses, with a probability of approximately 8%.
 
 ## Thanks
 
