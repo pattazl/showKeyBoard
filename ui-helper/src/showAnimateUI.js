@@ -195,7 +195,10 @@ function fadeDiv(targetElement){
         } else {
             targetElement.style.opacity = 0;
             // 渐变完成后移除元素
-            targetElement.parentNode.removeChild(targetElement);
+            if(targetElement.parentNode!=null)
+            {
+                targetElement.parentNode.removeChild(targetElement);
+            }
         }
     }
     requestAnimationFrame(fade);

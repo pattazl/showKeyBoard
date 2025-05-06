@@ -84,14 +84,14 @@ function startWS() {
       console.log('Received message:', message);
       // 给客户端实例添加标记属性
       ws.clientType = ''
-      if(message == ahkClientFlag)
-      {
+      if (message == ahkClientFlag) {
         console.log('ahkClientFlag clientType')
         ws.clientType = message;
+      } else {
+        // Web端的链接，发送消息给客户端用于刷新界面
+        //ws.send('Server received your message: ' + message);
+        ws.send(JSON.stringify(preData));
       }
-      // 发送消息给客户端
-      //ws.send('Server received your message: ' + message);
-      //ws.send(JSON.stringify(preData));
     });
     // 监听断开连接事件
     ws.on('close', () => {
@@ -359,11 +359,10 @@ function setParaFun(req, res) {
   }
   res.send({ code: 200 });
   // 发送websocket通知
-  if(isUpdate)
-  {
+  if (isUpdate) {
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        if(ahkClientFlag == client.clientType ){
+        if (ahkClientFlag == client.clientType) {
           client.send(ahkClientFlag + ':' + Date.now().toString()); // 发出通知
         }
       }
@@ -401,7 +400,7 @@ async function dataFun(req, res) {
   //myWS.send(JSON.stringify(data) );
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      if( '' == client.clientType ){
+      if ('' == client.clientType) {
         client.send(JSON.stringify(data));
       }
     }

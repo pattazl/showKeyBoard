@@ -93,6 +93,7 @@ export default defineComponent({
         // 对于变量中初始值设置
         data.dataSetting.appNameList = data.dataSetting.appNameList??'{}'
         data.dataSetting.appTopN = data.dataSetting.appTopN??10
+        data.dataSetting.allKeySwitch = data.dataSetting.allKeySwitch??false
         data.dataSetting.mergeControl = data.dataSetting.mergeControl??false
         data.dataSetting.fillDate = data.dataSetting.fillDate??false
         data.dataSetting.mergeAppName = data.dataSetting.mergeAppName??true

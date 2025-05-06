@@ -379,6 +379,11 @@
                 <n-input-number v-model:value="dataSetting.afterClickTodayMs" :step="1000" :min="100" :max="300000" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro180 }}
+              <template #suffix>
+                <n-switch v-model:value="dataSetting.allKeySwitch" :round="false" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro143 }}
               <template #suffix>
                 <n-switch v-model:value="dataSetting.mergeControl" :round="false" />
