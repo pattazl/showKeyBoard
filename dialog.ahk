@@ -324,12 +324,15 @@ ReLayOut(x,y,w,h)
 			}
 		}
 		; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
-		lastObj.gui.Move(guiX/dpiScale,guiY/dpiScale)
+    ; 有可能窗口被异常释放
+    try{
+      lastObj.gui.Move(guiX/dpiScale,guiY/dpiScale)
     ; 设置下一个窗口的起始位置
-		px := guiX
-		pw := lastObj.w
-		py := guiY
-		ph := lastObj.h
+      px := guiX
+      pw := lastObj.w
+      py := guiY
+      ph := lastObj.h
+    }
 		;lastObj.gui.Show("NA") ; "NA" 表示不激活窗口但显示在最上层
 		; OutputDebug('AHK Length:' guiArr.Length ' / ' A_Index ' px:' px ' pw:' pw ' py:' py ' ph:' ph )
 	}
