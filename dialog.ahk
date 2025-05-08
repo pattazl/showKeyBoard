@@ -257,8 +257,8 @@ FadeUI(obj) {
             times -= 1
         } else {
             SetTimer(fadeStep, 0)  ; 关闭定时器
-            obj.gui.Destroy()  ; 销毁窗口
             obj.isFade := 2  ; 完成消失,统一在CloseSelf中移除，防止影响其他 guiArr 的循环
+            obj.gui.Destroy()  ; 销毁窗口
         }
     }
     SetTimer(fadeStep, interval)  ; 启动定时器
