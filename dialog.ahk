@@ -565,6 +565,7 @@ GetAppInfo(isMouse){
           }
         }
     }
+    ; ProcPath默认为应用程序路径或相关特殊名称，根据preAppNameListMap进行转换，如果最终路径为空，则不记录
     if ProcPath = ''{
         return
     }
