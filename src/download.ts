@@ -5,7 +5,7 @@ import {
     getImages, escapeStringRegexp, logger,
     mdFile, localFolder, rename,
     getAutoPath, saveFile, localCheck, 
-    timeoutPromise,dlTimeout
+    timeoutPromise,dlTimeout,regOfImage
 } from './common'
 import { getLang } from './lang.js';
 // 主要内部变量
@@ -45,7 +45,7 @@ export async function download() // ,thread:number
                 if (resfile == '') { continue; }
                 let newfile = getAutoPath(resfile);
                 // 适配图片的格式
-                var reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(file) + '\\)', 'ig');
+                var reg = regOfImage(file);
                 content = content.replace(reg, '![$1](' + newfile + ')'); // 内容替换
                 successCount++;
             } catch (e) {

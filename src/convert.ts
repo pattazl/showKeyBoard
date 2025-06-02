@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import {
     getImages, escapeStringRegexp, logger,
-    getAutoPath, saveFile, myEncodeURI,switchPath
+    getAutoPath, saveFile, myEncodeURI,switchPath,regOfImage
 } from './common'
 import { getLang } from './lang';
 
@@ -51,7 +51,7 @@ export async function convert(formatFlag: boolean = true) // ,thread:number
             logger.info(`path[${oriFile}] convert to [${newFile}], ${count + 1}/${len}`, false);
         }
         try {
-            var reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(oriFile) + '\\)', 'ig');
+            var reg = regOfImage(oriFile);
             content = content.replace(reg, '![$1](' + newFile + ')'); // 内容替换
             count++;
         } catch (e) {

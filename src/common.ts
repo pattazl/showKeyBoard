@@ -66,13 +66,8 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         // str = fs.readFileSync(mdfileName).toString();
         str = editContent; // 文本内容覆盖过去
         // 正则格式
-        var reg;
-        if (imagePathBracket == 'yes') {
-            reg = /!\[[^\]]*\]\((.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含
-        } else {
-            // imagePathBracket =='no' or auto
-            reg = /!\[[^\]]*\]\((.*?)\)/g; // 图片路径中没括号，非贪婪匹配
-        }
+        var reg = regOfImage();
+        
         //const pattern = /!\[(.*?)\]\((.*?)\)/gm // 匹配图片正则
         // const imgList = str.match(pattern) || [] // ![img](http://hello.com/image.png)
         // let tmpPicArrNet: string[] = [],tmpPicArrLocal: string[]=[],tmpPicArrInvalid: string[]=[],tmpOriMapping={};
@@ -104,6 +99,22 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     retObj = { local: picArrLocal, net: picArrNet, invalid: picArrInvalid, mapping: oriMapping, content: str };
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 }
+// 分析图片，返回符合要求的正则
+export function regOfImage(filePath:string|null)
+{
+    let reg = null;
+    if(filePath == null){
+        if (imagePathBracket == 'yes') {
+            reg = /!\[[^\]]*\]\((.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含
+        } else {
+            // imagePathBracket =='no' or auto
+            reg = /!\[[^\]]*\]\((.*?)\)/g; // 图片路径中没括号，非贪婪匹配
+        }
+    }else{
+        reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(filePath) + '\\)', 'ig');
+    }
+    return reg;
+}
 function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
     //var mdfileName = fs.realpathSync(mdFile);
     var mdfilePath = path.dirname(mdFile); //arr.join('/'); // 获取文件路径
@@ -113,7 +124,7 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         let oriFlepath: string = matched[1];
         // 自动抵消匹配括号
         if (auto && oriFlepath.indexOf('(') > 0) {
-            var reg2 = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(oriFlepath) + '\\)', 'ig');
+            var reg2 = regOfImage(oriFlepath);
             str = str.replace(reg2, '![$1](' + oriFlepath.replace('(', '<LB>') + '<RB>'); // 内容替换<RB>
             reg.lastIndex = matched.index; // 动态调整，重新正则匹配
             continue;
