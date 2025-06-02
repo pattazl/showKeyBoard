@@ -64,7 +64,7 @@ Get details in the extension, some of setting as below:
 5. updateLink: Whether update the picture link in md file(Clean,Download,Upload,Move)
 6. skipSelectChange: Whether still update picture link when selection/position changed
 7. rename: Whether rename the image files(Download,Upload,Move,Copy)
-8. nameFormat: the format of rename rules, default is [D] ,  For details, see  [Renaming Rules](### Renaming Rules)
+8. nameFormat: the format of rename rules, default is [D] ,  For details, see  [Renaming Rules](#Renaming-Rules)
 9. remotePath: Which be added at beginning of PicBed path, support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
 10. clipboardPath: Clipboard image's path and name, support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
 11. urlFormatted: Whether escape image URL when insert local image
