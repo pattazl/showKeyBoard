@@ -175,7 +175,7 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
                     } else {
                         // 适配图片的格式
                         var reg = regOfImage(fileMapping[file]);
-                        content = content.replace(reg, '![$1](' + imgPath + ')'); // 内容替换
+                        content = content.replace(reg, '![$1](' + imgPath + '$2)'); // 内容替换
                     }
                     successCount++;
                 }else{

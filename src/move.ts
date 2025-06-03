@@ -52,7 +52,7 @@ export async function move(lf:string,copyFlag:boolean) // ,thread:number
                 fs.renameSync(file,newFile);
             }
             var reg = regOfImage(fileMapping[file]);
-            content =  content.replace(reg,'![$1]('+ getAutoPath( newFile) +')'); // 内容替换
+            content =  content.replace(reg,'![$1]('+ getAutoPath( newFile) +'$2)'); // 内容替换
             count++;
         }catch(e)
         {

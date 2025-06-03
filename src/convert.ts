@@ -52,7 +52,7 @@ export async function convert(formatFlag: boolean = true) // ,thread:number
         }
         try {
             var reg = regOfImage(oriFile);
-            content = content.replace(reg, '![$1](' + newFile + ')'); // 内容替换
+            content = content.replace(reg, '![$1](' + newFile + '$2)'); // 内容替换
             count++;
         } catch (e) {
             logger.error('convert error:');

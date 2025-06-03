@@ -100,18 +100,18 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 }
 // 分析图片，返回符合要求的正则
-export function regOfImage(filePath:string|null)
+export function regOfImage(filePath?:string)
 {
     let reg = null;
     if(filePath == null){
         if (imagePathBracket == 'yes') {
-            reg = /!\[[^\]]*\]\((.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含
+            reg = /!\[[^\]]*\]\(<?([^">]*)(.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含, 不能有 " 和 >
         } else {
             // imagePathBracket =='no' or auto
-            reg = /!\[[^\]]*\]\((.*?)\)/g; // 图片路径中没括号，非贪婪匹配
+            reg = /!\[[^\]]*\]\(<?([^">)]*)(.*)\)/g; // 图片路径中没括号，非贪婪匹配
         }
     }else{
-        reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(filePath) + '\\)', 'ig');
+        reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(filePath) + '(.*)\\)', 'ig');
     }
     return reg;
 }
@@ -125,7 +125,7 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         // 自动抵消匹配括号
         if (auto && oriFlepath.indexOf('(') > 0) {
             var reg2 = regOfImage(oriFlepath);
-            str = str.replace(reg2, '![$1](' + oriFlepath.replace('(', '<LB>') + '<RB>'); // 内容替换<RB>
+            str = str.replace(reg2, '![$1](' + oriFlepath.replace('(', '<LB>') + '<RB>$2'); // 内容替换<RB>
             reg.lastIndex = matched.index; // 动态调整，重新正则匹配
             continue;
         }
@@ -420,10 +420,10 @@ function getAutoPathCore(dir: string, newfile: string) {
 export function switchPath(strPath: string, relativeFlag: boolean = true) {
     if (relativeFlag) {
         // 转相对路径
-        return path.relative(oMdFile.dir, strPath);
+        return path.relative(oMdFile.dir, strPath).replace(/\\/g, '/');;
     } else {
         // 转换为绝对路径
-        return path.resolve(oMdFile.dir, strPath)
+        return path.resolve(oMdFile.dir, strPath).replace(/\\/g, '/');
     }
 }
 // 检测位置是否改变了

@@ -13,7 +13,7 @@ const options = { strictSSL: false, headers,rejectUnauthorized:false }; // 允�
 let rename = false;
 async function download(url: string, dest: string, options:{}) {
   const uri = new URL(url);
-  let filename = path.basename(url); // 获取基本的文件名
+  let filename = decodeURIComponent(path.basename(url)); // 获取基本的文件名
   const pkg = url.toLowerCase().startsWith("https:") ? https : http;
   //process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = '0'; 替换为 rejectUnauthorized:false控制
   return await new Promise((resolve, reject) => {
