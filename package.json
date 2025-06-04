@@ -2,7 +2,7 @@
   "name": "markdown-image-manage",
   "displayName": "Markdown Image Manage",
   "description": "Download,Move,Copy,Clean,Upload,Paste,Covert markdown's images(MIM)下载,移动,复制,清理,分析,上传,粘帖,转换MD文件中的图片",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "AustinYoung",
   "icon": "icon.png",
   "engines": {

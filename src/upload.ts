@@ -5,7 +5,7 @@ import * as path from 'path';
 import {
     getImages, escapeStringRegexp, logger, saveFile, remotePath,
     rename, convertPath, insertText,
-    timeoutPromise,ulTimeout,regOfImage
+    timeoutPromise,ulTimeout,regOfImage,replaceImg
 } from './common';
 import { getLang } from './lang';
 let {execSync,exec} = require('child_process');
@@ -175,7 +175,7 @@ export async function upload(clipBoard: boolean = false) // ,thread:number
                     } else {
                         // 适配图片的格式
                         var reg = regOfImage(fileMapping[file]);
-                        content = content.replace(reg, '![$1](' + imgPath + '$2)'); // 内容替换
+                        content = replaceImg(content,reg,imgPath); // 内容替换
                     }
                     successCount++;
                 }else{

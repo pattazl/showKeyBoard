@@ -100,9 +100,9 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
     return retObj; //{ local: picArrLocal, net: picArrNet, mapping: oriMapping, content: str };
 }
 // 分析图片，返回符合要求的正则
-export function regOfImage(filePath?:string)
+export function regOfImage(filePath?:string):RegExp
 {
-    let reg = null;
+    let reg = new RegExp('');
     if(filePath == null){
         if (imagePathBracket == 'yes') {
             reg = /!\[[^\]]*\]\(<?([^">]*)(.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含, 不能有 " 和 >
@@ -111,9 +111,18 @@ export function regOfImage(filePath?:string)
             reg = /!\[[^\]]*\]\(<?([^">)]*)(.*)\)/g; // 图片路径中没括号，非贪婪匹配
         }
     }else{
-        reg = new RegExp('!\\[([^\\]]*)\\]\\(' + escapeStringRegexp(filePath) + '(.*)\\)', 'ig');
+        reg = new RegExp('!\\[([^\\]]*)\\]\\((<?)' + escapeStringRegexp(filePath) + '(.*)\\)', 'ig'); // 有 $2 $3 额外参数
     }
     return reg;
+}
+// 根据图片正则替换对应的文本
+export function replaceImg(str:string,reg:RegExp,filePath:string)
+{
+    return str.replace(reg, (match, p1, p2, p3, p4) => {
+        // p1: 图片描述, p2:<标记, p3 结尾
+        // if (p3 !=''&& p3.indexOf(' ') != 0) { p3 = ' ' + p3 }// 如果P3匹配到并且不以空格开始，可以加空格分隔 ，容易导致空格增加          
+        return `![${p1}](${p2}${filePath}${p3})`;  // '![$1]($2' + filePath+' $3'
+      });
 }
 function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
     //var mdfileName = fs.realpathSync(mdFile);
@@ -125,7 +134,8 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         // 自动抵消匹配括号
         if (auto && oriFlepath.indexOf('(') > 0) {
             var reg2 = regOfImage(oriFlepath);
-            str = str.replace(reg2, '![$1](' + oriFlepath.replace('(', '<LB>') + '<RB>$2'); // 内容替换<RB>
+            str = replaceImg(str,reg2,oriFlepath.replace('(', '<LB>') + '<RB>'); // 内容替换<RB>
+            console.log('自动抵消匹配括号-----------------------')
             reg.lastIndex = matched.index; // 动态调整，重新正则匹配
             continue;
         }
