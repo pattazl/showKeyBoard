@@ -52,6 +52,11 @@ ShowTxt(text)
 	if text = "" {
 		return 
 	}
+    if (recordHistory.Length() >= recordHistoryMax) {
+      recordHistory.RemoveAt(1)  ; 删除第一个元素（最早加入的）
+    }
+    recordHistory.push(text) ; 放队列中
+    
 	textArr := []
 	; 如果正在处理中，则不要销毁窗口
 	global guiShowing := 1

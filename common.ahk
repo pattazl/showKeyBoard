@@ -132,6 +132,7 @@ ReadAllIni() {
         global preAppNameListMap,preAppNameListMap := JSON.parse(preAppNameList)
     }
 
+    global recordHistoryMax,recordHistoryMax := DescRead("common", "recordHistoryMax", "50")
 
     ; 配置参数
     global guiWidth,guiWidth := DescRead("dialog", "guiWidth", 300) ; 宽度
@@ -225,3 +226,5 @@ globalAppPath := ''  ; 当前激活的窗口路径
 GetMinuteDataFlag := False  ; 标记正在处理分钟数据
 ; 主显示器编号
 LastScreenNum := MonitorGetPrimary()
+
+global recordHistory := Array() ; 保存按键历史数据
