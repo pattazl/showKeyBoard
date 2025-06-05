@@ -58,7 +58,7 @@ Picgo support several PicBed and  FTP server( PASV mode) by plugin.
 Get details in the extension, some of setting as below:
 
 1. removeFolder: The folder where image will move to when clean local image folder
-2. hasBracket: Whether the image path include right bracket
+2. ~~hasBracket: Whether the image path include right bracket~~   replace ) to %29 
 3. matchAngleBrackets: Whether match the image link in angle brackets
 4. imageSaveFolder: Local folder which the images will save to, support absolute or relative path. support `<filename>` and date format `<YYYYMMDD>` variable (dayjs)
 5. updateLink: Whether update the picture link in md file(Clean,Download,Upload,Move)

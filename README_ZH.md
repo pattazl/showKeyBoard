@@ -55,7 +55,7 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 详情见插件中的参数说明，部分参数如下:
 
 1. removeFolder: 本地图片目录清理时，其他图片移动的目标文件夹
-2. hasBracket: 图片路径中是否包括右括号
+2. ~~hasBracket: 图片路径中是否包括右括号~~  如果有右括号用%29 代替
 3. matchAngleBrackets: 是否匹配尖括号中的图片链接
 4. imageSaveFolder: 图片要保存到的位置,默认以md文件名做文件夹，支持绝对路径和相对路径，支持文件名 `<filename>`和日期 `<YYYYMMDD>`变量(dayjs)
 5. updateLink: 上传/下载/移动时是否需要更新md文件的图片链接
@@ -170,15 +170,10 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 
 ## 0.1.2
 
-1. 本地文件支持`<img src="">` 格式的图片分析，采用 Romantoscalion 的 PR
-
+1. 本地文件支持 `<img src="">` 格式的图片分析，采用 Romantoscalion 的 PR
 2. 文件重命名时候支持自定义重命名格式,具体见  [重命名规则](#重命名规则)
-
 3. 增加菜单: 复制本地图片,将图片复制到新目录中并更新链接内容
-
 4. VSCode限制改为 1.75
-
-    
 
 ## 仓库地址
 

@@ -24,7 +24,7 @@ export let urlFormatted = true; // URL格式神需要转义
 
 let docTextEditor: vscode.TextEditor | undefined; // 选择的MD文件
 let docPreSelection: vscode.Selection | undefined; // 选择的范围
-let imagePathBracket = 'auto'; // 文件名中包含括号
+// let imagePathBracket = 'auto'; // 文件名中包含括号
 let imageMatchAngleBrackets = true; // 是否支持尖括号格式图片
 
 export function getImages(selectFlag: boolean = false): { local: string[], net: string[], invalid: string[], mapping: Record<string, any>, content: string } {
@@ -71,12 +71,12 @@ export function getImages(selectFlag: boolean = false): { local: string[], net: 
         //const pattern = /!\[(.*?)\]\((.*?)\)/gm // 匹配图片正则
         // const imgList = str.match(pattern) || [] // ![img](http://hello.com/image.png)
         // let tmpPicArrNet: string[] = [],tmpPicArrLocal: string[]=[],tmpPicArrInvalid: string[]=[],tmpOriMapping={};
-        findImage(reg, str, imagePathBracket == 'auto', picArrNet, picArrLocal, picArrInvalid, oriMapping);
+        findImage(reg, str, /*imagePathBracket == 'auto',*/ picArrNet, picArrLocal, picArrInvalid, oriMapping);
 
         // 如果需要匹配尖括号格式的图片，重新设置正则并再次匹配
         if (imageMatchAngleBrackets) {
             reg = /<img src="(.+?)".*?>/ig; // 匹配尖括号格式的图片
-            findImage(reg, str, false, picArrNet, picArrLocal, picArrInvalid, oriMapping);
+            findImage(reg, str, /*false,*/ picArrNet, picArrLocal, picArrInvalid, oriMapping);
         }
 
         /*if(picArrInvalid.length>0 && )
@@ -104,12 +104,12 @@ export function regOfImage(filePath?:string):RegExp
 {
     let reg = new RegExp('');
     if(filePath == null){
-        if (imagePathBracket == 'yes') {
-            reg = /!\[[^\]]*\]\(<?([^">]*)(.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含, 不能有 " 和 >
-        } else {
+        // if (imagePathBracket == 'yes') {
+        //     reg = /!\[[^\]]*\]\(<?([^">\n]*)(.*)\)/g; // 适配所有格式的图片,贪婪匹配可能多个连续的图片被包含, 不能有 " 和 >
+        // } else {
             // imagePathBracket =='no' or auto
-            reg = /!\[[^\]]*\]\(<?([^">)]*)(.*)\)/g; // 图片路径中没括号，非贪婪匹配
-        }
+            reg = /!\[[^\]]*\]\(<?([^">)\n]*)(.*?)\)/g; // 图片路径中没括号,需要非贪婪匹配
+        // }
     }else{
         reg = new RegExp('!\\[([^\\]]*)\\]\\((<?)' + escapeStringRegexp(filePath) + '(.*)\\)', 'ig'); // 有 $2 $3 额外参数
     }
@@ -119,12 +119,16 @@ export function regOfImage(filePath?:string):RegExp
 export function replaceImg(str:string,reg:RegExp,filePath:string)
 {
     return str.replace(reg, (match, p1, p2, p3, p4) => {
-        // p1: 图片描述, p2:<标记, p3 结尾
-        // if (p3 !=''&& p3.indexOf(' ') != 0) { p3 = ' ' + p3 }// 如果P3匹配到并且不以空格开始，可以加空格分隔 ，容易导致空格增加          
+        // p1: 图片描述, p2:<标记, p3 结尾 // 如果P3匹配到并且不以空格或>开始，可以加空格分隔 
+        if (p3 !=''&&  /^[^ >)]/.test(p3) ) { 
+            p3 = ' ' + p3 ;
+            // console.log(`<${p3}>`)
+        }
+        filePath = filePath.trim() // 去掉空格     
         return `![${p1}](${p2}${filePath}${p3})`;  // '![$1]($2' + filePath+' $3'
       });
 }
-function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
+function findImage(reg: any, str: string, /*auto: boolean,*/ tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
     //var mdfileName = fs.realpathSync(mdFile);
     var mdfilePath = path.dirname(mdFile); //arr.join('/'); // 获取文件路径
     while (true) {
@@ -132,15 +136,15 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         if (matched == null) { break; }
         let oriFlepath: string = matched[1];
         // 自动抵消匹配括号
-        if (auto && oriFlepath.indexOf('(') > 0) {
-            var reg2 = regOfImage(oriFlepath);
-            str = replaceImg(str,reg2,oriFlepath.replace('(', '<LB>') + '<RB>'); // 内容替换<RB>
-            console.log('自动抵消匹配括号-----------------------')
-            reg.lastIndex = matched.index; // 动态调整，重新正则匹配
-            continue;
-        }
+        // if (auto && oriFlepath.indexOf('(') > 0) {
+        //     var reg2 = regOfImage(oriFlepath);
+        //     str = replaceImg(str,reg2,oriFlepath.replace('(', '<LB>') + '<RB>'); // 内容替换<RB>
+        //     console.log('自动抵消匹配括号-----------------------')
+        //     reg.lastIndex = matched.index; // 动态调整，重新正则匹配
+        //     continue;
+        // }
         // 首先要判断文件路径，对于http https 路径忽略，对于没有写盘符的路径，加上 targetFile 的路径
-        oriFlepath = oriFlepath.replace(/<LB>/g, '(').replace(/<RB>/g, ')');
+        // oriFlepath = oriFlepath.replace(/<LB>/g, '(').replace(/<RB>/g, ')');
         let filepath = oriFlepath.trim();
         // 首先要判断文件路径，对于http https 路径忽略，对于没有写盘符的路径，加上 targetFile 的路径
         if (/^http:|https:/.test(filepath)) {
@@ -148,10 +152,10 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         } else {
             var tmpFilePath = ""; //全路径
             tmpFilePath = path.resolve(mdfilePath, filepath); // 支持相对目录和绝对路径
-            tmpFilePath = decodeURI(tmpFilePath); // 地址可能被转义,需要还原
+            tmpFilePath = decodeURI(tmpFilePath).trim(); // 地址可能被转义,需要还原
             if (fs.existsSync(tmpFilePath)) {
                 tmpPicArrLocal.push(tmpFilePath);
-                tmpOriMapping[tmpFilePath] = oriFlepath; // 原始的本地路径地址
+                tmpOriMapping[tmpFilePath] = oriFlepath.trimRight(); // 原始的本地路径地址
             } else {
                 // 图片不存在
                 tmpPicArrInvalid.push(filepath);
@@ -159,13 +163,14 @@ function findImage(reg: any, str: string, auto: boolean, tmpPicArrNet: string[],
         }
     }
 }
-export function escapeStringRegexp(string: string) {
-    if (typeof string !== 'string') {
+export function escapeStringRegexp(str: string) {
+    if (typeof str !== 'string') {
         throw new TypeError('Expected a string');
     }
+    str = str.trimRight();
     // Escape characters with special meaning either inside or outside character sets.
     // Use a simple backslash escape when it’s always valid, and a `\xnn` escape when the simpler form would be disallowed by Unicode patterns’ stricter grammar.
-    return string
+    return str
         .replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
         .replace(/-/g, '\\x2d');
 }
@@ -288,10 +293,10 @@ export let logger = {
     }
 };
 // 设置相关内部变量
-export function setPara(bracket: string, matchAngleBrackets: boolean, ren: boolean, read: boolean, skip: boolean
+export function setPara(/*bracket: string,*/ matchAngleBrackets: boolean, ren: boolean, read: boolean, skip: boolean
     , local: string, remote: string, rem: string
     , dl: number, ul: number, cb: string, urlf: boolean, renFormat: string) {
-    imagePathBracket = bracket;
+    // imagePathBracket = bracket;
     imageMatchAngleBrackets = matchAngleBrackets;
     rename = ren;
     skipSelectChange = skip;
@@ -398,13 +403,17 @@ export function newName(fileName: string) {
     })
     return newFileName
 }
+// 文件路径中如果有 %29 = ) 则不需要转换
+export function myDecodeURI(url: string) {
+    return decodeURI(url).replace(/\)/g,'%29');
+}
 // 将URL地址进行转义和还原
 export function myEncodeURI(url: string, flag: boolean) {
     // 默认以 md文件为默认路径
     let newPath = url.replace(/\\/g, '/'); // 转换为 / 格式 path.sep 格式不一样
     try {
         newPath = decodeURI(newPath); // 防止重复encode，先decode
-        newPath = flag ? encodeURI(newPath) : decodeURI(newPath);
+        newPath = flag ? encodeURI(newPath).replace(/\)/g,'%29') : myDecodeURI(newPath);
     } catch (e) {
         console.log(e);
     }

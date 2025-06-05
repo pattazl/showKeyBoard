@@ -13,7 +13,6 @@
     "markdown-image-manage.menuConvertLink": "MIM:Convert Path Relative<->Absolute",
 
     "markdown-image-manage.removeFolder": "The folder where image will move to when clean local image folder",
-    "markdown-image-manage.hasBracket": "Whether the image path include right bracket",
     "markdown-image-manage.matchAngleBrackets": "Whether the image path match angle brackets format",
     "markdown-image-manage.imageSaveFolder": "Local folder which the images will save to, support absolute or relative path. support <filename> and date format<YYYYMMDD> variable (dayjs)",
     "markdown-image-manage.updateLink": "Whether update the picture link in md file(Clean,Download,Upload,Move)",

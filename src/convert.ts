@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import {
     getImages, escapeStringRegexp, logger,
-    getAutoPath, saveFile, myEncodeURI,switchPath,regOfImage,replaceImg
+    getAutoPath, saveFile, myEncodeURI,myDecodeURI,switchPath,regOfImage,replaceImg
 } from './common'
 import { getLang } from './lang';
 
@@ -33,7 +33,7 @@ export async function convert(formatFlag: boolean = true) // ,thread:number
         let newFile = ''
         let flag = false
         if (formatFlag) {
-            if (decodeURI(oriFile) == oriFile) {
+            if (myDecodeURI(oriFile) == oriFile) {
                 flag = true
             }
             newFile = myEncodeURI(oriFile, flag);

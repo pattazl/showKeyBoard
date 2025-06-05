@@ -135,16 +135,6 @@
           "default": "md-img-remove",
           "description": "%markdown-image-manage.removeFolder%"
         },
-        "markdown-image-manage.hasBracket": {
-          "type": "string",
-          "default": "auto",
-          "enum": [
-            "auto",
-            "yes",
-            "no"
-          ],
-          "description": "%markdown-image-manage.hasBracket%"
-        },
         "markdown-image-manage.matchAngleBrackets": {
           "type": "boolean",
           "default": true,

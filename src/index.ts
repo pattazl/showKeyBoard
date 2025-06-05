@@ -67,7 +67,7 @@ export async function vscConvertImageLink() {
 export function initPara() {
     clearMsg();
     let extendName = 'markdown-image-manage';
-    let hasBracket = vscode.workspace.getConfiguration(extendName).get('hasBracket') as string;
+    // let hasBracket = vscode.workspace.getConfiguration(extendName).get('hasBracket') as string;
     let matchAngleBrackets = vscode.workspace.getConfiguration(extendName).get('matchAngleBrackets') as boolean;
     let updateLink = vscode.workspace.getConfiguration(extendName).get('updateLink') as boolean;
     let skipSelectChange = vscode.workspace.getConfiguration(extendName).get('skipSelectChange') as boolean;
@@ -83,7 +83,7 @@ export function initPara() {
     if(dlTimeout<=0) {dlTimeout =10;}
     if(ulTimeout<=0) {ulTimeout =10;}
     //const isAsync: boolean = vscode.workspace.getConfiguration().get('downloadImageInMarkdown.isAsync') as boolean;
-    setPara(hasBracket, matchAngleBrackets,rename, updateLink,skipSelectChange, imageSaveFolder, remotePath
+    setPara(/*hasBracket,*/ matchAngleBrackets,rename, updateLink,skipSelectChange, imageSaveFolder, remotePath
         , removeFolder,dlTimeout,ulTimeout,clipboardPath,urlFormatted,nameFormat);
 
     let file = vscode.window.activeTextEditor?.document.uri.fsPath || '';
