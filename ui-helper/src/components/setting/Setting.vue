@@ -152,6 +152,11 @@
               <n-dynamic-input v-model:value="preAppNameListRef" preset="pair" :key-placeholder="contentText.intro146"
                 :value-placeholder="contentText.intro185" />
             </n-list-item>
+            <n-list-item>{{ contentText.intro192 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.common.recordHistoryMax" :min="0" :max="200" />
+              </template>
+            </n-list-item>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
@@ -713,12 +718,12 @@ export default defineComponent({
       //console.log(IPlinks)
     }
     loadPara();
-    // 要监听的属性列表
+    // 要监听的UI属性列表
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
       'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval',
        'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
-      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey',
-       'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
+      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 
+      'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
       'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius',
       'ctrlHeigth','guiFadeMs']
     watchedProps.forEach(prop => {
@@ -731,8 +736,8 @@ export default defineComponent({
         { deep: false }
       );
     });
-    // 要监听的属性列表
-    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState']
+    // 要监听的COMMON属性列表
+    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState','recordHistoryMax']
     watchedCommonProps.forEach(prop => {
       watch(
         () => allConfig.value.common[prop],

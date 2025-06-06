@@ -52,16 +52,6 @@ ShowTxt(text)
 	if text = "" {
 		return 
 	}
-    if(recordHistoryMax > 0 ){
-        arrLen := recordHistory.Length
-        if ( arrLen>= recordHistoryMax) {
-          ; recordHistory.RemoveAt(1)  ; 删除第一个元素（最早加入的）
-          recordHistory.RemoveAt(arrLen) ; 移除结尾
-        }
-        ; recordHistory.push(text) ; 放队列中
-        recordHistory.InsertAt(1, text) ; 放在开头
-    }
-    
 	textArr := []
 	; 如果正在处理中，则不要销毁窗口
 	global guiShowing := 1
@@ -481,11 +471,21 @@ RecordKey(txt,isMouse:=False)
 	PrePushKey :=txt
 	; 需要添加更新时间
 	AllKeyRecord['updateTime'] := A_Now
-    ; 保存
     if recordMinute {
         AllKeyRecord['MinuteRecords'] := MinuteRecords
     }
+     ; 处理按键历史
+    if(recordHistoryMax > 0 ){
+        arrLen := recordHistory.Length
+        if ( arrLen>= recordHistoryMax) {
+          ; recordHistory.RemoveAt(1)  ; 删除第一个元素（最早加入的）
+          recordHistory.RemoveAt(arrLen) ; 移除结尾
+        }
+        ; recordHistory.push(txt) ; 放队列中
+        recordHistory.InsertAt(1, txt) ; 放在开头
+    }
     AllKeyRecord['recordHistory'] := recordHistory
+    ; 保存
     AutoSendData()  ; 发送数据给后端服务
 }
 ; 如果不存在则创建，存在则+1

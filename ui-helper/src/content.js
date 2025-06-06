@@ -219,6 +219,8 @@ export default {
 	intro189: '圆角矩形半径',
 	intro190: '0表示无圆角，可能会影响边框显示',
 	intro191: '多少毫秒后渐变消失，0表示无渐变直接消失',
+	intro192: '显示多少条的历史按键记录',
+	intro193: '最近历史按键记录',
 
   },
   'en-US': {
@@ -442,5 +444,7 @@ export default {
 	intro189: 'Radius of the rounded rectangle',
 	intro190: '0 indicates no rounded corners, may affect the display of the border',
 	intro191: 'Milliseconds later will fade out? 0 means disappear directly without fading',
+	intro192: 'Max Number of historical keystrokes to display',
+	intro193: 'The historical keystrokes',
   }
 };

@@ -13,6 +13,7 @@
 7. Support the statstics of mouse and keyboard of different application programs
 8. Supports the analysis of the usage time of each application. The basic principle is as follows: count the list of applications used every minute, and then allocate and summarize the usage time to each application,Note: The application requires mouse or keyboard operation.
 9. Display the status of control keys/status keys in real-time, including the status of the Caps Lock, Scroll Lock, Num Lock keys, as well as the Ctrl, Shift, and Alt keys.
+10. Show the last N keystrokes (not saved)
 
 ## System Requirements
 
