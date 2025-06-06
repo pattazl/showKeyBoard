@@ -52,10 +52,15 @@ ShowTxt(text)
 	if text = "" {
 		return 
 	}
-    if (recordHistory.Length() >= recordHistoryMax) {
-      recordHistory.RemoveAt(1)  ; 删除第一个元素（最早加入的）
+    if(recordHistoryMax > 0 ){
+        arrLen := recordHistory.Length
+        if ( arrLen>= recordHistoryMax) {
+          ; recordHistory.RemoveAt(1)  ; 删除第一个元素（最早加入的）
+          recordHistory.RemoveAt(arrLen) ; 移除结尾
+        }
+        ; recordHistory.push(text) ; 放队列中
+        recordHistory.InsertAt(1, text) ; 放在开头
     }
-    recordHistory.push(text) ; 放队列中
     
 	textArr := []
 	; 如果正在处理中，则不要销毁窗口
@@ -480,6 +485,7 @@ RecordKey(txt,isMouse:=False)
     if recordMinute {
         AllKeyRecord['MinuteRecords'] := MinuteRecords
     }
+    AllKeyRecord['recordHistory'] := recordHistory
     AutoSendData()  ; 发送数据给后端服务
 }
 ; 如果不存在则创建，存在则+1
