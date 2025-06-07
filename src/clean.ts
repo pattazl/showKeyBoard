@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { getImages, logger, removeFolder, escapeStringRegexp, saveFile,regOfImage } from './common';
+import { getImages, logger, removeFolder, escapeStringRegexp, saveFile,replaceImg } from './common';
 import { getLang } from './lang';
 
 const extArr = ['.png', '.jpg', '.bmp', '.gif', '.jpeg', '.ico', '.tga', '.rle', '.tif', '.cur', '.ani', '.iff']; // 支持的图片格式
@@ -25,8 +25,7 @@ function cleanInvalidLinks() {
         let count = 0;
         for (let file of obj.invalid) {
             logger.info(`clean link [${file}]`, false);
-            var reg = regOfImage(file);
-            content = content.replace(reg, ''); // 内容替换
+            content = replaceImg(content,file,'')// 内容替换
             count++;
         }
         saveFile(content, count);

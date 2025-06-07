@@ -116,17 +116,32 @@ export function regOfImage(filePath?:string):RegExp
     return reg;
 }
 // 根据图片正则替换对应的文本
-export function replaceImg(str:string,reg:RegExp,filePath:string)
+export function replaceImg(str:string,oldfile:string,filePath:string)
 {
-    return str.replace(reg, (match, p1, p2, p3, p4) => {
+    let reg = regOfImage(oldfile)
+    str = str.replace(reg, (match, p1, p2, p3, p4) => {
         // p1: 图片描述, p2:<标记, p3 结尾 // 如果P3匹配到并且不以空格或>开始，可以加空格分隔 
         if (p3 !=''&&  /^[^ >)]/.test(p3) ) { 
             p3 = ' ' + p3 ;
             // console.log(`<${p3}>`)
         }
-        filePath = filePath.trim() // 去掉空格     
-        return `![${p1}](${p2}${filePath}${p3})`;  // '![$1]($2' + filePath+' $3'
+        filePath = filePath.trim() // 去掉空格
+        if('' == filePath){
+            return ''  // 进行删除
+         }else{
+            return `![${p1}](${p2}${filePath}${p3})`;  // '![$1]($2' + filePath+' $3'
+         }
       });
+    // 如果需要匹配尖括号格式的图片，重新设置正则并再次匹配
+    if (imageMatchAngleBrackets) {
+        reg = new RegExp('<img\\s+src="' + escapeStringRegexp(oldfile) + '"(.*?)>', 'ig');
+        if('' == filePath){
+            str = str.replace(reg,'')  // 进行删除
+        }else{
+            str = str.replace(reg,'<img src="'+filePath+'"$1>')
+        }
+    }
+    return str
 }
 function findImage(reg: any, str: string, /*auto: boolean,*/ tmpPicArrNet: string[], tmpPicArrLocal: string[], tmpPicArrInvalid: string[], tmpOriMapping: Record<string, any>) {
     //var mdfileName = fs.realpathSync(mdFile);
@@ -134,7 +149,7 @@ function findImage(reg: any, str: string, /*auto: boolean,*/ tmpPicArrNet: strin
     while (true) {
         let matched = reg.exec(str);
         if (matched == null) { break; }
-        let oriFlepath: string = matched[1];
+        let oriFlepath: string = matched[1]; // 第一个子匹配
         // 自动抵消匹配括号
         // if (auto && oriFlepath.indexOf('(') > 0) {
         //     var reg2 = regOfImage(oriFlepath);

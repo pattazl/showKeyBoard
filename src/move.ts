@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { getImages,escapeStringRegexp,logger,mdFile,rename,
-    newName ,getAutoPath,saveFile,getValidFileName,regOfImage,replaceImg} from './common'
+    newName ,getAutoPath,saveFile,getValidFileName,replaceImg} from './common'
 // 主要内部变量
 // let mdFile = ''; // 需要处理的文件
 // let localFolder = ''; // 新的文件夹
@@ -51,8 +51,7 @@ export async function move(lf:string,copyFlag:boolean) // ,thread:number
             }else{
                 fs.renameSync(file,newFile);
             }
-            var reg = regOfImage(fileMapping[file]);
-            content =  replaceImg(content,reg,newFile); // 内容替换
+            content =  replaceImg(content,fileMapping[file],newFile); // 内容替换
             count++;
         }catch(e)
         {

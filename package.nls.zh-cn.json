@@ -22,4 +22,5 @@
 	"markdown-image-manage.uploadTimeout": "每张图片上传的超时秒数",
 	"markdown-image-manage.clipboardPath": "剪切板图片的路径和名称，支持文件名<filename>和日期<YYYYMMDD>变量(dayjs)。",
 	"markdown-image-manage.urlFormatted": "图片URL格式是否转义，转义后有兼容性强可读性弱，插入本地图片时生效"
+	,"markdown-image-manage.nameFormat": "文件命名格式,[D]默认名,[N]原文件名[N#-#]原文件名字符范围，[C]自动计数"
 }
