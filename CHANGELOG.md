@@ -96,6 +96,6 @@ Some bugs were fixed based on the code contributed by shaolonger.
 ## [0.1.3] - 2025-6-7
 
 1. Optimize and support the image replacement mode in the `<img src="">` format.
-2. Support `![alt text](imagepath "Optional title")` and `![](<imagepath>)`.
+2. Support `![  alt text ]`  `(imagepath "Optional title")`  and  ` ![ ] ` `(<imagepath>)`.
 3. Spaces are allowed in the path. If there is a `)` symbol in the path, it needs to be replaced with `%29`.
 
