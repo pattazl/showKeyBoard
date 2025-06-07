@@ -180,7 +180,12 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 1. 优化支持 `<img src="">` 格式的图片替换模式
 2. 支持 `![alt text](imagepath "Optional title") ` 和 `![](<imagepath>)`
 3. 路径中支持空格
-4. 
+
+## 0.1.4
+
+和0.1.3版本一样，仅仅是变更版本号
+
+
 
 ## 仓库地址
 

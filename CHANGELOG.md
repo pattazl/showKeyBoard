@@ -99,3 +99,6 @@ Some bugs were fixed based on the code contributed by shaolonger.
 2. Support `![  alt text ]`  `(imagepath "Optional title")`  and  ` ![ ] ` `(<imagepath>)`.
 3. Spaces are allowed in the path. If there is a `)` symbol in the path, it needs to be replaced with `%29`.
 
+## [0.1.4] - 2025-6-7
+
+Same as version 0.1.3, only the version number is changed.
