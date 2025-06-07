@@ -92,3 +92,10 @@ Some bugs were fixed based on the code contributed by shaolonger.
 2. Custom renaming formats are supported when renaming files. For details, see Readme.md -> Renaming Rules.
 3. Added a menu option: Copy Local Images. This option copies the images to a new directory and updates the link content.
 4. The limit of VSCode change to 1.75
+
+## [0.1.3] - 2025-6-7
+
+1. Optimize and support the image replacement mode in the `<img src="">` format.
+2. Support `![alt text](imagepath "Optional title")` and `![](<imagepath>)`.
+3. Spaces are allowed in the path. If there is a `)` symbol in the path, it needs to be replaced with `%29`.
+

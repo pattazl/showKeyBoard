@@ -175,6 +175,13 @@ picgo支持多种图床和各种插件，比如通过插件 picgo-plugin-ftp-upl
 3. 增加菜单: 复制本地图片,将图片复制到新目录中并更新链接内容
 4. VSCode限制改为 1.75
 
+## 0.1.3
+
+1. 优化支持 `<img src="">` 格式的图片替换模式
+2. 支持 `![alt text](imagepath "Optional title") ` 和 `![](<imagepath>)`
+3. 路径中支持空格
+4. 
+
 ## 仓库地址
 
 https://github.com/pattazl/markdown-image-manage
