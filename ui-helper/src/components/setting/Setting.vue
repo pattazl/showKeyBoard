@@ -80,9 +80,10 @@
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro14 }}
+              <div class="intro">{{ contentText.keyIntro }}</div>
               <template #suffix>
-                <div class="intro">{{ contentText.intro15 }}{{ contentText.keyIntro }}</div>
                 <n-input v-model:value="allConfig.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
+                <div class="intro">{{ contentText.intro15 }}</div>
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro131 }}
@@ -150,6 +151,11 @@
             <n-list-item v-show="allConfig.common.preAppNameEnable">{{ contentText.intro148 }}
               <n-dynamic-input v-model:value="preAppNameListRef" preset="pair" :key-placeholder="contentText.intro146"
                 :value-placeholder="contentText.intro185" />
+            </n-list-item>
+            <n-list-item>{{ contentText.intro192 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.common.recordHistoryMax" :min="0" :max="200" />
+              </template>
             </n-list-item>
           </n-list>
         </n-card>
@@ -229,6 +235,11 @@
             <n-list-item>{{ contentText.intro29 }}
               <template #suffix>
                 <n-input-number v-model:value="allConfig.dialog.guiLife" :step="100" :min="10" :max="100000" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro191 }}
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.dialog.guiFadeMs" :step="20" :min="0" :max="10000" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro30 }}
@@ -371,6 +382,11 @@
             <n-list-item>{{ contentText.intro172 }}
               <template #suffix>
                 <n-input-number v-model:value="dataSetting.afterClickTodayMs" :step="1000" :min="100" :max="300000" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro180 }}
+              <template #suffix>
+                <n-switch v-model:value="dataSetting.allKeySwitch" :round="false" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro143 }}
@@ -702,11 +718,14 @@ export default defineComponent({
       //console.log(IPlinks)
     }
     loadPara();
-    // 要监听的属性列表
+    // 要监听的UI属性列表
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
-      'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval', 'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
-      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 'needShowKey', 'activeAppShow', 'ctrlState', 'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
-      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius','ctrlHeigth']
+      'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval',
+       'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
+      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 
+      'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
+      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius',
+      'ctrlHeigth','guiFadeMs']
     watchedProps.forEach(prop => {
       watch(
         () => allConfig.value.dialog[prop],
@@ -717,8 +736,8 @@ export default defineComponent({
         { deep: false }
       );
     });
-    // 要监听的属性列表
-    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState']
+    // 要监听的COMMON属性列表
+    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState','recordHistoryMax']
     watchedCommonProps.forEach(prop => {
       watch(
         () => allConfig.value.common[prop],

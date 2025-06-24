@@ -58,6 +58,12 @@
           </template>
           <n-data-table :columns="columns" :data="dataTable" />
         </n-card>
+        <n-card id="intro193" :title="contentText.intro193 +'('+store.data.config.common.recordHistoryMax+')' + contentText.intro142 + updateTime">
+          <n-input readonly="true" 
+            v-model:value="recordHistory"
+            type="textarea"
+          />
+        </n-card>
         <n-card id="intro165" :title="contentText.intro165">
           <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>
         </n-card>
@@ -394,6 +400,7 @@ export default defineComponent({
     let updateFlag = null;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
+    let recordHistory = ref('')
     let mouseTable = ref([])
     const columns = ref([]);
     const columns0 = ref([]);
@@ -406,7 +413,7 @@ export default defineComponent({
     let firstUpdate = ref(true); // 用于控制第一次显示时没有延时，其他均有延时显示
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
-    const leftAllKeySwitch = ref(0);
+    const leftAllKeySwitch = ref(store.data.dataSetting.allKeySwitch);
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
     let screenPixlSize = 0;
@@ -566,6 +573,8 @@ export default defineComponent({
       // tick 和 mouseDistance 不属于按键，排除
       arrRemove(allKey, 'tick');
       arrRemove(allKey, 'mouseDistance');
+      // 移除历史记录 
+      arrRemove(allKey, 'recordHistory');
       // 显示 chart2 应用数据，并且剥离掉 APP数据
       appListData.value = showAppChart(allKey, keyStatHash, option2, myChartArr[1]
         , store.data.dataSetting.mergeAppName ? appNameListMap : null);
@@ -585,7 +594,9 @@ export default defineComponent({
         hashTxtData[item[0] + ',' + item[1]] = keyList[key] ?? key
         hashOriData[item[0] + ',' + item[1]] = key + strKeyMap
         // 将val 数据全部放到数组中，同于统计 max值
-        keyArr.push(val)
+        if(val!='-'){
+          keyArr.push(val) // 排序时候要去掉 '-'
+        }
         return [item[0], item[1], val];
       });
       if (keyArr.length > 5) {
@@ -606,6 +617,7 @@ export default defineComponent({
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
       dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey,allKey,keyStatHash)
+      recordHistory.value = (keyStatHash['recordHistory']??[]).join('➡️');
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
         let pixel = keyStatHash['mouseDistance']; //获取像素移动距离
@@ -750,6 +762,7 @@ export default defineComponent({
       columns0,
       columns2,
       dataTable,
+      recordHistory,
       contentText,
       historyDate,
       beginDate,

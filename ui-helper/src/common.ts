@@ -46,7 +46,7 @@ async function ajax(path, data = null) {
 // 布尔类型清单,bool list
 const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans',
   'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd', 'mergeControl', 'fillDate', 'statProcInfo',
-  'mergeAppName', 'activeAppShow','preAppNameEnable']
+  'mergeAppName', 'activeAppShow','preAppNameEnable','allKeySwitch']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {

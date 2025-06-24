@@ -5,13 +5,15 @@
 ## Function Introduction
 
 1. Key statistics with customizable keyboard, view statistics
-2. Key display, real-time display of key status, support for various types of window customization, support for multiple screens, similar to Carnac
+2. Key display, real-time display of key status, supports multiple display styles for keys, such as rounded corners, fade out, custom movement directions, etc . , support for multiple screens, similar to Carnac
 3. Support Chinese and English switching and light & dark theme switching
 4. Support parameters import and export
 5. Support remote statistics and settings
 6. For privacy and security, showKeyBoard only records statistical information, do not record specific content, and save the content locally
 7. Support the statstics of mouse and keyboard of different application programs
 8. Supports the analysis of the usage time of each application. The basic principle is as follows: count the list of applications used every minute, and then allocate and summarize the usage time to each application,Note: The application requires mouse or keyboard operation.
+9. Display the status of control keys/status keys in real-time, including the status of the Caps Lock, Scroll Lock, Num Lock keys, as well as the Ctrl, Shift, and Alt keys.
+10. Show the last N keystrokes (not saved)
 
 ## System Requirements
 
@@ -84,6 +86,7 @@ The HTTP side writes the configuration file and receives the HTML front-end data
 ```mermaid
 graph LR
 Client -->|Post|NodeServer ---|WebSocket/Post/Get|Web
+NodeServer -->|WebSocket|Client
 NodeServer ---|R/W|ConfigFile
 ConfigFile -->|Reload|Client
 ```
@@ -99,6 +102,9 @@ ConfigFile -->|Reload|Client
 1. `KeyList.txt` in the root directory saves key characters directory. `showKeyBoard.ini` saves the client configuration 
 2. `httpdist/dist/records.db` saves the statistical information of the keys and the related configuration information of the statistics
 3. `httpdist/dist/node.exe` is used to start the backend `http/websocket` service
+
+## Issue
+
 
 ## Thanks
 

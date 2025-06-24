@@ -58,14 +58,14 @@ ShowTxt(text)
 	; 获取不同屏幕
 	MCount := MonitorGetCount()
 	guiMonNum := guiMonitorNum
-	if( guiMonNum > MCount )
-	{
-		guiMonNum := 1
-	}
 	; 自动适配屏幕
 	if( guiMonNum = 0)
 	{
 		guiMonNum := GetActiveWindowScreenNumber(MCount) 
+	}
+	if( guiMonNum > MCount )
+	{
+		guiMonNum := 1
 	}
 	MonitorGet(guiMonNum, &Left, &Top, &Right, &Bottom)
 	needNewGui :=1
@@ -91,8 +91,17 @@ ShowTxt(text)
 	if needNewGui=1 {
 		MyGui := CreateGui(guiTextSize)
 	}
-	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动
-	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth " c" guiTextColor
+	dpiScale :=  1 ; 不缩放，为默认值1
+	if(guiDpiscale = 1){
+		try{
+			dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
+      ; 经测试对于自己创建的窗体好像无效，都是主窗口的DPI，但用notepad测试有效
+			dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
+		}
+	}
+	; OutputDebug('AHK DPIScale:' dpiScale)
+	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动 , editOpt 对象受缩放影响，需要控制比例
+	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth/dpiScale " c" guiTextColor
 	if guiHeigth = 0
 	{
 		editOpt := editOpt " -VScroll"
@@ -111,10 +120,10 @@ ShowTxt(text)
 	if guiEdge =0 {
 		WinSetExStyle  "-0x00000200", MyEdit
 	}
-	ControlGetPos &ex, &ey, &ew, &editHeight, MyEdit
-	;MyEdit.Text := eh "-" text
+	
+	ControlGetPos &ex, &ey, &ew, &editHeight, MyEdit  ; 此函数受DPI影响
+	; OutputDebug('AHK ew:' ew ' editHeight:' editHeight)
 	;lineCount := EditGetLineCount(MyEdit)
-	;MsgBox editHeight
 	; 需要获取屏幕分辨率 A_ScreenWidth A_ScreenHeight
 	guiX := guiPosOffsetX + Left , guiY:=guiPosOffsetY +Top  ;  默认TL
 	Switch guiPos
@@ -132,8 +141,13 @@ ShowTxt(text)
 		WinSetExStyle  "+0x20", MyGui
 	}
 	; 真正显示
-	MyGui.Show("NoActivate x" guiX " y" guiY " w" guiWidth " h" editHeight)	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
+	; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
 
+	MyGui.Show("NoActivate  x" guiX " y" guiY " w" (guiWidth) " h" (editHeight))	;WinSetTransparent guiOpacity, MyGui  ;WinSet, ExStyle, ^0x20  WS_EX_TRANSPARENT
+
+	; ControlGetPos &ex, &ey, &ew, &guiH, MyGui
+	; 如果高度不一样，需要分析
+	; OutputDebug('AHK ex ' ex ' guiX ' guiX  ' guiY ' guiY ' ey ' ey ' newHeight ' guiH ' editHeight ' editHeight)
 	; 设置矩形圆角
 	if (guiRadius > 0) {
 		; 获取窗口句柄
@@ -145,13 +159,14 @@ ShowTxt(text)
 
 	; 强制滚动到最后
 	;ControlSend "^{End}", MyEdit, MyGui ; 不能用这个会导致触发按键
+	; SendMessage(MyEdit.Hwnd, WM_VSCROLL, SB_BOTTOM, 0)
 	SendMessage 0x0115, 7, 0, MyEdit
 
 	if needNewGui{
 		guiArr.push(
 		{
 		gui:MyGui,edit:MyEdit,tick:A_TickCount,textArr:textArr,
-		x:guiX,y:guiY,w:guiWidth,h:editHeight
+		x:guiX,y:guiY,w:guiWidth,h:editHeight,dpi:dpiScale,isFade:0
 		})
 	}Else{
 		lastGui.edit := MyEdit
@@ -194,22 +209,61 @@ Edit_Focus(thisEdit,Info) {  ; Declaring this parameter is optional.
 ; 清理无需的窗口
 CloseSelf()
 {
-	if guiShowing = 1
+ ; 显示的时候可能对 guiArr 进行循环，暂时跳过关闭窗口
+	if(guiShowing = 1)
 	{
 		return
 	}
-	; 循环检查需要消失的窗口
-	loop guiArr.Length {
-		obj := guiArr[A_Index]
-	    if( A_TickCount - obj.tick> guiLife)
-		{
-			guiArr.RemoveAt(A_Index)
-			Sleep(100)   ; 需要等待一会儿再删
-			obj.gui.Destroy()
-			break
-		}
-	}
+  ; 首先清理需要移除的对象
+  while (guiArr.Length > 0) {
+     obj := guiArr[1]
+     if( obj.isFade = 2){
+        guiArr.RemoveAt(1)
+     }else{
+        break
+     }
+   }
+   	; 循环检查需要消失的窗口
+   loop guiArr.Length {
+    obj := guiArr[A_Index]
+    if( obj.isFade=0 && (A_TickCount - obj.tick> guiLife) )
+    {
+      ; 可以开始消失
+      FadeUI(obj)
+    }
+  }
 }
+; 需要对窗口渐变消失 guiFadeMs,此死循环容易导致按键无响应，不能用sleep
+FadeUI(obj) {
+    ; 表示进入消失过程中
+    obj.isFade := 1
+    ; 初始透明度
+    initialOpacity := guiOpacity
+    ; 最终透明度（0 为完全透明）
+    finalOpacity := 0
+    interval := 20  ; 修改透明度时间间隔ms
+    times := Floor(guiFadeMs / interval)
+    if (times > 0) {
+        step := Ceil((initialOpacity - finalOpacity) / times)  ; 需要防止变成0
+    }
+    ; 定义一个内部函数，用于定时器调用
+    fadeStep(){
+        if (times > 0) {
+            initialOpacity -= step
+            if (initialOpacity < finalOpacity) {
+                initialOpacity := finalOpacity
+            }
+             WinSetTransparent( initialOpacity, obj.gui.hWnd )
+            times -= 1
+        } else {
+            SetTimer(fadeStep, 0)  ; 关闭定时器
+            obj.isFade := 2  ; 完成消失,统一在CloseSelf中移除，防止影响其他 guiArr 的循环
+            obj.gui.Destroy()  ; 销毁窗口
+        }
+    }
+    SetTimer(fadeStep, interval)  ; 启动定时器
+}
+   
 ; 循环检查需要放入的数据
 CallShow()
 {
@@ -241,8 +295,13 @@ ReLayOut(x,y,w,h)
 	ph := h
 	loop guiArr.Length-1 {
 		lastObj := guiArr[guiArr.Length-A_Index]
+    ; 窗口已经销毁，无需移动，跳过
+    if(lastObj.isFade = 2){
+      continue
+    }
 		guiX := lastObj.x
 		guiY := lastObj.y
+		dpiScale := lastObj.dpi
 		if guiPosXY = "Y"{
 			Switch substr(guiPos,1,1)
 			{
@@ -264,11 +323,18 @@ ReLayOut(x,y,w,h)
 				guiX := px - lastObj.w - guiMargin
 			}
 		}
-		lastObj.gui.Move(guiX,guiY)
-		px := guiX
-		pw := lastObj.w
-		py := guiY
-		ph := lastObj.h
+		; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
+    ; 有可能窗口被异常释放
+    try{
+      lastObj.gui.Move(guiX/dpiScale,guiY/dpiScale)
+    ; 设置下一个窗口的起始位置
+      px := guiX
+      pw := lastObj.w
+      py := guiY
+      ph := lastObj.h
+    }
+		;lastObj.gui.Show("NA") ; "NA" 表示不激活窗口但显示在最上层
+		; OutputDebug('AHK Length:' guiArr.Length ' / ' A_Index ' px:' px ' pw:' pw ' py:' py ' ph:' ph )
 	}
 }
 ; 根据数组返回要显示的内容
@@ -405,10 +471,21 @@ RecordKey(txt,isMouse:=False)
 	PrePushKey :=txt
 	; 需要添加更新时间
 	AllKeyRecord['updateTime'] := A_Now
-    ; 保存
     if recordMinute {
         AllKeyRecord['MinuteRecords'] := MinuteRecords
     }
+     ; 处理按键历史
+    if(recordHistoryMax > 0 ){
+        arrLen := recordHistory.Length
+        if ( arrLen>= recordHistoryMax) {
+          ; recordHistory.RemoveAt(1)  ; 删除第一个元素（最早加入的）
+          recordHistory.RemoveAt(arrLen) ; 移除结尾
+        }
+        ; recordHistory.push(txt) ; 放队列中
+        recordHistory.InsertAt(1, txt) ; 放在开头
+    }
+    AllKeyRecord['recordHistory'] := recordHistory
+    ; 保存
     AutoSendData()  ; 发送数据给后端服务
 }
 ; 如果不存在则创建，存在则+1
@@ -499,6 +576,7 @@ GetAppInfo(isMouse){
           }
         }
     }
+    ; ProcPath默认为应用程序路径或相关特殊名称，根据preAppNameListMap进行转换，如果最终路径为空，则不记录
     if ProcPath = ''{
         return
     }
@@ -541,7 +619,7 @@ ConvertTxt(t){
 ; 显示控制键
 global ctrlTextGui
 global ctrlStateGui := 0
-global ctrlPreTxt :=''  ;上一次显示的值
+global ctrlPreTxt :='defaultValue'  ;上一次显示的值
 ShowCtrlState(){
 	if(ctrlStateGui == 0 )
 	{
@@ -565,27 +643,31 @@ ShowCtrlState(){
 	}
 	global ctrlStateGui
 	; 避免刷新闪烁
-	if( ctrlTxt !=''){
-	    if(ctrlPreTxt != ctrlTxt){
+	if(ctrlPreTxt != ctrlTxt){
+		if( ctrlTxt !=''){
 			global ctrlTextGui
 			ctrlTextGui.Text := ctrlTxt
+			; OutputDebug('AHK ctrlStateGui show')
 			ctrlStateGui.show("NoActivate")
-			ctrlPreTxt := ctrlTxt
+		}Else{
+			; OutputDebug('AHK ctrlStateGui hide')
+			ctrlStateGui.hide()
 		}
-	}Else{
-		ctrlStateGui.hide()
 	}
+	ctrlPreTxt := ctrlTxt
 }
 CreateCtrlState()
 {
 	global ctrlStateGui := CreateCtrlGui(ctrlTextSize)
-	textOpt := "-Border x0 y0 c" ctrlTextColor
+	textOpt := "-Border w" ctrlWidth " x0 y0 c" ctrlTextColor
 	; 重新创建新的对象，便于计算新的高度，旧对象删除即可
 	txt :=""
-	Loop ctrlList.Length{
-		txt :=txt ConvertTxt(ctrlList[A_Index]) txtSplit
-	}
+	; Loop ctrlList.Length{
+	; 	txt :=txt ConvertTxt(ctrlList[A_Index]) txtSplit
+	; }
+	; 显示最大text的最大长度
 	global ctrlTextGui:= ctrlStateGui.Add("Text", textOpt, txt) ; 
+	
 	; 窗体穿透
 	if(guiTrans=1){
 		WinSetExStyle  "+0x20", ctrlStateGui
@@ -611,6 +693,9 @@ CreateCtrlState()
 }
 CreateCtrlState()
 DestoryCtrlState(){
+	; 停止定时刷新和复位值
+	SetTimer(ShowCtrlState, 0) ; 
+	global ctrlPreTxt :='defaultValue'
 	; 销毁旧窗体
 	global ctrlStateGui
 	if( ctrlStateGui == 0){

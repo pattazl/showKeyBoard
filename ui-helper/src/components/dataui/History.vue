@@ -360,7 +360,7 @@ export default defineComponent({
     const showEndDate = ref(0);
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
-    const leftAllKeySwitch = ref(0);
+    const leftAllKeySwitch = ref(store.data.dataSetting.allKeySwitch);
 
     // 获取屏幕像素对角线距离
     const sinfo = store.data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
@@ -512,7 +512,9 @@ export default defineComponent({
         hashTxtData[item[0] + ',' + item[1]] = keyList[key] ?? key
         hashOriData[item[0] + ',' + item[1]] = key + strKeyMap
         // 将val 数据全部放到数组中，同于统计 max值
-        keyArr.push(val)
+        if(val!='-'){
+          keyArr.push(val) // 排序时候要去掉 '-'
+        }
         return [item[0], item[1], val];
       });
       if (keyArr.length > 5) {

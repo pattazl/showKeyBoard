@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.42.0.0
-;@Ahk2Exe-SetFileVersion 1.42.0.0
+;@Ahk2Exe-SetProductVersion 1.45.0.0
+;@Ahk2Exe-SetFileVersion 1.45.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.42" 
+global APPName:="ShowKeyBoard", ver:="1.45" 
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -86,14 +86,17 @@ CoordMode "ToolTip", "Screen"
 CoordMode "Mouse", "Screen"
 GetDistance(){
 	MouseGetPos &currentX, &currentY
-	
     if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
     {
-        ; OutputDebug  'AutoHotkey currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+        ; OutputDebug  'AHK currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+        if (currentY> maxBottom*100 || currentX> maxRight*100){
+        ; 坐标差异太大，可能锁屏状态下直接抛弃数据
+          return
+        }
         ; 暂时抛弃异常数据，更新屏幕信息
         ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
         SendPCInfo(1)
-        Sleep(500) ; // 可能是锁屏状态，等待下，不必马上循环
+        ; Sleep(500) ;  可能是锁屏状态，等待下，不必马上循环 ; 防止影响按键响应取消sleep
         return
     }
     ; 计算鼠标移动距离
@@ -195,37 +198,6 @@ GetMinuteDataTimer(){
 }
 if recordMinute = 1 {
 	SetTimer(GetMinuteDataTimer,1000)  ; 每1秒刷新一次分钟数据
-}
-; 建立钩子抓取数据,默认不要阻塞 V I0
-ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
-; 设置所有按键的监听
-ih.KeyOpt("{All}", "NE")  ; End
-; 去掉控制按键的响应计数
-ih.KeyOpt(skipKeys, "-E")
-MyKeyUp(ih ,VK, SC)
-{
-    ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )
-    global repeatRecord := 0
-}
-ih.OnKeyUp := MyKeyUp
-KeyWaitCombo()
-{
-	;InputHook.VisibleText := true
-	;InputHook.VisibleNonText  := true
-	; 开始监控
-    ih.Start()
-	;OutputDebug ("AutoHotkey InProgress " . ih.InProgress )
-    ih.Wait()
-    global repeatRecord
-    if(repeatRecord < maxKeypressCount)
-    {
-	;OutputDebug ("AutoHotkey " . ih.EndMods '--' . ih.EndKey ) ; 类似 <^<+Esc
-	;OutputDebug ("AutoHotkey KeyState " . GetKeyState(ih.EndKey, "P") ) ; 类似 <^<+Esc
-        PushTxt( ih.EndMods . ih.EndKey )
-        repeatRecord += 1  ;防止重复记录
-    }
-	;OutputDebug ("AutoHotkey : " . ih.EndMods . ih.EndKey . " InProgress:" . ih.InProgress )
-    ;return ih.EndMods . ih.EndKey  ; Return a string like <^<+Esc
 }
 
 ; 计算重启时间
@@ -371,11 +343,165 @@ ExitFunc(ExitReason, ExitCode)
         }
 		FileAppend(JSON.stringify(AllKeyRecord,0), lastRecordPath)
 	}
+  DllCall("UnhookWindowsHookEx", "UInt", hHookKeyboard)
 }
 
 #Include dialog.ahk
 
-; 这个可能导致死循环，必须最后
-Loop {
-    KeyWaitCombo()
+; 原先的方法监控全局按键，缺点:快速按键时候容易丢失
+; ; 建立钩子抓取数据,默认不要阻塞 V I0
+; ih := InputHook("V I99")   ; Level 定为100，可以忽略一些 send 发送的字符，默认send的level 为0
+; ; 设置所有按键的监听
+; ih.KeyOpt("{All}", "NE")  ; End
+; ; 去掉控制按键的响应计数
+; ih.KeyOpt(skipKeys, "-E")
+; MyKeyUp(ih ,VK, SC)
+; {
+    ; ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )
+    ; global repeatRecord := 0
+; }
+; ih.OnKeyUp := MyKeyUp
+; KeyWaitCombo()
+; {
+	; ;InputHook.VisibleText := true
+	; ;InputHook.VisibleNonText  := true
+	; ; 开始监控
+    ; ih.Start()
+	; ;OutputDebug ("AutoHotkey InProgress " . ih.InProgress )
+    ; ih.Wait()
+    ; global repeatRecord
+    ; if(repeatRecord < maxKeypressCount)
+    ; {
+	; ; OutputDebug ("AutoHotkey " . ih.EndMods   . ih.EndKey ) ; 类似 <^<+Esc
+	; ;OutputDebug ("AutoHotkey KeyState " . GetKeyState(ih.EndKey, "P") ) ; 类似 <^<+Esc
+        ; PushTxt( ih.EndMods . ih.EndKey )
+        ; repeatRecord += 1  ;防止重复记录
+    ; }
+	; ;OutputDebug ("AutoHotkey : " . ih.EndMods . ih.EndKey . " InProgress:" . ih.InProgress )
+    ; ;return ih.EndMods . ih.EndKey  ; Return a string like <^<+Esc
+; }
+
+; ; 这个可能导致死循环，必须最后
+; Loop {
+    ; KeyWaitCombo()
+; }
+
+; 第三种方法监控全局按键，缺点: 可能丢失一些未知的按键
+; LogKey(thisKey) {
+  ; ; Critical -1
+  ; k := GetKeyName(vksc := SubStr(A_ThisHotkey, 3))
+  ; k := StrReplace(k, "Control", "Ctrl"), r := SubStr(k, 2)
+      ; ; 判断 Shift 键是否按下
+    ; isShiftDown := GetKeyState("Shift")
+    ; ; 判断 Control 键是否按下
+    ; isCtrlDown := GetKeyState("Control")
+  ; OutputDebug ("AutoHotkey key:"  thisKey " k: "  k ' shift: ' isShiftDown ' Control: ' isCtrlDown )
+; }
+
+; SetHotkey(f := 0) {
+  ; ; These keys are already used as hotkeys
+  ; global UsedKeys
+  ; f := f ? "On" : "Off"
+  ; Loop 254 {
+    ; k := GetKeyName(vk := Format("vk{:X}", A_Index))
+    ; if k != "" && !("Control" = k) && !("Alt" = k) && !("Shift" = k) &&
+      ; !("F1" = k) && !("F2" = k) && !("F3" = k) && !("F4" = k) &&
+        ; !("F5" = k) && !("F6" = k) && !("F9" = k) {
+      ; try {
+        ; Hotkey "~*" vk, LogKey, f
+      ; } catch as e {
+      ; }
+    ; }
+
+  ; }
+  ; For i, k in StrSplit("NumpadEnter|Home|End|PgUp"
+    ; . "|PgDn|Left|Right|Up|Down|Delete|Insert", "|")
+  ; {
+    ; sc := Format("sc{:03X}", GetKeySC(k))
+    ; if not k = "" && !("Control" = k) && !("Alt" = k) && !("Shift" = k) &&
+      ; !("F1" = k) && !("F2" = k) && !("F3" = k) && !("F4" = k) &&
+        ; !("F5" = k) && !("F6" = k) && !("F9" = k) {
+      ; try {
+        ; Hotkey "~*" sc, LogKey, f
+      ; } catch as e {
+      ; }
+    ; }
+  ; }
+; }
+
+; SetHotkey(1)
+
+global hHookKeyboard :=0
+HookKeyboard()
+{
+  ; 定义常量
+  WH_KEYBOARD_LL := 13
+  ; 注册回调函数
+  callback := CallbackCreate(LowLevelKeyboardProc, "Fast", 3)
+  ; 获取当前模块句柄
+  moduleHandle := DllCall("GetModuleHandle", "UInt", 0, "Ptr")
+    ; 全局键盘钩子
+  hHookKeyboard := DllCall("SetWindowsHookExW",
+      "Int", WH_KEYBOARD_LL,
+      "Ptr", callback,
+      "Ptr", moduleHandle,
+      "UInt", 0,
+      "Ptr")
 }
+; https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644985(v=vs.85)
+; 添加 <^ 这些符号，以确保一致
+AddModifier(){
+  Modfier := ''
+  ModifierMapping := Map()
+  ModifierMapping['LControl'] := '<^' 
+  ModifierMapping['RControl'] := '>^' 
+  ModifierMapping['LWin'] := '<#' 
+  ModifierMapping['RWin'] := '>#' 
+  ModifierMapping['LAlt'] := '<!'  
+  ModifierMapping['RAlt'] := '>!'  
+  ModifierMapping['LShift'] := '<+' 
+  ModifierMapping['RShift'] := '>+' 
+   ; 判断 Shift 键是否按下
+  for key,val in ModifierMapping
+	{
+		if (GetKeyState(key) )
+		{
+           Modfier .= val
+		}
+	}
+   return Modfier
+}
+; skipKeys 中的 Ctrl 要转换为 Control
+skipKeysDll :=  StrReplace(skipKeys, 'Ctrl', 'Control')
+LowLevelKeyboardProc(nCode, wParam, lParam)
+{
+  ; Critical
+  global repeatRecord
+  if ( wParam = 0x0101 or wParam = 0x0105)  ; KEYUP
+  {
+    repeatRecord := 0
+  }
+  if(repeatRecord < maxKeypressCount){
+    flags := NumGet(lParam+0, 8, "UInt") & 0x10                         ; 物理按下是0，模拟是非0。0x10 = 00010000
+    if (nCode>=0 and flags=0 and (wParam = 0x0100 or wParam = 0x0104))  ; WM_KEYUP = 0x0101 WM_SYSKEYUP = 0x0105 WM_KEYDOWN = 0x0100 WM_SYSKEYDOWN = 0x0104
+    {
+      ; vk := NumGet(lParam+0, "UInt")                                  ; vk 不能区分数字键盘，所以用 sc
+        Extended := NumGet(lParam+0, 8, "UInt") & 0x1                   ; 扩展键（即功能键或者数字键盘上的键）是1，否则是0
+      , sc := (Extended<<8) | NumGet(lParam+0, 4, "UInt")
+      Name := GetKeyName(Format("sc{:X}", sc))
+      Name2 := '{' Name '}'
+      if(InStr(skipKeysDll, Name2))
+      {
+         return  DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
+      }
+      repeatRecord +=1
+      fullKey := AddModifier() Name  ; 控制键和具体按键结合
+      ; OutputDebug("AutoHotkey sc " sc ' Name:' fullKey ' C:' repeatRecord )
+      PushTxt( fullKey )
+    }
+  }
+  ; CallNextHookEx 让其它钩子可以继续处理消息
+  ; 返回非0值 例如1 告诉系统此消息将丢弃
+  return  DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
+}
+HookKeyboard()                          ; 键盘钩子
