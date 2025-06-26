@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.45.0.0
-;@Ahk2Exe-SetFileVersion 1.45.0.0
+;@Ahk2Exe-SetProductVersion 1.46.0.0
+;@Ahk2Exe-SetFileVersion 1.46.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.45" 
+global APPName:="ShowKeyBoard", ver:="1.46" 
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -505,3 +505,110 @@ LowLevelKeyboardProc(nCode, wParam, lParam)
   return  DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
 }
 HookKeyboard()                          ; 键盘钩子
+
+; 以下为对 游戏手柄的按键读取
+; 可以支持多个摇杆
+ControllerNumber := 0 ; 默认无摇杆
+if ControllerNumber <= 0
+{
+    Loop 16  ; Query each controller number to find out which ones exist.
+    {
+        if GetKeyState(A_Index "JoyName")
+        {
+            ControllerNumber := A_Index
+            break
+        }
+    }
+    if ControllerNumber <= 0
+    {
+        ; MsgBox "The system does not appear to have any controllers."
+        return
+    }
+}
+; 获取摇杆后，获取最大按键数，绑定所有按键
+Loop ControllerNumber {
+	cont_buttons := GetKeyState(A_Index "JoyButtons")
+	ControllerPrefix := A_Index  "Joy"
+	Loop cont_buttons {
+		Hotkey ControllerPrefix . A_Index, MyShowKey  ; () => MyShowKey
+	}
+}
+MyShowKey(*){
+  PushTxt( A_ThisHotkey )
+  ; OutputDebug( "Joy :" A_ThisHotkey)
+}
+maxJoyPressCount := 1 ; 设置为长按只有一次，如果某个按键一直按住没松开过，那么不大于 maxKeypressCount 次
+joyNameMap := Map()
+; 不同类别的按键数据代表不同含义
+getJoyInfo( controlId,joyN){
+	joyFullName := controlId "Joy" joyN
+	if( !joyNameMap.has(joyN)){
+		joyNameMap[joyN] := 0
+	}
+	keyName := ""
+	val := 50 ; 默认50，表示没动作或复位
+	; 存在才计算
+	val := Round(GetKeyState(joyFullName))
+	Switch joyN
+	{
+	Case "Z":
+	; LT / RT
+		if(val<50){
+			keyName := controlId "JoyRT"
+		}
+		if(val>50){
+			keyName := controlId "JoyLT"
+		}
+	Case "POV":
+	; -1 ,4500,9000,13500,18000,22500,27000,31500,0 有8个方向
+		initPov :=0
+		loop 8 {
+			if(val == initPov){
+				keyName := joyFullName A_Index
+				break
+			}
+			initPov +=4500
+		}
+	Default:
+		if( val != 50 ){
+			keyName := joyFullName
+		}
+	}
+	if keyName!=""{
+		joyNameMap[joyN] +=1
+		if( joyNameMap[joyN] <= maxJoyPressCount){
+			PushTxt( keyName )
+			; OutputDebug "Joy :" keyName
+		}
+	}else{
+		joyNameMap[joyN] := 0 ; 松开
+	}
+}
+TestJoyList := ["Z","R","U","V","P"] ; ["JoyX","JoyY","JoyZ","JoyR","JoyU","JoyV","JoyPOV"]
+JoyList := Map()
+Loop ControllerNumber {
+	controlId := A_Index
+	cont_info := GetKeyState(controlId "JoyInfo")
+	JoyList[A_Index] := ["X","Y"] ; 必然有 X Y
+	for value in TestJoyList {
+		if InStr(cont_info, value){
+			if(value =="P")
+			{
+				value := "POV"  ; 需要转换下
+			}
+			JoyList[controlId].push(value)  ; 真实有效的摇杆清单
+		}
+	}
+}
+checkJoyState()
+{
+	Loop ControllerNumber {
+		controlId := A_Index
+		for index, value in JoyList[controlId] {
+			try{
+				getJoyInfo(controlId,value)
+			}
+		}
+	}
+}
+SetTimer(checkJoyState,100)  ; 0.1秒检测一次
