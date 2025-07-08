@@ -508,42 +508,88 @@ HookKeyboard()                          ; 键盘钩子
 
 ; 以下为对 游戏手柄的按键读取
 ; 可以支持多个摇杆
-ControllerNumber := 0 ; 默认无摇杆
-if ControllerNumber <= 0
-{
-    Loop 16  ; Query each controller number to find out which ones exist.
-    {
-        if GetKeyState(A_Index "JoyName")
-        {
-            ControllerNumber := A_Index
-            break
+ControllerNumber := [] ; 默认无摇杆,可能出现1没有，但2有的情况
+JoyNameList := [] ; 游戏手柄清单
+maxJoyPressCount := 1 ; 设置为长按只有一次，如果某个按键一直按住没松开过，那么不大于 maxKeypressCount 次
+joyNameMap := Map()
+TestJoyList := ["Z","R","U","V","P"] ; ["JoyX","JoyY","JoyZ","JoyR","JoyU","JoyV","JoyPOV"]
+JoyList := Map()
+; 检查游戏手柄整体信息
+checkJoyInfo(){
+  global ControllerNumber
+  global JoyNameList
+  global JoyList
+  tmpControllerNumber := [] ; 默认无摇杆
+  tmpJoyNameList := []
+  Loop 16  ; Query each controller number to find out which ones exist.
+  {
+      joyName := GetKeyState(A_Index "JoyName")
+      JoyXType := Type(GetKeyState(A_Index "JoyX"))  ; Float
+      ; 需要有控制器名，且能获取到X的浮点数据
+      if joyName and JoyXType = "Float" 
+      {
+          tmpJoyNameList.Push(joyName)
+          tmpControllerNumber.Push(A_Index)
+      }
+  }
+  ; 检查新的游戏列表是否和之前的一样,一样则跳过
+  if(arrayEqual(tmpJoyNameList,JoyNameList)){
+      ; OutputDebug("Joy same")
+      return
+  }else{
+    ; 获取摇杆后，获取最大按键数，绑定所有按键
+    for index in tmpControllerNumber {
+      cont_buttons := GetKeyState(index "JoyButtons")
+      ControllerPrefix := index  "Joy"
+      Loop cont_buttons {
+        Hotkey ControllerPrefix . A_Index, MyShowKey  ; () => MyShowKey
+      }
+    }
+    JoyList := Map()
+    for index in tmpControllerNumber {
+      cont_info := GetKeyState(index "JoyInfo")
+      JoyList[index] := ["X","Y"] ; 必然有 X Y
+      for value in TestJoyList {
+        if InStr(cont_info, value){
+          if(value =="P")
+          {
+            value := "POV"  ; 需要转换下
+          }
+          JoyList[index].push(value)  ; 真实有效的摇杆清单
         }
+      }
     }
-    if ControllerNumber <= 0
-    {
-        ; MsgBox "The system does not appear to have any controllers."
-        return
-    }
+    ; 需要设置生效
+    ControllerNumber := tmpControllerNumber
+    JoyNameList := tmpJoyNameList
+  }
+  ; for controlId in ControllerNumber {
+  ; OutputDebug("Joy controlId:" controlId)
+  ; }
+  ;   for joyname in JoyNameList {
+  ; OutputDebug("Joy joyname:" joyname)
+  ; }
 }
-; 获取摇杆后，获取最大按键数，绑定所有按键
-Loop ControllerNumber {
-	cont_buttons := GetKeyState(A_Index "JoyButtons")
-	ControllerPrefix := A_Index  "Joy"
-	Loop cont_buttons {
-		Hotkey ControllerPrefix . A_Index, MyShowKey  ; () => MyShowKey
-	}
+; 比较数组一致性
+arrayEqual(arr1, arr2) {
+    if (arr1.Length != arr2.Length)
+        return false
+    for i, v in arr1
+        if (v != arr2[i])
+            return false
+    return true
 }
 MyShowKey(*){
   PushTxt( A_ThisHotkey )
   ; OutputDebug( "Joy :" A_ThisHotkey)
 }
-maxJoyPressCount := 1 ; 设置为长按只有一次，如果某个按键一直按住没松开过，那么不大于 maxKeypressCount 次
-joyNameMap := Map()
+
 ; 不同类别的按键数据代表不同含义
 getJoyInfo( controlId,joyN){
+  global joyNameMap
 	joyFullName := controlId "Joy" joyN
-	if( !joyNameMap.has(joyN)){
-		joyNameMap[joyN] := 0
+	if( !joyNameMap.has(joyFullName)){
+		joyNameMap[joyFullName] := 0
 	}
 	keyName := ""
 	val := 50 ; 默认50，表示没动作或复位
@@ -575,40 +621,27 @@ getJoyInfo( controlId,joyN){
 		}
 	}
 	if keyName!=""{
-		joyNameMap[joyN] +=1
-		if( joyNameMap[joyN] <= maxJoyPressCount){
+		joyNameMap[joyFullName] +=1
+		if( joyNameMap[joyFullName] <= maxJoyPressCount){
 			PushTxt( keyName )
 			; OutputDebug "Joy :" keyName
 		}
 	}else{
-		joyNameMap[joyN] := 0 ; 松开
+		joyNameMap[joyFullName] := 0 ; 松开
 	}
 }
-TestJoyList := ["Z","R","U","V","P"] ; ["JoyX","JoyY","JoyZ","JoyR","JoyU","JoyV","JoyPOV"]
-JoyList := Map()
-Loop ControllerNumber {
-	controlId := A_Index
-	cont_info := GetKeyState(controlId "JoyInfo")
-	JoyList[A_Index] := ["X","Y"] ; 必然有 X Y
-	for value in TestJoyList {
-		if InStr(cont_info, value){
-			if(value =="P")
-			{
-				value := "POV"  ; 需要转换下
-			}
-			JoyList[controlId].push(value)  ; 真实有效的摇杆清单
-		}
-	}
-}
+
 checkJoyState()
 {
-	Loop ControllerNumber {
-		controlId := A_Index
-		for index, value in JoyList[controlId] {
-			try{
-				getJoyInfo(controlId,value)
-			}
-		}
+  global JoyList
+  global ControllerNumber
+	for controlId in ControllerNumber {
+    try{
+      for index, value in JoyList[controlId] {
+          getJoyInfo(controlId,value)
+      }
+    }
 	}
 }
 SetTimer(checkJoyState,100)  ; 0.1秒检测一次
+SetTimer(checkJoyInfo,2000)  ; 2秒检测一次
