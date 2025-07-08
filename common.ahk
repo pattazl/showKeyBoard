@@ -63,6 +63,8 @@ GetKeyList() {
 }
 ; 读取全部配置文件参数
 ReadAllIni() {
+    global needTraytip,needTraytip := DescRead("common", "needTraytip", "1")
+    ; 是否启动时候托盘提示
     global skipRecord,skipRecord := StrSplit(DescRead("common", "skipRecord", ""), '|')
     ; 哪些按键要忽略记录
     global skipCtrlKey,skipCtrlKey := DescRead("common", "skipCtrlKey", "0")

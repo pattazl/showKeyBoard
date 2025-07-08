@@ -221,6 +221,7 @@ export default {
 	intro191: '多少毫秒后渐变消失，0表示无渐变直接消失',
 	intro192: '显示多少条的历史按键记录',
 	intro193: '最近历史按键记录',
+	intro194: '是否启动时候托盘提示',
 
   },
   'en-US': {
@@ -446,5 +447,6 @@ export default {
 	intro191: 'Milliseconds later will fade out? 0 means disappear directly without fading',
 	intro192: 'Max Number of historical keystrokes to display',
 	intro193: 'The historical keystrokes',
+	intro194: 'Whether traytip when starting',
   }
 };

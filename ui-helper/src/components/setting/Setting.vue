@@ -31,6 +31,11 @@
                 <n-switch :round="false" v-model:value="allConfig.common.needShowKey" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro194 }}
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.needTraytip" />
+              </template>
+            </n-list-item>
             <n-list-item>{{ contentText.intro55 }}
               <n-dynamic-tags v-model:value="skipShowRef" />
             </n-list-item>

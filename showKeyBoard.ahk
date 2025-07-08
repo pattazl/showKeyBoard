@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.46.0.0
-;@Ahk2Exe-SetFileVersion 1.46.0.0
+;@Ahk2Exe-SetProductVersion 1.47.0.0
+;@Ahk2Exe-SetFileVersion 1.47.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.46" 
+global APPName:="ShowKeyBoard", ver:="1.47" 
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -282,7 +282,9 @@ UpdatMenu4Show(){
 CreateMenu()
 {
   A_IconTip := APPName " v" ver
-  TrayTip(A_IconTip)                ; 托盘提示信息
+  if(needTraytip){
+    TrayTip(A_IconTip)                ; 托盘提示信息
+  }
   MyMenu := A_TrayMenu 
   ; 清空默认菜单
   MyMenu.Delete()
@@ -524,10 +526,15 @@ checkJoyInfo(){
   Loop 16  ; Query each controller number to find out which ones exist.
   {
       joyName := GetKeyState(A_Index "JoyName")
-      JoyXType := Type(GetKeyState(A_Index "JoyX"))  ; Float
+      
       ; 需要有控制器名，且能获取到X的浮点数据
-      if joyName and JoyXType = "Float" 
+      if joyName 
       {
+          JoyXType := Type(GetKeyState(A_Index "JoyX"))  ; Float
+          if(JoyXType != "Float"){
+            Reload()  ; 识别数据异常，可能手柄拔出了，目前AHK存在bug，只有重启可正确识别
+            return
+          }
           tmpJoyNameList.Push(joyName)
           tmpControllerNumber.Push(A_Index)
       }
