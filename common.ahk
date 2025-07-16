@@ -63,6 +63,8 @@ GetKeyList() {
 }
 ; 读取全部配置文件参数
 ReadAllIni() {
+    global joyMethod,joyMethod := DescRead("common", "joyMethod", "2")
+    ; 游戏手柄监控方案
     global needTraytip,needTraytip := DescRead("common", "needTraytip", "1")
     ; 是否启动时候托盘提示
     global skipRecord,skipRecord := StrSplit(DescRead("common", "skipRecord", ""), '|')

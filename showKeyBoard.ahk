@@ -8,213 +8,213 @@
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName:="ShowKeyBoard", ver:="1.47" 
+global APPName := "ShowKeyBoard", ver := "1.47"
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
 #Include events.ahk
 ; 正式代码开始
 loop skipRecord.length {
-	skipKeys := skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
+  skipKeys := skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
 }
 ; 切换是否显示按键
-Switch4show(Key){
-    global needShowKey := not needShowKey
-    UpdatMenu4Show()
+Switch4show(Key) {
+  global needShowKey := not needShowKey
+  UpdatMenu4Show()
 }
 ; 尝试绑定热键
-try{
-    Hotkey hotkey4Show, Switch4show
+try {
+  Hotkey hotkey4Show, Switch4show
 }
 ; 不要阻塞按键
 CountCtrlKey()
 {
-    global ctrlKeyCount := 0
+  global ctrlKeyCount := 0
 }
-~LCtrl Up::CountCtrlKey
-~RCtrl Up::CountCtrlKey
-~LShift Up::CountCtrlKey
-~RShift Up::CountCtrlKey
-~LWin Up::CountCtrlKey
-~RWin Up::CountCtrlKey
-~LAlt Up::CountCtrlKey
-~RAlt Up::CountCtrlKey
+~LCtrl Up:: CountCtrlKey
+~RCtrl Up:: CountCtrlKey
+~LShift Up:: CountCtrlKey
+~RShift Up:: CountCtrlKey
+~LWin Up:: CountCtrlKey
+~RWin Up:: CountCtrlKey
+~LAlt Up:: CountCtrlKey
+~RAlt Up:: CountCtrlKey
 
-~LCtrl::SendCtrlKey
-~RCtrl::SendCtrlKey
-~LShift::SendCtrlKey
-~RShift::SendCtrlKey
-~LWin::SendCtrlKey
-~RWin::SendCtrlKey
-~LAlt::SendCtrlKey
-~RAlt::SendCtrlKey
+~LCtrl:: SendCtrlKey
+~RCtrl:: SendCtrlKey
+~LShift:: SendCtrlKey
+~RShift:: SendCtrlKey
+~LWin:: SendCtrlKey
+~RWin:: SendCtrlKey
+~LAlt:: SendCtrlKey
+~RAlt:: SendCtrlKey
 SendCtrlKey()
 {
-	if(skipCtrlKey = 0){
-        ; pressKey := GetKeyName(StrReplace(StrReplace(A_ThisHotkey,'~',''),' Up',''))
-        if ctrlKeyCount < maxCtrlpressCount
-        {
-        pressKey := GetKeyName(StrReplace(A_ThisHotkey,'~',''))
-        PushTxt pressKey
-        global ctrlKeyCount += 1
-        }
+  if (skipCtrlKey = 0) {
+    ; pressKey := GetKeyName(StrReplace(StrReplace(A_ThisHotkey,'~',''),' Up',''))
+    if ctrlKeyCount < maxCtrlpressCount
+    {
+      pressKey := GetKeyName(StrReplace(A_ThisHotkey, '~', ''))
+      PushTxt pressKey
+      global ctrlKeyCount += 1
     }
+  }
 }
 ; 鼠标事件
-#HotIf   InStr(skipKeys,"{WheelUp}") = 0
-~WheelUp::SendMouse
+#HotIf InStr(skipKeys, "{WheelUp}") = 0
+~WheelUp:: SendMouse
 
-#HotIf   InStr(skipKeys,"{WheelDown}") = 0
-~WheelDown::SendMouse
+#HotIf InStr(skipKeys, "{WheelDown}") = 0
+~WheelDown:: SendMouse
 
- #HotIf   InStr(skipKeys,"{LButton}") = 0
-~LButton::SendMouse
+#HotIf InStr(skipKeys, "{LButton}") = 0
+~LButton:: SendMouse
 
- #HotIf   InStr(skipKeys,"{MButton}") = 0
-~MButton::SendMouse
+#HotIf InStr(skipKeys, "{MButton}") = 0
+~MButton:: SendMouse
 
- #HotIf   InStr(skipKeys,"{RButton}") = 0
-~RButton::SendMouse
+#HotIf InStr(skipKeys, "{RButton}") = 0
+~RButton:: SendMouse
 
 SendMouse()
 {
-	if(showMouseEvent > 0){
-		PushTxt(GetKeyName(StrReplace(A_ThisHotkey,'~','')),True)
-	}
+  if (showMouseEvent > 0) {
+    PushTxt(GetKeyName(StrReplace(A_ThisHotkey, '~', '')), True)
+  }
 }
 CoordMode "ToolTip", "Screen"
 CoordMode "Mouse", "Screen"
-GetDistance(){
-	MouseGetPos &currentX, &currentY
-    if currentX<minLeft || currentX> maxRight || currentY< minTop || currentY> maxBottom
-    {
-        ; OutputDebug  'AHK currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
-        if (currentY> maxBottom*100 || currentX> maxRight*100){
-        ; 坐标差异太大，可能锁屏状态下直接抛弃数据
-          return
-        }
-        ; 暂时抛弃异常数据，更新屏幕信息
-        ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
-        SendPCInfo(1)
-        ; Sleep(500) ;  可能是锁屏状态，等待下，不必马上循环 ; 防止影响按键响应取消sleep
-        return
+GetDistance() {
+  MouseGetPos &currentX, &currentY
+  if currentX < minLeft || currentX > maxRight || currentY < minTop || currentY > maxBottom
+  {
+    ; OutputDebug  'AHK currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+    if (currentY > maxBottom * 100 || currentX > maxRight * 100) {
+      ; 坐标差异太大，可能锁屏状态下直接抛弃数据
+      return
     }
-    ; 计算鼠标移动距离
-	; 计算两点间的直线距离
-	distance := Integer(Sqrt((currentX - mouseStartX) ** 2 + (currentY - mouseStartY) ** 2))
+    ; 暂时抛弃异常数据，更新屏幕信息
+    ; MsgBox 'currentX:'  currentX ',currentY:' currentY ' minLeft ' minLeft ' maxRight' maxRight ' minTop ' minTop ' maxBottom ' maxBottom
+    SendPCInfo(1)
+    ; Sleep(500) ;  可能是锁屏状态，等待下，不必马上循环 ; 防止影响按键响应取消sleep
+    return
+  }
+  ; 计算鼠标移动距离
+  ; 计算两点间的直线距离
+  distance := Integer(Sqrt((currentX - mouseStartX) ** 2 + (currentY - mouseStartY) ** 2))
 
-	if distance > 0{
+  if distance > 0 {
     global mouseDistance += distance
     ; 在命令行窗口中输出距离
     ;ShowTxt 'Distance: ' mouseDistance
-		AllKeyRecord['mouseDistance'] := mouseDistance
-		global mouseStartX := currentX
-		global mouseStartY := currentY
-	}
+    AllKeyRecord['mouseDistance'] := mouseDistance
+    global mouseStartX := currentX
+    global mouseStartY := currentY
+  }
 }
 ; 是否需要记录距离
-if recordMouseMove = 1{
-	SetTimer(GetDistance,100)  ; 每n毫秒记录一次位置
+if recordMouseMove = 1 {
+  SetTimer(GetDistance, 100)  ; 每n毫秒记录一次位置
 }
 ; 判断某内容是否在数组中
-HasVal( arr , val ){
-    For Index,Value in arr{
-        if Value == val{
-            return Index
-        }
+HasVal(arr, val) {
+  For Index, Value in arr {
+    if Value == val {
+      return Index
     }
-    return 0
+  }
+  return 0
 }
 ; 是否统计分钟数据
-GetMinuteData(isMouse,isPress){
-    ; 如果同时调用
-    if(GetMinuteDataFlag){
-        OutputDebug ("AutoHotkey GetMinuteData ")
-        return
-    }
-    ;startT := A_TickCount
-    global GetMinuteDataFlag := True
-    GetMinuteDataCore(isMouse,isPress)
-    global GetMinuteDataFlag := False
-    ;OutputDebug ("AutoHotkey GetMinuteData: " (A_TickCount - startT) ' : ' A_TickCount)
+GetMinuteData(isMouse, isPress) {
+  ; 如果同时调用
+  if (GetMinuteDataFlag) {
+    OutputDebug ("AutoHotkey GetMinuteData ")
+    return
+  }
+  ;startT := A_TickCount
+  global GetMinuteDataFlag := True
+  GetMinuteDataCore(isMouse, isPress)
+  global GetMinuteDataFlag := False
+  ;OutputDebug ("AutoHotkey GetMinuteData: " (A_TickCount - startT) ' : ' A_TickCount)
 }
 ; 统计核心
-GetMinuteDataCore(isMouse,isPress){
-    currMinute := FormatTime(A_Now, "yyyyMMddHHmm")
-    initMouse := 0
-    initKey := 0
-    if isPress {
-        if isMouse {
-            initMouse := 1
-        }else{
-            initKey := 1
-        }
+GetMinuteDataCore(isMouse, isPress) {
+  currMinute := FormatTime(A_Now, "yyyyMMddHHmm")
+  initMouse := 0
+  initKey := 0
+  if isPress {
+    if isMouse {
+      initMouse := 1
+    } else {
+      initKey := 1
     }
-    ; 有操作数据才更新APP信息
-    currData := Map("Minute",currMinute,"MouseCount",globalMouseCount,"KeyCount",globalKeyCount
-    ,"Distance",mouseDistance,"Apps",Map(globalAppPath,Map("Mouse",initMouse,"Key",initKey)) )
-    Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
-    MaxLen := 10
-    if Len > MaxLen {
-        ; 清理 MaxLen 个以外 的数据，为了减少带宽，至少为 MaxLen 分钟数据 
-        ; MaxLen分钟内没有任何点击，但有鼠标移动,因为只有按键或点击才上传数据
-        MinuteRecords.removeAt(1)
+  }
+  ; 有操作数据才更新APP信息
+  currData := Map("Minute", currMinute, "MouseCount", globalMouseCount, "KeyCount", globalKeyCount
+    , "Distance", mouseDistance, "Apps", Map(globalAppPath, Map("Mouse", initMouse, "Key", initKey)))
+  Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
+  MaxLen := 10
+  if Len > MaxLen {
+    ; 清理 MaxLen 个以外 的数据，为了减少带宽，至少为 MaxLen 分钟数据
+    ; MaxLen分钟内没有任何点击，但有鼠标移动,因为只有按键或点击才上传数据
+    MinuteRecords.removeAt(1)
+  }
+  if Len == 0 {
+    MinuteRecords.push(currData)
+    return  ; 刚才开始不用做任何计算
+  }
+  ; 最后一个时间不一样则插入
+  last := MinuteRecords[-1]
+  if last['Minute'] != currMinute {
+    ; 更新之前的数据,由总数变成统计数据
+    last['MouseCount'] := globalMouseCount - last['MouseCount']
+    last['KeyCount'] := globalKeyCount - last['KeyCount']
+    last['Distance'] := mouseDistance - last['Distance']
+    if last['MouseCount'] = 0 && last['KeyCount'] = 0 && last['Distance'] = 0 {
+      MinuteRecords[-1] := currData ; 因为为空数据，那么则直接替换
+    } else {
+      ; 插入新数据
+      MinuteRecords.push(currData)
     }
-    if Len == 0 {
-        MinuteRecords.push(currData)
-        return  ; 刚才开始不用做任何计算
-    }
-    ; 最后一个时间不一样则插入
-    last := MinuteRecords[-1]
-    if last['Minute'] != currMinute {
-        ; 更新之前的数据,由总数变成统计数据
-        last['MouseCount'] := globalMouseCount - last['MouseCount']
-        last['KeyCount'] := globalKeyCount - last['KeyCount']
-        last['Distance'] := mouseDistance - last['Distance']
-        if last['MouseCount'] = 0 && last['KeyCount'] = 0 && last['Distance'] = 0 {
-            MinuteRecords[-1] := currData ; 因为为空数据，那么则直接替换
-        }else{
-        ; 插入新数据
-            MinuteRecords.push(currData)
-        }
-    }else{
+  } else {
     ; 同一分钟内，那么需要添加不同的APP名
-        if isPress {
-            if( last["Apps"].has(globalAppPath) ){
-                if isMouse{
-                    last["Apps"][globalAppPath]["Mouse"] +=1
-                }else{
-                    last["Apps"][globalAppPath]["Key"] +=1
-                }
-            }else{
-                last["Apps"][globalAppPath] := Map("Mouse",initMouse,"Key",initKey)
-            }
+    if isPress {
+      if (last["Apps"].has(globalAppPath)) {
+        if isMouse {
+          last["Apps"][globalAppPath]["Mouse"] += 1
+        } else {
+          last["Apps"][globalAppPath]["Key"] += 1
         }
+      } else {
+        last["Apps"][globalAppPath] := Map("Mouse", initMouse, "Key", initKey)
+      }
     }
+  }
 }
-GetMinuteDataTimer(){
-    global globalAppPath := GetProcPath()
-    GetMinuteData(False,False)
+GetMinuteDataTimer() {
+  global globalAppPath := GetProcPath()
+  GetMinuteData(False, False)
 }
 if recordMinute = 1 {
-	SetTimer(GetMinuteDataTimer,1000)  ; 每1秒刷新一次分钟数据
+  SetTimer(GetMinuteDataTimer, 1000)  ; 每1秒刷新一次分钟数据
 }
 
 ; 计算重启时间
-today:=SubStr(A_Now, 1, 8)
-tomorrow:=DateAdd(today, 1, "Days")
+today := SubStr(A_Now, 1, 8)
+tomorrow := DateAdd(today, 1, "Days")
 ShutDownLeft()
 {
-   ; 距离明天凌晨 0:00:05 的秒数，+5秒是为了给系统时间不准留点余量
-  return  (DateDiff(tomorrow, A_Now, "Seconds")+5)*1000
+  ; 距离明天凌晨 0:00:05 的秒数，+5秒是为了给系统时间不准留点余量
+  return (DateDiff(tomorrow, A_Now, "Seconds") + 5) * 1000
 }
 ; 设置一个计时器用于跨夜时重启进程以便保存当日数据并开始新的一天
-SetTimer( Reload, ShutDownLeft() )
+SetTimer(Reload, ShutDownLeft())
 ; 托盘相关
 global MyMenu
 global LinkPath := A_Startup "\" APPName ".Lnk"
-MenuHandler(ItemName , ItemPos, MyMenu){
-  if(ItemName = L_menu_startup)
+MenuHandler(ItemName, ItemPos, MyMenu) {
+  if (ItemName = L_menu_startup)
   {
     If FileExist(LinkPath)
     {
@@ -227,71 +227,71 @@ MenuHandler(ItemName , ItemPos, MyMenu){
       MyMenu.Check(L_menu_startup)
     }
   }
-  if(ItemName = L_menu_reload)
+  if (ItemName = L_menu_reload)
   {
-	Reload()
+    Reload()
   }
-  if(ItemName = L_menu_reset)
-  {
-	ExitServer()
-	Reload()
-  }
-  if(ItemName = L_menu_exit)
+  if (ItemName = L_menu_reset)
   {
     ExitServer()
-	ExitApp()
+    Reload()
   }
-  if(ItemName = L_menu_set)
+  if (ItemName = L_menu_exit)
   {
-	if serverState = 1 {
-		Run serverUrl "/Setting"
-	}else{
-		MsgBox menu_msg_noserver
-	}
+    ExitServer()
+    ExitApp()
   }
-  if(ItemName = L_menu_stat)
+  if (ItemName = L_menu_set)
   {
-	if serverState = 1 {
-		Run serverUrl "/Today"
-	}else{
-		MsgBox menu_msg_noserver
-	}
+    if serverState = 1 {
+      Run serverUrl "/Setting"
+    } else {
+      MsgBox menu_msg_noserver
+    }
   }
-  if(ItemName = L_menu_pause)
+  if (ItemName = L_menu_stat)
   {
-	if A_IsPaused =1 {
-		Pause(False)
-		MyMenu.Uncheck(L_menu_pause)
-	}else{
-		Pause(True)
-		MyMenu.Check(L_menu_pause)
-	}
+    if serverState = 1 {
+      Run serverUrl "/Today"
+    } else {
+      MsgBox menu_msg_noserver
+    }
   }
-  if(ItemName = L_menu_4show)
+  if (ItemName = L_menu_pause)
+  {
+    if A_IsPaused = 1 {
+      Pause(False)
+      MyMenu.Uncheck(L_menu_pause)
+    } else {
+      Pause(True)
+      MyMenu.Check(L_menu_pause)
+    }
+  }
+  if (ItemName = L_menu_4show)
   {
     Switch4show(0)
   }
 }
-UpdatMenu4Show(){
-	if needShowKey {
-		A_TrayMenu.Check(L_menu_4show)
-	}else{
-		A_TrayMenu.Uncheck(L_menu_4show)
-	}
-}  
+UpdatMenu4Show() {
+  if needShowKey {
+    A_TrayMenu.Check(L_menu_4show)
+  } else {
+    A_TrayMenu.Uncheck(L_menu_4show)
+  }
+}
 CreateMenu()
 {
   A_IconTip := APPName " v" ver
-  if(needTraytip){
+  if (needTraytip) {
     TrayTip(A_IconTip)                ; 托盘提示信息
   }
-  MyMenu := A_TrayMenu 
+  MyMenu := A_TrayMenu
   ; 清空默认菜单
   MyMenu.Delete()
   MyMenu.Add(L_menu_startup, MenuHandler)
   MyMenu.Add(L_menu_reload, MenuHandler)
-  if needRecordKey = 1{
-	MyMenu.Add(L_menu_reset, MenuHandler)
+  if needRecordKey = 1 {
+    MyMenu.Add(L_menu_reset, MenuHandler)
   }
   MyMenu.Add(L_menu_pause, MenuHandler)
   MyMenu.Add(L_menu_4show, MenuHandler)
@@ -303,9 +303,9 @@ CreateMenu()
   If FileExist(LinkPath)
   {
     FileGetShortcut LinkPath, &OutTarget, &OutDir, &OutArgs, &OutDesc, &OutIcon, &OutIconNum, &OutRunState
-	if(OutTarget = A_ScriptFullPath){
-		MyMenu.Check(L_menu_startup)
-	}
+    if (OutTarget = A_ScriptFullPath) {
+      MyMenu.Check(L_menu_startup)
+    }
   }
 }
 CreateMenu()
@@ -313,38 +313,38 @@ CreateMenu()
 OnExit ExitFunc
 ExitFunc(ExitReason, ExitCode)
 {
-    ;if ExitReason != "Logoff" and ExitReason != "Shutdown"
-    ;{
-        ;Result := MsgBox("Are you sure you want to exit?",, 4)
-        ;if Result = "No"
-        ;    return 1  ; Callbacks must return non-zero to avoid exit.
-    ;}
-    ; 需要将 临时的配置开关保存
-    If FileExist(IniFile){
-		; 当文件中的参数没有被人修改时才写入状态，否则以文件中数据为准
-		tempVal := DescRead("common","needShowKey","1")
-		if tempVal = preNeedShowKey && tempVal != needShowKey {
-			IniWrite(needShowKey,IniFile,"common","needShowKey")
-		}
+  ;if ExitReason != "Logoff" and ExitReason != "Shutdown"
+  ;{
+  ;Result := MsgBox("Are you sure you want to exit?",, 4)
+  ;if Result = "No"
+  ;    return 1  ; Callbacks must return non-zero to avoid exit.
+  ;}
+  ; 需要将 临时的配置开关保存
+  If FileExist(IniFile) {
+    ; 当文件中的参数没有被人修改时才写入状态，否则以文件中数据为准
+    tempVal := DescRead("common", "needShowKey", "1")
+    if tempVal = preNeedShowKey && tempVal != needShowKey {
+      IniWrite(needShowKey, IniFile, "common", "needShowKey")
     }
-    ; 检查后台服务情况
-	pidPath := httpPath 'kbserver.pid'
-	lastRecordPath := httpPath 'lastRecord.json'
-	If FileExist(pidPath){
-	; 如果存在进程文件，那么要保存到临时文件中，后端重启启动后优先载入临时文件内容更新数据
-		If FileExist(lastRecordPath){
-			FileDelete lastRecordPath   ; 先删
-		}
-        ; 对于 AllKeyRecord 中最后的数据需要处理
-        if MinuteRecords.Length > 0 {
-            last := MinuteRecords[-1]
-            last['MouseCount'] := globalMouseCount - last['MouseCount']
-            last['KeyCount'] := globalKeyCount - last['KeyCount']
-            last['Distance'] := mouseDistance - last['Distance']
-            last['LastFlag'] := 1  ; 标注为最后的一次
-        }
-		FileAppend(JSON.stringify(AllKeyRecord,0), lastRecordPath)
-	}
+  }
+  ; 检查后台服务情况
+  pidPath := httpPath 'kbserver.pid'
+  lastRecordPath := httpPath 'lastRecord.json'
+  If FileExist(pidPath) {
+    ; 如果存在进程文件，那么要保存到临时文件中，后端重启启动后优先载入临时文件内容更新数据
+    If FileExist(lastRecordPath) {
+      FileDelete lastRecordPath   ; 先删
+    }
+    ; 对于 AllKeyRecord 中最后的数据需要处理
+    if MinuteRecords.Length > 0 {
+      last := MinuteRecords[-1]
+      last['MouseCount'] := globalMouseCount - last['MouseCount']
+      last['KeyCount'] := globalKeyCount - last['KeyCount']
+      last['Distance'] := mouseDistance - last['Distance']
+      last['LastFlag'] := 1  ; 标注为最后的一次
+    }
+    FileAppend(JSON.stringify(AllKeyRecord, 0), lastRecordPath)
+  }
   DllCall("UnhookWindowsHookEx", "UInt", hHookKeyboard)
 }
 
@@ -359,81 +359,81 @@ ExitFunc(ExitReason, ExitCode)
 ; ih.KeyOpt(skipKeys, "-E")
 ; MyKeyUp(ih ,VK, SC)
 ; {
-    ; ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )
-    ; global repeatRecord := 0
+; ; OutputDebug ("AutoHotkey Up:" GetKeyName(Format("vk{:x}sc{:x}", VK, SC)) )
+; global repeatRecord := 0
 ; }
 ; ih.OnKeyUp := MyKeyUp
 ; KeyWaitCombo()
 ; {
-	; ;InputHook.VisibleText := true
-	; ;InputHook.VisibleNonText  := true
-	; ; 开始监控
-    ; ih.Start()
-	; ;OutputDebug ("AutoHotkey InProgress " . ih.InProgress )
-    ; ih.Wait()
-    ; global repeatRecord
-    ; if(repeatRecord < maxKeypressCount)
-    ; {
-	; ; OutputDebug ("AutoHotkey " . ih.EndMods   . ih.EndKey ) ; 类似 <^<+Esc
-	; ;OutputDebug ("AutoHotkey KeyState " . GetKeyState(ih.EndKey, "P") ) ; 类似 <^<+Esc
-        ; PushTxt( ih.EndMods . ih.EndKey )
-        ; repeatRecord += 1  ;防止重复记录
-    ; }
-	; ;OutputDebug ("AutoHotkey : " . ih.EndMods . ih.EndKey . " InProgress:" . ih.InProgress )
-    ; ;return ih.EndMods . ih.EndKey  ; Return a string like <^<+Esc
+; ;InputHook.VisibleText := true
+; ;InputHook.VisibleNonText  := true
+; ; 开始监控
+; ih.Start()
+; ;OutputDebug ("AutoHotkey InProgress " . ih.InProgress )
+; ih.Wait()
+; global repeatRecord
+; if(repeatRecord < maxKeypressCount)
+; {
+; ; OutputDebug ("AutoHotkey " . ih.EndMods   . ih.EndKey ) ; 类似 <^<+Esc
+; ;OutputDebug ("AutoHotkey KeyState " . GetKeyState(ih.EndKey, "P") ) ; 类似 <^<+Esc
+; PushTxt( ih.EndMods . ih.EndKey )
+; repeatRecord += 1  ;防止重复记录
+; }
+; ;OutputDebug ("AutoHotkey : " . ih.EndMods . ih.EndKey . " InProgress:" . ih.InProgress )
+; ;return ih.EndMods . ih.EndKey  ; Return a string like <^<+Esc
 ; }
 
 ; ; 这个可能导致死循环，必须最后
 ; Loop {
-    ; KeyWaitCombo()
+; KeyWaitCombo()
 ; }
 
 ; 第三种方法监控全局按键，缺点: 可能丢失一些未知的按键
 ; LogKey(thisKey) {
-  ; ; Critical -1
-  ; k := GetKeyName(vksc := SubStr(A_ThisHotkey, 3))
-  ; k := StrReplace(k, "Control", "Ctrl"), r := SubStr(k, 2)
-      ; ; 判断 Shift 键是否按下
-    ; isShiftDown := GetKeyState("Shift")
-    ; ; 判断 Control 键是否按下
-    ; isCtrlDown := GetKeyState("Control")
-  ; OutputDebug ("AutoHotkey key:"  thisKey " k: "  k ' shift: ' isShiftDown ' Control: ' isCtrlDown )
+; ; Critical -1
+; k := GetKeyName(vksc := SubStr(A_ThisHotkey, 3))
+; k := StrReplace(k, "Control", "Ctrl"), r := SubStr(k, 2)
+; ; 判断 Shift 键是否按下
+; isShiftDown := GetKeyState("Shift")
+; ; 判断 Control 键是否按下
+; isCtrlDown := GetKeyState("Control")
+; OutputDebug ("AutoHotkey key:"  thisKey " k: "  k ' shift: ' isShiftDown ' Control: ' isCtrlDown )
 ; }
 
 ; SetHotkey(f := 0) {
-  ; ; These keys are already used as hotkeys
-  ; global UsedKeys
-  ; f := f ? "On" : "Off"
-  ; Loop 254 {
-    ; k := GetKeyName(vk := Format("vk{:X}", A_Index))
-    ; if k != "" && !("Control" = k) && !("Alt" = k) && !("Shift" = k) &&
-      ; !("F1" = k) && !("F2" = k) && !("F3" = k) && !("F4" = k) &&
-        ; !("F5" = k) && !("F6" = k) && !("F9" = k) {
-      ; try {
-        ; Hotkey "~*" vk, LogKey, f
-      ; } catch as e {
-      ; }
-    ; }
+; ; These keys are already used as hotkeys
+; global UsedKeys
+; f := f ? "On" : "Off"
+; Loop 254 {
+; k := GetKeyName(vk := Format("vk{:X}", A_Index))
+; if k != "" && !("Control" = k) && !("Alt" = k) && !("Shift" = k) &&
+; !("F1" = k) && !("F2" = k) && !("F3" = k) && !("F4" = k) &&
+; !("F5" = k) && !("F6" = k) && !("F9" = k) {
+; try {
+; Hotkey "~*" vk, LogKey, f
+; } catch as e {
+; }
+; }
 
-  ; }
-  ; For i, k in StrSplit("NumpadEnter|Home|End|PgUp"
-    ; . "|PgDn|Left|Right|Up|Down|Delete|Insert", "|")
-  ; {
-    ; sc := Format("sc{:03X}", GetKeySC(k))
-    ; if not k = "" && !("Control" = k) && !("Alt" = k) && !("Shift" = k) &&
-      ; !("F1" = k) && !("F2" = k) && !("F3" = k) && !("F4" = k) &&
-        ; !("F5" = k) && !("F6" = k) && !("F9" = k) {
-      ; try {
-        ; Hotkey "~*" sc, LogKey, f
-      ; } catch as e {
-      ; }
-    ; }
-  ; }
+; }
+; For i, k in StrSplit("NumpadEnter|Home|End|PgUp"
+; . "|PgDn|Left|Right|Up|Down|Delete|Insert", "|")
+; {
+; sc := Format("sc{:03X}", GetKeySC(k))
+; if not k = "" && !("Control" = k) && !("Alt" = k) && !("Shift" = k) &&
+; !("F1" = k) && !("F2" = k) && !("F3" = k) && !("F4" = k) &&
+; !("F5" = k) && !("F6" = k) && !("F9" = k) {
+; try {
+; Hotkey "~*" sc, LogKey, f
+; } catch as e {
+; }
+; }
+; }
 ; }
 
 ; SetHotkey(1)
 
-global hHookKeyboard :=0
+global hHookKeyboard := 0
 HookKeyboard()
 {
   ; 定义常量
@@ -442,112 +442,114 @@ HookKeyboard()
   callback := CallbackCreate(LowLevelKeyboardProc, "Fast", 3)
   ; 获取当前模块句柄
   moduleHandle := DllCall("GetModuleHandle", "UInt", 0, "Ptr")
-    ; 全局键盘钩子
+  ; 全局键盘钩子
   hHookKeyboard := DllCall("SetWindowsHookExW",
-      "Int", WH_KEYBOARD_LL,
-      "Ptr", callback,
-      "Ptr", moduleHandle,
-      "UInt", 0,
-      "Ptr")
+    "Int", WH_KEYBOARD_LL,
+    "Ptr", callback,
+    "Ptr", moduleHandle,
+    "UInt", 0,
+    "Ptr")
 }
 ; https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644985(v=vs.85)
 ; 添加 <^ 这些符号，以确保一致
-AddModifier(){
+AddModifier() {
   Modfier := ''
   ModifierMapping := Map()
-  ModifierMapping['LControl'] := '<^' 
-  ModifierMapping['RControl'] := '>^' 
-  ModifierMapping['LWin'] := '<#' 
-  ModifierMapping['RWin'] := '>#' 
-  ModifierMapping['LAlt'] := '<!'  
-  ModifierMapping['RAlt'] := '>!'  
-  ModifierMapping['LShift'] := '<+' 
-  ModifierMapping['RShift'] := '>+' 
-   ; 判断 Shift 键是否按下
-  for key,val in ModifierMapping
-	{
-		if (GetKeyState(key) )
-		{
-           Modfier .= val
-		}
-	}
-   return Modfier
+  ModifierMapping['LControl'] := '<^'
+  ModifierMapping['RControl'] := '>^'
+  ModifierMapping['LWin'] := '<#'
+  ModifierMapping['RWin'] := '>#'
+  ModifierMapping['LAlt'] := '<!'
+  ModifierMapping['RAlt'] := '>!'
+  ModifierMapping['LShift'] := '<+'
+  ModifierMapping['RShift'] := '>+'
+  ; 判断 Shift 键是否按下
+  for key, val in ModifierMapping
+  {
+    if (GetKeyState(key))
+    {
+      Modfier .= val
+    }
+  }
+  return Modfier
 }
 ; skipKeys 中的 Ctrl 要转换为 Control
-skipKeysDll :=  StrReplace(skipKeys, 'Ctrl', 'Control')
+skipKeysDll := StrReplace(skipKeys, 'Ctrl', 'Control')
 LowLevelKeyboardProc(nCode, wParam, lParam)
 {
   ; Critical
   global repeatRecord
-  if ( wParam = 0x0101 or wParam = 0x0105)  ; KEYUP
+  if (wParam = 0x0101 or wParam = 0x0105)  ; KEYUP
   {
     repeatRecord := 0
   }
-  if(repeatRecord < maxKeypressCount){
-    flags := NumGet(lParam+0, 8, "UInt") & 0x10                         ; 物理按下是0，模拟是非0。0x10 = 00010000
-    if (nCode>=0 and flags=0 and (wParam = 0x0100 or wParam = 0x0104))  ; WM_KEYUP = 0x0101 WM_SYSKEYUP = 0x0105 WM_KEYDOWN = 0x0100 WM_SYSKEYDOWN = 0x0104
+  if (repeatRecord < maxKeypressCount) {
+    flags := NumGet(lParam + 0, 8, "UInt") & 0x10                         ; 物理按下是0，模拟是非0。0x10 = 00010000
+    if (nCode >= 0 and flags = 0 and (wParam = 0x0100 or wParam = 0x0104))  ; WM_KEYUP = 0x0101 WM_SYSKEYUP = 0x0105 WM_KEYDOWN = 0x0100 WM_SYSKEYDOWN = 0x0104
     {
       ; vk := NumGet(lParam+0, "UInt")                                  ; vk 不能区分数字键盘，所以用 sc
-        Extended := NumGet(lParam+0, 8, "UInt") & 0x1                   ; 扩展键（即功能键或者数字键盘上的键）是1，否则是0
-      , sc := (Extended<<8) | NumGet(lParam+0, 4, "UInt")
+      Extended := NumGet(lParam + 0, 8, "UInt") & 0x1                   ; 扩展键（即功能键或者数字键盘上的键）是1，否则是0
+        , sc := (Extended << 8) | NumGet(lParam + 0, 4, "UInt")
       Name := GetKeyName(Format("sc{:X}", sc))
       Name2 := '{' Name '}'
-      if(InStr(skipKeysDll, Name2))
+      if (InStr(skipKeysDll, Name2))
       {
-         return  DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
+        return DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
       }
-      repeatRecord +=1
+      repeatRecord += 1
       fullKey := AddModifier() Name  ; 控制键和具体按键结合
       ; OutputDebug("AutoHotkey sc " sc ' Name:' fullKey ' C:' repeatRecord )
-      PushTxt( fullKey )
+      PushTxt(fullKey)
     }
   }
   ; CallNextHookEx 让其它钩子可以继续处理消息
   ; 返回非0值 例如1 告诉系统此消息将丢弃
-  return  DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
+  return DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
 }
 HookKeyboard()                          ; 键盘钩子
 
 ; 以下为对 游戏手柄的按键读取
 ; 可以支持多个摇杆
-ControllerNumber := [] ; 默认无摇杆,可能出现1没有，但2有的情况
-JoyNameList := [] ; 游戏手柄清单
 maxJoyPressCount := 1 ; 设置为长按只有一次，如果某个按键一直按住没松开过，那么不大于 maxKeypressCount 次
 joyNameMap := Map()
-TestJoyList := ["Z","R","U","V","P"] ; ["JoyX","JoyY","JoyZ","JoyR","JoyU","JoyV","JoyPOV"]
+
+; 以下为方案1的手柄读取方案
+ControllerNumber := [] ; 默认无摇杆,可能出现1没有，但2有的情况
+JoyNameList := [] ; 游戏手柄清单
+TestJoyList := ["Z", "R", "U", "V", "P"] ; ["JoyX","JoyY","JoyZ","JoyR","JoyU","JoyV","JoyPOV"]
 JoyList := Map()
 ; 检查游戏手柄整体信息
-checkJoyInfo(){
+checkJoyInfo() {
   global ControllerNumber
   global JoyNameList
   global JoyList
   tmpControllerNumber := [] ; 默认无摇杆
   tmpJoyNameList := []
-  Loop 16  ; Query each controller number to find out which ones exist.
+  Loop 4  ; Query each controller number to find out which ones exist.
   {
-      joyName := GetKeyState(A_Index "JoyName")
-      
-      ; 需要有控制器名，且能获取到X的浮点数据
-      if joyName 
-      {
-          JoyXType := Type(GetKeyState(A_Index "JoyX"))  ; Float
-          if(JoyXType != "Float"){
-            Reload()  ; 识别数据异常，可能手柄拔出了，目前AHK存在bug，只有重启可正确识别
-            return
-          }
-          tmpJoyNameList.Push(joyName)
-          tmpControllerNumber.Push(A_Index)
+    joyName := GetKeyState(A_Index "JoyName")
+
+    ; 需要有控制器名，且能获取到X的浮点数据
+    if joyName
+    {
+      JoyXType := Type(GetKeyState(A_Index "JoyX"))  ; Float
+      if (JoyXType != "Float") {
+        Reload()  ; 识别数据异常，可能手柄拔出了，目前AHK存在bug，只有重启可正确识别
+        return
       }
+      tmpJoyNameList.Push(joyName)
+      tmpControllerNumber.Push(A_Index)
+    }
   }
   ; 检查新的游戏列表是否和之前的一样,一样则跳过
-  if(arrayEqual(tmpJoyNameList,JoyNameList)){
-      ; OutputDebug("Joy same")
-      return
-  }else{
+  if (arrayEqual(tmpJoyNameList, JoyNameList)) {
+    ; OutputDebug("Joy same")
+    return
+  } else {
     ; 获取摇杆后，获取最大按键数，绑定所有按键
     for index in tmpControllerNumber {
       cont_buttons := GetKeyState(index "JoyButtons")
-      ControllerPrefix := index  "Joy"
+      ControllerPrefix := index "Joy"
       Loop cont_buttons {
         Hotkey ControllerPrefix . A_Index, MyShowKey  ; () => MyShowKey
       }
@@ -555,10 +557,10 @@ checkJoyInfo(){
     JoyList := Map()
     for index in tmpControllerNumber {
       cont_info := GetKeyState(index "JoyInfo")
-      JoyList[index] := ["X","Y"] ; 必然有 X Y
+      JoyList[index] := ["X", "Y"] ; 必然有 X Y
       for value in TestJoyList {
-        if InStr(cont_info, value){
-          if(value =="P")
+        if InStr(cont_info, value) {
+          if (value == "P")
           {
             value := "POV"  ; 需要转换下
           }
@@ -579,76 +581,193 @@ checkJoyInfo(){
 }
 ; 比较数组一致性
 arrayEqual(arr1, arr2) {
-    if (arr1.Length != arr2.Length)
-        return false
-    for i, v in arr1
-        if (v != arr2[i])
-            return false
-    return true
+  if (arr1.Length != arr2.Length)
+    return false
+  for i, v in arr1
+    if (v != arr2[i])
+      return false
+  return true
 }
-MyShowKey(*){
-  PushTxt( A_ThisHotkey )
+MyShowKey(*) {
+  PushTxt(A_ThisHotkey)
   ; OutputDebug( "Joy :" A_ThisHotkey)
 }
-
 ; 不同类别的按键数据代表不同含义
-getJoyInfo( controlId,joyN){
+getJoyInfo(controlId, joyN) {
   global joyNameMap
-	joyFullName := controlId "Joy" joyN
-	if( !joyNameMap.has(joyFullName)){
-		joyNameMap[joyFullName] := 0
-	}
-	keyName := ""
-	val := 50 ; 默认50，表示没动作或复位
-	; 存在才计算
-	val := Round(GetKeyState(joyFullName))
-	Switch joyN
-	{
-	Case "Z":
-	; LT / RT
-		if(val<50){
-			keyName := controlId "JoyRT"
-		}
-		if(val>50){
-			keyName := controlId "JoyLT"
-		}
-	Case "POV":
-	; -1 ,4500,9000,13500,18000,22500,27000,31500,0 有8个方向
-		initPov :=0
-		loop 8 {
-			if(val == initPov){
-				keyName := joyFullName A_Index
-				break
-			}
-			initPov +=4500
-		}
-	Default:
-		if( val != 50 ){
-			keyName := joyFullName
-		}
-	}
-	if keyName!=""{
-		joyNameMap[joyFullName] +=1
-		if( joyNameMap[joyFullName] <= maxJoyPressCount){
-			PushTxt( keyName )
-			; OutputDebug "Joy :" keyName
-		}
-	}else{
-		joyNameMap[joyFullName] := 0 ; 松开
-	}
+  joyFullName := controlId "Joy" joyN
+  if (!joyNameMap.has(joyFullName)) {
+    joyNameMap[joyFullName] := 0
+  }
+  keyName := ""
+  val := 50 ; 默认50，表示没动作或复位
+  ; 存在才计算
+  val := Round(GetKeyState(joyFullName))
+  Switch joyN
+  {
+    Case "Z":
+      ; LT / RT
+      if (val < 50) {
+        keyName := controlId "JoyRT"
+      }
+      if (val > 50) {
+        keyName := controlId "JoyLT"
+      }
+    Case "POV":
+      ; -1  0,4500,9000,13500,18000,22500,27000,31500, 有8个方向
+      initPov := 0
+      loop 8 {
+        if (val == initPov) {
+          keyName := joyFullName A_Index
+          break
+        }
+        initPov += 4500
+      }
+    Default:
+      if (val != 50) {
+        keyName := joyFullName
+      }
+  }
+  if keyName != "" {
+    joyNameMap[joyFullName] += 1
+    if (joyNameMap[joyFullName] <= maxJoyPressCount) {
+      PushTxt(keyName)
+      ; OutputDebug "Joy :" keyName
+    }
+  } else {
+    joyNameMap[joyFullName] := 0 ; 松开
+  }
 }
-
 checkJoyState()
 {
   global JoyList
   global ControllerNumber
-	for controlId in ControllerNumber {
-    try{
+  for controlId in ControllerNumber {
+    try {
       for index, value in JoyList[controlId] {
-          getJoyInfo(controlId,value)
+        getJoyInfo(controlId, value)
       }
     }
-	}
+  }
 }
-SetTimer(checkJoyState,100)  ; 0.1秒检测一次
-SetTimer(checkJoyInfo,2000)  ; 2秒检测一次
+
+; 以下为方案2的手柄监控方案，直接调用XINPUT接口
+#Include "lib/XInput.ahk"
+; 不同类别的按键数据代表不同含义
+getJoyInfo2(controlId, State) {
+  ; Constants for gamepad buttons
+  XINPUT_GAMEPAD_DPAD_UP := 0x0001
+  XINPUT_GAMEPAD_DPAD_DOWN := 0x0002
+  XINPUT_GAMEPAD_DPAD_LEFT := 0x0004
+  XINPUT_GAMEPAD_DPAD_RIGHT := 0x0008
+  XINPUT_GAMEPAD_START := 0x0010
+  XINPUT_GAMEPAD_BACK := 0x0020
+  XINPUT_GAMEPAD_LEFT_THUMB := 0x0040
+  XINPUT_GAMEPAD_RIGHT_THUMB := 0x0080
+  XINPUT_GAMEPAD_LEFT_SHOULDER := 0x0100
+  XINPUT_GAMEPAD_RIGHT_SHOULDER := 0x0200
+  XINPUT_GAMEPAD_GUIDE := 0x0400
+  XINPUT_GAMEPAD_A := 0x1000
+  XINPUT_GAMEPAD_B := 0x2000
+  XINPUT_GAMEPAD_X := 0x4000
+  XINPUT_GAMEPAD_Y := 0x8000
+
+  global joyNameMap
+
+  keyNameArr := [] ; 按键是个数组
+
+  ; 方向键，有8个方向，按 上，上右，右，顺时针排序数组
+  POVArr := [XINPUT_GAMEPAD_DPAD_UP, XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_DPAD_RIGHT, XINPUT_GAMEPAD_DPAD_RIGHT | XINPUT_GAMEPAD_DPAD_DOWN,
+    XINPUT_GAMEPAD_DPAD_DOWN, XINPUT_GAMEPAD_DPAD_DOWN | XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_LEFT, XINPUT_GAMEPAD_DPAD_LEFT | XINPUT_GAMEPAD_DPAD_UP]
+  low_4_bits := State.wButtons & 0x000F ; 低4位为方向
+  for index, poVal in POVArr {
+    if (low_4_bits == poVal) {
+      keyNameArr.Push(controlId "JoyPOV" index)
+      break ; 只可能满足1个，所以可以退出
+    }
+  }
+  ; 按键的顺序编号
+  ButtonArr := [XINPUT_GAMEPAD_A, XINPUT_GAMEPAD_B, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y, XINPUT_GAMEPAD_LEFT_SHOULDER, XINPUT_GAMEPAD_RIGHT_SHOULDER,
+    XINPUT_GAMEPAD_BACK, XINPUT_GAMEPAD_START, XINPUT_GAMEPAD_LEFT_THUMB, XINPUT_GAMEPAD_RIGHT_THUMB, XINPUT_GAMEPAD_GUIDE
+  ]
+  for index, val in ButtonArr {
+    if (State.wButtons & val) {
+      keyNameArr.Push(controlId "Joy" index)
+    }
+  }
+  ; 扳机 ,假设10为触发
+  triggerHolds := 10
+  thumBholds := 2000 ; 数据较为灵敏
+  if (State.bLeftTrigger > triggerHolds) {
+    keyNameArr.Push(controlId "JoyLT")
+  }
+  if (State.bRightTrigger > triggerHolds) {
+    keyNameArr.Push(controlId "JoyRT")
+  }
+  ; X ,Y (左摇杆),R,U(右摇杆)
+  if (Abs(State.sThumbLX) > thumBholds) {
+    keyNameArr.Push(controlId "JoyX")
+  }
+  if (Abs(State.sThumbLY) > thumBholds) {
+    keyNameArr.Push(controlId "JoyY")
+  }
+  if (Abs(State.sThumbRX) > thumBholds) {
+    keyNameArr.Push(controlId "JoyU")
+  }
+  if (Abs(State.sThumbRY) > thumBholds) {
+    keyNameArr.Push(controlId "JoyR")
+  }
+  ; 按下则 +1
+  for index, joyFullName in keyNameArr {
+    ; 不存在就创建一个对象
+    if (!joyNameMap.has(joyFullName)) {
+      joyNameMap[joyFullName] := 0
+    }
+    joyNameMap[joyFullName] += 1
+    if (joyNameMap[joyFullName] <= maxJoyPressCount) {
+      PushTxt(joyFullName)
+      ; OutputDebug "Joy :" keyName
+    }
+  }
+  ; 不在 keyNameArr 中的按键则全部复位为 0
+  for key, val in joyNameMap {
+    ; 如果不是当前设备的，跳过
+    if(InStr(key, controlId "Joy") == 0){
+      continue
+    }
+    if (!IsInArray(keyNameArr, key)) {
+      joyNameMap[key] := 0 ; 松开
+    }
+  }
+
+}
+; 判断字符串是否存在于数组中（区分大小写）
+IsInArray(arr, searchStr) {
+  for element in arr {
+    if (element = searchStr)
+      return true
+  }
+  return false
+}
+checkJoyState2()
+{
+  Loop 4 {
+    if State := XInput_GetState(A_Index - 1) {
+      ; OutputDebug("Joy " A_Index " dwPacketNumber: " State.dwPacketNumber " wButtons:" State.wButtons
+      ; " LT:" State.bLeftTrigger " RT:" State.bRightTrigger " sThumbLX:" State.sThumbLX " sThumbLY:" State.sThumbLY " sThumbRX:" State.sThumbRX " sThumbRY:" State.sThumbRY)
+      ; 解析 State
+      getJoyInfo2(A_Index, State)
+    }
+  }
+}
+
+; 正式启用方案1
+if ( joyMethod == 1) {
+  SetTimer(checkJoyState, 100)  ; 0.1秒检测一次
+  SetTimer(checkJoyInfo, 2000)  ; 2秒检测一次
+} else if (joyMethod == 2)
+{
+  ; 方案2
+  XInput_Init()
+  SetTimer(checkJoyState2, 100)  ; 0.1秒检测一次
+}
