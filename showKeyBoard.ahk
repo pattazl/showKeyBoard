@@ -8,7 +8,7 @@
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName := "ShowKeyBoard", ver := "1.47"
+global APPName := "ShowKeyBoard", ver:= "1.48"
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk

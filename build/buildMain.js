@@ -25,7 +25,7 @@ const iconv = require('iconv-lite');
     res = replaceVer([ahkFile], false, version,[
         /;@Ahk2Exe-SetProductVersion (\d+\.\d+)/,
         /;@Ahk2Exe-SetFileVersion (\d+\.\d+)/,
-        /global APPName:="ShowKeyBoard", ver:="(\d+\.\d+)"/,
+        /global\s+APPName\s*:=\s*"ShowKeyBoard",\s*ver\s*:=\s*"(\d+\.\d+)"/,
     ])
     if(!res)return
     // 执行编译
