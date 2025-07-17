@@ -34,7 +34,7 @@ export default {
 	intro12:'按键显示仅针对活跃窗口',
 	intro13:'使用正则匹配窗口进程名',
 	intro14:'按键临时显示开关快捷键',
-	intro15:'定义快捷键, 修改后重启程序生效。',
+	intro15:'修改后重启程序生效。',
 	intro16:'手工输入按键',
 	intro17:'按键实时显示界面',
 	intro18:'宽度',
@@ -222,6 +222,10 @@ export default {
 	intro192: '显示多少条的历史按键记录',
 	intro193: '最近历史按键记录',
 	intro194: '是否启动时候托盘提示',
+	intro195: '游戏手柄支持',
+	intro196: '不启用',
+	intro197: '方案1，支持旧游戏手柄，手柄数量变化会重启客户端',
+	intro198: '方案2，支持新手柄协议 win10以上，推荐',
 
   },
   'en-US': {
@@ -259,7 +263,7 @@ export default {
 	intro12: 'Keystroke display only for active window',
 	intro13: 'Use regular expression to match window process names',
 	intro14: 'Shortcut key for toggling keystroke temporary display',
-	intro15: 'Define shortcut keys. Changes take effect after program restarts.',
+	intro15: 'Changes take effect after program restarts.',
 	intro16: 'Manually enter keystrokes',
 	intro17: 'Real-time display interface for keystrokes',
 	intro18: 'Width',
@@ -448,5 +452,9 @@ export default {
 	intro192: 'Max Number of historical keystrokes to display',
 	intro193: 'The historical keystrokes',
 	intro194: 'Whether traytip when starting',
+	intro195: 'Joystick support',
+	intro196: 'Disabled',
+	intro197: 'Solution 1, support old xbox360 protocol, and the client will be restarted if the number of handles changes',
+	intro198: 'Solution 2, support new xbox360 protocol(2013 and later) , win10 or above, recommended',
   }
 };

@@ -32,8 +32,18 @@
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro194 }}
+              <div class="intro">{{ contentText.intro15 }}</div>
               <template #suffix>
                 <n-switch :round="false" v-model:value="allConfig.common.needTraytip" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro195 }}
+              <div class="intro">{{ contentText.intro15 }}</div>
+              <template #suffix>
+                <n-select v-model:value="allConfig.common.joyMethod" :options="[
+                { label: contentText.intro196, value: 0 /* 不记录游戏手柄 */ }, 
+                { label: contentText.intro197, value: 1 /* 方案1，支持旧游戏手柄，手柄数量变化会重启客户端*/ },
+                { label: contentText.intro198, value: 2 /* 方案2，支持新手柄协议 win10以上，推荐*/ }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro55 }}
