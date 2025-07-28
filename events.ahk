@@ -247,7 +247,7 @@ SendPCInfo(flag)
             return 
         }
 	}
-	JSONStr := JSONStr '],"flag":' flag '}'
+	JSONStr := JSONStr '],"flag":' flag ' , "majorVersion":"' ver '"}'
 	if serverState = 1 {
         StartHttp('sendPCInfo','/sendPCInfo',JSONStr,timeout:=8000)
     }

@@ -8,7 +8,7 @@ const { getRecords, getHistoryDate, statData, getMinuteRecords,cleanErrAppStat }
 const { strVersion } = require('./version');
 
 const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData,
-    optKeymapFun, deleteDataFun, zipDownload, zipUpload } = require('./common');
+    optKeymapFun, deleteDataFun, zipDownload, zipUpload,getMajorVersion } = require('./common');
 
 function server() {
     //app.use(express.text());
@@ -74,7 +74,7 @@ function server() {
     app.post('/zipUpload', upload.single('file'), zipUpload);
 
     // 版本和服务判断
-    app.all('/version', (req, res) => { res.send(`{"msg":"showKeyBoardServer Version:","ver":"${strVersion}"}`); });
+    app.all('/version', (req, res) => { res.send(`{"msg":"showKeyBoardServer Version:","ver":"${strVersion}","majorVersion":"${getMajorVersion()}"}`); });
 
     //  直接启动
     startUp()

@@ -27,7 +27,7 @@ if (fs.existsSync(iniPath)) {
 
 var keyList; // 用于保存KeyList.txt 的文件信息
 var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
-var infoPC; // 用于保存PC的关键信息
+var infoPC = {}; // 用于保存PC的关键信息
 var port = parseInt(config.common?.serverPort ?? 9900)
 var remoteType = parseInt(config.common?.remoteType ?? 0)
 
@@ -696,8 +696,12 @@ function autoBackup() {
     }
   }
 }
+// 获取主版本
+function getMajorVersion(){
+  return infoPC?.majorVersion??''
+}
 
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
-  deleteDataFun, zipDownload, zipUpload
+  deleteDataFun, zipDownload, zipUpload,getMajorVersion
 };

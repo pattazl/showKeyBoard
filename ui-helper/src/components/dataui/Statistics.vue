@@ -84,6 +84,7 @@ let option = []; // 用数组代替
 option[0] = {
 	xAxis: {
 		type: 'category',
+		boundaryGap: false,
 		data: []
 	},
 	yAxis: {
@@ -104,12 +105,6 @@ option[1] = {
 	},
 	legend: {
 		data: ['Sum of mouse', 'Sum of keyboard']
-	},
-	grid: {
-		left: '3%',
-		right: '4%',
-		bottom: '3%',
-		containLabel: true
 	},
 	xAxis: {
 		type: 'category',
@@ -136,6 +131,7 @@ option[1] = {
 option[2] = {
 	xAxis: {
 		type: 'category',
+		boundaryGap: false,
 		data: []
 	},
 	yAxis: {
