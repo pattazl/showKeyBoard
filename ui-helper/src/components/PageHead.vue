@@ -2,7 +2,8 @@
   <n-layout-header bordered class="nav">
     <div class="nav-box">
       <n-text tag="div" class="ui-logo" :depth="1">
-        <span>{{ contentText.title + strVersion }} {{ serverVer }}</span> <span :style="urlColor"><a target="_blank" :href="url" :title="urlInfo" >{{ majorVersion }}</a></span>
+        <span>{{ contentText.title + strVersion }} {{ serverVer }}</span> <a target="_blank"
+            :href="url" :title="urlInfo" :style="{ color: urlColor }" >{{ majorVersion }}</a> 
       </n-text>
       <n-space justify="end">
         <n-button v-if="lang === 'zh-CN'" @click="onLangChange('en-US')">
@@ -27,6 +28,11 @@ import { useAustinStore } from '../App.vue'
 import content from '../content.js';
 import { ajax } from '@/common';
 
+type VersionInfoType = {
+  latestVer: string;
+  info: string;
+  url: string;
+};
 export default defineComponent({
   name: 'PageHead',
   props: {
@@ -60,43 +66,71 @@ export default defineComponent({
       }
     };
     // 获取 gitee 或github上的信息
-    function getGitLatestRelease() {
+    async function getGitLatestRelease() {
       // 循环访问
       let gitServer = ['https://api.github.com/repos/pattazl/showKeyBoard/releases/latest',
         'https://gitee.com/api/v5/repos/pattazl/showkeyboard/releases/latest']
       // 获取最新版本信息， lastVer , info
       let getLatestVerInfo = [
-        (x) => {
+        (x): VersionInfoType => {
           let latestVer = x.tag_name;
           let info = x.body;
           let url = 'https://github.com/pattazl/showkeyboard/releases/latest'
           return { latestVer, info, url }
         }, // 对于github 的获取方式
-        x => {
+        (x): VersionInfoType => {
           let latestVer = x.tag_name;
           let info = x.body;
           let url = 'https://gitee.com/pattazl/showkeyboard/releases/latest'
           return { latestVer, info, url }
         }, // 对于gitee 的获取方式
       ]
-      let latestVerInfo = null
-      gitServer.some(async (url, index) => {
+      for (let index = 0; index < gitServer.length; index++) {
+        const url = gitServer[index];
         let rsp = await fetch(url, {
           method: "get"
         })
         let result = await rsp.json();
         let info = getLatestVerInfo[index](result)
         if (typeof info?.latestVer == 'string') {
-          latestVerInfo = info
-          gitServerInfo.value = latestVerInfo
-          return true;
+          gitServerInfo = info
+          break;
         }
-      })
-      console.log(latestVerInfo)
+      }
     }
-    let gitServerInfo = {}
+    /**
+ * 比较两个版本号的大小
+ * @param {string} version1 第一个版本号
+ * @param {string} version2 第二个版本号
+ * @returns {number} 1: version1 > version2; -1: version1 < version2; 0: 相等
+ */
+    function compareVersions(version1, version2) {
+      console.log(version1, version2)
+      // 将版本号拆分为数组并转换为数字
+      const v1 = version1.split('.').map(Number);
+      const v2 = version2.split('.').map(Number);
+
+      // 取两个版本号中较长的长度进行比较
+      const maxLength = Math.max(v1.length, v2.length);
+
+      for (let i = 0; i < maxLength; i++) {
+        // 对于长度不足的版本号，缺失部分视为 0
+        const num1 = i < v1.length ? v1[i] : 0;
+        const num2 = i < v2.length ? v2[i] : 0;
+
+        if (num1 > num2) {
+          return 1;
+        } else if (num1 < num2) {
+          return -1;
+        }
+      }
+
+      // 所有部分都相等
+      return 0;
+    }
+    let gitServerInfo: VersionInfoType = null;
     let serverVer = ref('');
-    let urlColor = ref('');
+    let urlColor = ref('blue');
     let url = ref('');
     let urlInfo = ref('');
     let majorVersion = ref('');
@@ -109,10 +143,23 @@ export default defineComponent({
       }
       let mVer = res?.majorVersion
       if (mVer != null) {
-        // 尝试获取 git上的版本信息
-        getGitLatestRelease();
-        // 判断版本号
         majorVersion.value = mVer
+        // 尝试获取 git上的版本信息
+        await getGitLatestRelease();
+        // 判断版本号
+        //console.log(gitServerInfo.latestVer,mVer)
+        if (gitServerInfo != null) {
+          console.log('gitServerInfo')
+          url.value = gitServerInfo.url
+          urlInfo.value = gitServerInfo.info
+          // mVer = '1.47'
+          if (compareVersions(gitServerInfo.latestVer, mVer) == 1) {
+            urlColor.value = 'red'
+            majorVersion.value = mVer +' -> ' + gitServerInfo.latestVer
+            console.log('new')
+          }
+        }
+        
       }
     })
     return {
