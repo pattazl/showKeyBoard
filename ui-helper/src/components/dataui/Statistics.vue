@@ -179,26 +179,26 @@ option[3] = deepCopy(option[2])
 option[4] = deepCopy(option[2])
 option[5] = deepCopy(option[2])
 // 热力图，有数据差异
-function initHeatDateRange() {
-let endDate , startDate 
-  const end = new Date();
-  end.setDate(end.getDate()-1)
-  const start = new Date(end.getTime())
-  start.setFullYear(end.getFullYear() - 1);
-  endDate = end.getTime()
-  startDate = start.getTime()
-//   const dayTime = 3600 * 24 * 1000;
-//   const data = [];
-//   for (let time = startDate; time < endDate; time += dayTime) {
-//     data.push([
-//       echarts.time.format(time, '{yyyy}-{MM}-{dd}', false),
-//       Math.floor(Math.random() * 10000)
-//     ]);
-//   }
-//   return data;
-	return [ echarts.time.format(startDate, '{yyyy}-{MM}-{dd}', false),
-    echarts.time.format(endDate, '{yyyy}-{MM}-{dd}', false) ]
-}
+// function initHeatDateRange() {
+// let endDate , startDate 
+//   const end = new Date();
+//   end.setDate(end.getDate()-1)
+//   const start = new Date(end.getTime())
+//   start.setFullYear(end.getFullYear() - 1);
+//   endDate = end.getTime()
+//   startDate = start.getTime()
+// //   const dayTime = 3600 * 24 * 1000;
+// //   const data = [];
+// //   for (let time = startDate; time < endDate; time += dayTime) {
+// //     data.push([
+// //       echarts.time.format(time, '{yyyy}-{MM}-{dd}', false),
+// //       Math.floor(Math.random() * 10000)
+// //     ]);
+// //   }
+// //   return data;
+// 	return [ echarts.time.format(startDate, '{yyyy}-{MM}-{dd}', false),
+//     echarts.time.format(endDate, '{yyyy}-{MM}-{dd}', false) ]
+// }
 
 option[6] = {
 	title: {
@@ -229,7 +229,7 @@ option[6] = {
 		left: 50,
 		right: 50,
 		cellSize: ['auto', 13],
-		range: initHeatDateRange(),
+		range: [], // initHeatDateRange(),
 		itemStyle: {
 			borderWidth: 0.5
 		},
@@ -348,9 +348,12 @@ export default defineComponent({
 				option[1].series[1].data = kbArr
 				// 对鼠标键盘合计相加形成热力图数据
 				let heatMax = 0 // 最大计数
+				let heatRange = ['9999','']
 				let heatArr = dateArr.map((x,i) => {
 					let count = mouseArr[i] + kbArr[i]
 					heatMax = Math.max(heatMax,count)
+					heatRange[0] = x < heatRange[0]?x:heatRange[0]
+					heatRange[1] = x > heatRange[1]?x:heatRange[1]
 					return [x,count] 
 				})
 
@@ -395,9 +398,10 @@ export default defineComponent({
 				option[6].title.text = contentText.value.intro199
 				option[6].visualMap.max = heatMax
 				option[6].series.data = heatArr
+				option[6].calendar.range = heatRange
 				// 提示说明
 				option[0].legend.data = [contentText.value.intro200,contentText.value.intro201,contentText.value.intro202]
-				option[0].series[0].name = 
+				option[0].series[0].name = contentText.value.intro200
 				option[0].series[1].name = contentText.value.intro201
 				option[0].series[2].name = contentText.value.intro202
 				option[1].legend.data = [contentText.value.intro203,contentText.value.intro204]
