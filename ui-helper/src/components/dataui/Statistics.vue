@@ -32,6 +32,7 @@
 			</n-card>
 			<n-card id="intro115" :title="contentText.intro115">
 				<div id="main1" style="height: 200px; min-width: 800px;width:95%;"></div>
+				<div id="main6" style="height: 200px; min-width: 800px;width:95%;"></div>
 			</n-card>
 			<n-card id="intro116" :title="contentText.intro116 + ':' + topN">
 				<div id="main2" style="height: 400px; min-width: 800px;width:95%;"></div>
@@ -56,6 +57,8 @@ import { defineComponent, onMounted, PropType, ref, computed, h, watch } from 'v
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
+import { CalendarComponent } from 'echarts/components';
+
 import {
 	TitleComponent,
 	ToolboxComponent,
@@ -75,20 +78,38 @@ echarts.use([
 	LegendComponent,
 	LineChart,
 	CanvasRenderer,
-	UniversalTransition
+	UniversalTransition,
+	CalendarComponent
 ]);
 
 import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener } from '@/common';
 import content from '../../content.js';
 let option = []; // 用数组代替
+// 大数值格式化函数：转换为万/百万/亿单位
+function formatLargeNumber(value) {
+	if (value >= 10000) {
+		return value.toExponential(0);;
+	}
+	return value; // 小于1万直接显示
+}
 option[0] = {
+	grid: {
+		left: 50, 
+		right: 50, 
+	},
 	xAxis: {
 		type: 'category',
 		boundaryGap: false,
 		data: []
 	},
 	yAxis: {
-		type: 'value'
+		type: 'value',
+		axisLabel: {
+			// 应用格式化函数
+			formatter: function(value) {
+				return formatLargeNumber(value);
+			}
+		}
 	},
 	tooltip: {
 		trigger: 'axis'
@@ -100,6 +121,10 @@ option[0] = {
 	series: []
 };
 option[1] = {
+	grid: {
+		left: 50, 
+		right: 50, 
+	},
 	tooltip: {
 		trigger: 'axis'
 	},
@@ -129,6 +154,10 @@ option[1] = {
 	]
 };
 option[2] = {
+	grid: {
+		left: 50, 
+		right: 50, 
+	},
 	xAxis: {
 		type: 'category',
 		boundaryGap: false,
@@ -149,6 +178,69 @@ option[2] = {
 option[3] = deepCopy(option[2])
 option[4] = deepCopy(option[2])
 option[5] = deepCopy(option[2])
+// 热力图，有数据差异
+function initHeatDateRange() {
+let endDate , startDate 
+  const end = new Date();
+  end.setDate(end.getDate()-1)
+  const start = new Date(end.getTime())
+  start.setFullYear(end.getFullYear() - 1);
+  endDate = end.getTime()
+  startDate = start.getTime()
+//   const dayTime = 3600 * 24 * 1000;
+//   const data = [];
+//   for (let time = startDate; time < endDate; time += dayTime) {
+//     data.push([
+//       echarts.time.format(time, '{yyyy}-{MM}-{dd}', false),
+//       Math.floor(Math.random() * 10000)
+//     ]);
+//   }
+//   return data;
+	return [ echarts.time.format(startDate, '{yyyy}-{MM}-{dd}', false),
+    echarts.time.format(endDate, '{yyyy}-{MM}-{dd}', false) ]
+}
+
+option[6] = {
+	title: {
+		top: 30,
+		left: 'center',
+		text: 'Daily Count'
+	},
+	tooltip: {
+		// 自定义提示框内容
+		formatter: function (params) {
+			// 返回提示框HTML内容
+			return `<div style="font-weight:bold;margin-bottom:5px">${params.value[0]}</div><div>${params.value[1]}</div>`;
+		}
+	},
+	visualMap: {
+		min: 0,
+		max: 20000,
+		type: 'piecewise',
+		orient: 'horizontal',
+		left: 'center',
+		inRange: {
+			color: ['#e0f2fe', '#bae6fd', '#7dd3fc', '#38bdf8', '#0ea5e9', '#0284c7']
+		},
+		top: 55
+	},
+	calendar: {
+		top: 100,
+		left: 50,
+		right: 50,
+		cellSize: ['auto', 13],
+		range: initHeatDateRange(),
+		itemStyle: {
+			borderWidth: 0.5
+		},
+		yearLabel: { show: false }
+	},
+	series: {
+		type: 'heatmap',
+		coordinateSystem: 'calendar',
+		data: []
+	}
+}
 export default defineComponent({
 	name: 'Message',
 	props: {
@@ -235,6 +327,7 @@ export default defineComponent({
 					})
 				}
 				option.forEach(x => {
+					if(x.xAxis!=null)
 					x.xAxis.data = dateArr
 				})
 				// 设置	
@@ -249,8 +342,17 @@ export default defineComponent({
 					}
 				})
 				option[0].series = [pixHash, screenHash, phyHash]
-				option[1].series[0].data = getVal(res[1], dateArr, 'mouse')
-				option[1].series[1].data = getVal(res[1], dateArr, 'keyboard')
+				let mouseArr = getVal(res[1], dateArr, 'mouse')
+				let kbArr = getVal(res[1], dateArr, 'keyboard')
+				option[1].series[0].data = mouseArr
+				option[1].series[1].data = kbArr
+				// 对鼠标键盘合计相加形成热力图数据
+				let heatMax = 0 // 最大计数
+				let heatArr = dateArr.map((x,i) => {
+					let count = mouseArr[i] + kbArr[i]
+					heatMax = Math.max(heatMax,count)
+					return [x,count] 
+				})
 
 				let hash = getKeyData(dateArr, res[2])
 				option[2].series = Object.keys(hash).map(x => hash[x])
@@ -289,6 +391,18 @@ export default defineComponent({
 					option[3 + i].series = Object.keys(hash).map(x => hash[x])
 					option[3 + i].legend.data = Object.keys(hash)
 				})
+				// 对于 日期热力图需要额外处理
+				option[6].title.text = contentText.value.intro199
+				option[6].visualMap.max = heatMax
+				option[6].series.data = heatArr
+				// 提示说明
+				option[0].legend.data = [contentText.value.intro200,contentText.value.intro201,contentText.value.intro202]
+				option[0].series[0].name = 
+				option[0].series[1].name = contentText.value.intro201
+				option[0].series[2].name = contentText.value.intro202
+				option[1].legend.data = [contentText.value.intro203,contentText.value.intro204]
+				option[1].series[0].name = contentText.value.intro203
+				option[1].series[1].name = contentText.value.intro204
 				// 显示全部图标数据
 				myChart.forEach((v, i) => {
 					v.setOption(option[i], true); // 去除缓存
@@ -298,7 +412,7 @@ export default defineComponent({
 			}
 		}
 		onMounted(async () => {
-			for (let i = 0; i < 6; i++) {
+			for (let i = 0; i < 7; i++) {
 				chartDom[i] = document.getElementById('main' + i);
 				myChart[i] = echarts.init(chartDom[i], store.myTheme);
 			}
@@ -318,7 +432,21 @@ export default defineComponent({
 				handleQuery()
 			}
 			addExtListener(myChart);
-		})
+		});
+		watch(() => contentText.value, (newValue, oldValue) => {
+			option[6].title.text =  newValue.intro199
+			option[0].legend.data = [newValue.intro200,newValue.intro201,newValue.intro202]
+			option[0].series[0].name = newValue.intro200
+			option[0].series[1].name = newValue.intro201
+			option[0].series[2].name = newValue.intro202
+			option[1].legend.data = [newValue.intro203,newValue.intro204]
+			option[1].series[0].name = newValue.intro203
+			option[1].series[1].name = newValue.intro204
+
+			myChart[0].setOption(option[0], true);
+			myChart[1].setOption(option[1], true);
+			myChart[6].setOption(option[6], true);
+		});
 		watch(() => store.myTheme, (newValue, oldValue) => {
 			myChart.forEach((v, i) => {
 				v.dispose()

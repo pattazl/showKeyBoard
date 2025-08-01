@@ -105,7 +105,7 @@ export default defineComponent({
  * @returns {number} 1: version1 > version2; -1: version1 < version2; 0: 相等
  */
     function compareVersions(version1, version2) {
-      console.log(version1, version2)
+      // console.log(version1, version2)
       // 将版本号拆分为数组并转换为数字
       const v1 = version1.split('.').map(Number);
       const v2 = version2.split('.').map(Number);
@@ -149,7 +149,7 @@ export default defineComponent({
         // 判断版本号
         //console.log(gitServerInfo.latestVer,mVer)
         if (gitServerInfo != null) {
-          console.log('gitServerInfo')
+          // console.log('gitServerInfo')
           url.value = gitServerInfo.url
           urlInfo.value = gitServerInfo.info
           // mVer = '1.47'

@@ -226,6 +226,12 @@ export default {
 	intro196: '不启用',
 	intro197: '方案1，支持旧游戏手柄，手柄数量变化会重启客户端',
 	intro198: '方案2，支持新手柄协议 win10以上，推荐',
+	intro199: '每日鼠标键盘按键总和',
+	intro200: '移动距离(像素)',
+	intro201: '屏幕移动距离(米)',
+	intro202: '物理移动距离(米)',
+	intro203: '鼠标按键总和',
+	intro204: '键盘按键总和',
 
   },
   'en-US': {
@@ -456,5 +462,11 @@ export default {
 	intro196: 'Disabled',
 	intro197: 'Solution 1, support old xbox360 protocol, and the client will be restarted if the number of handles changes',
 	intro198: 'Solution 2, support new xbox360 protocol(2013 and later) , win10 or above, recommended',
+	intro199: 'Sum of daily mouse and keyboard',
+	intro200: 'Pix Distance',
+	intro201: 'Screen Distance(Meter)',
+	intro202: 'Physical Distance(Meter)',
+	intro203: 'Sum of mouse',
+	intro204: 'Sum of keyboard',
   }
 };
