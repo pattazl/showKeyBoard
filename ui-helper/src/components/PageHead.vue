@@ -2,8 +2,8 @@
   <n-layout-header bordered class="nav">
     <div class="nav-box">
       <n-text tag="div" class="ui-logo" :depth="1">
-        <span>{{ contentText.title + strVersion }} {{ serverVer }}</span> <a target="_blank"
-            :href="url" :title="urlInfo" :style="{ color: urlColor }" >{{ majorVersion }}</a> 
+        <span>{{ contentText.title + strVersion }} {{ serverVer }}</span> &nbsp; <a target="_blank"
+            :href="url" :title="urlInfo" :style="{ color: urlColor }" > {{ majorVersion }} </a> 
       </n-text>
       <n-space justify="end">
         <n-button v-if="lang === 'zh-CN'" @click="onLangChange('en-US')">
@@ -87,8 +87,14 @@ export default defineComponent({
       ]
       for (let index = 0; index < gitServer.length; index++) {
         const url = gitServer[index];
-        let rsp = await fetch(url, {
-          method: "get"
+        try{
+          let rsp = await fetch(url, {
+          method: "get",
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache", // 兼容旧版浏览器
+            "Expires": "0" // 表示已过期
+          }
         })
         let result = await rsp.json();
         let info = getLatestVerInfo[index](result)
@@ -96,6 +102,7 @@ export default defineComponent({
           gitServerInfo = info
           break;
         }
+        }catch(e){console.log('get latest version fail,url:'+url)}
       }
     }
     /**
@@ -151,15 +158,16 @@ export default defineComponent({
         if (gitServerInfo != null) {
           // console.log('gitServerInfo')
           url.value = gitServerInfo.url
-          urlInfo.value = gitServerInfo.info
+          urlInfo.value = `Latest Version: ${gitServerInfo.latestVer} \r\n` + gitServerInfo.info
           // mVer = '1.47'
           if (compareVersions(gitServerInfo.latestVer, mVer) == 1) {
             urlColor.value = 'red'
             majorVersion.value = mVer +' -> ' + gitServerInfo.latestVer
-            console.log('new')
+            // console.log('new')
           }
+        }else{
+          urlInfo.value = 'Get latest version fail! '
         }
-        
       }
     })
     return {
