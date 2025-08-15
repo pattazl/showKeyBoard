@@ -127,7 +127,7 @@ async function insertMiniute(MinuteRecords) {
   db.close();
 }
 
-async function getRecords(begin, end) {
+async function getRecords(begin, end,newDbName) {
   const db = new sqlite3.Database(dbName);
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   // 查询记录集
@@ -361,7 +361,7 @@ async function optKeyMap(data) {
   return 1
 }
 // 获取全部历史天数
-async function getHistoryDate() {
+async function getHistoryDate(newDbName) {
   const db = new sqlite3.Database(dbName);
   // 查询记录集
   let arr = [];
@@ -377,7 +377,7 @@ async function getHistoryDate() {
 }
 
 //获取各类统计信息到一个hash中
-async function statData(begin, end) {
+async function statData(begin, end,newDbName) {
   const db = new sqlite3.Database(dbName);
   let pro1 = new Promise((resolve, reject) => {
     // 查询鼠标移动距离
@@ -554,7 +554,7 @@ async function getLastMinute() {
 }
 
 // 获取分钟数据
-async function getMinuteRecords(beginDate, endDate, freqType, isApp) {
+async function getMinuteRecords(beginDate, endDate, freqType, isApp,newDbName) {
   const db = new sqlite3.Database(dbName);
   // 查询记录集
   freqType = parseInt(freqType, 10)

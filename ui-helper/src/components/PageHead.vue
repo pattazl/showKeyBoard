@@ -86,15 +86,16 @@ export default defineComponent({
         }, // 对于gitee 的获取方式
       ]
       for (let index = 0; index < gitServer.length; index++) {
-        const url = gitServer[index];
+        const url = gitServer[index] + '?' +new Date().getTime(); // 增加参数避免缓存
         try{
           let rsp = await fetch(url, {
           method: "get",
-          headers: {
-            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-            "Pragma": "no-cache", // 兼容旧版浏览器
-            "Expires": "0" // 表示已过期
-          }
+          // 不能添加 headers 否则容易触发跨域拦截，通过增加query的方式避免
+          // headers: {
+          //   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          //   "Pragma": "no-cache", // 兼容旧版浏览器
+          //   "Expires": "0" // 表示已过期
+          // }
         })
         let result = await rsp.json();
         let info = getLatestVerInfo[index](result)

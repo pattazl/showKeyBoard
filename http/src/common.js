@@ -21,9 +21,9 @@ const backupPath = '../../backup/'
 const updateTimePath = path.join(__dirname, 'updateTime.txt');
 const lastRecordPath = path.join(__dirname, 'lastRecord.json');
 const pidfilePath = path.join(__dirname, 'kbserver.pid');
-if (fs.existsSync(iniPath)) {
-  var config = ini.parse(iniAnsiRead(iniPath))
-}
+
+var config = {} // 配置文件
+config = getConfig()
 
 var keyList; // 用于保存KeyList.txt 的文件信息
 var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
@@ -282,17 +282,31 @@ function mergeObjects(obj1, obj2) {
   }
   return obj1;
 }
+// 完整的获取配置文件
+function getConfig() {
+  let config = {}
+  let defaultConfig = {}
+  if (fs.existsSync(iniPath)) {
+    config = ini.parse(iniAnsiRead(iniPath))
+  }
+  if (fs.existsSync(defaultIniPath)) {
+    defaultConfig = ini.parse(fs.readFileSync(defaultIniPath, 'utf-8'))
+  }
+  //console.log(defaultConfig)
+  mergeObjects(config, defaultConfig)
+  // 配置文件修改
+  if(config.common.shareDbName=='')
+  {
+    config.common.shareDbName = os.hostName()
+  }
+  return config
+}
 // 获取 和设置  KeyList.txt showKeyBoard.ini ，从文件中读取 
 async function getParaFun(req, res) {
   console.log('getPara')
   // 重新再读取一次
   keyList = {}
-  config = ini.parse(iniAnsiRead(iniPath))
-  if (fs.existsSync(defaultIniPath)) {
-    var defaultConfig = ini.parse(fs.readFileSync(defaultIniPath, 'utf-8'))
-  }
-  //console.log(defaultConfig)
-  mergeObjects(config, defaultConfig)
+  config = getConfig()
   //console.log(config)
   const keyTxt = (fs.readFileSync(keyPath, 'utf-8'))
   const arr = keyTxt.split('\n')
