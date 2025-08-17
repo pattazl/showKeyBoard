@@ -1,4 +1,5 @@
 const fs = require('fs');
+const fsPro = require('fs').promises;
 const iconv = require('iconv-lite');
 const path = require('path');
 const WebSocket = require('ws');
@@ -14,10 +15,12 @@ const fontList = require('font-list')
 const JSZip = require("jszip");
 const os = require('os');
 // 2个配置文件
-const iniPath = '../../showKeyBoard.ini'
-const defaultIniPath = './showKeyBoard.desc.ini'
-const keyPath = '../../keyList.txt'
-const backupPath = '../../backup/'
+const basePath = path.join(__dirname,'../../')
+const iniPath = path.join(basePath, 'showKeyBoard.ini')
+const keyPath = path.join(basePath, 'keyList.txt')
+const backupPath = path.join(basePath, 'backup/')
+const dbsPath = path.join(basePath, 'dbs/')
+const defaultIniPath = path.join(__dirname, './showKeyBoard.desc.ini')
 const updateTimePath = path.join(__dirname, 'updateTime.txt');
 const lastRecordPath = path.join(__dirname, 'lastRecord.json');
 const pidfilePath = path.join(__dirname, 'kbserver.pid');
@@ -295,8 +298,7 @@ function getConfig() {
   //console.log(defaultConfig)
   mergeObjects(config, defaultConfig)
   // 配置文件修改
-  if(config.common.shareDbName=='')
-  {
+  if (config.common.shareDbName == '') {
     config.common.shareDbName = os.hostName()
   }
   return config
@@ -390,9 +392,10 @@ function sendPCInfo(req, res) {
   delete data.flag; // 删除此节点
   infoPC = data; // 将数据保存给全局变量
   console.log(infoPC)
-  //每次客户端重启都会调用
+  //每次客户端重启都会调用，单纯启动server不备份，只有客户端通知后才进行
   if (flag == 0) {
-    autoBackup();
+    autoBackup(); // 启动备份
+    autoShare();  // 启动生成共享文件
   }
   res.send({ code: 200 });
 }
@@ -535,16 +538,21 @@ async function deleteDataFun(req, res) {
 
 }
 // 生成相关 zip文件，处理方式根据函数
-function zipCore(cbFun) {
+function zipCore(cbFun, isShare /**是否共享同步 */) {
   const zip = new JSZip();
   let fileContent;
-  fileContent = fs.readFileSync(iniPath);
-  zip.file(path.basename(iniPath), fileContent);
-  fileContent = fs.readFileSync(keyPath);
-  zip.file(path.basename(keyPath), fileContent);
-  fileContent = fs.readFileSync(dbName);
-  zip.file(dbName, fileContent);
-
+  if (isShare) {
+    let newDbName = `${config.common.shareDbName}_${dayjs().format('YYYY-MM-DD-HH-mm-ss')}.db`
+    fileContent = fs.readFileSync(dbName);
+    zip.file(newDbName, fileContent);
+  } else {
+    fileContent = fs.readFileSync(iniPath);
+    zip.file(path.basename(iniPath), fileContent);
+    fileContent = fs.readFileSync(keyPath);
+    zip.file(path.basename(keyPath), fileContent);
+    fileContent = fs.readFileSync(dbName);
+    zip.file(dbName, fileContent);
+  }
   zip.generateAsync({
     type: 'nodebuffer',
     compression: 'DEFLATE',
@@ -589,12 +597,7 @@ function clearUpload(hash) {
     });
   });
 }
-const configHash = {
-  'showKeyBoard.ini': iniPath,
-  'keyList.txt': keyPath,
-  'records.db': dbName,
-}
-function unZipCore(hash) {
+function unZipCore(hash,fun) {
   let content = fs.readFileSync(hash.path)
   return new Promise((resolve, reject) => {
     const zip = new JSZip();
@@ -607,7 +610,7 @@ function unZipCore(hash) {
           if (!file.dir) { // 过滤掉目录
             const fileData = await file.async("uint8array"); // 以uint8array格式读取文件内容
             // 在此处执行对解压出的文件的操作，例如保存到本地
-            let configPath = configHash[relativePath]
+            let configPath = fun(relativePath)
             fs.writeFileSync(configPath, fileData)
             hash.msg.push(relativePath + ' Ok')
           }
@@ -645,8 +648,13 @@ async function zipUpload(req, res) {
   // 需要清理旧的上传文件
   clearUpload(hash)
   // 解压新的上传文件 // 覆盖新的文件
-  try {
-    await unZipCore(hash)
+  try{
+    const configHash = {
+      'showKeyBoard.ini': iniPath,
+      'keyList.txt': keyPath,
+      'records.db': dbName,
+    }
+    await unZipCore(hash,(x)=>configHash[x])
     hash.code = 200;
   } catch {
     hash.code = 1;
@@ -654,6 +662,68 @@ async function zipUpload(req, res) {
   console.log(hash)
   res.send(JSON.stringify(hash));
 }
+// 启动定时生成共享文件 shareDbPath shareDbName shareDbHour
+function autoShare() {
+  let hour = parseInt(config.common.shareDbHour)
+  setInterval(() => {
+
+  }, 60 * 1000); // 1分钟检查一次
+}
+// 需要记录 已经解压的文件清单时间，如果变化才重新解压覆盖
+let sharedDbsInfo = {
+  // 'fileName':{time:111}
+}
+function autoShareCore() {
+  let shareFileName = ''
+  // 将当前 records.db 按规范名称压缩
+  zipCore(function (content) {
+    // see FileSaver.js
+    fs.writeFileSync(shareFileName, content);
+  }, true)
+  // 解压已有共享文件到目录 系统安装目录的 /dbs 下 dbsPath
+  let sharePath = path.resolve(__dirname, config.common.shareDbPath)
+  // 读取 dbsPath 的全部文件列表
+  let zipInfo = getFilesInfo(sharePath, '.zip')
+  // 循环判断是否需要解压
+}
+
+/**
+ * 读取指定目录下所有.zip文件的信息
+ * @param {string} directory - 要扫描的目录路径
+ * @returns {Promise<Object>} 包含所有zip文件信息的哈希对象
+ */
+async function getFilesInfo(directory, fileType, keyFun) {
+    const filesInfo = {};
+    if (!fs.existsSync(directory)) {
+        return filesInfo
+    }
+    try {
+        // 读取目录中的所有文件
+        const files = await fsPro.readdir(directory, { withFileTypes: true });
+        // 存储结果的哈希对象
+        for (const file of files) {
+            // 检查是否为文件且以.zip结尾
+            if (file.isFile() && path.extname(file.name).toLowerCase() === fileType) {
+                const filePath = path.join(directory, file.name);
+                // 获取文件的详细信息
+                const stats = await fsPro.stat(filePath);
+                let keyName = keyFun(file.name)
+                // 将信息存入哈希对象，键为文件名，值为创建时间
+                filesInfo[keyName] = {
+                    name: file.name,
+                    path: filePath,
+                    createTime: stats.mtime,  // 修改时间 stats.birthtime, // 创建时间
+                    // createTimeISO: stats.birthtime.toISOString() // ISO格式的创建时间
+                };
+            }
+        }
+        return filesInfo;
+    } catch (err) {
+        console.error('读取目录时发生错误:', err);
+        throw err;
+    }
+}
+
 // 根据参数自动备份
 function autoBackup() {
   let days = parseInt(dataSetting.autoBackupDays ?? 3, 10)
@@ -711,11 +781,11 @@ function autoBackup() {
   }
 }
 // 获取主版本
-function getMajorVersion(){
-  return infoPC?.majorVersion??''
+function getMajorVersion() {
+  return infoPC?.majorVersion ?? ''
 }
 
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
-  deleteDataFun, zipDownload, zipUpload,getMajorVersion
+  deleteDataFun, zipDownload, zipUpload, getMajorVersion
 };
