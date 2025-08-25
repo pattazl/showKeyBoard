@@ -172,6 +172,29 @@
                 <n-input-number v-model:value="allConfig.common.recordHistoryMax" :min="0" :max="200" />
               </template>
             </n-list-item>
+            <n-list-item>{{ contentText.intro207 }}
+              <div class="intro">{{ contentText.intro207_1 }}</div>
+              <template #suffix>
+                <n-input-number v-model:value="allConfig.common.shareDbHour" :min="0" :max="24" :step="0.5"/>
+              </template>
+            </n-list-item>
+            <div v-if="allConfig.common.shareDbHour>0">
+            <n-list-item>{{ contentText.intro205 }}
+              <template #suffix>
+                <n-input v-model:value="allConfig.common.shareDbPath" style="min-width: 500px" type="text" :placeholder="contentText.intro205_1" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro206 }}
+              <template #suffix>
+                <n-input v-model:value="allConfig.common.shareDbName" type="text" :placeholder="contentText.intro206_1" />
+              </template>
+            </n-list-item>
+            <n-list-item>{{ contentText.intro208 }}
+              <template #suffix>
+                <n-input v-model:value="allConfig.common.shareDbPath" style="min-width: 500px" type="text" :placeholder="contentText.intro208_1" />
+              </template>
+            </n-list-item>
+          </div>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>

@@ -232,6 +232,14 @@ export default {
 	intro202: '物理移动距离(米)',
 	intro203: '鼠标按键总和',
 	intro204: '键盘按键总和',
+	intro205: '共享文件所在路径',
+	intro205_1: '可将其他设备的记录同步到此目录，支持相对/绝对目录',
+	intro206: '共享文件名',
+	intro206_1: '留空，默认使用计算名',
+	intro207: '生成共享文件间隔小时数',
+	intro207_1: '0=不生成，>0 每次启动后均会自动检查，覆盖方式生成新文件，生成的文件可共享给其他设备，从而实现同时查看多个设备',
+	intro208: '共享文件生成后将自动执行的命令',
+	intro208_1: '可用于备份完成后执行相关命令，将自动处理其他设备的新文件',
 
   },
   'en-US': {
@@ -468,5 +476,13 @@ export default {
 	intro202: 'Physical Distance(Meter)',
 	intro203: 'Sum of mouse',
 	intro204: 'Sum of keyboard',
+	intro205: 'Path of the shared file',
+	intro205_1: 'Records from other devices can be synchronized to this directory, supporting relative/absolute paths',
+	intro206: 'Shared file name',
+	intro206_1: 'Leave blank to use the computer name by default',
+	intro207: 'Interval hours for generating shared files',
+	intro207_1: '0 = not generate, >0 will automatically check after each startup, generate new files in an overwriting manner, and the generated files can be shared with other devices to realize simultaneous viewing of multiple devices',
+	intro208: 'Commands to be automatically executed after the shared file is generated',
+	intro208_1: 'Can be used to execute relevant commands after backup completion, and will automatically process new files from other devices'
   }
 };
