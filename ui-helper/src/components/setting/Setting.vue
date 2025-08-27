@@ -191,7 +191,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro208 }}
               <template #suffix>
-                <n-input v-model:value="allConfig.common.shareDbPath" style="min-width: 500px" type="text" :placeholder="contentText.intro208_1" />
+                <n-input v-model:value="allConfig.common.shareDbExec" style="min-width: 500px" type="text" :placeholder="contentText.intro208_1" />
               </template>
             </n-list-item>
           </div>

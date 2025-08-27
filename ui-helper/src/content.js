@@ -240,6 +240,8 @@ export default {
 	intro207_1: '0=不生成，>0 每次启动后均会自动检查，覆盖方式生成新文件，生成的文件可共享给其他设备，从而实现同时查看多个设备',
 	intro208: '共享文件生成后将自动执行的命令',
 	intro208_1: '可用于备份完成后执行相关命令，将自动处理其他设备的新文件',
+	intro209: '请选择数据源',
+	intro210: '本地数据',
 
   },
   'en-US': {
@@ -483,6 +485,8 @@ export default {
 	intro207: 'Interval hours for generating shared files',
 	intro207_1: '0 = not generate, >0 will automatically check after each startup, generate new files in an overwriting manner, and the generated files can be shared with other devices to realize simultaneous viewing of multiple devices',
 	intro208: 'Commands to be automatically executed after the shared file is generated',
-	intro208_1: 'Can be used to execute relevant commands after backup completion, and will automatically process new files from other devices'
+	intro208_1: 'Can be used to execute relevant commands after backup completion, and will automatically process new files from other devices',
+	intro209: 'Data Source',
+	intro210: 'Local Data',
   }
 };

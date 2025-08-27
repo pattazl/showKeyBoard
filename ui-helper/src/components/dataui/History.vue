@@ -30,6 +30,8 @@
         </n-switch>
         <n-date-picker type="date" v-show="showEndDate" v-model:value="endDate" :is-date-disabled="dateDisabled"
           @update:value="handleUpdateValue" />
+        {{ contentText.intro209 }}
+        <n-select v-model:value="contentText.intro210" style="max-width:180px" />
       </n-space>
       <n-card id="intro86" :title="contentText.intro86">
         <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
