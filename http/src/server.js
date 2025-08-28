@@ -8,7 +8,7 @@ const { getRecords, getHistoryDate, statData, getMinuteRecords,cleanErrAppStat }
 const { strVersion } = require('./version');
 
 const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData,
-    optKeymapFun, deleteDataFun, zipDownload, zipUpload,getMajorVersion } = require('./common');
+    optKeymapFun, deleteDataFun, zipDownload, zipUpload,getMajorVersion,getDbsFun } = require('./common');
 
 function server() {
     //app.use(express.text());
@@ -36,24 +36,24 @@ function server() {
     app.post('/sendPCInfo', sendPCInfo);  // 上传PC其他信息，比如显示屏和分辨率信息等
     // 获取某某天，或某个tick的数据, 参数 date 如果是当天，返回的是所有tick的清单，否则返回
     app.post('/historyData', async (req, res) => {
-        let arr = await getRecords(req.body?.beginDate, req.body?.endDate)
+        let arr = await getRecords(req.body?.beginDate, req.body?.endDate, req.body?.db)
         res.send(JSON.stringify(arr))
     });
     // 获取某某天的应用使用分钟数据
     app.post('/minuteData', async (req, res) => {
-        let arr = await getMinuteRecords(req.body?.beginDate, req.body?.endDate, req.body?.freqType, req.body?.isApp)
+        let arr = await getMinuteRecords(req.body?.beginDate, req.body?.endDate, req.body?.freqType, req.body?.isApp, req.body?.db)
         res.send(JSON.stringify(arr))
     });
     // 更新和删除用户键盘
     app.post('/optKeymap', optKeymapFun);
     // 获取历史天数
     app.post('/getHistoryDate', async (req, res) => {
-        let arr = await getHistoryDate()
+        let arr = await getHistoryDate(req.body?.db)
         res.send(JSON.stringify(arr))
     });
     // 获取统计信息
     app.post('/statData', async (req, res) => {
-        let arr = await statData(req.body?.beginDate, req.body?.endDate)
+        let arr = await statData(req.body?.beginDate, req.body?.endDate,req.body?.db)
         res.send(JSON.stringify(arr))
     });
     // 更新和删除用户数据
@@ -76,6 +76,8 @@ function server() {
     // 版本和服务判断
     app.all('/version', (req, res) => { res.send(`{"msg":"showKeyBoardServer Version:","ver":"${strVersion}","majorVersion":"${getMajorVersion()}"}`); });
 
+    // 获取其他数据库清单
+    app.post('/getDbs', getDbsFun);
     //  直接启动
     startUp()
 }

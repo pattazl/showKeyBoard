@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const sqlite3 = require('sqlite3').verbose();
-const dbName = 'records.db'
+const {dbsPath,dbName } =require('./vars')
 let dataSetting = {}
 // 执行查询操作，返回记录集
 function runQuery(db, sql, params) {
@@ -128,7 +128,8 @@ async function insertMiniute(MinuteRecords) {
 }
 
 async function getRecords(begin, end,newDbName) {
-  const db = new sqlite3.Database(dbName);
+  const db = getDbObj(newDbName)
+  if( null == db)return []
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   // 查询记录集
   let arr = [];
@@ -362,7 +363,8 @@ async function optKeyMap(data) {
 }
 // 获取全部历史天数
 async function getHistoryDate(newDbName) {
-  const db = new sqlite3.Database(dbName);
+  const db = getDbObj(newDbName)
+  if( null == db)return []
   // 查询记录集
   let arr = [];
   let sql = 'SELECT date FROM stat group by date order by date desc'
@@ -378,7 +380,8 @@ async function getHistoryDate(newDbName) {
 
 //获取各类统计信息到一个hash中
 async function statData(begin, end,newDbName) {
-  const db = new sqlite3.Database(dbName);
+  const db = getDbObj(newDbName)
+  if( null == db)return []
   let pro1 = new Promise((resolve, reject) => {
     // 查询鼠标移动距离
     let sql = "select keycount,date from stat where date between ? and ? and keyname = 'mouseDistance' order by date"
@@ -555,7 +558,8 @@ async function getLastMinute() {
 
 // 获取分钟数据
 async function getMinuteRecords(beginDate, endDate, freqType, isApp,newDbName) {
-  const db = new sqlite3.Database(dbName);
+  const db = getDbObj(newDbName)
+  if( null == db)return []
   // 查询记录集
   freqType = parseInt(freqType, 10)
   let sqlFreqType = `freqType = ${freqType} ` // 分钟数据
@@ -648,6 +652,25 @@ VACUUM;
   
   db.close()
   
+}
+// 获取数据库链接对象，如果异常则返回空对象
+function getDbObj(newDbName){
+  let currDb = dbName
+  let dbn = (newDbName??'').trim();
+  if(dbn !=''){
+    // 如果不为空
+    let dbpath = path.join(dbsPath, newDbName+'.db')
+    if(fs.existsSync(dbpath)){
+      currDb = dbpath
+    }else{
+      currDb = ''
+    }
+  }
+  if(currDb ==''){
+    return null
+  }else{
+    return new sqlite3.Database(currDb);
+  }
 }
 
 module.exports = {

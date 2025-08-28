@@ -5,7 +5,7 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName,
+const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData,
   updateDBStruct, insertMiniute, getLastMinute, cleanErrStat } = require('./records');
 const dayjs = require('dayjs');
 const net = require('net');
@@ -15,15 +15,7 @@ const fontList = require('font-list')
 const JSZip = require("jszip");
 const os = require('os');
 // 2个配置文件
-const basePath = path.join(__dirname,'../../')
-const iniPath = path.join(basePath, 'showKeyBoard.ini')
-const keyPath = path.join(basePath, 'keyList.txt')
-const backupPath = path.join(basePath, 'backup/')
-const dbsPath = path.join(basePath, 'dbs/')
-const defaultIniPath = path.join(__dirname, './showKeyBoard.desc.ini')
-const updateTimePath = path.join(__dirname, 'updateTime.txt');
-const lastRecordPath = path.join(__dirname, 'lastRecord.json');
-const pidfilePath = path.join(__dirname, 'kbserver.pid');
+const {dbName, iniPath, keyPath, backupPath, dbsPath, defaultIniPath, updateTimePath, lastRecordPath, pidfilePath} =require('./vars')
 
 var config = {} // 配置文件
 config = getConfig()
@@ -299,7 +291,7 @@ function getConfig() {
   mergeObjects(config, defaultConfig)
   // 配置文件修改
   if (config.common.shareDbName == '') {
-    config.common.shareDbName = os.hostName()
+    config.common.shareDbName = os.hostname()  // os.hostName()
   }
   return config
 }
@@ -785,7 +777,35 @@ function getMajorVersion() {
   return infoPC?.majorVersion ?? ''
 }
 
+// 获取目录中的其他数据库信息
+async function getDbsFun(req, res) {
+  var data = req.body
+  // 查询数据库清单
+  try {
+    // 检查目录是否存在
+    await fsPro.access(dbsPath);
+    // 读取目录内容
+    const files = await fsPro.readdir(dbsPath, { withFileTypes: true });
+    const dbFiles = [];
+    for (const file of files) {
+      const fullPath = path.join(dbsPath, file.name);
+      // 如果是文件且以.db结尾
+      let extName = path.extname(file.name)
+      if (file.isFile() && extName.toLowerCase() === '.db') {
+        dbFiles.push(path.basename(file.name,extName));
+      }
+    }
+    res.send({ code: 200,dbs: dbFiles });
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      res.send({ code: 10,msg: `目录不存在: ${dbsPath}` });
+    } else {
+     res.send({ code: 10,msg: `获取文件时出错: ${err.message}` });
+    }
+  }
+}
+
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
-  deleteDataFun, zipDownload, zipUpload, getMajorVersion
+  deleteDataFun, zipDownload, zipUpload, getMajorVersion, getDbsFun
 };
