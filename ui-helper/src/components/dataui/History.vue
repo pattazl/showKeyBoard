@@ -20,7 +20,8 @@
         <span id="fixedSpan">{{ contentText.intro112 }}</span>
         <n-date-picker type="date" v-model:value="beginDate" :is-date-disabled="dateDisabled"
           @update:value="handleUpdateValue" />
-        <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate" @update:value="endDate = beginDate">
+        <n-switch :round="false" :rail-style="railStyle" v-model:value="showEndDate"
+          @update:value="endDate = beginDate">
           <template #unchecked>
             {{ contentText.intro159 }}
           </template>
@@ -31,7 +32,7 @@
         <n-date-picker type="date" v-show="showEndDate" v-model:value="endDate" :is-date-disabled="dateDisabled"
           @update:value="handleUpdateValue" />
         {{ contentText.intro209 }}
-        <n-select v-model:value="contentText.intro210" style="max-width:180px" />
+        <n-select default-value="" @update:value="changeDb" :options="dbsOption" style="max-width:180px" />
       </n-space>
       <n-card id="intro86" :title="contentText.intro86">
         <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
@@ -48,23 +49,25 @@
       <n-card id="intro87" :title="contentText.intro87">
         <template #header-extra>
           <n-space>
-          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftAllKeySwitch" @update:value="showLeftKeyRef">
-            <template #checked>
-              {{ contentText.intro180 }}
-            </template>
-            <template #unchecked>
-              {{ contentText.intro181 }}
-            </template>
-          </n-switch>
-          <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
-            <template #checked>
-              {{ contentText.intro143 }}
-            </template>
-            <template #unchecked>
-              {{ contentText.intro144 }}
-            </template>
-          </n-switch>
-        </n-space>
+            <n-switch :round="false" :rail-style="railStyle" v-model:value="leftAllKeySwitch"
+              @update:value="showLeftKeyRef">
+              <template #checked>
+                {{ contentText.intro180 }}
+              </template>
+              <template #unchecked>
+                {{ contentText.intro181 }}
+              </template>
+            </n-switch>
+            <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch"
+              @update:value="showLeftKeyRef">
+              <template #checked>
+                {{ contentText.intro143 }}
+              </template>
+              <template #unchecked>
+                {{ contentText.intro144 }}
+              </template>
+            </n-switch>
+          </n-space>
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
@@ -115,7 +118,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -360,6 +363,7 @@ export default defineComponent({
     const columns2 = ref([]);
     const appListData = ref([]);
     const showEndDate = ref(0);
+    const dbsOption = ref([]);
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
     const leftAllKeySwitch = ref(store.data.dataSetting.allKeySwitch);
@@ -375,6 +379,7 @@ export default defineComponent({
     watch(() => store.lang, (newValue, oldValue) => {
       setColumn(newValue)
     });
+    
     function setColumn(lang) {
       columns0.value = [
         {
@@ -486,17 +491,17 @@ export default defineComponent({
       showHash(keyStatHash)
       updateMinuteData()
     }
-    let lastLeftKey = [], LastKeyStatHash = {} ,lastAllKey = [];
+    let lastLeftKey = [], LastKeyStatHash = {}, lastAllKey = [];
     // 显示数据
     function showHash(keyStatHash) {
       let keyArr = []  // 已经统计的数据清单
       let allKey = Object.keys(keyStatHash)
       // tick 和 mouseDistance 不属于按键，排除
-      arrRemove(allKey, 'tick');  
-      arrRemove(allKey, 'mouseDistance');  
+      arrRemove(allKey, 'tick');
+      arrRemove(allKey, 'mouseDistance');
       // 显示 chart2 应用数据，并且剥离掉 APP数据
       appListData.value = showAppChart(allKey, keyStatHash, option2, myChartArr[1]
-      , store.data.dataSetting.mergeAppName ? appNameListMap : null);
+        , store.data.dataSetting.mergeAppName ? appNameListMap : null);
       // 剩余按键信息
       let leftKey = [...allKey]  // 变量存储剩余的匹配清单，后续改变
       option.series[0].data = keyData.map(function (item) {
@@ -514,7 +519,7 @@ export default defineComponent({
         hashTxtData[item[0] + ',' + item[1]] = keyList[key] ?? key
         hashOriData[item[0] + ',' + item[1]] = key + strKeyMap
         // 将val 数据全部放到数组中，同于统计 max值
-        if(val!='-'){
+        if (val != '-') {
           keyArr.push(val) // 排序时候要去掉 '-'
         }
         return [item[0], item[1], val];
@@ -531,7 +536,7 @@ export default defineComponent({
       //leftKey.forEach(k => leftKeyVal.push(k + ' : ' + keyStatHash[k]))
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
-      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey,allKey,keyStatHash)
+      dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, leftKey, allKey, keyStatHash)
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
@@ -553,7 +558,7 @@ export default defineComponent({
       }
     }
     function showLeftKeyRef() {
-      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, lastLeftKey,lastAllKey, LastKeyStatHash)
+      dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, lastLeftKey, lastAllKey, LastKeyStatHash)
     }
     async function updateMinuteData() {
       let b = beginDate.value, e = endDate.value;
@@ -569,6 +574,17 @@ export default defineComponent({
       await setMinuteEcharts(bs, es, MinuteType.Duration, [myChartArr[4], myChartArr[5], myChartArr[6]], appNameListMap) // main5 6
       updateAppLenInfo()
     }
+    async function updateDate(db){
+       // 设置下拉选择
+      let dateArr = await ajax('getHistoryDate',{db})
+      historyDate.value = dateArr.map((x) => {
+        return { label: x, value: x }
+      })
+      if (dateArr.length > 0) {
+        beginDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
+        handleUpdateValue(dateArr[0])
+      }
+    }
     onMounted(async () => {
       myChartArr = []
       chartDomArr = []
@@ -580,16 +596,12 @@ export default defineComponent({
       })
       let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
       optionArr = [option, option2].concat(arr)
-      // 设置下拉选择
-      let dateArr = await ajax('getHistoryDate')
-      historyDate.value = dateArr.map((x) => {
-        return { label: x, value: x }
-      })
-      if (dateArr.length > 0) {
-        beginDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
-        handleUpdateValue(dateArr[0])
-      }
       addExtListener(myChartArr);
+      // 需要增加多个数据源的选择
+      let dbs = [{label:contentText.value.intro210,value:''}]
+      await getDbs(dbs)
+      dbsOption.value = dbs
+      updateDate('')
     })
     // let myTheme = ref()  
     watch(() => store.myTheme, (newValue, oldValue) => {
@@ -627,6 +639,9 @@ export default defineComponent({
         return x.value == date
       })
     }
+    function changeDb(value){
+      updateDate(value)
+    }
     return {
       slideApp,
       appRanger,
@@ -651,6 +666,8 @@ export default defineComponent({
       showEndDate,
       store,
       dateDisabled,
+      dbsOption,
+      changeDb,
     }
   },
 })

@@ -1,4 +1,5 @@
 import { CSSProperties } from 'vue'
+import dayjs from 'dayjs'
 
 function deepCopy(obj) {
   if (typeof obj !== 'object' || obj === null) {
@@ -336,8 +337,23 @@ function addDragFixedSelect() {
     isDragging = false;
   });
 }
+// 获取备份数据源清单
+async function getDbs(dbs){
+  let res = await ajax('getDbs')
+  if (res.code = 200) {
+    // [{ label: contentText.intro33, value: 'TL' }]
+    res.dbs.forEach(x => {
+      try {
+        let labArr = x.split('_')
+        let label = labArr[0] + ' ' + dayjs(parseInt(labArr[1]) * 1000).format('YYYY-MM-DD HH:mm:ss')
+        let line = { label, value: x }
+        dbs.push(line)
+      } catch (error) {}
+    })
+  }
+}
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener
+  dateFormat, timeFormat, addExtListener,getDbs
 }

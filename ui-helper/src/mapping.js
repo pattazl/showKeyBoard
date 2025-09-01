@@ -1,4 +1,4 @@
-// 值差异和界面提示的匹配关系
+// 值差异和界面提示的匹配关系，可以增加说明，不填的话直接显示变量
 export default {
 	skipRecord:'intro2',
 	skipCtrlKey:'intro3',
@@ -44,4 +44,8 @@ export default {
 	ctrlRadius:'intro189',
 	guiRadius:'intro189',
 
+	shareDbPath : 'intro207',
+	shareDbName : 'intro205',
+	shareDbHour : 'intro206',
+	shareDbExec : 'intro208',
 };
