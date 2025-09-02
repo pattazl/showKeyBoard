@@ -41,6 +41,7 @@ function server() {
     });
     // 获取某某天的应用使用分钟数据
     app.post('/minuteData', async (req, res) => {
+      console.log(req.body?.db)
         let arr = await getMinuteRecords(req.body?.beginDate, req.body?.endDate, req.body?.freqType, req.body?.isApp, req.body?.db)
         res.send(JSON.stringify(arr))
     });

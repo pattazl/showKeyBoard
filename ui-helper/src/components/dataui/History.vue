@@ -118,7 +118,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -364,6 +364,7 @@ export default defineComponent({
     const appListData = ref([]);
     const showEndDate = ref(0);
     const dbsOption = ref([]);
+
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
     const leftAllKeySwitch = ref(store.data.dataSetting.allKeySwitch);
@@ -574,9 +575,10 @@ export default defineComponent({
       await setMinuteEcharts(bs, es, MinuteType.Duration, [myChartArr[4], myChartArr[5], myChartArr[6]], appNameListMap) // main5 6
       updateAppLenInfo()
     }
-    async function updateDate(db){
+    async function changeDb(db){
+      setDbSel(db);
        // 设置下拉选择
-      let dateArr = await ajax('getHistoryDate',{db})
+      let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
         return { label: x, value: x }
       })
@@ -601,7 +603,7 @@ export default defineComponent({
       let dbs = [{label:contentText.value.intro210,value:''}]
       await getDbs(dbs)
       dbsOption.value = dbs
-      updateDate('')
+      changeDb('')
     })
     // let myTheme = ref()  
     watch(() => store.myTheme, (newValue, oldValue) => {
@@ -638,9 +640,6 @@ export default defineComponent({
       return !historyDate.value.some(x => {
         return x.value == date
       })
-    }
-    function changeDb(value){
-      updateDate(value)
     }
     return {
       slideApp,

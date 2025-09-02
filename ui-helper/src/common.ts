@@ -27,13 +27,16 @@ function getServer() {
 async function ajax(path, data = null) {
   console.log('ajax')
   // 测试环境
-
   const headers = {
     "Content-Type": "application/json",
   };
+  if( ['getHistoryDate','minuteData','statData'].includes(path)){
+    data = {...data,db:dbSel}
+  }
   if (data == null) {
     data = ''
   } else if (typeof data != 'string') {
+    // 对于特定接口需要增加db参数
     data = JSON.stringify(data)
   }
   let rsp = await fetch(`${getServer()}${path}`, {
@@ -180,12 +183,16 @@ function showAppChart(leftKey/**out */, keyStatHash, opt, chart, mergeApp) {
   opt && chart.setOption(opt);
   return retArr;
 }
+let dbSel='' // 当前选择的数据源
+function setDbSel(db){
+  dbSel = db
+}
 // 获取历史时间
 async function getHistory(beginDate, endDate) {
   let res = [];
   // format(dateFormat)
   if (/^\d{4}-\d{2}-\d{2}$/.test(beginDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= beginDate) {
-    res = await ajax('historyData', { beginDate, endDate })
+    res = await ajax('historyData', { beginDate, endDate,db:dbSel })
   }
   //console.log('getHistory',res)
   return res
@@ -355,5 +362,5 @@ async function getDbs(dbs){
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener,getDbs
+  dateFormat, timeFormat, addExtListener,getDbs,setDbSel
 }

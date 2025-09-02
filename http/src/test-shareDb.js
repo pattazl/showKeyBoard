@@ -141,7 +141,7 @@ function unZipCore(hash, fun) {
 }
 ///////////////////////////////////
 
-// 启动定时生成共享文件 shareDbPath shareDbName shareDbHour
+// 启动定时生成共享文件 shareDbPath shareDbName shareDbHour shareDbExec
 function autoShare() {
     let hour = parseFloat(config.common.shareDbHour)
     hour = isNaN(hour) ? 0 : hour  // 默认0小时，不做备份
@@ -150,7 +150,6 @@ function autoShare() {
         setInterval(autoShareCore, 60 * 60 * 1000 * hour); // 定时检查
     }
 }
-autoShare()
 // 需要记录 已经解压的文件清单时间，如果变化才重新解压覆盖
 async function autoShareCore() {
     let shareFilePath = path.resolve(basePath, config.common.shareDbPath)
@@ -172,6 +171,8 @@ async function autoShareCore() {
         return
     }
     let shareFileName = path.resolve(shareFilePath, config.common.shareDbName + '.zip')
+    // 需要判断当前压缩文件是否存在，如果存在则需要判断日期是否需要重新压缩替换
+    
     // 将当前 records.db 按规范名称压缩
     zipCore(function (content) {
         // see FileSaver.js
@@ -254,6 +255,6 @@ async function getFilesInfo(directory, fileType, keyFun) {
         throw err;
     }
 }
-
-
+// 启动后自动触发
+autoShare()
 

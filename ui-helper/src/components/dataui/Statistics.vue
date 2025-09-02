@@ -27,6 +27,7 @@
 					</template>
 				</n-switch>
 				{{ contentText.intro209 }}
+				<n-select default-value="" @update:value="changeDb" :options="dbsOption" style="max-width:180px" />
 			</n-space>
 			<n-card id="intro114" :title="contentText.intro114">
 				<div id="main0" style="height: 200px; min-width: 800px;width:95%;"></div>
@@ -83,7 +84,7 @@ echarts.use([
 	CalendarComponent
 ]);
 
-import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener,getDbs,setDbSel } from '@/common';
 import content from '../../content.js';
 let option = []; // 用数组代替
 // 大数值格式化函数：转换为万/百万/亿单位
@@ -259,6 +260,7 @@ export default defineComponent({
 		const topN = ref(0)
 		const appTopN = ref(0)
 		const fillDate = ref(store.data.dataSetting.fillDate);
+		const dbsOption = ref([]);
 		const appNameListMap = JSON.parse(store.data.dataSetting.appNameList);
 
 
@@ -416,12 +418,8 @@ export default defineComponent({
 				message.error(contentText.value.intro117)
 			}
 		}
-		onMounted(async () => {
-			for (let i = 0; i < 7; i++) {
-				chartDom[i] = document.getElementById('main' + i);
-				myChart[i] = echarts.init(chartDom[i], store.myTheme);
-			}
-
+		async function changeDb(db){
+			setDbSel(db);
 			// 设置下拉选择
 			let dateArr = await ajax('getHistoryDate')
 			historyDate.value = dateArr.map((x) => {
@@ -436,7 +434,18 @@ export default defineComponent({
 				endDate.value = dayjs(dateArr[0], dateFormat).valueOf();// 设置选择第一个
 				handleQuery()
 			}
+		}
+		onMounted(async () => {
+			for (let i = 0; i < 7; i++) {
+				chartDom[i] = document.getElementById('main' + i);
+				myChart[i] = echarts.init(chartDom[i], store.myTheme);
+			}
 			addExtListener(myChart);
+			// 需要增加多个数据源的选择
+			let dbs = [{label:contentText.value.intro210,value:''}]
+			await getDbs(dbs)
+			dbsOption.value = dbs
+			changeDb('')
 		});
 		watch(() => contentText.value, (newValue, oldValue) => {
 			option[6].title.text =  newValue.intro199
@@ -477,6 +486,8 @@ export default defineComponent({
 			fillDate,
 			store,
 			dateDisabled,
+			dbsOption,
+			changeDb,
 		}
 	},
 })
