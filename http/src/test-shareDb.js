@@ -54,6 +54,8 @@ function getConfig() {
     if ((config.common?.shareDbName || '') == '') {
         config.common.shareDbName = os.hostname()
     }
+    let hour = parseFloat(config.common.shareDbHour)
+    config.common.shareDbHour = isNaN(hour) ? 0 : hour  // 默认0小时，不做备份
     return config
 }
 // default 中存在的hash值复制到 obj 中
@@ -143,8 +145,7 @@ function unZipCore(hash, fun) {
 
 // 启动定时生成共享文件 shareDbPath shareDbName shareDbHour shareDbExec
 function autoShare() {
-    let hour = parseFloat(config.common.shareDbHour)
-    hour = isNaN(hour) ? 0 : hour  // 默认0小时，不做备份
+    let hour = config.common.shareDbHour
     if (hour > 0) {
         autoShareCore()
         setInterval(autoShareCore, 60 * 60 * 1000 * hour); // 定时检查
@@ -163,6 +164,39 @@ async function autoShareCore() {
         //throw err; // 抛出错误以便调用者处理
         return
     }
+    let shareFileName = path.resolve(shareFilePath, config.common.shareDbName + '.zip')
+    // 需要判断当前压缩文件是否存在，如果存在则需要判断日期是否需要重新压缩替换
+    let needShare = false;
+    if (fs.existsSync(shareFileName)) {
+        try {
+            const stats = fs.statSync(shareFileName);
+            const mtime = stats.mtime;
+            let diff = new Date().getTime() - mtime.getTime()
+            console.log(shareFileName, mtime.getTime(), diff)
+            if (diff > config.common.shareDbHour * 3600 * 1000) {
+                needShare = true // 文件旧，需要备份文件
+            }
+            console.log('文件修改时间（同步）:', mtime);
+        } catch (err) {
+            console.error('压缩当前数据失败:', err);
+        }
+    }else{
+        needShare = true // 不存在，需要备份新文件
+    }
+    // 需要生成备份文件
+    if (needShare) {
+        // 将当前 records.db 按规范名称压缩
+        zipCore(function (content) {
+            // see FileSaver.js
+            fs.writeFileSync(shareFileName, content);
+            // 可以执行相关的命令，用于触发自动同步
+        }, true)
+    }
+    await unzipShared(shareFilePath)
+}
+
+async function unzipShared(shareFilePath) {
+    // 解压已有共享文件到目录 系统安装目录的 /dbs 下 dbsPath
     let dbsPath = path.resolve(basePath, 'dbs/')
     try {
         await fsPro.mkdir(dbsPath, { recursive: true });
@@ -170,15 +204,6 @@ async function autoShareCore() {
         console.error(`目录创建失败: ${err.message}`);
         return
     }
-    let shareFileName = path.resolve(shareFilePath, config.common.shareDbName + '.zip')
-    // 需要判断当前压缩文件是否存在，如果存在则需要判断日期是否需要重新压缩替换
-    
-    // 将当前 records.db 按规范名称压缩
-    zipCore(function (content) {
-        // see FileSaver.js
-        fs.writeFileSync(shareFileName, content);
-    }, true)
-    // 解压已有共享文件到目录 系统安装目录的 /dbs 下 dbsPath
     // 读取 dbsPath 的全部文件列表
     let zipInfo = await getFilesInfo(shareFilePath, '.zip', (x) => x.split('.').slice(0, -1).join('.')) // 去掉最后的 .
     // 读取 dbs 目录下的全部文件列表，获得修改时间
@@ -193,8 +218,7 @@ async function autoShareCore() {
         let fileName = zipInfo[fileId].name
         let ctime = zipInfo[fileId].createTime
         let newTime = new Date(ctime.getTime() - 60 * 1000) // 文件创建时间大于1分钟
-        // 如果是新文件需要解药，旧文件的话，需要不是自己的文件，且修改时间更新
-        console.log(sharedDbsInfo[fileId])
+        // 如果是新文件需要解压，旧文件的话，需要不是自己的文件，且修改时间更新
         let needUnzip = false
         if (sharedDbsInfo[fileId] == null) {
             needUnzip = true
@@ -204,7 +228,7 @@ async function autoShareCore() {
             console.log(dbsCreateTime)
             if (newTime > dbsCreateTime) {
                 // 文件更新需要删除原先的db文件
-                console.log('delete')
+                console.log('delete shared db')
                 fs.unlinkSync(sharedDbsInfo[fileId].path)
                 needUnzip = true
             }
