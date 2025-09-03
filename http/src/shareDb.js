@@ -1,158 +1,25 @@
 /////////////////////////////////
 const fs = require('fs');
 const fsPro = require('fs').promises;
-const iconv = require('iconv-lite');
 const path = require('path');
-const WebSocket = require('ws');
-const http = require('http');
-const express = require('express')
-const { insertData, getDataSetting, setDataSetting, getKeymaps, optKeyMap, deleteData, dbName,
-    updateDBStruct, insertMiniute, getLastMinute, cleanErrStat } = require('./records');
-const dayjs = require('dayjs');
-const net = require('net');
-const app = express()
-const ini = require('ini')
-const fontList = require('font-list')
-const JSZip = require("jszip");
-const os = require('os');
+const { exec } = require('child_process');
 // 2个配置文件
-const basePath = path.join(__dirname, '../../')
-const iniPath = path.join(basePath, 'showKeyBoard.ini')
-const keyPath = path.join(basePath, 'keyList.txt')
-const backupPath = path.join(basePath, 'backup/')
-const dbsPath = path.join(basePath, 'dbs/')
-const defaultIniPath = path.join(__dirname, 'showKeyBoard.desc.ini')
-const updateTimePath = path.join(__dirname, 'updateTime.txt');
-const lastRecordPath = path.join(__dirname, 'lastRecord.json');
-const pidfilePath = path.join(__dirname, 'kbserver.pid');
+const {basePath} =require('./vars')
+const {config,zipCore,unZipCore} =require('./common')
 
 
-//////
-
-var config = {} // 配置文件
-config = getConfig()
-
-// 根据路径, ANSI->UTF8 读取
-function iniAnsiRead(file) {
-    const buffer = fs.readFileSync(file);
-    content = iconv.decode(buffer, 'gbk');
-    return content
-}
-// 完整的获取配置文件
-function getConfig() {
-    let config = {}
-    let defaultConfig = {}
-    if (fs.existsSync(iniPath)) {
-        config = ini.parse(iniAnsiRead(iniPath))
-    }
-    if (fs.existsSync(defaultIniPath)) {
-        defaultConfig = ini.parse(fs.readFileSync(defaultIniPath, 'utf-8'))
-    }
-    //console.log(defaultConfig)
-    mergeObjects(config, defaultConfig)
-    // 配置文件修改
-    if ((config.common?.shareDbName || '') == '') {
-        config.common.shareDbName = os.hostname()
-    }
-    let hour = parseFloat(config.common.shareDbHour)
-    config.common.shareDbHour = isNaN(hour) ? 0 : hour  // 默认0小时，不做备份
-    return config
-}
-// default 中存在的hash值复制到 obj 中
-function mergeObjects(obj1, obj2) {
-    // 遍历obj2的属性
-    for (let prop in obj2) {
-        // 如果obj1对应的属性不存在，则直接将obj2的属性添加到obj1中
-        if (typeof obj1[prop] === 'undefined') {
-            obj1[prop] = obj2[prop];
-        } else if (typeof obj1[prop] === 'object' && typeof obj2[prop] === 'object') {
-            // 如果两个属性都是普通对象，则递归调用mergeObjects函数
-            mergeObjects(obj1[prop], obj2[prop]);
-        }
-    }
-    return obj1;
-}
 ////////////////////////////////////////////////////
-// 生成相关 zip文件，处理方式根据函数
-function zipCore(cbFun, isShare /**是否共享同步 */) {
-    const zip = new JSZip();
-    let fileContent;
-    if (isShare) {
-        let newDbName = `${config.common.shareDbName}_${parseInt(new Date().getTime() / 1000)}.db`  // 秒为单位的时间戳
-        fileContent = fs.readFileSync(dbName);
-        zip.file(newDbName, fileContent);
-    } else {
-        fileContent = fs.readFileSync(iniPath);
-        zip.file(path.basename(iniPath), fileContent);
-        fileContent = fs.readFileSync(keyPath);
-        zip.file(path.basename(keyPath), fileContent);
-        fileContent = fs.readFileSync(dbName);
-        zip.file(dbName, fileContent);
-    }
-    zip.generateAsync({
-        type: 'nodebuffer',
-        compression: 'DEFLATE',
-        compressionOptions: {
-            level: 5  /** 压缩比 0-9 低到高 */
-        }
-    }).then(function (content) {
-        // see FileSaver.js
-        cbFun(content)
-    });
-}
-
-function unZipCore(hash, fun) {
-    let content = fs.readFileSync(hash.path)
-    return new Promise((resolve, reject) => {
-        const zip = new JSZip();
-        zip.loadAsync(content)
-            .then(async function (contents) {
-                //console.log( JSON.stringify(contents))
-                for (let relativePath in contents.files) {
-                    let file = contents.files[relativePath]
-                    //console.log(relativePath,file.dir,file._data.compressedContent)
-                    if (!file.dir) { // 过滤掉目录
-                        const fileData = await file.async("uint8array"); // 以uint8array格式读取文件内容
-                        // 在此处执行对解压出的文件的操作，例如保存到本地
-                        let configPath = fun(relativePath)
-                        fs.writeFileSync(configPath, fileData)
-                        hash.msg.push(relativePath + ' Ok')
-                    }
-                }
-                /*
-                contents.forEach(async function (relativePath, file) {
-                  console.log(relativePath)
-                  if (!file.dir) { // 过滤掉目录
-                    const fileData = await file.async("uint8array"); // 以uint8array格式读取文件内容
-                    // 在此处执行对解压出的文件的操作，例如保存到本地
-                    let configPath = configHash[relativePath]
-                    fs.writeFileSync(configPath, fileData)
-                    hash.msg.push(relativePath + ' Ok\n')
-                    console.log('OKOK')
-                  }
-                });*/
-                resolve(0)
-            })
-            .catch(function (error) {
-                let msg = "解压缩失败: "
-                console.error(msg, error);
-                hash.msg.push(msg)
-                resolve(0)
-            });
-    })
-}
-///////////////////////////////////
-
 // 启动定时生成共享文件 shareDbPath shareDbName shareDbHour shareDbExec
 function autoShare() {
     let hour = config.common.shareDbHour
     if (hour > 0) {
         autoShareCore()
-        setInterval(autoShareCore, 60 * 60 * 1000 * hour); // 定时检查
+        setInterval(autoShareCore, 10000); // 10s定时检查
     }
 }
 // 需要记录 已经解压的文件清单时间，如果变化才重新解压覆盖
 async function autoShareCore() {
+    // 正式开始
     let shareFilePath = path.resolve(basePath, config.common.shareDbPath)
     // 递归创建目录
     try {
@@ -172,11 +39,10 @@ async function autoShareCore() {
             const stats = fs.statSync(shareFileName);
             const mtime = stats.mtime;
             let diff = new Date().getTime() - mtime.getTime()
-            console.log(shareFileName, mtime.getTime(), diff)
+            // console.log(shareFileName, mtime.getTime(), diff) 超过时间才备份
             if (diff > config.common.shareDbHour * 3600 * 1000) {
                 needShare = true // 文件旧，需要备份文件
             }
-            console.log('文件修改时间（同步）:', mtime);
         } catch (err) {
             console.error('压缩当前数据失败:', err);
         }
@@ -190,9 +56,14 @@ async function autoShareCore() {
             // see FileSaver.js
             fs.writeFileSync(shareFileName, content);
             // 可以执行相关的命令，用于触发自动同步
+            let cmdLine = config.common.shareDbExec?.trim()
+            if(cmdLine!=''){
+                doExec(cmdLine)
+            }
         }, true)
+        // 解压共享文件
+        await unzipShared(shareFilePath)
     }
-    await unzipShared(shareFilePath)
 }
 
 async function unzipShared(shareFilePath) {
@@ -225,7 +96,6 @@ async function unzipShared(shareFilePath) {
         } else {
             let fileName = sharedDbsInfo[fileId].name
             let dbsCreateTime = new Date(parseInt(fileName.split('_').pop()) * 1000)
-            console.log(dbsCreateTime)
             if (newTime > dbsCreateTime) {
                 // 文件更新需要删除原先的db文件
                 console.log('delete shared db')
@@ -279,6 +149,29 @@ async function getFilesInfo(directory, fileType, keyFun) {
         throw err;
     }
 }
-// 启动后自动触发
-autoShare()
 
+// 执行额外命令
+function doExec(command)
+{
+  // 开启子进程执行命令
+  console.log(`${new Date()}-exec command: ${command}`);
+  const child = exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`error output: ${stderr}`);
+      return;
+    }
+    console.log(`output:\n${stdout}`);
+  });
+  // 可以监听子进程的退出事件
+  child.on('exit', (code) => {
+    console.log(`exec exit code: ${code}`);
+  });
+  return child;
+}
+// 启动后自动触发
+// autoShare()
+module.exports = { autoShare };

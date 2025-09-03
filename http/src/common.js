@@ -16,9 +16,7 @@ const JSZip = require("jszip");
 const os = require('os');
 // 2个配置文件
 const {dbName, iniPath, keyPath, backupPath, dbsPath, defaultIniPath, updateTimePath, lastRecordPath, pidfilePath} =require('./vars')
-
-var config = {} // 配置文件
-config = getConfig()
+const config = getConfig() // 配置文件
 
 var keyList; // 用于保存KeyList.txt 的文件信息
 var dataSetting = {}; // 用于保存 dataSetting 的信息 统计的配置参数保存在 数据库中
@@ -124,8 +122,8 @@ function iniAnsiWrite(file, content) {
   fs.writeFileSync(file, encodedData);
 }
 // 解决 \# 的转义问题
-function myIniwrite(config) {
-  let s = ini.stringify(config)
+function myIniwrite(cfg) {
+  let s = ini.stringify(cfg)
   s = s.replace(/\\#/g, '#')
   s = s.replace(/=(.*#.*)/g, '="$1"')
   iniAnsiWrite(iniPath, s)
@@ -279,28 +277,30 @@ function mergeObjects(obj1, obj2) {
 }
 // 完整的获取配置文件
 function getConfig() {
-  let config = {}
+  let conf = {}
   let defaultConfig = {}
   if (fs.existsSync(iniPath)) {
-    config = ini.parse(iniAnsiRead(iniPath))
+    conf = ini.parse(iniAnsiRead(iniPath))
   }
   if (fs.existsSync(defaultIniPath)) {
     defaultConfig = ini.parse(fs.readFileSync(defaultIniPath, 'utf-8'))
   }
   //console.log(defaultConfig)
-  mergeObjects(config, defaultConfig)
+  mergeObjects(conf, defaultConfig)
   // 配置文件修改
-  if (config.common.shareDbName == '') {
-    config.common.shareDbName = os.hostname()  // os.hostName()
+  if (conf.common.shareDbName == '') {
+    conf.common.shareDbName = os.hostname()  // os.hostName()
   }
-  return config
+  let hour = parseFloat(conf.common.shareDbHour)
+  conf.common.shareDbHour = isNaN(hour) ? 0 : hour  // 默认0小时，不做备份
+  return conf
 }
 // 获取 和设置  KeyList.txt showKeyBoard.ini ，从文件中读取 
 async function getParaFun(req, res) {
   console.log('getPara')
   // 重新再读取一次
   keyList = {}
-  config = getConfig()
+  Object.assign(config, getConfig());
   //console.log(config)
   const keyTxt = (fs.readFileSync(keyPath, 'utf-8'))
   const arr = keyTxt.split('\n')
@@ -355,7 +355,7 @@ function setParaFun(req, res) {
   // 当端口号改变时候需要服务重启，此步骤由客户端来完成 // 改为websocket方式
   if (JSON.stringify(config) != newConf) {
     console.log('write ini')
-    config = data.config
+    Object.assign(config , data.config)
     myIniwrite(config)
     isUpdate = true;
   }
@@ -387,7 +387,6 @@ function sendPCInfo(req, res) {
   //每次客户端重启都会调用，单纯启动server不备份，只有客户端通知后才进行
   if (flag == 0) {
     autoBackup(); // 启动备份
-    autoShare();  // 启动生成共享文件
   }
   res.send({ code: 200 });
 }
@@ -534,26 +533,26 @@ function zipCore(cbFun, isShare /**是否共享同步 */) {
   const zip = new JSZip();
   let fileContent;
   if (isShare) {
-    let newDbName = `${config.common.shareDbName}_${dayjs().format('YYYY-MM-DD-HH-mm-ss')}.db`
-    fileContent = fs.readFileSync(dbName);
-    zip.file(newDbName, fileContent);
+      let newDbName = `${config.common.shareDbName}_${parseInt(new Date().getTime() / 1000)}.db`  // 秒为单位的时间戳
+      fileContent = fs.readFileSync(dbName);
+      zip.file(newDbName, fileContent);
   } else {
-    fileContent = fs.readFileSync(iniPath);
-    zip.file(path.basename(iniPath), fileContent);
-    fileContent = fs.readFileSync(keyPath);
-    zip.file(path.basename(keyPath), fileContent);
-    fileContent = fs.readFileSync(dbName);
-    zip.file(dbName, fileContent);
+      fileContent = fs.readFileSync(iniPath);
+      zip.file(path.basename(iniPath), fileContent);
+      fileContent = fs.readFileSync(keyPath);
+      zip.file(path.basename(keyPath), fileContent);
+      fileContent = fs.readFileSync(dbName);
+      zip.file(dbName, fileContent);
   }
   zip.generateAsync({
-    type: 'nodebuffer',
-    compression: 'DEFLATE',
-    compressionOptions: {
-      level: 5  /** 压缩比 0-9 低到高 */
-    }
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: {
+          level: 5  /** 压缩比 0-9 低到高 */
+      }
   }).then(function (content) {
-    // see FileSaver.js
-    cbFun(content)
+      // see FileSaver.js
+      cbFun(content)
   });
 }
 // 打包配置文件
@@ -653,30 +652,6 @@ async function zipUpload(req, res) {
   }
   console.log(hash)
   res.send(JSON.stringify(hash));
-}
-// 启动定时生成共享文件 shareDbPath shareDbName shareDbHour
-function autoShare() {
-  let hour = parseInt(config.common.shareDbHour)
-  setInterval(() => {
-
-  }, 60 * 1000); // 1分钟检查一次
-}
-// 需要记录 已经解压的文件清单时间，如果变化才重新解压覆盖
-let sharedDbsInfo = {
-  // 'fileName':{time:111}
-}
-function autoShareCore() {
-  let shareFileName = ''
-  // 将当前 records.db 按规范名称压缩
-  zipCore(function (content) {
-    // see FileSaver.js
-    fs.writeFileSync(shareFileName, content);
-  }, true)
-  // 解压已有共享文件到目录 系统安装目录的 /dbs 下 dbsPath
-  let sharePath = path.resolve(__dirname, config.common.shareDbPath)
-  // 读取 dbsPath 的全部文件列表
-  let zipInfo = getFilesInfo(sharePath, '.zip')
-  // 循环判断是否需要解压
 }
 
 /**
@@ -807,5 +782,5 @@ async function getDbsFun(req, res) {
 
 module.exports = {
   startUp, getParaFun, setParaFun, app, dataFun, exitFun, sendPCInfo, saveLastData, optKeymapFun,
-  deleteDataFun, zipDownload, zipUpload, getMajorVersion, getDbsFun
+  deleteDataFun, zipDownload, zipUpload, getMajorVersion, getDbsFun,config,zipCore,unZipCore
 };

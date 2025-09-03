@@ -3,12 +3,13 @@ const http = require('http');
 const multer = require('multer');
 const express = require('express')
 const path = require('path');
-
+const { fork } = require('child_process');
 const { getRecords, getHistoryDate, statData, getMinuteRecords,cleanErrAppStat } = require('./records');
 const { strVersion } = require('./version');
 
 const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData,
     optKeymapFun, deleteDataFun, zipDownload, zipUpload,getMajorVersion,getDbsFun } = require('./common');
+const {autoShare} =require('./shareDb')
 
 function server() {
     //app.use(express.text());
@@ -99,6 +100,8 @@ function main(){
     } else {
         //console.log('未传入实际参数。');
         server()  // 默认启用服务
+        // 进行备份和共享
+        autoShare()
     }
 }
 
