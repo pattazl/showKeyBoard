@@ -15,6 +15,7 @@
 9. Display the status of control keys/status keys in real-time, including the status of the Caps Lock, Scroll Lock, Num Lock keys, as well as the Ctrl, Shift, and Alt keys.
 10. Show the last N keystrokes (not saved)
 11. Support gamepad joystick and button detection.
+12. Support the synchronization of multiple device records through third-party tools (FreeFileSync is recommended)
 
 ## System Requirements
 
@@ -39,16 +40,22 @@ Follow the prompts to select during installation, such as whether to keep the co
 
 **Note**:
 1. Due to the use of system hooks, some computers may report viruses by mistake and need to be trusted.
-
 2. On some systems, you may need to run in administrator mode, otherwise showKeyBoard will not be able to listen to the keys
-
 3. Some companies may have installed encryption software, which will encrypt the configuration files, causing all parameters to become invalid. In this case, you can rename `./httpdist/dist/node.exe` in the installation directory to `./httpdist/dist/chrome.exe`, and modify the `showKeyBoard.ini` file in the installation directory by adding the parameter `serverExecName=./httpdist/dist/chrome.exe`.
-
 4. If the system time is incorrect, for example, the time of a certain day changes to N years later, it may lead to the loss of application usage duration data. Please run the `fixStat修复统计数据.bat` file in the installation directory. 
 
-   
+### Synchronization
+Here is an example of FreeFileSync synchronization FTP
 
-   分享
+1. First set the directory where shared files are saved. The default directory is share in the installation directory
+2. Configure synchronization between local share and FTP server in FreeFileSync, and generate the synchronization file as ffs_batch file, such as Keyboard.ffs_batch
+3. Set the **Interval hours for generating shared files** to indicate how often local records are packaged
+4. Set the command to be automatically executed after packaging. If FreeFileSync is installed, you can directly execute the ffs_batch file. For example, the command can be configured as Keyboard.ffs_batch above
+5. The share name defaults to the computer name, which can be changed by itself and will be displayed in the history and statistics module
+6. The system will check the files in the shared file directory every minute and decompress them to the **dbs** directory. If there are updates, they will be decompressed again
+7. In the history and statistics module, you can select and view the records of other devices after local decompression
+
+分享
 
 ## Screenshot
 

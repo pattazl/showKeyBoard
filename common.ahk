@@ -138,6 +138,11 @@ ReadAllIni() {
 
     global recordHistoryMax,recordHistoryMax := DescRead("common", "recordHistoryMax", "50")
 
+    global shareDbPath,shareDbPath := DescRead("common", "shareDbPath", "")
+    global shareDbName,shareDbName := DescRead("common", "shareDbName", "")
+    global shareDbHour,shareDbHour := DescRead("common", "shareDbHour", "")
+    global shareDbExec,shareDbExec := DescRead("common", "shareDbExec", "")
+
     ; 配置参数
     global guiWidth,guiWidth := DescRead("dialog", "guiWidth", 300) ; 宽度
     global guiHeigth,guiHeigth := DescRead("dialog", "guiHeigth", 0) ;高度 0 为自动高度

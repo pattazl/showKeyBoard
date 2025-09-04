@@ -6,6 +6,33 @@ if(needRecordKey=1){
 	; 启动可能需要花费一些时间,CheckServer进行重复判断
 	CheckServer()
 }
+; 定义哪些变量是重要变量，发生改变后返回true
+CriticalChange(){
+    importantList := [ 
+        [serverPort,"common","serverPort"],
+        [remoteType,"common","remoteType"],
+        [showHttpDebug,"common","showHttpDebug"],
+        [joyMethod,"common","joyMethod"],
+        [shareDbPath,"common","shareDbPath"],
+        [shareDbName,"common","shareDbName"],
+        [shareDbHour,"common","shareDbHour"],
+        [shareDbExec,"common","shareDbExec"],
+    ]
+    for index, item in importantList {
+        ; 解析数组项：[变量值, 节名, 键名]
+        currentValue := item[1]
+        section := item[2]
+        key := item[3]
+        ; 从INI文件读取值
+        iniValue := IniRead(IniFile,section, key, "")
+        ; 比较值是否一致（注意类型转换问题）
+        if (currentValue != iniValue) {
+            ; 发现不一致，返回true
+            return true
+        }
+    }
+    return false
+}
 ; 设置检测间隔，单位为毫秒
 ; SetTimer IniMonitor,2000 ; websoket 代替
 ; 此函数改为重新读取参数配置文件参数
@@ -14,14 +41,10 @@ IniMonitor(reloadAll){
     if not FileExist(IniFile){
         return
     }
-    ; modified := FileGetTime(IniFile)
-    ; if (modified != lastModified)
     ; 如果端口发生了变化则需要完全重启
     ; OutputDebug('AHK IniMonitor') 
-    newPort :=IniRead(IniFile,"common","serverPort",9900 )
-    newRemoteType :=IniRead(IniFile,"common","remoteType",1 )
-    newShowHttpDebug :=IniRead(IniFile,"common","showHttpDebug",0 )
-    if newPort != serverPort || newRemoteType != remoteType || newShowHttpDebug != showHttpDebug
+    ; 核心的，需要重启前后台服务的变量控制
+    if CriticalChange()
     {
         ExitServer()
         if serverState = 1 {

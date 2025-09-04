@@ -14,7 +14,7 @@ function autoShare() {
     let hour = config.common.shareDbHour
     if (hour > 0) {
         autoShareCore()
-        setInterval(autoShareCore, 10000); // 10s定时检查
+        setInterval(autoShareCore, 60000); // 每分钟定时检查
     }
 }
 // 需要记录 已经解压的文件清单时间，如果变化才重新解压覆盖
@@ -61,9 +61,9 @@ async function autoShareCore() {
                 doExec(cmdLine)
             }
         }, true)
-        // 解压共享文件
-        await unzipShared(shareFilePath)
     }
+    // 解压共享文件
+    await unzipShared(shareFilePath)
 }
 
 async function unzipShared(shareFilePath) {
@@ -155,7 +155,9 @@ function doExec(command)
 {
   // 开启子进程执行命令
   console.log(`${new Date()}-exec command: ${command}`);
-  const child = exec(command, (error, stdout, stderr) => {
+  const child = exec(command, { 
+    cwd: basePath
+  }, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error.message}`);
       return;
