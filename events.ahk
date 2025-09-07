@@ -23,10 +23,11 @@ CriticalChange(){
         currentValue := item[1]
         section := item[2]
         key := item[3]
-        ; 从INI文件读取值
-        iniValue := IniRead(IniFile,section, key, "")
-        ; 比较值是否一致（注意类型转换问题）
-        if (currentValue != iniValue) {
+        ; 从INI文件读取值 
+        defaultVal := "QGW60WDunrtgQXae" ; 随机不可能出现的数
+        iniValue := IniRead(IniFile,section, key, defaultVal)
+        ; 存在值，比较值是否一致（注意类型转换问题）
+        if ( iniValue!=defaultVal && currentValue != iniValue) {
             ; 发现不一致，返回true
             return true
         }
