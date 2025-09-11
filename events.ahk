@@ -241,6 +241,7 @@ AutoSendData()
     }
 }
 
+SetTimer(AutoSendData,30000) ; 30秒提交一次，防止30秒内无任何按键，从而不发送数据，无法统计分钟数据
 ; 发送退出数据
 ExitServer()
 {
