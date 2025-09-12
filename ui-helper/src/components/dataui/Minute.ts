@@ -100,6 +100,9 @@ let optDuration = {
   },
   tooltip: {
     trigger: 'item',
+    confine: true, // 防止tooltip溢出图表
+    // 关键样式：限制宽度并自动换行
+    extraCssText: 'max-width: 400px; white-space: normal; word-wrap: break-word;',
     formatter: function (params) {
       // 'Click to show detail <br/>{b}: {c} ({d}%)'  // percent name value
       let strHours = Math.floor(params.value / 60) + ' hours ' + (params.value % 60).toFixed(1) + ' minutes'

@@ -617,7 +617,10 @@ export default defineComponent({
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
       dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey,allKey,keyStatHash)
-      recordHistory.value = (keyStatHash['recordHistory']??[]).join('➡️');
+      let tempArr = keyStatHash['recordHistory']??[];
+      if(Array.isArray(tempArr)){
+        recordHistory.value = tempArr.join('➡️');
+      }
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {
         let pixel = keyStatHash['mouseDistance']; //获取像素移动距离
