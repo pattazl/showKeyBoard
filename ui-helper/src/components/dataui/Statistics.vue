@@ -9,6 +9,7 @@
 				<n-anchor-link :title="contentText.intro152" href="#intro152" />
 				<n-anchor-link :title="contentText.intro153" href="#intro153" />
 				<n-anchor-link :title="contentText.intro154" href="#intro154" />
+				<n-anchor-link :title="contentText.intro211" href="#intro211" />
 			</n-anchor>
 		</div>
 		<n-space vertical class="fixedSelect">
@@ -47,6 +48,9 @@
 			</n-card>
 			<n-card id="intro154" :title="contentText.intro154 + ':' + appTopN">
 				<div id="main5" style="height: 300px; min-width: 800px;width:95%;"></div>
+			</n-card>
+			<n-card id="intro211" :title="contentText.intro211 + ':' + appTopN">
+				<div id="main7" style="height: 600px; min-width: 800px;width:95%;"></div>
 			</n-card>
 		</n-space>
 	</div>
@@ -201,7 +205,7 @@ option[5] = deepCopy(option[2])
 // 	return [ echarts.time.format(startDate, '{yyyy}-{MM}-{dd}', false),
 //     echarts.time.format(endDate, '{yyyy}-{MM}-{dd}', false) ]
 // }
-
+// 日历热力图
 option[6] = {
 	title: {
 		top: 30,
@@ -242,6 +246,122 @@ option[6] = {
 		coordinateSystem: 'calendar',
 		data: []
 	}
+}
+// 堆叠面积图
+
+option[7] = {
+  grid: {
+  	left: 50, 
+  	right: 50, 
+  },
+  title: {
+    text: ''
+  },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: {
+      type: 'cross',
+      label: {
+        backgroundColor: '#6a7985'
+      }
+    }
+  },
+  legend: {
+    data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine']
+  },
+  toolbox: {
+    feature: {
+      saveAsImage: {}
+    }
+  },
+  xAxis: [
+    {
+      type: 'category',
+      boundaryGap: false,
+      // data: ['2021', '2022', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    }
+  ],
+  yAxis: [
+    {
+      type: 'value'
+    }
+  ],
+  series: [
+    {
+      name: 'Email',
+      type: 'line',
+      stack: 'Total',
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [120, 132, 101, 134, 90, 230, 210]
+    },
+    {
+      name: 'Union Ads',
+      type: 'line',
+      stack: 'Total',
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [220, 182, 191, 234, 290, 330, 310]
+    },
+     {
+      name: 'Email',
+      type: 'line',
+      stack: 'Total',
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [120, 132, 101, 134, 90, 230, 210]
+    },
+    {
+      name: 'Union Ads',
+      type: 'line',
+      stack: 'Total',
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [220, 182, 191, 234, 290, 330, 310]
+    },
+    {
+      name: 'Video Ads',
+      type: 'line',
+      stack: 'Total',
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [150, 232, 201, 154, 190, 330, 410]
+    },
+    {
+      name: 'Direct',
+      type: 'line',
+      stack: 'Total',
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [320, 332, 301, 334, 390, 330, 320]
+    },
+    {
+      name: 'Search Engine',
+      type: 'line',
+      stack: 'Total',
+      label: {
+        show: true,
+        position: 'top'
+      },
+      areaStyle: {},
+      emphasis: {
+        focus: 'series'
+      },
+      data: [820, 932, 901, 934, 1290, 1330, 1320]
+    }
+  ]
 }
 export default defineComponent({
 	name: 'Message',
@@ -330,8 +450,13 @@ export default defineComponent({
 					})
 				}
 				option.forEach(x => {
-					if(x.xAxis!=null)
-					x.xAxis.data = dateArr
+					if(x.xAxis!=null){
+						if( Array.isArray(x.xAxis)){
+							x.xAxis[0].data = dateArr
+						}else{
+							x.xAxis.data = dateArr
+						}
+					}
 				})
 				// 设置	
 				dateArr.forEach(x => {
@@ -436,7 +561,7 @@ export default defineComponent({
 			}
 		}
 		onMounted(async () => {
-			for (let i = 0; i < 7; i++) {
+			for (let i = 0; i < 8; i++) {
 				chartDom[i] = document.getElementById('main' + i);
 				myChart[i] = echarts.init(chartDom[i], store.myTheme);
 			}
@@ -460,6 +585,8 @@ export default defineComponent({
 			myChart[0].setOption(option[0], true);
 			myChart[1].setOption(option[1], true);
 			myChart[6].setOption(option[6], true);
+
+			// myChart[7].setOption(option[6], true); // 需要使用 堆叠面积图
 		});
 		watch(() => store.myTheme, (newValue, oldValue) => {
 			myChart.forEach((v, i) => {

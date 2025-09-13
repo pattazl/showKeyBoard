@@ -242,6 +242,7 @@ export default {
 	intro208_1: '可用于备份完成后执行相关命令，将自动处理其他设备的新文件',
 	intro209: '请选择数据源',
 	intro210: '本地数据',
+	intro211: '应用时长显示TOP N',
 
   },
   'en-US': {
@@ -488,5 +489,6 @@ export default {
 	intro208_1: 'Can be used to execute relevant commands after backup completion, and will automatically process new files from other devices',
 	intro209: 'Data Source',
 	intro210: 'Local Data',
+	intro211: 'App time TOP N',
   }
 };
