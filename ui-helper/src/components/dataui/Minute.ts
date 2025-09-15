@@ -283,7 +283,7 @@ function setChartByHour(data, charts) {
 // 设置时长相关界面和功能
 function setChartByDura() {
   let hash = {} // 记录APP的出现次数，既为分钟数
-  let firstMinuteDate = '9999-99-99' // 分钟数据的第一天，需要和小时数据结合起来
+  let firstMinuteDate = '' // 分钟数据的第一天，需要和小时数据结合起来
   let hashMinites = {} // 用于计算每分钟的应用数量，从而统计分钟占比
   lastAppData.forEach(x => {
     let minute = x.Minute

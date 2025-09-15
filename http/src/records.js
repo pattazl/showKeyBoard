@@ -54,7 +54,7 @@ async function insertData(records) {
   // 将record 中的所有键值 插入数据
   let arr = []
   for (let k in records) {
-    if (k != 'tick') {
+    if (k != 'tick' && typeof records[k] == 'number') {
       arr.push({
         name: k,
         count: records[k],
