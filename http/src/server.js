@@ -4,7 +4,7 @@ const multer = require('multer');
 const express = require('express')
 const path = require('path');
 const { fork } = require('child_process');
-const { getRecords, getHistoryDate, statData, getMinuteRecords,cleanErrAppStat } = require('./records');
+const { getRecords, getHistoryDate, statData, getMinuteRecords,cleanErrAppStat,getAppMinute } = require('./records');
 const { strVersion } = require('./version');
 
 const { startUp, getParaFun, setParaFun, app, exitFun, dataFun, sendPCInfo, saveLastData,
@@ -80,6 +80,12 @@ function server() {
 
     // 获取其他数据库清单
     app.post('/getDbs', getDbsFun);
+
+    // 获取应用分钟使用数据
+    app.post('/getAppMinute', async (req, res) => {
+          let arr = await getAppMinute(req.body?.beginDate, req.body?.endDate,req.body?.isTotal, req.body?.db)
+          res.send(JSON.stringify(arr))
+      });
     //  直接启动
     startUp()
 }

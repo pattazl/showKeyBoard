@@ -243,6 +243,7 @@ export default {
 	intro209: '请选择数据源',
 	intro210: '本地数据',
 	intro211: '应用时长显示TOP N',
+	intro212: '每日使用时长',
 
   },
   'en-US': {
@@ -490,5 +491,6 @@ export default {
 	intro209: 'Data Source',
 	intro210: 'Local Data',
 	intro211: 'App time TOP N',
+	intro212: 'Daily Usage Duration',
   }
 };

@@ -5,7 +5,7 @@ import { defineComponent, onMounted, PropType, ref, computed, h, watch, onUnmoun
 import { useMessage, NTag } from 'naive-ui'
 // 引入 echarts 核心模块，核心模块提供了 echarts 使用必须要的接口。
 import * as echarts from 'echarts/core';
-import { deepCopy, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax } from '@/common';
+import { deepCopy, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax,minute2Hour } from '@/common';
 
 let appNameListMap = {}  // 由外部数据改变
 let optByMinute = {
@@ -105,8 +105,8 @@ let optDuration = {
     extraCssText: 'max-width: 400px; white-space: normal; word-wrap: break-word;',
     formatter: function (params) {
       // 'Click to show detail <br/>{b}: {c} ({d}%)'  // percent name value
-      let strHours = Math.floor(params.value / 60) + ' hours ' + (params.value % 60).toFixed(1) + ' minutes'
-      return `${params.name} <br/> ${params.value} [${strHours}] (${params.percent}%) <span style='color:blue'>Click to show detail<span>`
+      let strHours = minute2Hour(params.value)
+      return `${params.name} <br/> ${params.value} ${strHours} (${params.percent}%) <span style='color:blue'>Click to show detail<span>`
     }
   },
   legend: {

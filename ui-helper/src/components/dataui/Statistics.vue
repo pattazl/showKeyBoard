@@ -10,6 +10,7 @@
 				<n-anchor-link :title="contentText.intro153" href="#intro153" />
 				<n-anchor-link :title="contentText.intro154" href="#intro154" />
 				<n-anchor-link :title="contentText.intro211" href="#intro211" />
+				<n-anchor-link :title="contentText.intro212" href="#intro212" />
 			</n-anchor>
 		</div>
 		<n-space vertical class="fixedSelect">
@@ -52,6 +53,9 @@
 			<n-card id="intro211" :title="contentText.intro211 + ':' + appTopN">
 				<div id="main7" style="height: 600px; min-width: 800px;width:95%;"></div>
 			</n-card>
+			<n-card id="intro212" :title="contentText.intro212">
+				<div id="main8" style="height: 300px; min-width: 800px;width:95%;"></div>
+			</n-card>
 		</n-space>
 	</div>
 </template>
@@ -72,7 +76,7 @@ import {
 	GridComponent,
 	LegendComponent
 } from 'echarts/components';
-import { LineChart } from 'echarts/charts';
+import { LineChart,BarChart } from 'echarts/charts';
 import { UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 
@@ -83,14 +87,14 @@ echarts.use([
 	GridComponent,
 	LegendComponent,
 	LineChart,
+	BarChart,
 	CanvasRenderer,
 	UniversalTransition,
 	CalendarComponent
 ]);
 
-import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener,getDbs,setDbSel } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener,getDbs,setDbSel,minute2Hour } from '@/common';
 import content from '../../content.js';
-let option = []; // 用数组代替
 // 大数值格式化函数：转换为万/百万/亿单位
 function formatLargeNumber(value) {
 	if (value >= 10000) {
@@ -98,6 +102,8 @@ function formatLargeNumber(value) {
 	}
 	return value; // 小于1万直接显示
 }
+let option = []; // 用数组代替
+let optionCount = 9
 option[0] = {
 	grid: {
 		left: 50, 
@@ -184,6 +190,7 @@ option[2] = {
 option[3] = deepCopy(option[2])
 option[4] = deepCopy(option[2])
 option[5] = deepCopy(option[2])
+
 // 热力图，有数据差异
 // function initHeatDateRange() {
 // let endDate , startDate 
@@ -254,115 +261,64 @@ option[7] = {
   	left: 50, 
   	right: 50, 
   },
+  legend: {
+    show: false
+  },
+  yAxis: {
+    type: 'value'
+  },
+  xAxis: {
+    type: 'category',
+	// boundaryGap: false,
+    data: []
+  },
   title: {
     text: ''
-  },
-  tooltip: {
-    trigger: 'axis',
-    axisPointer: {
-      type: 'cross',
-      label: {
-        backgroundColor: '#6a7985'
-      }
-    }
-  },
-  legend: {
-    data: ['Email', 'Union Ads', 'Video Ads', 'Direct', 'Search Engine']
   },
   toolbox: {
     feature: {
       saveAsImage: {}
     }
   },
-  xAxis: [
-    {
-      type: 'category',
-      boundaryGap: false,
-      // data: ['2021', '2022', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    }
-  ],
-  yAxis: [
-    {
-      type: 'value'
-    }
-  ],
-  series: [
-    {
-      name: 'Email',
-      type: 'line',
-      stack: 'Total',
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [120, 132, 101, 134, 90, 230, 210]
-    },
-    {
-      name: 'Union Ads',
-      type: 'line',
-      stack: 'Total',
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [220, 182, 191, 234, 290, 330, 310]
-    },
-     {
-      name: 'Email',
-      type: 'line',
-      stack: 'Total',
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [120, 132, 101, 134, 90, 230, 210]
-    },
-    {
-      name: 'Union Ads',
-      type: 'line',
-      stack: 'Total',
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [220, 182, 191, 234, 290, 330, 310]
-    },
-    {
-      name: 'Video Ads',
-      type: 'line',
-      stack: 'Total',
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [150, 232, 201, 154, 190, 330, 410]
-    },
-    {
-      name: 'Direct',
-      type: 'line',
-      stack: 'Total',
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [320, 332, 301, 334, 390, 330, 320]
-    },
-    {
-      name: 'Search Engine',
-      type: 'line',
-      stack: 'Total',
-      label: {
-        show: true,
-        position: 'top'
-      },
-      areaStyle: {},
-      emphasis: {
-        focus: 'series'
-      },
-      data: [820, 932, 901, 934, 1290, 1330, 1320]
-    }
-  ]
+  series: [],
+  tooltip: {
+         trigger: 'axis', // 触发类型：按坐标轴触发（堆叠图推荐）
+         axisPointer: { type: 'shadow' }, // 鼠标悬浮时显示阴影指示器
+		 extraCssText: 'max-width: 400px; white-space: normal; word-wrap: break-word;',
+         // 自定义提示内容格式
+         formatter: function (params) {
+           // params 是当前柱子对应的所有堆叠系列数据数组
+           let tip = `<div>${params[0].name} App Minutes</div>`; // 标题（如“周一 销售额”）
+		   let list = []
+           params.forEach(item => {
+			if(item.value==0)return;// 跳过
+			list.push(`<div style='color:${item.color}'>${item.seriesName}: ${item.value}${minute2Hour(item.value)}</div>`);
+           });
+		   list.reverse()
+           // 计算堆叠总和并添加
+           const total = params.reduce((sum, item) => sum + item.value, 0);
+           tip += `${list.join('')}<div>Total: ${total.toFixed(2)} ${minute2Hour(total)}</div>`;
+           return tip;
+         }
+       },
 }
+option[8] = deepCopy(option[2])
+option[8].tooltip = {
+	trigger: 'axis', // 触发类型：按坐标轴触发（堆叠图推荐）
+	axisPointer: { type: 'shadow' }, // 鼠标悬浮时显示阴影指示器
+	// 自定义提示框内容
+	formatter: function (params) {
+		// 返回提示框HTML内容
+		let min = ~~params[0].value.toFixed(0)
+		return `<div style="font-weight:bold;margin-bottom:5px">${params[0].name}</div><div>${min} ${minute2Hour(min)}</div>`;
+	}
+}
+option[8].series[0] = {
+	name: 'Daily Minutes',
+	type: 'line',
+	data: [120, 132, 101, 134, 90, 230, 210]
+}
+
 export default defineComponent({
 	name: 'Message',
 	props: {
@@ -488,7 +444,6 @@ export default defineComponent({
 				let hash = getKeyData(dateArr, res[2])
 				option[2].series = Object.keys(hash).map(x => hash[x])
 				option[2].legend.data = Object.keys(hash)
-
 				// 对应用进行统计分析 
 				// 对 res[3] 分离出3个数组分别是 汇总，鼠标，键盘
 				let appInfo = [[], [], []];
@@ -535,6 +490,33 @@ export default defineComponent({
 				option[1].legend.data = [contentText.value.intro203,contentText.value.intro204]
 				option[1].series[0].name = contentText.value.intro203
 				option[1].series[1].name = contentText.value.intro204
+
+			   // 需要查询 应用统计时长数据 [{"Apps":"msedge.exe","Date":"2025-09-09","Minutes":161.32}
+			   res = await ajax('getAppMinute', { "beginDate": b, "endDate": e,"isTotal":0 }) //数组，3个内容
+			   // 原始数据（假设从接口获取）
+				const categories = [...new Set(res.map(item => item.Apps))];
+				// 2. 动态构建series数据
+				const series = categories.map(apps => {
+				const data = dateArr.map(date => {
+					// 查找对应日期和分类的值，没有则为0
+					const item = res.find(i => i.Date === date && i.Apps === apps);
+					return item ? item.Minutes : 0;
+					});
+					return {
+						name: apps,
+						type: 'bar',
+						stack: 'total',
+						data: data
+					};
+				});
+				// option[7].legend.data = categories
+				option[7].series = series
+
+				// 需要查询 每日使用数据 [{"Date":"2025-09-09","Minutes":161.32}
+				res = await ajax('getAppMinute', { "beginDate": b, "endDate": e,"isTotal":1 }) //数组，3个内容
+				option[8].xAxis.data = res.map(x=>x.Date)
+				option[8].series[0].data = res.map(x=>x.Minutes)
+				//option[8].legend.data = ['total']
 				// 显示全部图标数据
 				myChart.forEach((v, i) => {
 					v.setOption(option[i], true); // 去除缓存
@@ -542,6 +524,7 @@ export default defineComponent({
 			} else {
 				message.error(contentText.value.intro117)
 			}
+			
 		}
 		async function changeDb(db){
 			setDbSel(db);
@@ -561,7 +544,7 @@ export default defineComponent({
 			}
 		}
 		onMounted(async () => {
-			for (let i = 0; i < 8; i++) {
+			for (let i = 0; i < optionCount; i++) {
 				chartDom[i] = document.getElementById('main' + i);
 				myChart[i] = echarts.init(chartDom[i], store.myTheme);
 			}
@@ -572,6 +555,7 @@ export default defineComponent({
 			dbsOption.value = dbs
 			changeDb('')
 		});
+		// 监控英文切换等
 		watch(() => contentText.value, (newValue, oldValue) => {
 			option[6].title.text =  newValue.intro199
 			option[0].legend.data = [newValue.intro200,newValue.intro201,newValue.intro202]

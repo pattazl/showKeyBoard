@@ -30,7 +30,7 @@ async function ajax(path, data = null) {
   const headers = {
     "Content-Type": "application/json",
   };
-  if( ['getHistoryDate','minuteData','statData'].includes(path)){
+  if( ['getHistoryDate','minuteData','statData','getAppMinute'].includes(path)){
     data = {...data,db:dbSel}
   }
   if (data == null) {
@@ -359,8 +359,21 @@ async function getDbs(dbs){
     })
   }
 }
+// 分钟数变小时数
+function minute2Hour(minutes){
+  let hour = Math.floor( minutes / 60)
+  let mins = minutes % 60;
+  let minInt =  Math.floor(mins)
+  let minStr =  String(minInt).padStart(2,'0')
+  let sec = ((mins - minInt)*60).toFixed(0).padStart(2,'0')
+  if(minutes>60){
+    return `[${hour}:${minStr}:${sec}]`;
+  }else{
+    return `[${minStr}:${sec}]`;
+  }
+}
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener,getDbs,setDbSel
+  dateFormat, timeFormat, addExtListener,getDbs,setDbSel,minute2Hour
 }

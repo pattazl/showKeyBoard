@@ -2,7 +2,7 @@ const dayjs = require('dayjs');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
-const {dbsPath,dbName } =require('./vars')
+const { dbsPath, dbName } = require('./vars')
 let dataSetting = {}
 // 执行查询操作，返回记录集
 function runQuery(db, sql, params) {
@@ -66,8 +66,8 @@ async function insertData(records) {
   const placeholders = arr.map(() => '(?, ? , ? , ?)').join(', ');
   let tickDate = dayjs(new Date(tick)).format('YYYY-MM-DD')  // 需要用记录中的时间作为日期
   // 如果 tickDate 的数据在 stat 中已经出现，说明已经完成过统计，不能再插入数据，否则将导致重复统计
-  let rows = await runQuery(db,`select date from stat where date = '${tickDate}' limit 1 `)
-  if(rows.length>0){
+  let rows = await runQuery(db, `select date from stat where date = '${tickDate}' limit 1 `)
+  if (rows.length > 0) {
     console.error(`Exist rows in ${tickDate}`);
     db.close();
     return 0
@@ -129,9 +129,9 @@ async function insertMiniute(MinuteRecords) {
   db.close();
 }
 
-async function getRecords(begin, end,newDbName) {
+async function getRecords(begin, end, newDbName) {
   const db = getDbObj(newDbName)
-  if( null == db)return []
+  if (null == db) return []
   let strNow = dayjs(new Date()).format('YYYY-MM-DD')
   // 查询记录集
   let arr = [];
@@ -189,8 +189,15 @@ async function doCleanData() {
     let lines = await runExec(db, `delete FROM statFreq where freqType = 0 and date < ? `, [beforeDays])
     console.log('删除分钟统计条数: ', lines)
     // 删除 events 中的旧数据
-    lines = await runExec(db, `delete FROM appFreq where freqType = 0 and date < ? `, [beforeDays])
-    console.log('删除分钟应用条数: ', lines)
+    rows = await runQuery(db, "select date FROM appFreq where freqType = 0 and date < ?  limit 1", [beforeDays]) // 获取 appStat 中最老的数据
+    if (rows.length > 0) {
+      // 将数据转移到 appStat表中
+      lines = mergeAppStat()
+      // 删除旧数据
+      lines = await runExec(db, `delete FROM appFreq where freqType = 0 and date < ? `, [beforeDays])
+      console.log('删除分钟应用条数: ', lines)
+    }
+
     // statFreq 的 小时日期数据小于昨天 则要进行24小时数据整理函数
     rows = await runQuery(db, "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq where freqType = 1", [])
     let maxDate = rows[0].maxDate;
@@ -268,6 +275,7 @@ WHERE NOT EXISTS (
   } catch (err) {
     console.error(err);
   }
+  // 需要将历史app访问记录转移到 appStat 表中
   db.close();
 }
 /*
@@ -291,8 +299,8 @@ async function getDataSetting() {
   rows.forEach(r => {
     dataSetting[r.keyname] = r.val
   })
-  globalTopN = dataSetting.topN??globalTopN
-  globalAppTopN = dataSetting.appTopN??globalAppTopN
+  globalTopN = dataSetting.topN ?? globalTopN
+  globalAppTopN = dataSetting.appTopN ?? globalAppTopN
   return dataSetting
   // 关闭数据库连接
 }
@@ -366,7 +374,7 @@ async function optKeyMap(data) {
 // 获取全部历史天数
 async function getHistoryDate(newDbName) {
   const db = getDbObj(newDbName)
-  if( null == db)return []
+  if (null == db) return []
   // 查询记录集
   let arr = [];
   let sql = 'SELECT date FROM stat group by date order by date desc'
@@ -381,9 +389,9 @@ async function getHistoryDate(newDbName) {
 }
 
 //获取各类统计信息到一个hash中
-async function statData(begin, end,newDbName) {
+async function statData(begin, end, newDbName) {
   const db = getDbObj(newDbName)
-  if( null == db)return []
+  if (null == db) return []
   let pro1 = new Promise((resolve, reject) => {
     // 查询鼠标移动距离
     let sql = "select keycount,date from stat where date between ? and ? and keyname = 'mouseDistance' order by date"
@@ -540,6 +548,20 @@ async function updateDBStruct() {
         `
     await runBatchExec(db, sql);
   }
+  // 自动创建应用时长统计表
+  sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='appStat';"
+  rows = await runQuery(db, sql, [])
+  // 输出记录集
+  if (rows.length == 0) {
+    sql = `CREATE TABLE appStat (
+          appPath TEXT, 
+          minuteCount REAL, 
+          date TEXT
+        );
+        CREATE INDEX appStat_date_IDX ON appStat (date);
+        `
+    await runBatchExec(db, sql);
+  }
   // 关闭数据库连接
   db.close();
 }
@@ -559,9 +581,9 @@ async function getLastMinute() {
 }
 
 // 获取分钟数据
-async function getMinuteRecords(beginDate, endDate, freqType, isApp,newDbName) {
+async function getMinuteRecords(beginDate, endDate, freqType, isApp, newDbName) {
   const db = getDbObj(newDbName)
-  if( null == db)return []
+  if (null == db) return []
   // 查询记录集
   freqType = parseInt(freqType, 10)
   let sqlFreqType = `freqType = ${freqType} ` // 分钟数据
@@ -602,7 +624,7 @@ async function cleanErrStat() {
   delete FROM stat WHERE date in ( select date from statTemp );
   INSERT INTO stat
   select keyname,sum(keycount),date from statTemp group by keyname,date;`
-  await runBatchExec(db,sql);
+  await runBatchExec(db, sql);
   db.close()
 }
 
@@ -640,43 +662,108 @@ DROP TABLE temp_table;
 -- 进行空间收缩
 VACUUM;
 `
-  await runBatchExec(db,sql);
+  await runBatchExec(db, sql);
   console.log('cleanErrAppStat succ!')
   console.log('清理时间异常数据... ')
-  let today =  dayjs(new Date()).format('YYYY-MM-DD')
+  let today = dayjs(new Date()).format('YYYY-MM-DD')
   let lines = await runExec(db, `DELETE FROM statFreq WHERE DATE >  ? `, [today])
   console.log('删除statFreq时间异常条数: ', lines)
   let lines2 = await runExec(db, `DELETE FROM appFreq WHERE DATE >  ? `, [today])
   console.log('删除appFreq时间异常条数: ', lines2)
-  if(lines+lines2 > 0){
+  if (lines + lines2 > 0) {
     console.log('由于之前数据不对，请完全重启服务端 ')
   }
-  
+
   db.close()
-  
+
 }
 // 获取数据库链接对象，如果异常则返回空对象
-function getDbObj(newDbName){
+function getDbObj(newDbName) {
   let currDb = dbName
-  let dbn = (newDbName??'').trim();
-  if(dbn !=''){
+  let dbn = (newDbName ?? '').trim();
+  if (dbn != '') {
     // 如果不为空
-    let dbpath = path.join(dbsPath, newDbName+'.db')
-    if(fs.existsSync(dbpath)){
+    let dbpath = path.join(dbsPath, newDbName + '.db')
+    if (fs.existsSync(dbpath)) {
       currDb = dbpath
-    }else{
+    } else {
       currDb = ''
     }
   }
-  if(currDb ==''){
+  if (currDb == '') {
     return null
-  }else{
+  } else {
     return new sqlite3.Database(currDb);
   }
+}
+// 获取一定时间范围内的应用使用时长数据
+async function getAppMinute(beginDate, endDate, isTotal, newDbName) {
+  const db = getDbObj(newDbName)
+  if (null == db) return []
+  // 查询记录集
+  let arr = []
+  let sql;
+  if (isTotal) {
+    sql = `select sum(minuteCount) as minuteCount,date from appStat where date between ? and ? group by date`
+    try {
+      let rows = await runQuery(db, sql, [beginDate ?? '', endDate ?? ''])
+      rows.forEach(function (row) {
+        arr.push({ "Date": row.date, "Minutes": row.minuteCount });
+      });
+    } catch (error) { }
+  } else {
+    sql = ` WITH ranked_data AS (
+  SELECT 
+    date,
+    appPath,
+    minuteCount,
+    ROW_NUMBER() OVER (
+      PARTITION BY date 
+      ORDER BY minuteCount DESC
+    ) AS rank_num
+  FROM appStat where date between ? and ?
+)
+SELECT date, appPath, minuteCount
+FROM ranked_data
+WHERE rank_num <= ? 
+ORDER BY date;
+  `
+    try {
+      let rows = await runQuery(db, sql, [beginDate ?? '', endDate ?? '', ~~globalAppTopN])
+      rows.forEach(function (row) {
+        arr.push({ "Apps": row.appPath, "Date": row.date, "Minutes": row.minuteCount });
+      });
+    } catch (error) { }
+  }
+  db.close();
+  return arr
+}
+// 将旧的appFreq中的应用时长数据合并到 appStat 中
+async function mergeAppStat() {
+  const db = new sqlite3.Database(dbName);
+  lines = await runExec(db, `insert into appStat(date,appPath,minuteCount)
+    SELECT 
+        date,
+        appPath,
+        ROUND(SUM(1.0 / minute_a_count), 2) AS minuteCount  -- 保留两位小数
+    FROM (
+        -- 子查询：计算每个日期的每分钟内A的数量
+        SELECT 
+            date,
+            appPath,
+            keyTime,
+            COUNT(appPath) OVER (PARTITION BY date, keyTime) AS minute_a_count  -- 同一日期和分钟内A的总数
+        FROM appFreq where date < DATE('now') and date>(select IFNULL(max(date),'1900-01-01') from appStat) and freqType = 0
+    ) AS subquery
+    GROUP BY date, appPath  -- 按日期和A分组汇总
+    `)
+  db.close();
+  console.log('转移分钟应用行数: ', lines)
+  return lines
 }
 
 module.exports = {
   insertData, getRecords, getDataSetting, setDataSetting, getKeymaps, optKeyMap, getHistoryDate,
-  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords,cleanErrStat,
-  cleanErrAppStat
+  statData, deleteData, dbName, updateDBStruct, insertMiniute, getLastMinute, getMinuteRecords, cleanErrStat,
+  cleanErrAppStat, getAppMinute, mergeAppStat
 };
