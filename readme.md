@@ -16,6 +16,7 @@
 10. Show the last N keystrokes (not saved)
 11. Support gamepad joystick and button detection.
 12. Support the synchronization of multiple device records through third-party tools (FreeFileSync is recommended)
+13. Supports historical app usage duration statistics, as well as trend analysis of daily usage duration and app count
 
 ## System Requirements
 
