@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<div style="height: 120px ;margin-right: 90px;float: right;">
+		<div style="height: 120px ;margin-right: 120px;float: right;">
 			<n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false"
 				:ignore-gap="true" type='block' position='fix'>
 				<n-anchor-link :title="contentText.intro114" href="#intro114" />
@@ -76,7 +76,7 @@ import {
 	GridComponent,
 	LegendComponent
 } from 'echarts/components';
-import { LineChart,BarChart } from 'echarts/charts';
+import { LineChart, BarChart } from 'echarts/charts';
 import { UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 
@@ -93,7 +93,7 @@ echarts.use([
 	CalendarComponent
 ]);
 
-import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener,getDbs,setDbSel,minute2Hour } from '@/common';
+import { arrRemove, getHistory, ajax, railStyle, deepCopy, appPath2Name, dateFormat, addExtListener, getDbs, setDbSel, minute2Hour } from '@/common';
 import content from '../../content.js';
 // 大数值格式化函数：转换为万/百万/亿单位
 function formatLargeNumber(value) {
@@ -106,8 +106,8 @@ let option = []; // 用数组代替
 let optionCount = 9
 option[0] = {
 	grid: {
-		left: 50, 
-		right: 50, 
+		left: 50,
+		right: 50,
 	},
 	xAxis: {
 		type: 'category',
@@ -118,7 +118,7 @@ option[0] = {
 		type: 'value',
 		axisLabel: {
 			// 应用格式化函数
-			formatter: function(value) {
+			formatter: function (value) {
 				return formatLargeNumber(value);
 			}
 		}
@@ -134,8 +134,8 @@ option[0] = {
 };
 option[1] = {
 	grid: {
-		left: 50, 
-		right: 50, 
+		left: 50,
+		right: 50,
 	},
 	tooltip: {
 		trigger: 'axis'
@@ -167,8 +167,8 @@ option[1] = {
 };
 option[2] = {
 	grid: {
-		left: 50, 
-		right: 50, 
+		left: 50,
+		right: 50,
 	},
 	xAxis: {
 		type: 'category',
@@ -257,50 +257,49 @@ option[6] = {
 // 堆叠面积图
 
 option[7] = {
-  grid: {
-  	left: 50, 
-  	right: 50, 
-  },
-  legend: {
-    show: false
-  },
-  yAxis: {
-    type: 'value'
-  },
-  xAxis: {
-    type: 'category',
-	// boundaryGap: false,
-    data: []
-  },
-  title: {
-    text: ''
-  },
-  toolbox: {
-    feature: {
-      saveAsImage: {}
-    }
-  },
-  series: [],
-  tooltip: {
-         trigger: 'axis', // 触发类型：按坐标轴触发（堆叠图推荐）
-         axisPointer: { type: 'shadow' }, // 鼠标悬浮时显示阴影指示器
-		 extraCssText: 'max-width: 400px; white-space: normal; word-wrap: break-word;',
-         // 自定义提示内容格式
-         formatter: function (params) {
-           // params 是当前柱子对应的所有堆叠系列数据数组
-           let tip = `<div>${params[0].name} App Minutes</div>`; // 标题（如“周一 销售额”）
-		   let list = []
-           params.forEach(item => {
-			if(item.value==0)return;// 跳过
-			list.push(`<div style='color:${item.color}'>${item.seriesName}: ${item.value}${minute2Hour(item.value)}</div>`);
-           });
-		   list.reverse()
-           // 计算堆叠总和并添加
-           const total = params.reduce((sum, item) => sum + item.value, 0);
-           tip += `${list.join('')}<div>Total: ${total.toFixed(2)} ${minute2Hour(total)}</div>`;
-           return tip;
-         }
-       },
+	grid: {
+		left: 50,
+		right: 50,
+	},
+	legend: {
+		show: true,
+		formatter: function(name) {
+			return name.replace(/\//g,'\\').split('\\').pop(); // 只去执行文件名
+		}
+	},
+	yAxis: {
+		type: 'value'
+	},
+	xAxis: {
+		type: 'category',
+		boundaryGap: false,
+		data: []
+	},
+	title: {
+		text: ''
+	},
+	series: [],
+	tooltip: {
+		trigger: 'axis', // 触发类型：按坐标轴触发（堆叠图推荐）
+		axisPointer: { type: 'shadow' }, // 鼠标悬浮时显示阴影指示器
+		extraCssText: 'max-width: 400px; white-space: normal; word-wrap: break-word;',
+		// 自定义提示内容格式
+		formatter: function (params) {
+			// params 是当前柱子对应的所有堆叠系列数据数组
+			let tip = `<div>${params[0].name} App Minute</div>`;
+			let list = []
+			params.forEach(item => {
+				if (item.value == 0) return;// 跳过
+				list.push(`<div style='color:${item.color}'>${item.seriesName}: ${item.value}${minute2Hour(item.value)}</div>`);
+			});
+			list.reverse()
+			tip += list.join('')
+			// 计算堆叠总和并添加
+			const total = params.reduce((sum, item) => sum + item.value, 0);
+			tip += `<div>Total: ${total.toFixed(2)} ${minute2Hour(total)}</div>`;
+			return tip
+		}
+	},
 }
 option[8] = deepCopy(option[2])
 option[8].tooltip = {
@@ -308,15 +307,14 @@ option[8].tooltip = {
 	axisPointer: { type: 'shadow' }, // 鼠标悬浮时显示阴影指示器
 	// 自定义提示框内容
 	formatter: function (params) {
-		// 返回提示框HTML内容
-		let min = ~~params[0].value.toFixed(0)
-		return `<div style="font-weight:bold;margin-bottom:5px">${params[0].name}</div><div>${min} ${minute2Hour(min)}</div>`;
+		let tip = `<div>${params[0].name} Daily Info</div>`;
+		let list = []
+		let min = params[0].value.toFixed(0)
+		list.push(`<div style='color:${params[0].color}'>${params[0].seriesName}: ${min}${minute2Hour(~~min)}</div>`);
+		list.push(`<div style='color:${params[1].color}'>${params[1].seriesName}: ${params[1].value}</div>`);
+		tip += list.join('')
+		return tip;
 	}
-}
-option[8].series[0] = {
-	name: 'Daily Minutes',
-	type: 'line',
-	data: [120, 132, 101, 134, 90, 230, 210]
 }
 
 export default defineComponent({
@@ -406,11 +404,21 @@ export default defineComponent({
 					})
 				}
 				option.forEach(x => {
-					if(x.xAxis!=null){
-						if( Array.isArray(x.xAxis)){
+					if (x.xAxis != null) {
+						if (Array.isArray(x.xAxis)) {
 							x.xAxis[0].data = dateArr
-						}else{
+						} else {
 							x.xAxis.data = dateArr
+						}
+					}
+					// 每个图都增加默认按钮
+					if(x.toolbox==null){
+						x.toolbox = {
+							feature: {
+								restore: { show: true }, // 复位按钮
+								dataView: { show: true }, // 数据视图按钮
+								saveAsImage: {}
+							}
 						}
 					}
 				})
@@ -432,13 +440,13 @@ export default defineComponent({
 				option[1].series[1].data = kbArr
 				// 对鼠标键盘合计相加形成热力图数据
 				let heatMax = 0 // 最大计数
-				let heatRange = ['9999','']
-				let heatArr = dateArr.map((x,i) => {
+				let heatRange = ['9999', '']
+				let heatArr = dateArr.map((x, i) => {
 					let count = mouseArr[i] + kbArr[i]
-					heatMax = Math.max(heatMax,count)
-					heatRange[0] = x < heatRange[0]?x:heatRange[0]
-					heatRange[1] = x > heatRange[1]?x:heatRange[1]
-					return [x,count] 
+					heatMax = Math.max(heatMax, count)
+					heatRange[0] = x < heatRange[0] ? x : heatRange[0]
+					heatRange[1] = x > heatRange[1] ? x : heatRange[1]
+					return [x, count]
 				})
 
 				let hash = getKeyData(dateArr, res[2])
@@ -483,28 +491,29 @@ export default defineComponent({
 				option[6].series.data = heatArr
 				option[6].calendar.range = heatRange
 				// 提示说明
-				option[0].legend.data = [contentText.value.intro200,contentText.value.intro201,contentText.value.intro202]
+				option[0].legend.data = [contentText.value.intro200, contentText.value.intro201, contentText.value.intro202]
 				option[0].series[0].name = contentText.value.intro200
 				option[0].series[1].name = contentText.value.intro201
 				option[0].series[2].name = contentText.value.intro202
-				option[1].legend.data = [contentText.value.intro203,contentText.value.intro204]
+				option[1].legend.data = [contentText.value.intro203, contentText.value.intro204]
 				option[1].series[0].name = contentText.value.intro203
 				option[1].series[1].name = contentText.value.intro204
 
-			   // 需要查询 应用统计时长数据 [{"Apps":"msedge.exe","Date":"2025-09-09","Minutes":161.32}
-			   res = await ajax('getAppMinute', { "beginDate": b, "endDate": e,"isTotal":0 }) //数组，3个内容
-			   // 原始数据（假设从接口获取）
+				// 需要查询 应用统计时长数据 [{"Apps":"msedge.exe","Date":"2025-09-09","Minutes":161.32}
+				res = await ajax('getAppMinute', { "beginDate": b, "endDate": e, "isTotal": 0 }) //数组，3个内容
+				// 原始数据（假设从接口获取）
 				const categories = [...new Set(res.map(item => item.Apps))];
 				// 2. 动态构建series数据
 				const series = categories.map(apps => {
-				const data = dateArr.map(date => {
-					// 查找对应日期和分类的值，没有则为0
-					const item = res.find(i => i.Date === date && i.Apps === apps);
-					return item ? item.Minutes : 0;
+					const data = dateArr.map(date => {
+						// 查找对应日期和分类的值，没有则为0
+						const item = res.find(i => i.Date === date && i.Apps === apps);
+						return item ? item.Minutes : 0;
 					});
 					return {
 						name: apps,
-						type: 'bar',
+						type: 'line',  // 堆叠图
+						areaStyle: {}, // 堆叠图
 						stack: 'total',
 						data: data
 					};
@@ -513,9 +522,19 @@ export default defineComponent({
 				option[7].series = series
 
 				// 需要查询 每日使用数据 [{"Date":"2025-09-09","Minutes":161.32}
-				res = await ajax('getAppMinute', { "beginDate": b, "endDate": e,"isTotal":1 }) //数组，3个内容
-				option[8].xAxis.data = res.map(x=>x.Date)
-				option[8].series[0].data = res.map(x=>x.Minutes)
+				res = await ajax('getAppMinute', { "beginDate": b, "endDate": e, "isTotal": 1 }) //数组，3个内容
+				option[8].xAxis.data = res.map(x => x.Date)
+				option[8].series[0] = {
+					name: 'Daily Minutes',
+					type: 'line', smooth: true,
+					data: res.map(x => x.Minutes)
+				}
+				option[8].series[1] = {
+					name: 'App Count',
+					type: 'line', smooth: true,
+					data: res.map(x => x.AppCount)
+				}
+
 				//option[8].legend.data = ['total']
 				// 显示全部图标数据
 				myChart.forEach((v, i) => {
@@ -524,9 +543,9 @@ export default defineComponent({
 			} else {
 				message.error(contentText.value.intro117)
 			}
-			
+
 		}
-		async function changeDb(db){
+		async function changeDb(db) {
 			setDbSel(db);
 			// 设置下拉选择
 			let dateArr = await ajax('getHistoryDate')
@@ -550,19 +569,19 @@ export default defineComponent({
 			}
 			addExtListener(myChart);
 			// 需要增加多个数据源的选择
-			let dbs = [{label:contentText.value.intro210,value:''}]
+			let dbs = [{ label: contentText.value.intro210, value: '' }]
 			await getDbs(dbs)
 			dbsOption.value = dbs
 			changeDb('')
 		});
 		// 监控英文切换等
 		watch(() => contentText.value, (newValue, oldValue) => {
-			option[6].title.text =  newValue.intro199
-			option[0].legend.data = [newValue.intro200,newValue.intro201,newValue.intro202]
+			option[6].title.text = newValue.intro199
+			option[0].legend.data = [newValue.intro200, newValue.intro201, newValue.intro202]
 			option[0].series[0].name = newValue.intro200
 			option[0].series[1].name = newValue.intro201
 			option[0].series[2].name = newValue.intro202
-			option[1].legend.data = [newValue.intro203,newValue.intro204]
+			option[1].legend.data = [newValue.intro203, newValue.intro204]
 			option[1].series[0].name = newValue.intro203
 			option[1].series[1].name = newValue.intro204
 

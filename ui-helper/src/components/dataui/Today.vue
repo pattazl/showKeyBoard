@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div style="height: 120px ;margin-right: 90px;float: right;">
+    <div style="height: 120px ;margin-right: 120px;float: right;">
       <n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false" :ignore-gap="true"
         type='block' position='fix'>
         <n-anchor-link :title="contentText.intro86" href="#intro86" />

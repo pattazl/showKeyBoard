@@ -704,11 +704,11 @@ async function getAppMinute(beginDate, endDate, isTotal, newDbName) {
   let arr = []
   let sql;
   if (isTotal) {
-    sql = `select sum(minuteCount) as minuteCount,date from appStat where date between ? and ? group by date`
+    sql = `select sum(minuteCount) as minuteCount,date,count(1) as appCount from appStat where date between ? and ? group by date`
     try {
       let rows = await runQuery(db, sql, [beginDate ?? '', endDate ?? ''])
       rows.forEach(function (row) {
-        arr.push({ "Date": row.date, "Minutes": row.minuteCount });
+        arr.push({ "Date": row.date, "Minutes": row.minuteCount, "AppCount": row.appCount });
       });
     } catch (error) { }
   } else {

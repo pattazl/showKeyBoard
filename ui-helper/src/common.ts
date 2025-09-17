@@ -30,8 +30,8 @@ async function ajax(path, data = null) {
   const headers = {
     "Content-Type": "application/json",
   };
-  if( ['getHistoryDate','minuteData','statData','getAppMinute'].includes(path)){
-    data = {...data,db:dbSel}
+  if (['getHistoryDate', 'minuteData', 'statData', 'getAppMinute'].includes(path)) {
+    data = { ...data, db: dbSel }
   }
   if (data == null) {
     data = ''
@@ -50,7 +50,7 @@ async function ajax(path, data = null) {
 // 布尔类型清单,bool list
 const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans',
   'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd', 'mergeControl', 'fillDate', 'statProcInfo',
-  'mergeAppName', 'activeAppShow','preAppNameEnable','allKeySwitch','needTraytip']
+  'mergeAppName', 'activeAppShow', 'preAppNameEnable', 'allKeySwitch', 'needTraytip']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (let k in hash) {
@@ -183,8 +183,8 @@ function showAppChart(leftKey/**out */, keyStatHash, opt, chart, mergeApp) {
   opt && chart.setOption(opt);
   return retArr;
 }
-let dbSel='' // 当前选择的数据源
-function setDbSel(db){
+let dbSel = '' // 当前选择的数据源
+function setDbSel(db) {
   dbSel = db
 }
 // 获取历史时间
@@ -192,7 +192,7 @@ async function getHistory(beginDate, endDate) {
   let res = [];
   // format(dateFormat)
   if (/^\d{4}-\d{2}-\d{2}$/.test(beginDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate >= beginDate) {
-    res = await ajax('historyData', { beginDate, endDate,db:dbSel })
+    res = await ajax('historyData', { beginDate, endDate, db: dbSel })
   }
   //console.log('getHistory',res)
   return res
@@ -213,12 +213,12 @@ function getKeyDesc(keyName) {
     .replace(/>#/g, 'RWin ')
     .replace(/#/g, 'Win ')
 }
-function showLeftKey(leftAll,switchVal, leftKey,allKey,keyStatHash) {
+function showLeftKey(leftAll, switchVal, leftKey, allKey, keyStatHash) {
   // 需要合并 左右控制键
   let newArr = new Set<string>();
   let newItemHash = {};
   let keys = allKey
-  if(leftAll == 0){
+  if (leftAll == 0) {
     keys = leftKey
   }
   let tempLeftKey = keys;
@@ -345,7 +345,7 @@ function addDragFixedSelect() {
   });
 }
 // 获取备份数据源清单
-async function getDbs(dbs){
+async function getDbs(dbs) {
   let res = await ajax('getDbs')
   if (res.code = 200) {
     // [{ label: contentText.intro33, value: 'TL' }]
@@ -355,25 +355,26 @@ async function getDbs(dbs){
         let label = labArr[0] + ' ' + dayjs(parseInt(labArr[1]) * 1000).format('YYYY-MM-DD HH:mm:ss')
         let line = { label, value: x }
         dbs.push(line)
-      } catch (error) {}
+      } catch (error) { }
     })
   }
 }
 // 分钟数变小时数
-function minute2Hour(minutes){
-  let hour = Math.floor( minutes / 60)
+function minute2Hour(minutes) {
+  let hour = Math.floor(minutes / 60)
   let mins = minutes % 60;
-  let minInt =  Math.floor(mins)
-  let minStr =  String(minInt).padStart(2,'0')
-  let sec = ((mins - minInt)*60).toFixed(0).padStart(2,'0')
-  if(minutes>60){
+  let minInt = Math.floor(mins)
+  let minStr = String(minInt).padStart(2, '0')
+  let sec = ((mins - minInt) * 60).toFixed(0).padStart(2, '0')
+  if (minutes > 60) {
     return `[${hour}:${minStr}:${sec}]`;
-  }else{
+  } else {
     return `[${minStr}:${sec}]`;
   }
 }
+
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener,getDbs,setDbSel,minute2Hour
+  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour
 }
