@@ -1,7 +1,7 @@
 <template>
   <n-config-provider :theme-overrides="themeOverrides" >
     <n-layout embedded>
-      <PageHead :lang="lang" @langChange="setLang" />
+      <PageHead :lang="lang" @lang-change="setLang" />
       <n-layout has-sider >
         <n-layout-sider bordered collapse-mode="width" :collapsed-width="40" :width="180" :collapsed="collapsed"
           @collapse="collapsed = true" @expand="collapsed = false" show-trigger="bar">

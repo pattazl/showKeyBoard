@@ -322,6 +322,7 @@ export default defineComponent({
 	props: {
 		lang: {
 			type: String as PropType<'en-US' | 'zh-CN'>,
+			default: 'zh-CN'
 		},
 	},
 	setup(props) {

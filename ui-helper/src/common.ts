@@ -180,7 +180,7 @@ function showAppChart(leftKey/**out */, keyStatHash, opt, chart, mergeApp) {
   opt.series[0].data = myHash.map(x => x.mouse)
   // 键盘
   opt.series[1].data = myHash.map(x => x.key)
-  opt && chart.setOption(opt);
+  chart.setOption(opt);
   return retArr;
 }
 let dbSel = '' // 当前选择的数据源
@@ -347,7 +347,7 @@ function addDragFixedSelect() {
 // 获取备份数据源清单
 async function getDbs(dbs) {
   let res = await ajax('getDbs')
-  if (res.code = 200) {
+  if (res.code == 200) {
     // [{ label: contentText.intro33, value: 'TL' }]
     res.dbs.forEach(x => {
       try {

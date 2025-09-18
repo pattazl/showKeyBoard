@@ -379,6 +379,7 @@ export default defineComponent({
   props: {
     lang: {
       type: String as PropType<'en-US' | 'zh-CN'>,
+      default: 'zh-CN'
     },
   },
   setup(props) {
@@ -655,7 +656,7 @@ export default defineComponent({
         }
       }, 2000) // 不必过于频繁，2秒检查一次即可
     }
-    async function updateMinuteData(noLoad: Boolean = false) {
+    async function updateMinuteData(noLoad: boolean = false) {
       let strDay = dayjs(new Date()).format(dateFormat)
       // 需要渲染 main1 图表
       setMinuteEcharts(strDay, strDay, MinuteType.ByMinute, [myChartArr[2]], appNameListMap, noLoad) // main3

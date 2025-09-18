@@ -176,7 +176,7 @@ let lastAppData: Array<MinuteAppData> = []; // 上一次获取App数据的时间
 let lastAppHourData: Array<MinuteAppData> = []; // 上一次获取App小时数据的时间
 let appInfoList: Array<seriesData> = [] // APP使用数据清单
 let chartAppMinute, chartAppDur, chartAppHour;  // 应用分钟图表，应用耗时图表,应用小时图表
-async function setMinuteEcharts(beginDate: string, endDate: string, typeFlag: MinuteType, charts: Array<echarts.ECharts>, applist: any, noLoad: Boolean = false) {
+async function setMinuteEcharts(beginDate: string, endDate: string, typeFlag: MinuteType, charts: Array<echarts.ECharts>, applist: any, noLoad: boolean = false) {
   appNameListMap = applist
   let data: Array<MinuteData> = []
   switch (typeFlag) {

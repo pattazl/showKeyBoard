@@ -113,7 +113,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro134 }}
               <div class="error" v-if="allConfig.common.remoteType != 0">{{ contentText.intro139 }}
-                <div v-for="(link, index) in IPlinks"> <a :key="index" :href="link" target="blank">{{ link }}</a></div>
+                <div v-for="(link, index) in IPlinks "  :key="index"> <a :href="link" target="blank">{{ link }}</a></div>
               </div>
               <template #suffix>
                 <n-select v-model:value="allConfig.common.remoteType" :options="[{ label: contentText.intro135, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro136, value: 1 /*01*/ },
@@ -675,6 +675,7 @@ export default defineComponent({
   props: {
     lang: {
       type: String as PropType<'en-US' | 'zh-CN'>,
+      default: 'zh-CN'
     },
   },
   setup(props) {
@@ -890,6 +891,15 @@ export default defineComponent({
         }
       })
     }
+    // 计算中修改全局变量的值，不推荐，但暂时这么用
+    function changeDataInComputed(data,appNameListRef,preAppNameListRef,skipRecordRef,ctrlListRef,skipShowRef){
+      dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
+      data.config.common.preAppNameList = JSON.stringify(KVListTo(preAppNameListRef.value), null, 2);
+      // 转换数组为字符串
+      data.config.common.skipRecord = skipRecordRef.value.join('|')
+      data.config.dialog.ctrlList = ctrlListRef.value.join('|')
+      data.config.dialog.skipShow = skipShowRef.value.join('|')
+    }
     // 计算差异
     const diffJsonList = computed(() => {
       const predata = <any>store.preData
@@ -902,12 +912,8 @@ export default defineComponent({
       // 对 appNameListRef 进行空格清理
       // validAppNameList(appNameListRef)
       // validAppNameList(preAppNameListRef)
-      dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
-      data.config.common.preAppNameList = JSON.stringify(KVListTo(preAppNameListRef.value), null, 2);
-      // 转换数组为字符串
-      data.config.common.skipRecord = skipRecordRef.value.join('|')
-      data.config.dialog.ctrlList = ctrlListRef.value.join('|')
-      data.config.dialog.skipShow = skipShowRef.value.join('|')
+      changeDataInComputed(data,appNameListRef,preAppNameListRef,skipRecordRef,ctrlListRef,skipShowRef)
+      /* */
       // 对比 config.common ，config.dialog ,store.preData.keyList
       getDiffHash(hash, data.config.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
       getDiffHash(hash, data.config.dialog, predata.config.dialog, contentText.value.menu?.setting2, contentText.value)

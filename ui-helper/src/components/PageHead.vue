@@ -35,19 +35,21 @@ type VersionInfoType = {
 };
 export default defineComponent({
   name: 'PageHead',
-  props: {
-    lang: {
-      type: String as PropType<'en-US' | 'zh-CN'>,
-    },
-    onLangChange: {
-      type: Function,
-    }
-  },
   components: {
     NLayoutHeader,
     NText,
-    NMenu,
+    // NMenu,
     NButton,
+  },
+  props: {
+    lang: {
+      type: String as PropType<'en-US' | 'zh-CN'>,
+      default: 'zh-CN'
+    },
+    onLangChange: {
+      type: Function,
+      required: true
+    }
   },
   setup: (props) => {
     const lang = toRef(props, 'lang');
@@ -172,9 +174,7 @@ export default defineComponent({
       }
     })
     return {
-      lang,
       theme,
-      onLangChange: props.onLangChange,
       changeTheme,
       contentText,
       strVersion,

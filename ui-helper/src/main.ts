@@ -9,7 +9,12 @@ const pinia = createPinia()
 
 const app = createApp(App)
 app.component('VNode', defineComponent({
-  props: ['render'],
+  props: {
+    render: {
+      type: Function,
+      required: true
+    }
+  },
   render() {
     return this.render();
   },
