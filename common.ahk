@@ -231,9 +231,17 @@ mouseDistance := 0
 ; 全局键盘鼠标统计
 globalKeyCount := 0
 globalMouseCount := 0
-globalAppPath := ''  ; 当前激活的窗口路径
 GetMinuteDataFlag := False  ; 标记正在处理分钟数据
 ; 主显示器编号
 LastScreenNum := MonitorGetPrimary()
 
 global recordHistory := Array() ; 保存按键历史数据
+
+SystemLocked(){
+    if (ProcessExist("LogonUI.exe"))
+	{
+		return true   ; 系统锁定
+	}else{
+        return false
+    }
+}

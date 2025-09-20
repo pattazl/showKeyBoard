@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.51.0.0
-;@Ahk2Exe-SetFileVersion 1.51.0.0
+;@Ahk2Exe-SetProductVersion 1.52.0.0
+;@Ahk2Exe-SetFileVersion 1.52.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName := "ShowKeyBoard", ver:= "1.51"
+global APPName := "ShowKeyBoard", ver:= "1.52"
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -150,9 +150,13 @@ GetMinuteDataCore(isMouse, isPress) {
       initKey := 1
     }
   }
+  AppPath := GetProcPath()
+  if(AppPath=''){
+    return
+  }
   ; 有操作数据才更新APP信息
   currData := Map("Minute", currMinute, "MouseCount", globalMouseCount, "KeyCount", globalKeyCount
-    , "Distance", mouseDistance, "Apps", Map(globalAppPath, Map("Mouse", initMouse, "Key", initKey)))
+    , "Distance", mouseDistance, "Apps", Map(AppPath, Map("Mouse", initMouse, "Key", initKey)))
   Len := MinuteRecords.Length  ; 最后的数据不准确，不能计算
   MaxLen := 10
   if Len > MaxLen {
@@ -171,7 +175,8 @@ GetMinuteDataCore(isMouse, isPress) {
     last['MouseCount'] := globalMouseCount - last['MouseCount']
     last['KeyCount'] := globalKeyCount - last['KeyCount']
     last['Distance'] := mouseDistance - last['Distance']
-    if last['MouseCount'] = 0 && last['KeyCount'] = 0 && last['Distance'] = 0 {
+    ; 如果 Distance 距离小于 50 ，则认为没移动
+    if last['MouseCount'] = 0 && last['KeyCount'] = 0 && last['Distance'] <50 {
       MinuteRecords[-1] := currData ; 因为为空数据，那么则直接替换
     } else {
       ; 插入新数据
@@ -180,20 +185,19 @@ GetMinuteDataCore(isMouse, isPress) {
   } else {
     ; 同一分钟内，那么需要添加不同的APP名
     if isPress {
-      if (last["Apps"].has(globalAppPath)) {
+      if (last["Apps"].has(AppPath)) {
         if isMouse {
-          last["Apps"][globalAppPath]["Mouse"] += 1
+          last["Apps"][AppPath]["Mouse"] += 1
         } else {
-          last["Apps"][globalAppPath]["Key"] += 1
+          last["Apps"][AppPath]["Key"] += 1
         }
       } else {
-        last["Apps"][globalAppPath] := Map("Mouse", initMouse, "Key", initKey)
+        last["Apps"][AppPath] := Map("Mouse", initMouse, "Key", initKey)
       }
     }
   }
 }
 GetMinuteDataTimer() {
-  global globalAppPath := GetProcPath()
   GetMinuteData(False, False)
 }
 if recordMinute = 1 {

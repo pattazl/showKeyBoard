@@ -509,6 +509,10 @@ AddRecord(key,isMouse){
 ; 获取活动窗口的路径
 GetProcPath(){
     ProcPath := 'NotFoundActive'  ; 当没有默认窗口时 SysDefault
+	if (SystemLocked())
+	{
+		return ''   ; 系统锁定不检查和记录
+	}
     try {
         FocusedHwnd := WinActive("A")  ; ControlGetFocus("A") WinExist("A") ;
     }catch{
@@ -580,11 +584,11 @@ GetAppInfo(isMouse){
     if ProcPath = ''{
         return
     }
-    global globalAppPath := ProcPath
+    AppPath := ProcPath
     if isMouse {
-        appName .= 'Mouse-' globalAppPath  
+        appName .= 'Mouse-' AppPath  
     }else{
-        appName .= 'Key-' globalAppPath  
+        appName .= 'Key-' AppPath  
     }
     AddKeyToMap(appName)  ; 以应用维度，按键汇总
 }

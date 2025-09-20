@@ -189,15 +189,14 @@ async function doCleanData() {
     let lines = await runExec(db, `delete FROM statFreq where freqType = 0 and date < ? `, [beforeDays])
     console.log('删除分钟统计条数: ', lines)
     // 删除 events 中的旧数据
-    rows = await runQuery(db, "select date FROM appFreq where freqType = 0 and date < ?  limit 1", [beforeDays]) // 获取 appStat 中最老的数据
+    rows = await runQuery(db, "SELECT MAX(date) AS max_date FROM appStat HAVING max_date < date('now', '-1 day')" ) // 最大日期小于昨天则要汇总数据
     if (rows.length > 0) {
       // 将数据转移到 appStat表中
       lines = mergeAppStat()
-      // 删除旧数据
-      lines = await runExec(db, `delete FROM appFreq where freqType = 0 and date < ? `, [beforeDays])
-      console.log('删除分钟应用条数: ', lines)
     }
-
+    // 删除旧数据
+    lines = await runExec(db, `delete FROM appFreq where freqType = 0 and date < ? `, [beforeDays])
+    console.log('删除分钟应用条数: ', lines)
     // statFreq 的 小时日期数据小于昨天 则要进行24小时数据整理函数
     rows = await runQuery(db, "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq where freqType = 1", [])
     let maxDate = rows[0].maxDate;

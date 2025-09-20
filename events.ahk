@@ -240,8 +240,15 @@ AutoSendData()
         StartHttp('data','/data',AllKeyRecord,timeout:=8000)
     }
 }
-
-SetTimer(AutoSendData,30000) ; 30秒提交一次，防止30秒内无任何按键，从而不发送数据，无法统计分钟数据
+; 空闲时候发送数据给后端，距离控制在 GetMinuteDataCore 中实现
+AutoSendDataIdle(){
+    ; 锁屏期间不要发送，后续可以考虑计算锁屏时长
+    if( SystemLocked() ){
+        return
+    }
+    AutoSendData()
+}
+SetTimer(AutoSendDataIdle,30000) ; 30秒提交一次，防止30秒内无任何按键，从而不发送数据，无法统计分钟数据
 ; 发送退出数据
 ExitServer()
 {
