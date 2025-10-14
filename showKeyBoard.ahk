@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.52.0.0
-;@Ahk2Exe-SetFileVersion 1.52.0.0
+;@Ahk2Exe-SetProductVersion 1.53.0.0
+;@Ahk2Exe-SetFileVersion 1.53.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName := "ShowKeyBoard", ver:= "1.52"
+global APPName := "ShowKeyBoard", ver:= "1.53"
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -75,6 +75,18 @@ SendCtrlKey()
 
 #HotIf InStr(skipKeys, "{RButton}") = 0
 ~RButton:: SendMouse
+
+#HotIf InStr(skipKeys, "{WheelLeft}") = 0
+~WheelLeft:: SendMouse
+
+#HotIf InStr(skipKeys, "{WheelRight}") = 0
+~WheelRight:: SendMouse
+
+#HotIf InStr(skipKeys, "{XButton1}") = 0
+~XButton1:: SendMouse
+
+#HotIf InStr(skipKeys, "{XButton2}") = 0
+~XButton2:: SendMouse
 
 SendMouse()
 {
