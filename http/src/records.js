@@ -189,7 +189,7 @@ async function doCleanData() {
     let lines = await runExec(db, `delete FROM statFreq where freqType = 0 and date < ? `, [beforeDays])
     console.log('删除分钟统计条数: ', lines)
     // 删除 events 中的旧数据
-    rows = await runQuery(db, "SELECT MAX(date) AS max_date FROM appStat HAVING max_date < date('now', '-1 day')" ) // 最大日期小于昨天则要汇总数据
+    rows = await runQuery(db, "SELECT MAX(date) AS max_date FROM appStat WHERE date <= date('now') HAVING max_date < date('now', '-1 day')" ) // 最大日期小于昨天则要汇总数据，但是不能是未来
     if (rows.length > 0) {
       // 将数据转移到 appStat表中
       lines = mergeAppStat()
@@ -198,7 +198,7 @@ async function doCleanData() {
     lines = await runExec(db, `delete FROM appFreq where freqType = 0 and date < ? `, [beforeDays])
     console.log('删除分钟应用条数: ', lines)
     // statFreq 的 小时日期数据小于昨天 则要进行24小时数据整理函数
-    rows = await runQuery(db, "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq where freqType = 1", [])
+    rows = await runQuery(db, "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq where freqType = 1 and date <= date('now')", [])
     let maxDate = rows[0].maxDate;
     let yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
     console.log(before, beforeDays, maxDate, yesterday)
@@ -752,7 +752,7 @@ async function mergeAppStat() {
             appPath,
             keyTime,
             COUNT(appPath) OVER (PARTITION BY date, keyTime) AS minute_a_count  -- 同一日期和分钟内A的总数
-        FROM appFreq where date < DATE('now') and date>(select IFNULL(max(date),'1900-01-01') from appStat) and freqType = 0
+        FROM appFreq where date < DATE('now') and date>(select IFNULL(max(date),'1900-01-01') from appStat WHERE date <= date('now') ) and freqType = 0
     ) AS subquery
     GROUP BY date, appPath  -- 按日期和A分组汇总
     `)
