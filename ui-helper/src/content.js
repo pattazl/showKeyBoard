@@ -146,6 +146,7 @@ export default {
 	数据 : 统计数据只保存在本地的 httpdist\\dist\\records.db 文件中，此文件为sqlite3格式
 	代码 : 全部开源 https://github.com/pattazl/showKeyBoard 
 	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
+	说明 : 绝大部分参数均可通过界面修改，如果要自定义托盘图标请在执行目录下保存同名的.ico文件，比如 ShowKeyBoard.ico
 	`,
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
@@ -244,6 +245,7 @@ export default {
 	intro210: '本地数据',
 	intro211: '应用时长显示TOP N',
 	intro212: '每日时长和应用总计',
+	intro213: '导出记录',
 
   },
   'en-US': {
@@ -394,6 +396,7 @@ export default {
 	Data: The statistic data is saved in a local file named "records.db" located in the "httpdist\\dist" directory. This file is in SQLite3 format.
 	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.
 	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
+	Description: Most parameters can be modified via the interface. If you want to customize the tray icon, please save an ICO file with the same name in the execution directory (e.g., ShowKeyBoard.ico).
 	`,
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
@@ -492,5 +495,6 @@ export default {
 	intro210: 'Local Data',
 	intro211: 'App time TOP N',
 	intro212: 'Daily Duration and App Count',
+	intro213: 'Export Data',
   }
 };

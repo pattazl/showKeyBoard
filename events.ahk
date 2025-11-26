@@ -166,6 +166,12 @@ ServerCore()
             ShowTxt HttpCtrlObj['task'] ',connect fail!'   ; 可能后端服务被关闭了
             OutputDebug 'connect fail'
             countOfConnectFail += 1
+            ; 如果是data服务通讯失败3次，尝试重启后端服务
+            if( countOfConnectFail > 3 && (Mod(countOfConnectFail, 3))==1 ){
+                global serverState := -1 ; 服务状态为失败
+                global CheckServerCount := 0 ; 连接次数重新计数
+                StartHttp('connect','/version','')
+            }
             if(countOfConnectFail >= maxCountOfConnectFail){
                 MsgBox msgTry countOfConnectFail msgTimes msgConnectFail
                 countOfConnectFail := 0 ; 成功一次则复位
@@ -234,10 +240,18 @@ startServer()
 	}
 }
 ; 自动发送 AllKeyRecord 数据
+global lastSendDataTime := 0
 AutoSendData()
 {
+    global lastSendDataTime
     if serverState = 1 {
-        StartHttp('data','/data',AllKeyRecord,timeout:=8000)
+        currentTime := A_TickCount
+        ; ; 此处需要控制频率，避免过于频繁发送数据，1秒内不重复发送
+        if (currentTime - lastSendDataTime > 1000) {
+            StartHttp('data','/data',AllKeyRecord,timeout:=8000)
+            ; 更新上次执行时间
+            lastSendDataTime := currentTime
+        }
     }
 }
 ; 空闲时候发送数据给后端，距离控制在 GetMinuteDataCore 中实现

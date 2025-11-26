@@ -372,9 +372,36 @@ function minute2Hour(minutes) {
     return `[${minStr}:${sec}]`;
   }
 }
+// 导出为制表符分隔的文本
+const exportToText = (columns,tableData) => {
+  debugger
+  // 1. 创建表头行
+  const headerRow = columns.map(col => col.title).join('\t')
+  
+  // 2. 创建数据行
+  const dataRows = tableData.map(row => {
+    return columns.map(col => row[col.key]).join('\t')
+  }).join('\n')
+  
+  // 3. 合并表头和数据
+  const textContent = `${headerRow}\n${dataRows}`
+  
+  // 4. 创建Blob并下载
+  const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  
+  // 创建下载链接
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'Keys_' + new Date().toISOString().slice(0, 10) + '.txt'
+  link.click()
+  
+  // 释放URL对象
+  URL.revokeObjectURL(url)
+}
 
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour
+  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour,exportToText
 }

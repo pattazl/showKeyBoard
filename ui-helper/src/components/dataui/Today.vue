@@ -54,6 +54,9 @@
                   {{ contentText.intro144 }}
                 </template>
               </n-switch>
+              <n-button type="primary" @click="exportToText(columns, dataTable)">
+              {{ contentText.intro213 }}
+             </n-button>
             </n-space>
           </template>
           <n-data-table :columns="columns" :data="dataTable" />
@@ -104,7 +107,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -781,6 +784,7 @@ export default defineComponent({
       appListData,
       store,
       firstUpdate,
+      exportToText
     }
   },
 })

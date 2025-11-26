@@ -1,14 +1,14 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.54.0.0
-;@Ahk2Exe-SetFileVersion 1.54.0.0
+;@Ahk2Exe-SetProductVersion 1.55.0.0
+;@Ahk2Exe-SetFileVersion 1.55.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName := "ShowKeyBoard", ver:= "1.54"
+global APPName := "ShowKeyBoard", ver:= "1.55"
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -787,3 +787,18 @@ if ( joyMethod == 1) {
   XInput_Init()
   SetTimer(checkJoyState2, 100)  ; 0.1秒检测一次
 }
+
+; 初始化托盘图标的核心函数
+InitTrayIcon() {
+    currentPath := A_ScriptFullPath
+    ; 获取不带扩展名的文件名（用于构造ICO文件名）
+    fileNameNoExt := SubStr(A_ScriptName, 1, -StrLen('EXE') - 1)
+    ; 构造ICO文件路径（与脚本/程序同目录，同名ICO）
+    icoPath := StrReplace(currentPath, A_ScriptName, fileNameNoExt ".ico")
+    ; 检查ICO文件是否存在
+    if (FileExist(icoPath)) {
+        ; 存在同名ICO文件，使用它
+        TraySetIcon(icoPath)
+    }
+}
+InitTrayIcon()

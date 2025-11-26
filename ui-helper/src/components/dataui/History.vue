@@ -67,6 +67,9 @@
                 {{ contentText.intro144 }}
               </template>
             </n-switch>
+            <n-button type="primary" @click="exportToText(columns, dataTable)">
+              {{ contentText.intro213 }}
+            </n-button>
           </n-space>
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
@@ -118,7 +121,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel,exportToText } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -668,6 +671,7 @@ export default defineComponent({
       dateDisabled,
       dbsOption,
       changeDb,
+      exportToText
     }
   },
 })
