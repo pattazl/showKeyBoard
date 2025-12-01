@@ -236,6 +236,7 @@ GetMinuteDataFlag := False  ; 标记正在处理分钟数据
 LastScreenNum := MonitorGetPrimary()
 
 global recordHistory := Array() ; 保存按键历史数据
+global lastSendDataTime := 0
 
 SystemLocked(){
     if (ProcessExist("LogonUI.exe"))

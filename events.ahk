@@ -240,7 +240,6 @@ startServer()
 	}
 }
 ; 自动发送 AllKeyRecord 数据
-global lastSendDataTime := 0
 AutoSendData()
 {
     global lastSendDataTime
