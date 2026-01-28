@@ -45,13 +45,20 @@ GetActiveWindowScreenNumber(screenCount) {
 	}
     return LastScreenNum  ; 如果不在任何范围内，默认返回主屏
 }
-
 ; 创建或显示内容
 ShowTxt(text)
 {
 	if text = "" {
 		return 
 	}
+    ; 塞数据到websocket
+    strText := text
+    if( handleWS != 0 ){
+        OutputDebug ("AHK : " strText)
+        ; handleWS.sendText(strText)
+        OutputDebug ("AHK2 : " strText)
+    }
+    ; 界面管控
 	textArr := []
 	; 如果正在处理中，则不要销毁窗口
 	global guiShowing := 1

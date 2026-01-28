@@ -198,7 +198,7 @@ serverName := "127.0.0.1"
 serverUrl := "http://" serverName ":" serverPort
 serverUrlWs := "ws://" serverName ":" serverPort
 ; 内部参数
-global handleWS   ; websocket 句柄
+global handleWS := 0 ; websocket 句柄
 global guiArr := Array() ; 保存guiObj 对象
 global inShowArr := Array() ; 保存传入进来的数组用于显示
 global guiShowing := 0
