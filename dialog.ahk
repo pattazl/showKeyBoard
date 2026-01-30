@@ -54,9 +54,7 @@ ShowTxt(text)
     ; 塞数据到websocket
     strText := text
     if( handleWS != 0 ){
-        OutputDebug ("AHK : " strText)
-        ; handleWS.sendText(strText)
-        OutputDebug ("AHK2 : " strText)
+        handleWS.sendText(strText)
     }
     ; 界面管控
 	textArr := []

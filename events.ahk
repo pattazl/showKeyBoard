@@ -1,5 +1,5 @@
 ; 用于进行对外通讯，只读本地文件 和发送数据
-#Include "lib/WebSocket.ahk"
+#Include "lib/WebSockets.ahk"
 ; 如果无需记录，那么将关闭界面设置功能
 if(needRecordKey=1){
 	Init()  ; 判断后端接口，启动相关程序
@@ -116,13 +116,14 @@ CheckServer(){
 }
 ; 绑定websocket回调事件
 BindWebSocket() {
-    global handleWS := WebSocket(serverUrlWs, {
-        message: (self, data) => (
-            IniMonitor(1) ; ,OutputDebug('AHK BindWebSocket') 
-        ),  ; OutputDebug('AHK' Data '`n' '*' 'utf-8'),
-        close: (self, status, reason) => '' ; OutputDebug('AHK' status ' ' reason '`n' '*' 'utf-8')
-    })
-    handleWS.sendText('ahkClient')
+  global handleWS := WebSockets.Client(serverUrlWs)
+  handleWS.onMessage := (ws, msg){
+    if(msg == 'IniMonitor'){ 
+      ; 服务器端发消息需要重新载入参数
+      IniMonitor(1) ; ,OutputDebug('AHK BindWebSocket')
+    }
+  }
+  handleWS.sendText('ahkClient')
 }
 ; 服务核心处理
 ServerCore()
