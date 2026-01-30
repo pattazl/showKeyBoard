@@ -64,26 +64,43 @@ function checkPort(port) {
     server.listen(port, hostAddress);
   });
 }
-let ahkClientFlag = 'ahkClient' // 标记识别为客户端
+const ahkClientFlag = 'ahkClient' // 标记识别为客户端
+const ahkKeySendFlag = 'ahkKeySend' // 标记识别接受按键消息
+const ahkKeyShowFlag = 'ahkKeyShow' // 标记识别显示按键消息
 // 创建WebSocket服务器
 const server = http.createServer(app);
 // 监听WS 连接事件
 let wss = null
 function startWS() {
   wss = new WebSocket.Server({ server });
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws,req) => {
     // 监听消息接收事件
+    ws.clientType = ''  // 默认为空
     ws.on('message', (message) => {
       console.log('Received message:', message);
       // 给客户端实例添加标记属性
-      ws.clientType = ''
-      if (message == ahkClientFlag) {
-        console.log('ahkClientFlag clientType')
+      if (message == ahkClientFlag
+        || message == ahkKeyShowFlag
+        || message == ahkKeySendFlag
+      ) {
+        console.log('ahkFlag:' + message )
         ws.clientType = message;
-      } else {
+      }
+      // 收到消息的时候需要下发数据
+      if(ws.clientType == '' )
+      {
         // Web端的链接，发送消息给客户端用于刷新界面
         //ws.send('Server received your message: ' + message);
         ws.send(JSON.stringify(preData));
+      }else if(ws.clientType == ahkKeySendFlag ){
+        // 当发送数据是按键消息时，需要发送数据给全部的显示接收端
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            if (ahkKeyShowFlag == client.clientType) {
+              client.send( message ); // 发出消息
+            }
+          }
+        })
       }
     });
     // 监听断开连接事件
