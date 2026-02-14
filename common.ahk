@@ -246,3 +246,7 @@ SystemLocked(){
         return false
     }
 }
+; 最近一次按键文字数组
+lastTextArr := []  ; 		lastTextArr := textArr
+; 最近一次窗口时间
+lastTextTick := 0 ; 用于控制是否显示新窗口

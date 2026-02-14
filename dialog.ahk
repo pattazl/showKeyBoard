@@ -51,13 +51,36 @@ ShowTxt(text)
 	if text = "" {
 		return 
 	}
-    ; 塞数据到websocket
-    strText := text
-    if( handleWS != 0 ){
-        handleWS.sendText(strText)
-    }
-    ; 界面管控
+  ; 数据处理
+  global lastTextArr
+  global lastTextTick
 	textArr := []
+  textArr.push(text)
+  needNewGui :=1
+  nowTick := A_TickCount
+  diff := nowTick - lastTextTick
+  if( diff < guiInterval ){
+    needNewGui := 0
+    textArr := lastTextArr
+    textArr.push(text)
+  }else{
+    lastTextArr := textArr
+    lastTextTick := nowTick
+  }
+  ; 获取到之前的文本并处理
+	newText := Trim(GetKeyText(textArr)) ; 去掉首尾空格
+  ; 塞数据到websocket
+  if( handleWS != 0 ){
+    if(needNewGui){
+      handleWS.sendText( newText )
+    }else{
+      handleWS.sendText( '0::' newText) ; 表明是复用旧窗口
+    }
+  }
+  if( 0 ){
+   return
+  }
+  ; 界面管控
 	; 如果正在处理中，则不要销毁窗口
 	global guiShowing := 1
 	; 获取不同屏幕
@@ -73,13 +96,11 @@ ShowTxt(text)
 		guiMonNum := 1
 	}
 	MonitorGet(guiMonNum, &Left, &Top, &Right, &Bottom)
-	needNewGui :=1
 	; 先判断下数组最近的时间
 	if (guiArr.Length>0){
 		lastGui := guiArr[guiArr.Length]
-		diff := A_TickCount - lastGui.tick
 		;OutputDebug ("AutoHotkey : " diff)
-		if( diff < guiInterval ){
+		if( needNewGui = 0 ){
 		; 直接修改最近的输入框内容
 			;lastGui.edit.Destroy()
 			;调用API删除旧对象
@@ -88,11 +109,10 @@ ShowTxt(text)
 				DllCall("user32\DestroyWindow", "Ptr", ControlGetHwnd(lastGui.edit))
 				;ControlHide lastGui.edit  ; 原生代码不能销毁重新创建，只能隐藏
 				MyGui := lastGui.gui
-				textArr := lastGui.textArr
-				needNewGui := 0
 			}
 		}
 	}
+  ; 进行窗口操作
 	if needNewGui=1 {
 		MyGui := CreateGui(guiTextSize)
 	}
@@ -114,8 +134,6 @@ ShowTxt(text)
 	{
 		editOpt := editOpt " +VScroll h" guiHeigth
 	}
-	textArr.push(text)
-	newText := Trim(GetKeyText(textArr)) ; 去掉首尾空格
 	editType := "Edit"  ; Text Edit 默认用edit类型可以滚动，但有边框需要额外去掉
 	; 重新创建新的对象，便于计算新的高度，旧对象删除即可
 	MyEdit:= MyGui.Add(editType, editOpt ,newText) ;   Edit Text
@@ -170,13 +188,12 @@ ShowTxt(text)
 	if needNewGui{
 		guiArr.push(
 		{
-		gui:MyGui,edit:MyEdit,tick:A_TickCount,textArr:textArr,
+		gui:MyGui,edit:MyEdit,tick:nowTick,
 		x:guiX,y:guiY,w:guiWidth,h:editHeight,dpi:dpiScale,isFade:0
 		})
 	}Else{
 		lastGui.edit := MyEdit
-		lastGui.tick := A_TickCount
-		lastGui.textArr := textArr
+		; lastGui.tick := nowTick   ; 复用旧的窗口，定时关闭时间顺延
 		lastGui.x := guiX
 		lastGui.y :=guiY
 		lastGui.w :=guiWidth

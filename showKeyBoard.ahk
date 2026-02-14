@@ -96,7 +96,12 @@ SendMouse()
 }
 CoordMode "ToolTip", "Screen"
 CoordMode "Mouse", "Screen"
-GetDistance() {
+GetDistance(){
+  try {
+    GetDistanceCore()
+  }
+}
+GetDistanceCore() {
   MouseGetPos &currentX, &currentY
   if currentX < minLeft || currentX > maxRight || currentY < minTop || currentY > maxBottom
   {

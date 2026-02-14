@@ -76,7 +76,18 @@ function startWS() {
     // 监听消息接收事件
     ws.clientType = ''  // 默认为空
     ws.on('message', (message) => {
-      console.log('Received message:', message);
+      // let messageStr = ''
+      // if (message instanceof Buffer) {
+      //   // 使用 UTF-8 编码转换（默认）
+      //   messageStr = message.toString('utf8'); 
+      //   // 如果需要其他编码，例如 GBK，需配合 iconv-lite 库
+      //   // const iconv = require('iconv-lite');
+      //   // messageStr = iconv.decode(data, 'gbk');
+      // } else {
+      //   // 如果已经是字符串，则直接使用
+      //   messageStr = message;
+      // }
+      // console.log('Received message:', messageStr);
       // 给客户端实例添加标记属性
       if (message == ahkClientFlag
         || message == ahkKeyShowFlag
