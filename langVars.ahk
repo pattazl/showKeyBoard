@@ -1,11 +1,15 @@
 ; 全局变量语言包
-
+showOnlyWebTxt := ''
+if showKeyOnlyWeb = 1
+{
+    showOnlyWebTxt := 'Web'
+}
 global menu_msg_noserver := '服务未成功启动，不能用界面查看和设置'
 global L_menu_startup:="开机启动"
 global L_menu_reload:="重启程序"
 global L_menu_reset:="完全重启"
 global L_menu_pause:="暂停运行"
-global L_menu_4show:="按键显示(" hotkey4Show ")"
+global L_menu_4show:="按键显示 " showOnlyWebTxt
 global L_menu_set:="参数设置"
 global L_menu_stat:="数据统计"
 global L_menu_exit:="退出程序"
@@ -21,7 +25,7 @@ if defaultLang = 'en-US' {
     L_menu_reload :="Reset Client"
     L_menu_reset  :="Full Reset"
     L_menu_pause  :="Pause"
-    L_menu_4show  :="Show/Hide Key(" hotkey4Show ")"
+    L_menu_4show  :="Show/Hide Key " showOnlyWebTxt
     L_menu_set    :="Setting"
     L_menu_stat   :="Statistics"
     L_menu_exit   :="Exit"

@@ -7,18 +7,31 @@ if(needRecordKey=1){
 	CheckServer()
 }
 ; 定义哪些变量是重要变量，发生改变后返回true
-CriticalChange(){
-    importantList := [ 
+; 需要重启服务端的改变
+ServerChange(){
+  importantList := [
         [serverPort,"common","serverPort"],
         [remoteType,"common","remoteType"],
         [showHttpDebug,"common","showHttpDebug"],
+
         [joyMethod,"common","joyMethod"],
         [shareDbPath,"common","shareDbPath"],
         [shareDbName,"common","shareDbName"],
         [shareDbHour,"common","shareDbHour"],
         [shareDbExec,"common","shareDbExec"],
     ]
-    for index, item in importantList {
+    return CheckListChange(importantList)
+}
+; 只需要重启客户端的改变
+ClientChange(){
+  importantList := [
+        [showKeyOnlyWeb,"common","showKeyOnlyWeb"],
+        [needTraytip,"common","needTraytip"],
+    ]
+  return CheckListChange(importantList)
+}
+CheckListChange(lists){
+    for index, item in lists {
         ; 解析数组项：[变量值, 节名, 键名]
         currentValue := item[1]
         section := item[2]
@@ -45,7 +58,7 @@ IniMonitor(reloadAll){
     ; 如果端口发生了变化则需要完全重启
     ; OutputDebug('AHK IniMonitor') 
     ; 核心的，需要重启前后台服务的变量控制
-    if CriticalChange()
+    if ServerChange()
     {
         ExitServer()
         if serverState = 1 {
@@ -55,6 +68,9 @@ IniMonitor(reloadAll){
         ; OutputDebug('AHK Reload') 
         Reload() 
         return
+    }else if ClientChange()
+    {
+        Reload() 
     }
     ; 参数变化直接修改即可 调用 GetKeyList
     if(reloadAll == 1)

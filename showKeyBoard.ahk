@@ -18,7 +18,7 @@ loop skipRecord.length {
   skipKeys := skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
 }
 ; 切换是否显示按键
-Switch4show(Key) {
+Switch4show() {
   global needShowKey := not needShowKey
   UpdatMenu4Show()
 }
@@ -290,7 +290,7 @@ MenuHandler(ItemName, ItemPos, MyMenu) {
   }
   if (ItemName = L_menu_4show)
   {
-    Switch4show(0)
+    Switch4show()
   }
 }
 UpdatMenu4Show() {
@@ -344,7 +344,7 @@ ExitFunc(ExitReason, ExitCode)
   If FileExist(IniFile) {
     ; 当文件中的参数没有被人修改时才写入状态，否则以文件中数据为准
     tempVal := DescRead("common", "needShowKey", "1")
-    if tempVal = preNeedShowKey && tempVal != needShowKey {
+    if tempVal != needShowKey {
       IniWrite(needShowKey, IniFile, "common", "needShowKey")
     }
   }

@@ -26,9 +26,15 @@
             </n-list-item>
             <n-list-item> {{ contentText.intro2 }}<n-dynamic-tags v-model:value="skipRecordRef" />
             </n-list-item>
-            <n-list-item>{{ contentText.intro7 }}
+            <n-list-item><span>{{ contentText.intro7 }}</span>
+              <div class="error">{{ contentText.intro214 }}</div>
               <template #suffix>
                 <n-switch :round="false" v-model:value="allConfig.common.needShowKey" />
+              </template>
+            </n-list-item>
+            <n-list-item v-show="allConfig.common.needShowKey">{{ contentText.intro215 }}
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.common.showKeyOnlyWeb" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro194 }}
@@ -199,7 +205,7 @@
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card style="border:1px #18a058 solid;overflow: auto;">
-          {{ contentText.intro186 }} <div style="float:right">
+          {{ contentText.intro186 }} <input :value="contentText.intro216" type="button" title="open new page" @click="openNewKeyPage()" /> <div style="float:right">
             <input value="-" type="button" title="smaller" @click="changeContainSize(-1)" />
             <input value="0" type="button" title="reset" @click="changeContainSize(0)" />
             <input value="+" type="button" title="bigger" @click="changeContainSize(1)" />
@@ -508,7 +514,7 @@ import { defineComponent, onMounted, PropType, ref, computed, watch, Ref } from 
 import { useMessage, useDialog } from 'naive-ui';
 import content from '../../content.js';
 import mapping from '../../mapping.js';
-import { setLangText, initContain, updateWinOpt, changeContainSize } from '../../showAnimateUI.js';
+import { setLangText, initContain, updateWinOpt, changeContainSize } from '@/../public/showAnimateUI.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
 import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
@@ -1047,6 +1053,21 @@ export default defineComponent({
     //     });
     //   },1000)
     // }
+    function openNewKeyPage(){
+      const newWindow = window.open('showKey.html', '_blank');
+      if (!newWindow) {
+        alert('弹窗被拦截，请允许弹窗权限');
+        return;
+      }
+      // 验证资源加载（可选）
+      newWindow.onload = function() {
+        try{
+          newWindow.initContain(screenInfo.value.slice(1), allConfig.value);
+        }catch(e){
+          console.log('newWindow')
+        }
+      };
+    }
     return {
       keyboardApply,
       myBorder,
@@ -1082,6 +1103,7 @@ export default defineComponent({
       IPlinks,
       preAppNameListRef,
       changeContainSize,
+      openNewKeyPage,
     }
   },
 })
@@ -1090,5 +1112,5 @@ export default defineComponent({
 @import "@/res/setting.css";
 </style>
 <style>
-@import "@/res/demo-screen.css";
+@import "@/../public/demo-screen.css";
 </style>

@@ -77,8 +77,8 @@ ShowTxt(text)
       handleWS.sendText( '0::' newText) ; 表明是复用旧窗口
     }
   }
-  if( 0 ){
-   return
+  if( showKeyOnlyWeb = 1 ){
+    return
   }
   ; 界面管控
 	; 如果正在处理中，则不要销毁窗口

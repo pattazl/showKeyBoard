@@ -33,7 +33,7 @@ export default {
 	intro11:'后端服务端口号',
 	intro12:'按键显示仅针对活跃窗口',
 	intro13:'使用正则匹配窗口进程名',
-	intro14:'按键临时显示开关快捷键',
+	intro14:'按键显示开关快捷键',
 	intro15:'修改后重启程序生效。',
 	intro16:'手工输入按键',
 	intro17:'按键实时显示界面',
@@ -246,6 +246,9 @@ export default {
 	intro211: '应用时长显示TOP N',
 	intro212: '每日时长和应用总计',
 	intro213: '导出记录',
+	intro214: '重要功能',
+	intro215: '按键显示仅在Web端显示，桌面不显示。Web端通过设置->按键界面->Web按键显示',
+	intro216: 'Web按键显示',
 
   },
   'en-US': {
@@ -282,7 +285,7 @@ export default {
 	intro11: 'Backend service port number',
 	intro12: 'Keystroke display only for active window',
 	intro13: 'Use regular expression to match window process names',
-	intro14: 'Shortcut key for toggling keystroke temporary display',
+	intro14: 'Shortcut key for toggling keystroke display',
 	intro15: 'Changes take effect after program restarts.',
 	intro16: 'Manually enter keystrokes',
 	intro17: 'Real-time display interface for keystrokes',
@@ -496,5 +499,8 @@ export default {
 	intro211: 'App time TOP N',
 	intro212: 'Daily Duration and App Count',
 	intro213: 'Export Data',
+	intro214: 'Important function',
+	intro215: 'Key display is only shown on the web version, not on the desktop. Settings → Popup UI → Web Key Display.',
+	intro216: 'Web Key Display',
   }
 };

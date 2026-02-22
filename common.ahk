@@ -78,7 +78,6 @@ ReadAllIni() {
     global recordMinute,recordMinute := DescRead("common", "recordMinute", "1")
     ; 是否记录分钟数据
     global needShowKey,needShowKey := DescRead("common", "needShowKey", "1")
-    global preNeedShowKey,preNeedShowKey := needShowKey
     ; 是否显示按键
     global needRecordKey
     if needRecordKey = -1 {
@@ -250,3 +249,6 @@ SystemLocked(){
 lastTextArr := []  ; 		lastTextArr := textArr
 ; 最近一次窗口时间
 lastTextTick := 0 ; 用于控制是否显示新窗口
+
+global showKeyOnlyWeb,showKeyOnlyWeb := DescRead("common", "showKeyOnlyWeb", "0")
+; 按键显示模式，1=只在Web上显示，桌面不显示，0=桌面和web均显示
