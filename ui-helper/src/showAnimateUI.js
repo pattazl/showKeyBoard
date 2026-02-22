@@ -353,7 +353,7 @@ function getOffset(main) {
     globalOffsetY = offsetY
     //return { offsetX, offsetY, scale }
 }
-// 判断内容是否被清空
+// 判断内容是否被清空,寻找动画层是否存在
 function findDivs() {
     parent = document.getElementById('monitorId' + globalMonitor)
     if (parent == null) return true
@@ -381,21 +381,7 @@ function initContain(monitor, opt) {
     monitorInfo = monitor
     objMain = document.getElementById("mainContain")
     if (objMain == null) return;
-    objMain.addEventListener('click', function () {
-        // 需要对内部的 demo-color-changing-div 对象进行暂停
-        if (playState == 'paused') {
-            // 继续动画
-            playState = 'running';
-        } else {
-            // 暂停动画
-            playState = 'paused';
-        }
-        let monitors = objMain.querySelectorAll('.demo-color-changing-div')
-        monitors.forEach(x => {
-            x.style.animationPlayState = playState;
-        })
-    });
-    observer.observe(objMain);
+    // observer.observe(objMain); // 暂时不必自动根据大小更新
     // 更新参数并刷新
     updateWinOpt(opt)
     // 动态演示
@@ -461,8 +447,39 @@ function showSize() {
         })
     }, 10)
 }
-// 初始化主窗口
+function changeOK(){
+    let obj = document.getElementById("colorValue")
+    if(obj==null)return;
+    let monitors = objMain.querySelectorAll('.demo-color-changing-div')
+    monitors.forEach(x => {
+        x.style.backgroundColor = obj.value;
+    })
+}
+// 颜色列表
+let colorArr = ['#FFFFFF','#C8D7E3','#7AC142','#003366','#0078D7','#8E44AD','#00B7EB']
+function changeNext(){
+    let obj = document.getElementById("colorValue")
+    if(obj==null)return;
+    let find = colorArr.findIndex(item => item === obj.value.toUpperCase());
+    find = (++find) % colorArr.length;
+    obj.value = colorArr[find]
+    changeOK()
+}
+// 初始化主窗口,此函数需要防抖，防止频繁触发
+let mainTimer = null
 function initMain() {
+    if(mainTimer) 
+    {
+        clearTimeout(mainTimer);
+    }
+    let delay = 100
+    mainTimer = setTimeout(() => {
+        initMainCore();
+        lastExecuteTime = Date.now(); // 更新执行时间
+        mainTimer = null; // 清空定时器标识
+      }, delay); //  防抖延迟
+}
+function initMainCore() {
     clearAll()
     getOffset(objMain)
     let scale = globalScale, offsetX = globalOffsetX ,offsetY = globalOffsetY
@@ -475,11 +492,20 @@ function initMain() {
         let screenHTML = `<div style="top:${x.Top * scale}px;left:${x.Left * scale}px;" class="demo-container">
         <div id="monitorId${i + 1}" oriWidth="${x.Width}" oriHeight="${x.Height}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
         <span style="background-color:lightgrey;color:black"></span>
+        <span><input id="colorValue" placeholder="#FFFFFF" value="#FFFFFF" maxlength="7" style="width:${120 * scale}px"  oninput="this.value = this.value.replace(/[^#a-fA-F0-9]/g, '')" title="color" />
+        <input type="button" id="btChangeOK" value="OK"/>
+        <input type="button" value="➡️" title="next" id="btChangeNext"/>
+        </span>
         </div>
     </div>`
         return screenHTML
     })
     objMain.innerHTML = arrHTML.join('')
+
+    let objBtNext = document.getElementById("btChangeNext")
+    let objBtOK = document.getElementById("btChangeOK")
+    objBtNext.onclick = changeNext
+    objBtOK.onclick = changeOK
 
     // 设定具体哪个模块中显示
     let monitorIndex = winOpt.guiMonitorNum
@@ -519,6 +545,7 @@ function changeContainSize(flag) {
     } else {
         main.style.width = (parseInt(preWidth) + 10) + "%"
     }
+    initMain()
     showSize()
 }
 // 初始化容器

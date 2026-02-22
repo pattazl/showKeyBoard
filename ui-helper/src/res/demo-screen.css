@@ -1,8 +1,10 @@
 .demo-color-changing-div {
     position: relative;
     border: 1px blue solid;
-    animation: colorShift 18s infinite linear;
+    /* animation: colorShift 18s infinite linear;*/
     display: flex;
+    flex-wrap: wrap;        /* 核心：允许子元素换行 */
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
@@ -41,7 +43,7 @@
     width: 80%;
     margin: 0px;
     padding: 2px;
-    border: 1px solid #ccc;
+    /* border: 1px solid #ccc; */
     position: relative;
 }
 
