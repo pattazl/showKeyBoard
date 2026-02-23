@@ -101,7 +101,7 @@ Here is an example of FreeFileSync synchronization FTP
 
 ## Technical Architecture
 
-The key monitoring client uses AutoHotkey + Windows API
+The key monitoring client uses AutoHotkey v2.1alpha.18 + Windows API
 
 The interface display uses HTML, and node does WebSocket and HTTP communication
 
@@ -121,13 +121,21 @@ ConfigFile -->|Reload|Client
 
 1. `http` is the server-side code, use `npm run build` to package and generate the `httpdist` directory
 2. `ui-helper` is the client configuration page `npm run build` to generate the `dist` directory, which needs to be placed in the `httpdist/dist/ui` directory when publishing
-3. The root directory is the AutoHotkey script, which needs to be packaged into exe with the AutoHotkey tool for `showKeyBoard.ahk`, and the corresponding exe file needs to be placed in the same level directory as `httpdist`
+3. The root directory is the AutoHotkey  v2.1alpha.18 script, which needs to be packaged into exe with the AutoHotkey tool for `showKeyBoard.ahk`, and the corresponding exe file needs to be placed in the same level directory as `httpdist`
 
 ## Directory Description
 
 1. `KeyList.txt` in the root directory saves key characters directory. `showKeyBoard.ini` saves the client configuration 
 2. `httpdist/dist/records.db` saves the statistical information of the keys and the related configuration information of the statistics
 3. `httpdist/dist/node.exe` is used to start the backend `http/websocket` service
+
+## Secondary Development
+
+Each directory contains a `readme.md` or `readme.txt` with relevant instructions. For development interfaces, see [Interface Description](./interface.md).
+
+## Known Issues
+
+Enabling real-time key display on some devices may reduce key response speed. You can improve performance by setting it to **Web Key Display Only** or disabling real-time key display.
 
 ## Issue
 

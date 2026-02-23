@@ -17,7 +17,7 @@
 11. 支持游戏手柄摇杆和按键检测
 12. 支持通过第三方工具（推荐FreeFileSync）实现多台设备记录的同步
 13. 支持历史应用时长统计和每日使用时长和应用数量趋势分析
-14. 支持通过Web页面实时查看按键信息
+14. 支持通过Web页面实时查看按键信息，方法：设置->按键界面->Web按键显示，可通过调整页面大小后刷新，来调整显示大小
 
 ## 系统要求
 
@@ -84,7 +84,7 @@
 
 ## 技术架构
 
-按键监控客户端采用 AutoHotkey + Windows API
+按键监控客户端采用 AutoHotkey v2.1alpha.18 + Windows API
 
 界面显示用 HTML，node 做 WebSocket 和 HTTP 通讯
 
@@ -104,7 +104,7 @@ ConfigFile -->|Reload|Client
 
 1. `http` 里面的是服务器端代码，使用 `npm run build` 打包，生成 `httpdist` 目录
 2. `ui-helper` 是客户端配置页面 `npm run build` 生成 `dist` 目录，发布时候要放到 `httpdist/dist/ui` 目录中
-3. 根目录是 AutoHotkey 脚本，需要用 AutoHotkey 工具对 `showKeyBoard.ahk` 打包为 exe，对应的 exe 文件需要放到和 `httpdist` 同级目录
+3. 根目录是 AutoHotkey v2.1alpha.18 脚本，需要用 AutoHotkey 工具对 `showKeyBoard.ahk` 打包为 exe，对应的 exe 文件需要放到和 `httpdist` 同级目录
 
 ## 目录说明
 
