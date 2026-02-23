@@ -205,11 +205,13 @@
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
         <n-card style="border:1px #18a058 solid;overflow: auto;">
-          {{ contentText.intro186 }} <input :value="contentText.intro216" type="button" title="open new page" @click="openNewKeyPage()" /> <div style="float:right">
-            <input value="-" type="button" title="smaller" @click="changeContainSize(-1)" />
-            <input value="0" type="button" title="reset" @click="changeContainSize(0)" />
-            <input value="+" type="button" title="bigger" @click="changeContainSize(1)" />
-          </div>
+          {{ contentText.intro186 }}
+          <n-space>
+            <n-button type="info" title="open new page" @click="openNewKeyPage">{{ contentText?.intro216 }}</n-button>
+            <n-button type="info" title="smaller" @click="changeContainSize(-1)">-</n-button>
+            <n-button type="info" title="reset" @click="changeContainSize(0)">0</n-button>
+            <n-button type="info" title="bigger" @click="changeContainSize(1)">+</n-button>
+          </n-space>
           <div class="demo-allContain" id="mainContain"></div>
         </n-card>
         <n-card :style="myBorder.KeyUI ? 'border:1px #18a058 solid' : ''">
@@ -1054,19 +1056,14 @@ export default defineComponent({
     //   },1000)
     // }
     function openNewKeyPage(){
-      const newWindow = window.open('showKey.html', '_blank');
+      const newWindow = window.open('/showKey.html', '_blank');
       if (!newWindow) {
         alert('弹窗被拦截，请允许弹窗权限');
         return;
       }
-      // 验证资源加载（可选）
-      newWindow.onload = function() {
-        try{
-          newWindow.initContain(screenInfo.value.slice(1), allConfig.value);
-        }catch(e){
-          console.log('newWindow')
-        }
-      };
+      newWindow.addEventListener('load',()=>{
+        newWindow.postMessage({'screen':JSON.stringify(screenInfo.value.slice(1)), 'config':JSON.stringify(allConfig.value)});
+      });
     }
     return {
       keyboardApply,

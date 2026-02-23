@@ -2,9 +2,41 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>新窗口</title>
+<title>Show Key Press</title>
 <link rel="stylesheet" href="demo-screen.css">
 </head>
 <body><div class="demo-allContain" id="mainContain"></div>
-<script src="showAnimateUI.js"></script></body>
+<script type="module" src="showAnimateUI.js"></script>
+<script type="module">
+import { initContain, updateWinOpt, changeContainSize } from './showAnimateUI.js';
+
+let timer = null
+let delayMS = 100
+window.onload = ()=>{
+  timer = setTimeout(showContain,delayMS)
+}
+function showContain(){
+    let c = localStorage.getItem('config')
+    let s = localStorage.getItem('screen')
+    let config = JSON.parse(c)
+    let screen = JSON.parse(s)
+    // 按键显示窗口，强制修改相关参数
+    config.needShowKey = 1
+    config.ctrlState = 0
+    config.activeAppShow = 0
+    initContain(screen,config)
+}
+// 监听主窗口发来的消息
+window.addEventListener('message', (e) => {  
+  // 根据消息类型执行对应函数
+  if(e.data.config!=null && e.data.screen!=null){
+    // 写入localstorage
+    localStorage.setItem('config',e.data.config)
+    localStorage.setItem('screen',e.data.screen)
+    clearTimeout(timer)
+    timer = setTimeout(showContain,delayMS)
+  }
+});
+</script>
+</body>
 <html>

@@ -50,9 +50,9 @@ let winOpt = {
     ctrlTextWeight: "bold",
     ctrlTextColor: "FF0000",
 
-    guiRadius :0,
-    ctrlRadius :0,
-    guiFadeMs :500,
+    guiRadius: 0,
+    ctrlRadius: 0,
+    guiFadeMs: 500,
 }
 
 
@@ -162,8 +162,8 @@ function showCtrl() {
     newDiv.style.fontWeight = winOpt.ctrlTextWeight
     newDiv.style.color = '#' + winOpt.ctrlTextColor
 
-    newDiv.style.top = (globalOffsetY+winOpt.ctrlY) * scale + 'px'
-    newDiv.style.left = (globalOffsetX+winOpt.ctrlX) * scale + 'px'
+    newDiv.style.top = (globalOffsetY + winOpt.ctrlY) * scale + 'px'
+    newDiv.style.left = (globalOffsetX + winOpt.ctrlX) * scale + 'px'
 
     mainAddInfo(newDiv, '.demo-ctrl-div')
     // 3s后清理掉
@@ -176,7 +176,7 @@ function showCtrl() {
     })
 }
 // 对某个对象渐变消失
-function fadeDiv(targetElement){
+function fadeDiv(targetElement) {
     // 动态设置渐变时长（单位：毫秒）
     const fadeDuration = winOpt.guiFadeMs;
     // 获取元素初始透明度
@@ -195,8 +195,7 @@ function fadeDiv(targetElement){
         } else {
             targetElement.style.opacity = 0;
             // 渐变完成后移除元素
-            if(targetElement.parentNode!=null)
-            {
+            if (targetElement.parentNode != null) {
                 targetElement.parentNode.removeChild(targetElement);
             }
         }
@@ -215,8 +214,8 @@ function showApp() {
     newDiv.style.backgroundColor = '#F5F5F5'
     newDiv.style.lineHeight = fontSize * scale + 'px';
 
-    newDiv.style.top = (globalOffsetY+winOpt.activeAppShowY) * scale + 'px'
-    newDiv.style.left =  (globalOffsetX+winOpt.activeAppShowX) * scale + 'px'
+    newDiv.style.top = (globalOffsetY + winOpt.activeAppShowY) * scale + 'px'
+    newDiv.style.left = (globalOffsetX + winOpt.activeAppShowX) * scale + 'px'
     mainAddInfo(newDiv, '.demo-app-div')
     // 3s后清理掉
     textArr.forEach((text, i) => {
@@ -229,11 +228,13 @@ function showApp() {
 }
 function mainAddInfo(newDiv, className) {
     // 需要先移除旧的
-    let olds = document.querySelectorAll(className)
-    olds.forEach(x => {
-        objMain.removeChild(x);
-    })
-    objMain.appendChild(newDiv);
+    try {
+        let olds = document.querySelectorAll(className)
+        olds.forEach(x => {
+            objMain.removeChild(x);
+        })
+        objMain.appendChild(newDiv);
+    } catch (e) { }
 }
 function showKey() {
     let textArr = ['k e y', 'p r e s×2', 't e s t', '🖱️×3 ^+v', '⇧+c ␣×12', '⊞+d', 'Caps', 'Del×4'];
@@ -243,19 +244,23 @@ function showKey() {
     textArr.forEach((text, i) => {
         // 间隔多少秒产生新的
         let handle = setTimeout(() => {
-            createNewTxt(text, globalScale)
+            createNewTxt(text)
         }, winOpt.guiInterval * i);
         timeOutList.push(handle)
     })
 }
-function createNewTxt(text, scale) {
+let lastNewDiv = null
+function createNewTxt(text) {
+    let scale = globalScale
     const newDiv = document.createElement('div');
+    lastNewDiv = newDiv;
     newDiv.classList.add('demo-new-div');
     // 需要根据参数创建 guiWidth: 240, guiHeigth: 0, guiBgcolor: "8611AA", guiBgTrans: 0, guiTrans: 1, guiOpacity: 38, guiTextFont: "Verdana", guiTextSize: 26, guiTextWeight: "bold", guiTextColor: "FFEE00",
     newDiv.textContent = text;
     if (winOpt.guiEdge == 1) {
         newDiv.style.border = '1px solid'
     }
+    newDiv.style.textAlign = "left"
     newDiv.style.width = winOpt.guiWidth * scale + 'px';
     newDiv.style.borderRadius = winOpt.guiRadius * scale + 'px';
     newDiv.style.fontSize = winOpt.guiTextSize * scale + 'px';
@@ -265,6 +270,10 @@ function createNewTxt(text, scale) {
     if (winOpt.guiHeigth != 0) {
         newDiv.style.height = winOpt.guiHeigth * scale + 'px';
         editHeight = winOpt.guiHeigth
+    }else{
+        let padPx = 2
+        newDiv.style.padding = padPx * scale + 'px' // 有间隔
+        editHeight = editHeight + 2*padPx;
     }
     editHeight *= scale
     let bgColor = ''
@@ -292,22 +301,22 @@ function createNewTxt(text, scale) {
             switch (direction) {
                 case 'up':
                     prePos = parseInt(getComputedStyle(div).top) || 0;
-                    selfSize = parseInt(getComputedStyle(div).height)
+                    selfSize = div.offsetHeight //parseInt(getComputedStyle(div).height)
                     div.style.top = (prePos - offset - selfSize) + 'px';
                     break;
                 case 'down':
                     prePos = parseInt(getComputedStyle(div).top) || 0;
-                    selfSize = parseInt(getComputedStyle(div).height)
+                    selfSize = div.offsetHeight //parseInt(getComputedStyle(div).height)
                     div.style.top = (prePos + offset + selfSize) + 'px';
                     break;
                 case 'left':
                     prePos = parseInt(getComputedStyle(div).left) || 0;
-                    selfSize = parseInt(getComputedStyle(div).width)
+                    selfSize = div.offsetWidth //parseInt(getComputedStyle(div).width)
                     div.style.left = (prePos - offset - selfSize) + 'px';
                     break;
                 case 'right':
                     prePos = parseInt(getComputedStyle(div).left) || 0;
-                    selfSize = parseInt(getComputedStyle(div).width)
+                    selfSize = div.offsetWidth //parseInt(getComputedStyle(div).width)
                     div.style.left = (prePos + offset + selfSize) + 'px';
                     break;
             }
@@ -315,10 +324,10 @@ function createNewTxt(text, scale) {
     });
     // 超时后清理掉
     setTimeout(() => {
-        try { 
+        try {
             // objContainer.removeChild(newDiv)
             fadeDiv(newDiv)
-         } catch (e) { }
+        } catch (e) { }
     }, winOpt.guiLife);
 }
 // 要取最大范围，转换 monitorInfo 的负数位置
@@ -369,9 +378,37 @@ function clearDivs(parent) {
 }
 // getNewInfo()
 let langText = {}
-function setLangText(obj){
+function setLangText(obj) {
     langText = obj
     showSize() // 刷新显示下
+}
+function showKeyPress(opt){
+    let port = opt?.common?.serverPort??0
+    if(port ==0)return;
+    try {
+        const ws = new WebSocket('ws://127.0.0.1:'+port);
+        ws.onopen = () => {
+        console.log('已连接到服务器');
+        // 发送字符串（浏览器会自动转换为二进制）
+        ws.send('ahkKeyShow'); // 表明要收的数据
+        };
+        ws.onmessage = async (event) => {
+        const blob = event.data;
+        // 直接将 Blob 转为 UTF-8 字符串（默认编码，无需额外配置）
+        let text = blob instanceof Blob ? await blob.text() : blob;
+        if(text.indexOf('0::')>-1){
+            //showNewTxt(text)
+            text = text.replace('0::','')
+            lastNewDiv.textContent = text
+        }else{
+            createNewTxt(text)
+        }
+        
+        // console.log('解码后的字符串:', text);
+        };
+    } catch (e) {
+        alert('ws:'+e.message)
+    }
 }
 function initContain(monitor, opt) {
     if (monitor == null) {
@@ -384,8 +421,13 @@ function initContain(monitor, opt) {
     // observer.observe(objMain); // 暂时不必自动根据大小更新
     // 更新参数并刷新
     updateWinOpt(opt)
-    // 动态演示
-    keepAnimate()
+    // 如果是配置界面则动态演示
+    if(location.pathname.indexOf('Setting')>-1){
+        keepAnimate()
+    }else{
+        showKeyPress(opt)
+    }
+
     // fullScreenEvent
     // fullScreenEvent()
 }
@@ -438,28 +480,28 @@ function showSize() {
     setTimeout(() => {
         if (objMain == null) return;
         let monitors = objMain.querySelectorAll('.demo-color-changing-div')
-        monitors.forEach((dom,i) => {
+        monitors.forEach((dom, i) => {
             let w = parseInt(getComputedStyle(dom).width);
             let h = parseInt(getComputedStyle(dom).height);
-            dom.querySelector('span').innerText = `${langText.intro187} #${i+1}(${w}x${h})`
+            dom.querySelector('span').innerText = `${langText.intro187 ?? ''} #${i + 1}(${w}x${h}) scale:${(globalScale*100).toFixed(2)}%`
             // (dom as any).title = `${contentText.value.intro187}(${w}*${h})`
             //console.log(dom, w, h)
         })
     }, 10)
 }
-function changeOK(){
+function changeOK() {
     let obj = document.getElementById("colorValue")
-    if(obj==null)return;
+    if (obj == null) return;
     let monitors = objMain.querySelectorAll('.demo-color-changing-div')
     monitors.forEach(x => {
         x.style.backgroundColor = obj.value;
     })
 }
 // 颜色列表
-let colorArr = ['#FFFFFF','#C8D7E3','#7AC142','#003366','#0078D7','#8E44AD','#00B7EB']
-function changeNext(){
+let colorArr = ['#FFFFFF', '#C8D7E3', '#7AC142', '#003366', '#0078D7', '#8E44AD', '#00B7EB']
+function changeNext() {
     let obj = document.getElementById("colorValue")
-    if(obj==null)return;
+    if (obj == null) return;
     let find = colorArr.findIndex(item => item === obj.value.toUpperCase());
     find = (++find) % colorArr.length;
     obj.value = colorArr[find]
@@ -468,21 +510,19 @@ function changeNext(){
 // 初始化主窗口,此函数需要防抖，防止频繁触发
 let mainTimer = null
 function initMain() {
-    if(mainTimer) 
-    {
+    if (mainTimer) {
         clearTimeout(mainTimer);
     }
     let delay = 100
     mainTimer = setTimeout(() => {
         initMainCore();
-        lastExecuteTime = Date.now(); // 更新执行时间
         mainTimer = null; // 清空定时器标识
-      }, delay); //  防抖延迟
+    }, delay); //  防抖延迟
 }
 function initMainCore() {
     clearAll()
     getOffset(objMain)
-    let scale = globalScale, offsetX = globalOffsetX ,offsetY = globalOffsetY
+    let scale = globalScale, offsetX = globalOffsetX, offsetY = globalOffsetY
     // 计算偏移，修改为 Width 或 Height
     newMonitor = monitorInfo.map(x => {
         return { "Left": x.Left + offsetX, "Top": x.Top + offsetY, "Width": x.Right - x.Left, "Height": x.Bottom - x.Top }
@@ -493,8 +533,8 @@ function initMainCore() {
         <div id="monitorId${i + 1}" oriWidth="${x.Width}" oriHeight="${x.Height}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
         <span style="background-color:lightgrey;color:black"></span>
         <span><input id="colorValue" placeholder="#FFFFFF" value="#FFFFFF" maxlength="7" style="width:${120 * scale}px"  oninput="this.value = this.value.replace(/[^#a-fA-F0-9]/g, '')" title="color" />
-        <input type="button" id="btChangeOK" value="OK"/>
-        <input type="button" value="➡️" title="next" id="btChangeNext"/>
+        <input type="button" id="btChangeOK" title="change background color" value="OK"/>
+        <input type="button" value="➡️" title="next background color" id="btChangeNext"/>
         </span>
         </div>
     </div>`
@@ -536,7 +576,7 @@ function updateWinOpt(opt) {
 }
 function changeContainSize(flag) {
     let main = document.getElementById('mainContain');
-    let defaultWidth = '80%'  // 同CSS中一致
+    let defaultWidth = '100%'  // 同CSS中一致
     let preWidth = main.style.width || defaultWidth
     if (flag == 0) {
         main.style.width = defaultWidth
@@ -553,10 +593,13 @@ function changeContainSize(flag) {
 // 调用函数，传入容器 ID 和移动方向
 //createAnimatedDivs();
 //setInterval(() => { if (!findDivs(objContainer)) { createAnimatedDivs(); } }, 1000)
-console.log('showAnimate')
+console.log('showAnimate', window)
+
 export {
     setLangText,
     initContain,
     updateWinOpt,
-    changeContainSize
+    changeContainSize,
 }
+
+
