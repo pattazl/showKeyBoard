@@ -500,7 +500,7 @@ export default {
 	intro212: 'Daily Duration and App Count',
 	intro213: 'Export Data',
 	intro214: 'Important function',
-	intro215: 'Key display is only shown on the web version, not on the desktop. Settings → Popup UI → Web Key Display.',
+	intro215: 'Key display is only shown on the web, not on the desktop. Setting → Popup UI → Web Key Display.',
 	intro216: 'Web Key Display',
   }
 };

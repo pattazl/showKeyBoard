@@ -5,18 +5,34 @@
 ## Function Introduction
 
 1. Key statistics with customizable keyboard, view statistics
+
 2. Key display, real-time display of key status, supports multiple display styles for keys, such as rounded corners, fade out, custom movement directions, etc . , support for multiple screens, similar to Carnac
+
 3. Support Chinese and English switching and light & dark theme switching
+
 4. Support parameters import and export
+
 5. Support remote statistics and settings
+
 6. For privacy and security, showKeyBoard only records statistical information, do not record specific content, and save the content locally
+
 7. Support the statstics of mouse and keyboard of different application programs
+
 8. Supports the analysis of the usage time of each application. The basic principle is as follows: count the list of applications used every minute, and then allocate and summarize the usage time to each application,Note: The application requires mouse or keyboard operation.
+
 9. Display the status of control keys/status keys in real-time, including the status of the Caps Lock, Scroll Lock, Num Lock keys, as well as the Ctrl, Shift, and Alt keys.
+
 10. Show the last N keystrokes (not saved)
+
 11. Support gamepad joystick and button detection.
+
 12. Support the synchronization of multiple device records through third-party tools (FreeFileSync is recommended)
+
 13. Supports historical app usage duration statistics, as well as trend analysis of daily usage duration and app count
+
+14. Supports real-time viewing of key information via the web interface. Method: Settings → Popup UI → Web Key Display.
+
+    You can adjust the display size by resizing the page and then refreshing it.
 
 ## System Requirements
 
@@ -40,6 +56,7 @@ If you have node10 or above environment, or have installed it once, install
 Follow the prompts to select during installation, such as whether to keep the configuration, whether to create a shortcut, etc. The default configuration can be used in general
 
 **Note**:
+
 1. Due to the use of system hooks, some computers may report viruses by mistake and need to be trusted.
 2. On some systems, you may need to run in administrator mode, otherwise showKeyBoard will not be able to listen to the keys
 3. Some companies may have installed encryption software, which will encrypt the configuration files, causing all parameters to become invalid. In this case, you can rename `./httpdist/dist/node.exe` in the installation directory to `./httpdist/dist/chrome.exe`, and modify the `showKeyBoard.ini` file in the installation directory by adding the parameter `serverExecName=./httpdist/dist/chrome.exe`.
