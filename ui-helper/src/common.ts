@@ -50,25 +50,26 @@ async function ajax(path, data = null) {
 // 布尔类型清单,bool list
 const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans',
   'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd', 'mergeControl', 'fillDate', 'statProcInfo',
-  'mergeAppName', 'activeAppShow', 'preAppNameEnable', 'allKeySwitch', 'needTraytip','showKeyOnlyWeb']
+  'mergeAppName', 'activeAppShow', 'preAppNameEnable', 'allKeySwitch', 'needTraytip', 'showKeyOnlyWeb']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
-  for (let k in hash) {
+  for (const k in hash) {
+    let val = hash[k];
     if (flag == 0) {  // 进行数据转换给界面
       // 如果不是字符串类型，证明之前已经处理过无需再处理
-      if (typeof hash[k] !== 'string') {
-        return;
+      if (typeof val !== 'string') {
+        continue;
       }
       if (boolArr.indexOf(k) > -1) {
-        hash[k] = (parseInt(hash[k]) == 1) as boolean
-      } else if (/^-?(?!0\d)\d+$/.test(hash[k])) { // 如果不是0，但是用0开头的数字，则为字符串，解决颜色的bug
-        hash[k] = Number(hash[k]);
+        hash[k] = (parseInt(val) == 1) as boolean
+      } else if (/^-?(?!0\d)\d+$/.test(val)) { // 如果不是0，但是用0开头的数字，则为字符串，解决颜色的bug
+        hash[k] = Number(val);
       }
     } else { // 界面转换给数据
       if (boolArr.indexOf(k) > -1) {
-        hash[k] = hash[k] ? '1' : '0'
-      } else if (typeof hash[k] !== 'string') {
-        hash[k] = hash[k].toString(); // 默认都是字符串
+        hash[k] = val ? '1' : '0'
+      } else if (typeof val !== 'string') {
+        hash[k] = val.toString(); // 默认都是字符串
       }
     }
   }
@@ -373,29 +374,29 @@ function minute2Hour(minutes) {
   }
 }
 // 导出为制表符分隔的文本
-const exportToText = (columns,tableData) => {
+const exportToText = (columns, tableData) => {
   debugger
   // 1. 创建表头行
   const headerRow = columns.map(col => col.title).join('\t')
-  
+
   // 2. 创建数据行
   const dataRows = tableData.map(row => {
     return columns.map(col => row[col.key]).join('\t')
   }).join('\n')
-  
+
   // 3. 合并表头和数据
   const textContent = `${headerRow}\n${dataRows}`
-  
+
   // 4. 创建Blob并下载
   const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
-  
+
   // 创建下载链接
   const link = document.createElement('a')
   link.href = url
   link.download = 'Keys_' + new Date().toISOString().slice(0, 10) + '.txt'
   link.click()
-  
+
   // 释放URL对象
   URL.revokeObjectURL(url)
 }
@@ -403,5 +404,5 @@ const exportToText = (columns,tableData) => {
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour,exportToText
+  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText
 }
