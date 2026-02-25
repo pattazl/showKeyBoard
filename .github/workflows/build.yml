@@ -1,7 +1,6 @@
-name: Build and Package (NSIS)
+name: Build and Release (NSIS)
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -35,24 +34,24 @@ jobs:
 
       # 复制 buildMain.config.js
       - name: Prepare build config
-        run: |
-          Copy-Item build/buildMain.config.js.dist build/buildMain.config.js -Force
-          
-      # AutoHotkey 安装    
+        run: Copy-Item build/buildMain.config.js.dist build/buildMain.config.js -Force
+
+      # 安装 AutoHotkey
       - name: Install AutoHotkey
         run: choco install autohotkey -y
-  
+
       # 安装 NSIS
       - name: Install NSIS
         run: choco install nsis -y
 
-      # 构建项目（会自动调用 buildMain.js + NSIS）
+      # 构建
       - name: Build Project
         run: npm run build
 
-      # 上传安装包
-      - name: Upload Installer
-        uses: actions/upload-artifact@v4
+      # 创建 GitHub Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: showKeyBoard-installer
-          path: release\
+          files: release\*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
