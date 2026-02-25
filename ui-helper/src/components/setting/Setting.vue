@@ -886,8 +886,10 @@ export default defineComponent({
             message.error(contentText.value.intro130)
             return
           }
-
           // 设置变量为新的数据
+          // config的数据需要做一个转换才可以保存到PreData中
+          str2Type(config.common, 0)
+          str2Type(config.dialog, 0)
           store.preData.config = deepCopy(config)
           store.preData.keyList = deepCopy(keyList)
           // 需要应用最新键盘
