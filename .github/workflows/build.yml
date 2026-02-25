@@ -1,10 +1,10 @@
-name: Build Project
+name: Build and Package (NSIS)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
@@ -19,16 +19,33 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
+      - name: Install dependencies (root)
+        run: npm install
+
+      - name: Install dependencies (http)
         run: |
+          cd http
           npm install
 
-      - name: Build
+      - name: Install dependencies (ui-helper)
         run: |
-          npm run build
+          cd ui-helper
+          npm install
 
-      - name: Upload artifact
+      - name: Create build config
+        run: |
+          if not exist build\buildMain.config.js (
+            copy build\buildMain.config.js.dist build\buildMain.config.js
+          )
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: .
+          name: showKeyBoard-installer
+          path: release\
