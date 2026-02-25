@@ -335,6 +335,11 @@
                 <n-input v-model:value="allConfig.dialog.txtSplit" type="text" :placeholder="contentText.intro49" />
               </template>
             </n-list-item>
+            <n-list-item><span>{{ contentText.intro217 }}</span>
+              <template #suffix>
+                <n-switch :round="false" v-model:value="allConfig.dialog.mergeChar" />
+              </template>
+            </n-list-item>
             <h4>{{ contentText.intro50 }}</h4>
             <n-list-item>{{ contentText.intro51 }}
               <template #suffix>

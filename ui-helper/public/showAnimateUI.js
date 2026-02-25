@@ -9,7 +9,6 @@ let globalMonitor = 1
 let timeOutList = [] // 产生新text的定时器句柄
 let objContainer = null
 let objMain = null
-let playState = 'running'
 // 创建一个窗口显示 Div
 let winOpt = {
     guiWidth: 240,
@@ -427,54 +426,10 @@ function initContain(monitor, opt) {
     }else{
         showKeyPress(opt)
     }
-
     // fullScreenEvent
     // fullScreenEvent()
 }
-// 全屏代码
-// function fullScreen(id) {
-//     const myDiv = document.getElementById('monitorId' + id);
-//     toggleFullscreen(myDiv)
-// }
 
-// function toggleFullscreen(myDiv) {
-//     if (document.fullscreenElement) {
-//         if (document.exitFullscreen) {
-//             document.exitFullscreen();
-//         } else if (document.webkitExitFullscreen) {
-//             document.webkitExitFullscreen();
-//         } else if (document.mozCancelFullScreen) {
-//             document.mozCancelFullScreen();
-//         } else if (document.msExitFullscreen) {
-//             document.msExitFullscreen();
-//         }
-//     } else {
-//         if (myDiv.requestFullscreen) {
-//             myDiv.requestFullscreen();
-//         } else if (myDiv.webkitRequestFullscreen) {
-//             myDiv.webkitRequestFullscreen();
-//         } else if (myDiv.mozRequestFullScreen) {
-//             myDiv.mozRequestFullScreen();
-//         } else if (myDiv.msRequestFullscreen) {
-//             myDiv.msRequestFullscreen();
-//         }
-// 
-//     }
-// }
-// 监控变化
-const observer = new ResizeObserver(entries => {
-    for (const entry of entries) {
-        // const { width, height } = entry.contentRect;
-        // 需要重新演示动画
-        if (entry.target.id == 'mainContain') {
-            // 全屏时候忽略
-            // if (globalinFullScreen) {
-            //     return
-            // }
-            initMain()
-        }
-    }
-});
 // 显示当前的窗口像素 根据子窗口的大小显示真实长宽
 function showSize() {
     setTimeout(() => {

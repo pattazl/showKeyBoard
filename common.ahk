@@ -189,6 +189,11 @@ ReadAllIni() {
     global maxCountOfConnectFail,maxCountOfConnectFail := DescRead("common", "maxCountOfConnectFail", 60) ; 连续通讯失败多少次后提示报错
     
     global guiFadeMs,guiFadeMs := DescRead("dialog", "guiFadeMs", 500) ; 窗口渐变消失ms数，0表示立刻消失
+
+    global showKeyOnlyWeb,showKeyOnlyWeb := DescRead("common", "showKeyOnlyWeb", "0")
+    ; 按键显示模式，1=只在Web上显示，桌面不显示，0=桌面和web均显示
+    global mergeChar,mergeChar := DescRead("dialog", "mergeChar", "1")
+    ; 相同字母是否合并，默认为1
 }
 ReadAllIni()
 GetKeyList()
@@ -250,5 +255,3 @@ lastTextArr := []  ; 		lastTextArr := textArr
 ; 最近一次窗口时间
 lastTextTick := 0 ; 用于控制是否显示新窗口
 
-global showKeyOnlyWeb,showKeyOnlyWeb := DescRead("common", "showKeyOnlyWeb", "0")
-; 按键显示模式，1=只在Web上显示，桌面不显示，0=桌面和web均显示

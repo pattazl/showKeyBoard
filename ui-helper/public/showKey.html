@@ -5,7 +5,12 @@
 <title>Show Key Press</title>
 <link rel="stylesheet" href="demo-screen.css">
 </head>
-<body><div class="demo-allContain" id="mainContain"></div>
+<body>
+  <input type="button" title="smaller" id="smaller" value ="-"/> 
+  <input type="button" title="reset"   id="reset"   value ="0"/>
+  <input type="button" title="bigger"  id="bigger"  value ="+"/>
+  <a href="obs/index.html" target="_blank">For OBS Plugin</a>
+  <div class="demo-allContain" id="mainContain"></div>
 <script type="module" src="showAnimateUI.js"></script>
 <script type="module">
 import { initContain, updateWinOpt, changeContainSize } from './showAnimateUI.js';
@@ -14,6 +19,9 @@ let timer = null
 let delayMS = 100
 window.onload = ()=>{
   timer = setTimeout(showContain,delayMS)
+  document.getElementById('smaller').onclick = ()=>{ changeContainSize(-1) }
+  document.getElementById('reset').onclick = ()=>{ changeContainSize(0) }
+  document.getElementById('bigger').onclick = ()=>{ changeContainSize(1) }
 }
 function showContain(){
     let c = localStorage.getItem('config')

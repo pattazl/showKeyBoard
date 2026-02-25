@@ -6,6 +6,7 @@ export default {
 	recordMouseMove:'intro6',
 	needShowKey:'intro7',
 	showKeyOnlyWeb:'intro215',
+	mergeChar:'intro217',
 	needRecordKey:'intro8',
 	ctrlState:'intro9',
 	serverPort:'intro11',

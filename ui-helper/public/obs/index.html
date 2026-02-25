@@ -1,0 +1,55 @@
+<html>
+<meta charset="utf-8">
+
+<body>
+<title>Open Broadcaster Software | OBS Plugin</title>
+    <script src="obscjjs.js"></script>
+    <div class="wk">
+        <div id='danmu'>
+        </div>
+    </div>
+    <script>
+    </script>
+    <style type="text/css">
+        .wk {
+            width: 100%;
+            height: 80%;
+            text-overflow: ellipsis;
+            /* background-image: linear-gradient(-225deg, #D4FFEC 0%, #57F2CC 48%, #4596FB 100%); */
+
+            /* text-overflow:ellipsis;超出部分显示省略号 */
+            white-space: nowrap;
+            /*规定段落中的文本不进行换行 */
+        }
+
+        #danmu {
+            width: 60%;
+            /* 位置,宽度 */
+            height: 90%;
+            /* 位置,高度 */
+            line-height: 1.3;
+            /* 行高,1.5是字体大小1.5倍,50px是固定大小 */
+            font-size: 50px;
+            /* 字体,大小 */
+            font-weight: 700;
+            /* 字体,粗细 */
+            font-style: italic;
+            /* 字体,风格,斜体还是正常还是中间 */
+            float: left;
+            padding-left: 10px;
+            text-align: left;
+            overflow: hidden;
+            text-decoration: underline(to right, rgb(64, 211, 15), rgb(201, 61, 61));
+        }
+
+        #danmu span {
+            background: linear-gradient(to right, rgb(247, 247, 247), rgba(255, 255, 255, 0.589));
+            -webkit-text-stroke: 2px black;
+            -webkit-background-clip: text;
+            /* 标准属性（未来兼容） */
+            background-clip: text;
+            color: transparent;
+        }
+    </style>
+</body>
+</html>

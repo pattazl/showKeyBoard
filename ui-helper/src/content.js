@@ -159,7 +159,7 @@ export default {
 	intro128:'导入设置成功',
 	intro129:'导入设置失败',
 	intro130: '保存失败',
-	intro131: '普通按键按住不放,重复次数上限(次)',
+	intro131: '普通按键连续相同时,重复次数上限(次)',
 	intro132: '控制键按键不放,重复次数上限(次)',
 	intro133: '每多少秒自动将按键信息保存到数据库中',
 	intro134: '远程控制模式',
@@ -249,7 +249,7 @@ export default {
 	intro214: '重要功能',
 	intro215: '按键显示仅在Web端显示，桌面不显示。Web端通过设置->按键界面->Web按键显示',
 	intro216: 'Web按键显示',
-
+	intro217: '合并连续相同的字符,用×计数',
   },
   'en-US': {
     title: 'Show Keyboard Management',
@@ -412,7 +412,7 @@ export default {
 	intro128:'Import Setting Successful',
 	intro129:'Import Setting Fail!',
 	intro130: 'Saved Fail!',
-	intro131: 'Max times for repeat normal keys when keep press',
+	intro131: 'Max times for repeat normal keys when keep press(consecutive same chars)',
 	intro132: 'Max times for repeat control keys when keep press',
 	intro133: 'Interval seconds automatically saved to the database',
 	intro134: 'Remote control mode',
@@ -502,5 +502,6 @@ export default {
 	intro214: 'Important function',
 	intro215: 'Key display is only shown on the web, not on the desktop. Setting → Popup UI → Web Key Display.',
 	intro216: 'Web Key Display',
+	intro217: 'Merge consecutive same chars, count with ×',
   }
 };

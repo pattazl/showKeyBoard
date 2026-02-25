@@ -369,7 +369,7 @@ GetKeyText(arr)
 	count :=1
 	loop arr.Length{
 	; 如果一样用 ❌✖×
-		if preCh = arr[A_Index]{
+		if (preCh = arr[A_Index]) && mergeChar = 1 {
 			count += 1
 			text := preDiffText "×" count
 		}Else{
