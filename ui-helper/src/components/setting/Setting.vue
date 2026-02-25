@@ -69,6 +69,7 @@
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro8 }}
+              <div class="error">{{ contentText.intro214 }}</div>
               <template #suffix>
                 <n-switch :round="false" v-model:value="allConfig.common.needRecordKey" />
               </template>

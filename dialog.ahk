@@ -573,7 +573,8 @@ GetProcPath(){
     }
     ; 显示当前激活的应用路径
     if( activeAppShow = 1 ){
-        ToolTip(ProcPath, activeAppShowX, activeAppShowY)
+        ; 需要通过显示进程实现
+		ToolTip(ProcPath, activeAppShowX, activeAppShowY) 
     }
     return ProcPath
 }
@@ -682,6 +683,7 @@ ShowCtrlState(){
 	}
 	ctrlPreTxt := ctrlTxt
 }
+; 需要通过显示进程实现
 CreateCtrlState()
 {
 	global ctrlStateGui := CreateCtrlGui(ctrlTextSize)
