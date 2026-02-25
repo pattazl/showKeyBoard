@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: 18
 
+      # 安装依赖
       - name: Install dependencies (root)
         run: npm install
 
@@ -32,18 +33,20 @@ jobs:
           cd ui-helper
           npm install
 
-      - name: Create build config
+      # 复制 buildMain.config.js
+      - name: Prepare build config
         run: |
-          if not exist build\buildMain.config.js (
-            copy build\buildMain.config.js.dist build\buildMain.config.js
-          )
+          Copy-Item build/buildMain.config.js.dist build/buildMain.config.js -Force
 
+      # 安装 NSIS
       - name: Install NSIS
         run: choco install nsis -y
 
+      # 构建项目（会自动调用 buildMain.js + NSIS）
       - name: Build Project
         run: npm run build
 
+      # 上传安装包
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
