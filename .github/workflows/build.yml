@@ -37,7 +37,11 @@ jobs:
       - name: Prepare build config
         run: |
           Copy-Item build/buildMain.config.js.dist build/buildMain.config.js -Force
-
+          
+      # AutoHotkey 安装    
+      - name: Install AutoHotkey
+        run: choco install autohotkey -y
+  
       # 安装 NSIS
       - name: Install NSIS
         run: choco install nsis -y
