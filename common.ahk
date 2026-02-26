@@ -6,7 +6,8 @@ global MinuteRecords := Array()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
-skipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
+defaultSkipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
+skipKeys := defaultSkipKeys
 ; 基础配置文件读取
 ; 自定义函数，优先从目标的 showKeyBoard.desc.ini 文件中读取默认参数，如果没有才使用第三个默认参数
 global DescIniPath := '', httpDistPath := '', httpPath := '', needRecordKey := -1
@@ -255,3 +256,4 @@ lastTextArr := []  ; 		lastTextArr := textArr
 ; 最近一次窗口时间
 lastTextTick := 0 ; 用于控制是否显示新窗口
 
+getKeyInputTitle := "getKeyInput"  ; 底层获取按键的程序名

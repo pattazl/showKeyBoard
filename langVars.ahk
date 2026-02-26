@@ -20,6 +20,7 @@ global msgTimes := '次,'
 global msgLaunch := '无法启动Node，请确保已经安装node环境或使用非node的安装包'
 global msgLaunchSucc := '启动服务成功!'
 global msgConnectFail:= '后台服务无法连接,请检查或重启应用!'
+global msgNotLaunchHook := '未成功启动底层按键监控'
 if defaultLang = 'en-US' {
     L_menu_startup:="Auto Start"
     L_menu_reload :="Reset Client"
@@ -39,4 +40,5 @@ if defaultLang = 'en-US' {
     msgLaunch := 'Launch node fail, make sure node be installed or use another setup!'
     msgLaunchSucc := 'Start Server succ!'
     msgConnectFail:= 'can not connect server, please relaunch app!'
+    msgNotLaunchHook := 'Failed to set up low-level keyboard monitoring'
 }

@@ -30,6 +30,31 @@ ClientChange(){
     ]
   return CheckListChange(importantList)
 }
+; 需要重启底层接口的改变
+HookChange(){
+  global skipKeys
+  global maxKeypressCount
+
+  hasChanged := false
+  tempKeys := defaultSkipKeys
+  record := StrSplit(DescRead("common", "skipRecord", ""), '|')
+  loop record.length {
+    tempKeys := defaultSkipKeys "{" GetKeyName(record[A_Index]) "}"
+  }
+  if(skipKeys!=tempKeys){
+    ; 按键改变需要底层重启
+    skipKeys := tempKeys
+    hasChanged := true
+  }
+  maxCount := DescRead("common", "maxKeypressCount", "")
+  if(maxCount != maxKeypressCount){
+    OutputDebug('AHK: maxCount' maxKeypressCount ' , ' maxCount)
+    maxKeypressCount := maxCount
+    hasChanged := true
+  }
+  
+  return hasChanged
+}
 CheckListChange(lists){
     for index, item in lists {
         ; 解析数组项：[变量值, 节名, 键名]
@@ -70,7 +95,15 @@ IniMonitor(reloadAll){
         return
     }else if ClientChange()
     {
-        Reload() 
+        Reload()
+        return
+    }
+    if( HookChange())
+    {
+        ; 重新开底层
+        OutputDebug('AHK: HookChange')
+        CloseGetKeyInput()
+        CreateGetKeyInput()
     }
     ; 参数变化直接修改即可 调用 GetKeyList
     if(reloadAll == 1)

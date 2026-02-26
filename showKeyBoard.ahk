@@ -15,7 +15,7 @@ global APPName := "ShowKeyBoard", ver:= "1.57"
 #Include events.ahk
 ; 正式代码开始
 loop skipRecord.length {
-  skipKeys := skipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
+  skipKeys := defaultSkipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
 }
 ; 切换是否显示按键
 Switch4show() {
@@ -330,6 +330,15 @@ CreateMenu()
   }
 }
 CreateMenu()
+; 是否可以控制隐藏的窗口
+DetectHiddenWindows(true)
+CloseGetKeyInput(){
+  ; 如果是未编译的脚本
+  str := getKeyInputTitle " ahk_class AutoHotkey"
+  if WinExist(str) {
+      PostMessage 0x0010, 0, 0, , str
+  }
+}
 ; 关闭前需要退出后台服务
 OnExit ExitFunc
 ExitFunc(ExitReason, ExitCode)
@@ -366,7 +375,7 @@ ExitFunc(ExitReason, ExitCode)
     }
     FileAppend(JSON.stringify(AllKeyRecord, 0), lastRecordPath)
   }
-  DllCall("UnhookWindowsHookEx", "UInt", hHookKeyboard)
+  CloseGetKeyInput()
 }
 
 #Include dialog.ahk
@@ -454,80 +463,49 @@ ExitFunc(ExitReason, ExitCode)
 
 ; SetHotkey(1)
 
-global hHookKeyboard := 0
-HookKeyboard()
-{
-  ; 定义常量
-  WH_KEYBOARD_LL := 13
-  ; 注册回调函数
-  callback := CallbackCreate(LowLevelKeyboardProc, "Fast", 3)
-  ; 获取当前模块句柄
-  moduleHandle := DllCall("GetModuleHandle", "UInt", 0, "Ptr")
-  ; 全局键盘钩子
-  hHookKeyboard := DllCall("SetWindowsHookExW",
-    "Int", WH_KEYBOARD_LL,
-    "Ptr", callback,
-    "Ptr", moduleHandle,
-    "UInt", 0,
-    "Ptr")
-}
-; https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms644985(v=vs.85)
-; 添加 <^ 这些符号，以确保一致
-AddModifier() {
-  Modfier := ''
-  ModifierMapping := Map()
-  ModifierMapping['LControl'] := '<^'
-  ModifierMapping['RControl'] := '>^'
-  ModifierMapping['LWin'] := '<#'
-  ModifierMapping['RWin'] := '>#'
-  ModifierMapping['LAlt'] := '<!'
-  ModifierMapping['RAlt'] := '>!'
-  ModifierMapping['LShift'] := '<+'
-  ModifierMapping['RShift'] := '>+'
-  ; 判断 Shift 键是否按下
-  for key, val in ModifierMapping
-  {
-    if (GetKeyState(key))
-    {
-      Modfier .= val
-    }
-  }
-  return Modfier
-}
-; skipKeys 中的 Ctrl 要转换为 Control
-skipKeysDll := StrReplace(skipKeys, 'Ctrl', 'Control')
-LowLevelKeyboardProc(nCode, wParam, lParam)
-{
-  ; Critical
-  global repeatRecord
-  if (wParam = 0x0101 or wParam = 0x0105)  ; KEYUP
-  {
-    repeatRecord := 0
-  }
-  if (repeatRecord < maxKeypressCount) {
-    flags := NumGet(lParam + 0, 8, "UInt") & 0x10                         ; 物理按下是0，模拟是非0。0x10 = 00010000
-    if (nCode >= 0 and flags = 0 and (wParam = 0x0100 or wParam = 0x0104))  ; WM_KEYUP = 0x0101 WM_SYSKEYUP = 0x0105 WM_KEYDOWN = 0x0100 WM_SYSKEYDOWN = 0x0104
-    {
-      ; vk := NumGet(lParam+0, "UInt")                                  ; vk 不能区分数字键盘，所以用 sc
-      Extended := NumGet(lParam + 0, 8, "UInt") & 0x1                   ; 扩展键（即功能键或者数字键盘上的键）是1，否则是0
-        , sc := (Extended << 8) | NumGet(lParam + 0, 4, "UInt")
-      Name := GetKeyName(Format("sc{:X}", sc))
-      Name2 := '{' Name '}'
-      if (InStr(skipKeysDll, Name2))
+; 启动接收函数用于接收按键消息
+ReceiveKeyInput(){
+    ; 监听 WM_COPYDATA 消息 (0x004A)
+  OnMessage(0x004A, Receive_WM_COPYDATA)
+
+  Receive_WM_COPYDATA(wParam, lParam, msg, hwnd) {
+      ; 从 lParam 指向的 COPYDATASTRUCT 结构中读取数据
+      ; 结构布局: [dwData, cbData, lpData]
+      ; 每个字段在 64 位系统中占 8 字节 (A_PtrSize)
+      
+      ; 1. 获取字符串数据的内存地址 (lpData)
+      ; 偏移量为 2 * A_PtrSize 是因为前两个字段各占 A_PtrSize 字节
+      dataAddress := NumGet(lParam + 2 * A_PtrSize, "Ptr")
+      
+      ; 2. 获取字符串数据的字节大小 (cbData)
+      dataSize := NumGet(lParam + A_PtrSize, "UInt")
+      
+      ; 3. 从内存地址中读取字符串
+      ; 除以 2 得到字符数 (因为是 UTF-16)
+      receivedString := StrGet(dataAddress, dataSize // 2, "UTF-16")
+      
+      ; 显示接收到的内容
+      ; 使用 ToolTip 而不是 MsgBox 以避免阻塞消息处理
+      sendKeySep := '|'  ; 链接分隔符,和发送端一致，用于合并快速发送的的消息
+      keyArr := StrSplit(receivedString, sendKeySep)
+      For index, key in keyArr
       {
-        return DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
+        PushTxt(key)
       }
-      repeatRecord += 1
-      fullKey := AddModifier() Name  ; 控制键和具体按键结合
-      ; OutputDebug("AutoHotkey sc " sc ' Name:' fullKey ' C:' repeatRecord )
-      PushTxt(fullKey)
-    }
+      ; 返回值 1 表示已处理该消息（这是惯例）
+      return 1
   }
-  ; CallNextHookEx 让其它钩子可以继续处理消息
-  ; 返回非0值 例如1 告诉系统此消息将丢弃
-  return DllCall("CallNextHookEx", "Ptr", 0, "Int", nCode, "UInt", wParam, "UInt", lParam)
 }
-HookKeyboard()                          ; 键盘钩子
+ReceiveKeyInput()
+; 启动进程用于读取按键
+CreateGetKeyInput(){
+  try {
+    Run(getKeyInputTitle " " maxKeypressCount " " skipKeys)
+  } catch {
+    MsgBox(msgNotLaunchHook ":" getKeyInputTitle)
+  }
+}
+CreateGetKeyInput()
 
 ; 以下为对 游戏手柄的按键读取
 ; 可以支持多个摇杆
@@ -807,3 +785,7 @@ InitTrayIcon() {
     }
 }
 InitTrayIcon()
+SetTimer( setMyTitle,-1 )
+setMyTitle(){
+  WinSetTitle('ShowKeyBoardMainUI',"ahk_id "  A_ScriptHwnd)
+}
