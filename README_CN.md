@@ -88,16 +88,20 @@
 
 界面显示用 HTML，node 做 WebSocket 和 HTTP 通讯
 
-客户端程序只管读取配置文件和发送数据，不写配置文件
+客户端程序只管读取配置文件和发送数据，一般不写配置文件
+
+客户端有一个底层钩子进程，用于将进程和数据处理界面显示分离
 
 HTTP 端负责写配置文件，接收 HTML 前端数据
 
 ```mermaid
 graph LR
-Client -->|Post|NodeServer ---|WebSocket/Post/Get|Web
+Client -->|Post/Launch|NodeServer ---|WebSocket/Post/Get|Web
 NodeServer -->|WebSocket|Client
 NodeServer ---|R/W|ConfigFile
 ConfigFile -->|Reload|Client
+HookKey -->|SendMessage|Client
+Client -->|Launch|HookKey
 ```
 
 ## 编译说明
@@ -118,7 +122,7 @@ ConfigFile -->|Reload|Client
 
 ## 已知问题
 
-在有些设备上打开按键实时显示可能会降低按键响应，可通过配置为仅Web按键显示或关闭按键实时显示提升效率
+在快速输入的时候，由于通过队列处理，所以界面显示可能会有一定延时
 
 ## 感谢
 

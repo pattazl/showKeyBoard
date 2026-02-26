@@ -107,14 +107,18 @@ The interface display uses HTML, and node does WebSocket and HTTP communication
 
 The client program only reads the configuration file and sends data, and does not write the configuration file
 
+The client includes a low-level hook process, which is used to decouple the process and the display of the data processing interface.
+
 The HTTP side writes the configuration file and receives the HTML front-end data
 
 ```mermaid
 graph LR
-Client -->|Post|NodeServer ---|WebSocket/Post/Get|Web
+Client -->|Post/Launch|NodeServer ---|WebSocket/Post/Get|Web
 NodeServer -->|WebSocket|Client
 NodeServer ---|R/W|ConfigFile
 ConfigFile -->|Reload|Client
+HookKey -->|SendMessage|Client
+Client -->|Launch|HookKey
 ```
 
 ## Compile Instructions
@@ -135,9 +139,7 @@ Each directory contains a `readme.md` or `readme.txt` with relevant instructions
 
 ## Known Issues
 
-Enabling real-time key display on some devices may reduce key response speed. You can improve performance by setting it to **Web Key Display Only** or disabling real-time key display.
-
-## Issue
+When input is entered rapidly, there may be a slight delay in the interface display as the input is processed through a queue.
 
 
 ## Thanks
