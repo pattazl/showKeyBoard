@@ -54,15 +54,18 @@ ShowTxt(text)
   ; 数据处理
   global lastTextArr
   global lastTextTick
-	textArr := []
-  textArr.push(text)
+  ; textArr := []
+  ; textArr.push(text)
+  sendKeySep := '|'  ; 链接分隔符,和发送端一致，用于合并快速发送的的消息
+  inputArr := StrSplit(text,sendKeySep)
+  textArr := inputArr
   needNewGui :=1
   nowTick := A_TickCount
   diff := nowTick - lastTextTick
   if( diff < guiInterval ){
     needNewGui := 0
     textArr := lastTextArr
-    textArr.push(text)
+    textArr.push(inputArr*)
   }else{
     lastTextArr := textArr
     lastTextTick := nowTick
@@ -71,11 +74,13 @@ ShowTxt(text)
 	newText := Trim(GetKeyText(textArr)) ; 去掉首尾空格
   ; 塞数据到websocket
   if( handleWS != 0 ){
-    if(needNewGui){
-      handleWS.sendText( newText )
-    }else{
-      handleWS.sendText( '0::' newText) ; 表明是复用旧窗口
-    }
+	try{
+		if(needNewGui){
+			handleWS.sendText( newText )
+		}else{
+			handleWS.sendText( '0::' newText) ; 表明是复用旧窗口
+		}
+	}
   }
   if( showKeyOnlyWeb = 1 ){
     return

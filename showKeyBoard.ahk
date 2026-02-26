@@ -13,6 +13,18 @@ global APPName := "ShowKeyBoard", ver:= "1.57"
 #include common.ahk
 #include langVars.ahk
 #Include events.ahk
+
+myWindowTitle := 'ShowKeyBoardMainUI'
+; 判断是否有实例正在运行
+lastProcHwnd := WinExist(myWindowTitle)
+if lastProcHwnd {
+    ; 找到旧实例
+    ; 可以选择：通知旧实例退出
+    SendMessage 0x0010, 0, 0, , "ahk_id " lastProcHwnd
+    ; 或者直接退出新实例
+    ;MsgBox "程序已在运行，将退出新实例"
+    ;ExitApp
+}
 ; 正式代码开始
 loop skipRecord.length {
   skipKeys := defaultSkipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
@@ -486,12 +498,12 @@ ReceiveKeyInput(){
       
       ; 显示接收到的内容
       ; 使用 ToolTip 而不是 MsgBox 以避免阻塞消息处理
-      sendKeySep := '|'  ; 链接分隔符,和发送端一致，用于合并快速发送的的消息
-      keyArr := StrSplit(receivedString, sendKeySep)
-      For index, key in keyArr
-      {
-        PushTxt(key)
-      }
+      PushTxt( receivedString )
+      ; keyArr := StrSplit(receivedString, sendKeySep)
+      ; For index, key in keyArr
+      ; {
+      ;   PushTxt(key)
+      ; }
       ; 返回值 1 表示已处理该消息（这是惯例）
       return 1
   }
@@ -505,7 +517,6 @@ CreateGetKeyInput(){
     MsgBox(msgNotLaunchHook ":" getKeyInputTitle)
   }
 }
-CreateGetKeyInput()
 
 ; 以下为对 游戏手柄的按键读取
 ; 可以支持多个摇杆
@@ -785,7 +796,8 @@ InitTrayIcon() {
     }
 }
 InitTrayIcon()
-SetTimer( setMyTitle,-1 )
 setMyTitle(){
-  WinSetTitle('ShowKeyBoardMainUI',"ahk_id "  A_ScriptHwnd)
+  WinSetTitle( myWindowTitle,"ahk_id "  A_ScriptHwnd)
+  CreateGetKeyInput()
 }
+SetTimer( setMyTitle,-1 )
