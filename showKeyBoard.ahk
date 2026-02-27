@@ -796,8 +796,15 @@ InitTrayIcon() {
     }
 }
 InitTrayIcon()
-setMyTitle(){
-  WinSetTitle( myWindowTitle,"ahk_id "  A_ScriptHwnd)
+setMyPid(){
+  ; 不能修改title否则会导致reload异常
+  ;WinSetTitle( myWindowTitle,"ahk_id "  A_ScriptHwnd)
+  ; 写入PID
+  pidFile := A_ScriptDir . "\kb.pid"
+  myPid := ProcessExist()
+  try {
+      FileOpen(pidFile, "w").Write(myPid)
+  }
   CreateGetKeyInput()
 }
-SetTimer( setMyTitle,-1 )
+setMyPid()
