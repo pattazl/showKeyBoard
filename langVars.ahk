@@ -1,8 +1,8 @@
 ; 全局变量语言包
-showOnlyWebTxt := ''
+showOnlyWebTxt := ' ' hotkey4Show
 if showKeyOnlyWeb = 1
 {
-    showOnlyWebTxt := 'Web'
+    showOnlyWebTxt := 'Web ' hotkey4Show
 }
 global menu_msg_noserver := '服务未成功启动，不能用界面查看和设置'
 global L_menu_startup:="开机启动"
