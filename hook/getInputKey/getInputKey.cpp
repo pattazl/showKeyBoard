@@ -10,7 +10,7 @@ volatile int repeatRecord = 0;
 const int maxKeypressCount = 10;
 // 修复：移除{Space}，避免空格被跳过；保留其他示例跳过键
 const std::unordered_set<std::wstring> skipKeys = {
-    L"{Esc}", L"{Tab}", L"{Backspace}", L"{Delete}", L"{Enter}"
+    // L"{Esc}", L"{Tab}", L"{Backspace}", L"{Delete}", L"{Enter}"
 };
 
 // -------------------------- 辅助函数 --------------------------
@@ -53,7 +53,7 @@ std::wstring GetKeyNameFromSC(DWORD scancode, bool extended)
         return keyName;
     }
     // 兜底：通过扫描码直接识别空格（0x39是空格的扫描码）
-    if (scancode == 0x39) return L"Space";
+    // if (scancode == 0x39) return L"Space";
     return L"Unknown";
 }
 
@@ -115,8 +115,8 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 int main()
 {
     // 修复：优化控制台编码，确保Space等字符正常显示
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
+    //SetConsoleOutputCP(CP_UTF8);
+    //SetConsoleCP(CP_UTF8);
     std::wcout.imbue(std::locale(std::locale::empty(), new std::codecvt_utf8<wchar_t>));
 
     HHOOK hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
