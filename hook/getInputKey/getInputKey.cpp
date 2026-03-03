@@ -5,6 +5,91 @@
 #include <locale>
 #include <codecvt>
 
+#include <fstream>
+#include <string>
+#include <algorithm>
+
+// 全局变量：存储目标窗口标识（对应AHK的targetWindow）
+long g_targetWindowId;
+
+// 回调函数：遍历窗口，匹配标题包含指定字符串的窗口
+BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam)
+{
+    wchar_t szWindowTitle[256] = { 0 };
+    GetWindowTextW(hWnd, szWindowTitle, 256); // 获取窗口标题
+
+    // 查找标题中是否包含"ShowKeyBoard.exe"（不区分大小写）
+    std::wstring title = szWindowTitle;
+    std::wstring target = L"ShowKeyBoard.exe";
+    std::transform(title.begin(), title.end(), title.begin(), ::towlower);
+    std::transform(target.begin(), target.end(), target.begin(), ::towlower);
+
+    if (title.find(target) != std::wstring::npos)
+    {
+        // 找到匹配窗口，获取其PID并保存
+        DWORD* pPid = (DWORD*)lParam;
+        GetWindowThreadProcessId(hWnd, pPid);
+        return FALSE; // 停止遍历
+    }
+    return TRUE; // 继续遍历
+}
+
+// 核心函数：获取目标进程PID（按窗口标题匹配）
+void getMainPid(int initFlag)
+{
+    // 1. 拼接PID文件路径（程序目录下kb.pid）
+    WCHAR szExePath[MAX_PATH] = { 0 };
+    GetModuleFileNameW(NULL, szExePath, MAX_PATH);
+    std::wstring pidFilePath = szExePath;
+    pidFilePath = pidFilePath.substr(0, pidFilePath.find_last_of(L"\\/")) + L"\\kb.pid";
+
+    // 2. 读取PID文件（ASCII编码，容错处理）
+    int txtPid = -1;
+    std::ifstream file(pidFilePath);
+    if (file.is_open())
+    {
+        std::string pidStr;
+        std::getline(file, pidStr); // 默认ASCII读取
+        std::cout << pidStr;
+        file.close();
+        try { txtPid = std::stoi(pidStr); }
+        catch (...) { txtPid = -1; }
+    }
+
+    // 3. 验证PID有效性（按PID查窗口）
+    DWORD tarPid = -1;
+    HWND hWnd = NULL;
+    while ((hWnd = FindWindowExW(NULL, hWnd, NULL, NULL)) != NULL)
+    {
+        DWORD dwPid = 0;
+        GetWindowThreadProcessId(hWnd, &dwPid);
+        if (dwPid == txtPid)
+        {
+            tarPid = txtPid;
+            break;
+        }
+    }
+
+    // 4. PID无效时：按窗口标题包含"ShowKeyBoard.exe"查找
+    if (tarPid == -1)
+    {
+        EnumWindows(EnumWindowsProc, (LPARAM)&tarPid);
+    }
+
+    // 5. 调试输出 + 无效PID处理
+    OutputDebugStringW((L"CPP: tarPid=" + std::to_wstring(tarPid)).c_str());
+    if (tarPid == -1)
+    {
+        OutputDebugStringW(L"CPP: no targetWindow");
+        if (initFlag == 1) ExitProcess(0); // 无PID且initFlag=1则退出
+        return;
+    }
+
+    // 6. 赋值目标窗口标识
+    g_targetWindowId = tarPid;
+    //g_targetWindow = L"ahk_pid " + std::to_wstring(tarPid);
+}
+
 // -------------------------- 全局配置 --------------------------
 volatile int repeatRecord = 0;
 const int maxKeypressCount = 10;
@@ -118,7 +203,7 @@ int main()
     //SetConsoleOutputCP(CP_UTF8);
     //SetConsoleCP(CP_UTF8);
     std::wcout.imbue(std::locale(std::locale::empty(), new std::codecvt_utf8<wchar_t>));
-
+    getMainPid(1);
     HHOOK hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
         LowLevelKeyboardProc,
         GetModuleHandle(NULL),
@@ -138,7 +223,6 @@ int main()
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-
     UnhookWindowsHookEx(hKeyboardHook);
     return 0;
 }
