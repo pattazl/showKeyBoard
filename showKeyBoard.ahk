@@ -290,15 +290,10 @@ MenuHandler(ItemName, ItemPos, MyMenu) {
       MsgBox menu_msg_noserver
     }
   }
-  if (ItemName = L_menu_pause)
+  if (ItemName = L_menu_hook)
   {
-    if A_IsPaused = 1 {
-      Pause(False)
-      MyMenu.Uncheck(L_menu_pause)
-    } else {
-      Pause(True)
-      MyMenu.Check(L_menu_pause)
-    }
+    CloseGetKeyInput()
+    CreateGetKeyInput()
   }
   if (ItemName = L_menu_4show)
   {
@@ -326,7 +321,7 @@ CreateMenu()
   if needRecordKey = 1 {
     MyMenu.Add(L_menu_reset, MenuHandler)
   }
-  MyMenu.Add(L_menu_pause, MenuHandler)
+  MyMenu.Add(L_menu_hook, MenuHandler)
   MyMenu.Add(L_menu_4show, MenuHandler)
   UpdatMenu4Show()
   MyMenu.Add(L_menu_set, MenuHandler)
