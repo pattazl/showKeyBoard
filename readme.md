@@ -30,9 +30,8 @@
 
 13. Supports historical app usage duration statistics, as well as trend analysis of daily usage duration and app count
 
-14. Supports real-time viewing of key information via the web interface. Method: Settings → Popup UI → Web Key Display.
+14. Supports real-time viewing of key information via the web interface. Method: Settings → Popup UI → Web Key Display, it can support the independent display of keys in OBS (Open Broadcaster Software), and can also turn off the desktop key display to show them only in the web.
 
-    You can adjust the display size by resizing the page and then refreshing it.
 
 ## System Requirements
 
