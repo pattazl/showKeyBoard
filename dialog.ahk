@@ -56,16 +56,16 @@ ShowTxt(text)
   global lastTextTick
   ; textArr := []
   ; textArr.push(text)
-  sendKeySep := '|'  ; 链接分隔符,和发送端一致，用于合并快速发送的的消息
-  inputArr := StrSplit(text,sendKeySep)
-  textArr := inputArr
+  ; sendKeySep := '|'  ; 链接分隔符,和发送端一致，用于合并快速发送的的消息
+  ; inputArr := StrSplit(text,sendKeySep)
+  textArr := [text]
   needNewGui :=1
   nowTick := A_TickCount
   diff := nowTick - lastTextTick
   if( diff < guiInterval ){
     needNewGui := 0
     textArr := lastTextArr
-    textArr.push(inputArr*)
+    textArr.push(text)
   }else{
     lastTextArr := textArr
     lastTextTick := nowTick
@@ -460,7 +460,7 @@ PushTxt(txt,isMouse:=False)
 	; 按键数量统计
 	; OutputDebug "AutoHotkey - " txt
 	if(needRecordKey = 1 && (!isMouse || (isMouse && GetBitState(showMouseEvent,1)=1 ))){
-        RecordKey(txt,isMouse)
+        RecordKey(txt,isMouse)  ; 此处需要处理
     }
 }
 ;记录全部按键统计

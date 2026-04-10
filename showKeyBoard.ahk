@@ -8,7 +8,7 @@
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
 #Requires AutoHotkey v2
 #SingleInstance Ignore
-global APPName := "ShowKeyBoard", ver:= "1.58"
+global APPName := "ShowKeyBoard", ver:= "1.59"
 #Include "lib/JSON.ahk"
 #include common.ahk
 #include langVars.ahk
@@ -473,8 +473,8 @@ ExitFunc(ExitReason, ExitCode)
 ; 启动接收函数用于接收按键消息
 ReceiveKeyInput(){
     ; 监听 WM_COPYDATA 消息 (0x004A)
+  sendKeySep := '|'  ; 链接分隔符,和发送端一致，用于合并快速发送的的消息
   OnMessage(0x004A, Receive_WM_COPYDATA)
-
   Receive_WM_COPYDATA(wParam, lParam, msg, hwnd) {
       ; 从 lParam 指向的 COPYDATASTRUCT 结构中读取数据
       ; 结构布局: [dwData, cbData, lpData]
@@ -493,12 +493,12 @@ ReceiveKeyInput(){
       
       ; 显示接收到的内容
       ; 使用 ToolTip 而不是 MsgBox 以避免阻塞消息处理
-      PushTxt( receivedString )
-      ; keyArr := StrSplit(receivedString, sendKeySep)
-      ; For index, key in keyArr
-      ; {
-      ;   PushTxt(key)
-      ; }
+      ;PushTxt( receivedString )
+      keyArr := StrSplit(receivedString, sendKeySep)
+      For index, key in keyArr
+      {
+        PushTxt(key)
+      }
       ; 返回值 1 表示已处理该消息（这是惯例）
       return 1
   }
