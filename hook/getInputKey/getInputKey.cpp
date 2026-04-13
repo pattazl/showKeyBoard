@@ -584,8 +584,11 @@ int main(int argc, char* argv[])
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+		if (msg.message == WM_QUIT || msg.message == WM_CLOSE)
+		{
+			break;
+		}
 	}
-
 	// 程序退出前的清理
 	g_exitFlag = true; // 设置退出标志
 	cv.notify_one();   // 唤醒消费线程
