@@ -161,17 +161,8 @@ std::wstring ReplaceAll(std::wstring str, const std::wstring& from, const std::w
 // -------------------------- 全局配置 --------------------------
 volatile int repeatRecord = 0;
 int maxKeypressCount = 10;
-std::wstring skipKeys = L""; // L"{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}";
+std::wstring skipKeys = L"{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"; // L""; // 
 
-							 // 全局变量：记录当前按住的修饰键（左右分开）
-bool g_bLControl = false;
-bool g_bRControl = false;
-bool g_bLShift = false;
-bool g_bRShift = false;
-bool g_bLAlt = false;
-bool g_bRAlt = false;
-bool g_bLWin = false;
-bool g_bRWin = false;
 // -------------------------- 辅助函数 --------------------------
 
 /**
@@ -180,15 +171,14 @@ bool g_bRWin = false;
 std::wstring AddModifier()
 {
 	std::wstring mod = L"";
-	if (g_bLControl) mod += L"<^";
-	if (g_bRControl) mod += L">^";
-	if (g_bLShift)   mod += L"<+";
-	if (g_bRShift)   mod += L">+";
-	if (g_bLAlt)     mod += L"<!";
-	if (g_bRAlt)     mod += L">!";
-	if (g_bLWin)     mod += L"<#";
-	if (g_bRWin)     mod += L">#";
-
+	if (GetAsyncKeyState(VK_LCONTROL) & 0x8000) mod += L"<^";
+	if (GetAsyncKeyState(VK_RCONTROL) & 0x8000) mod += L">^";
+	if (GetAsyncKeyState(VK_LSHIFT) & 0x8000)   mod += L"<+";
+	if (GetAsyncKeyState(VK_RSHIFT) & 0x8000)   mod += L">+";
+	if (GetAsyncKeyState(VK_LMENU) & 0x8000)     mod += L"<!";
+	if (GetAsyncKeyState(VK_RMENU) & 0x8000)     mod += L">!";
+	if (GetAsyncKeyState(VK_LWIN) & 0x8000)     mod += L"<#";
+	if (GetAsyncKeyState(VK_RWIN) & 0x8000)     mod += L">#";
 	return mod;
 }
 
@@ -270,65 +260,233 @@ void ConsumerThreadFunc()
 		SendToTargetWindow(keyInfo); 
 	}
 }
-std::wstring GetKeyNameVCode(KBDLLHOOKSTRUCT* pKeyboardData) {
-	DWORD vkCode = pKeyboardData->vkCode;
-	bool extended = !!(pKeyboardData->flags & LLKHF_EXTENDED);
-	std::wstring keyName;
-	// ====================== 正确识别：控制键 + 小键盘（永不错乱）======================
+// -------------------------- 小键盘按键映射 --------------------------
+
+
+/**
+ * @brief 获取 NumLock 状态
+ */
+bool IsNumLockOn()
+{
+	return (GetKeyState(VK_NUMLOCK) & 0x0001) != 0;
+}
+
+/**
+ * @brief 判断是否是小键盘按键
+ *
+ * 关键：小键盘按键的 extended 标志为 1
+ *       主键盘方向键/Home等的 extended 标志为 0
+ */
+bool IsNumpadKey(DWORD vkCode, DWORD scancode, DWORD flags)
+{
+	bool extended = (flags & LLKHF_EXTENDED) != 0;
+
+	// 小键盘运算符（这些键的 extended 可能不同，通过 vkCode 判断）
+	if (vkCode == VK_MULTIPLY || vkCode == VK_ADD ||
+		vkCode == VK_SUBTRACT || vkCode == VK_DIVIDE ||
+		vkCode == VK_DECIMAL || vkCode == VK_NUMLOCK)
+	{
+		return true;
+	}
+
+	// 小键盘回车
+	if (vkCode == VK_RETURN && extended)
+	{
+		return true;
+	}
+
+	// 小键盘数字键（NumLock 开启时）
+	if (vkCode >= VK_NUMPAD0 && vkCode <= VK_NUMPAD9)
+	{
+		return true;
+	}
+
+	// 【关键】NumLock 关闭时，小键盘按键的 extended 标志为 1
+	// 主键盘方向键/Home等的 extended 标志为 0
+	// 所以只有 extended == 1 时才可能是小键盘
+	if (extended)
+	{
+		// 检查扫描码是否在小键盘范围内
+		switch (scancode)
+		{
+		case 0x47:  // Home / Numpad7
+		case 0x48:  // Up / Numpad8
+		case 0x49:  // PgUp / Numpad9
+		case 0x4B:  // Left / Numpad4
+		case 0x4C:  // Clear / Numpad5
+		case 0x4D:  // Right / Numpad6
+		case 0x4F:  // End / Numpad1
+		case 0x50:  // Down / Numpad2
+		case 0x51:  // PgDn / Numpad3
+		case 0x52:  // Ins / Numpad0
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * @brief 获取小键盘按键名称
+ */
+std::wstring GetNumpadKeyName(DWORD vkCode, DWORD scancode, DWORD flags, bool numLockOn)
+{
+	bool extended = (flags & LLKHF_EXTENDED) != 0;
+
+	// 小键盘运算符
+	//switch (vkCode)
+	//{
+	//case VK_MULTIPLY: return L"NumpadMult";
+	//case VK_ADD:      return L"NumpadAdd";
+	//case VK_SUBTRACT: return L"NumpadSub";
+	//case VK_DIVIDE:   return L"NumpadDiv";
+	//case VK_DECIMAL:  return L"NumpadDel";
+	//case VK_NUMLOCK:  return L"NumpadNumLock";
+	//}
+
+	// 小键盘回车
+	if (vkCode == VK_RETURN && extended)
+	{
+		return L"NumpadEnter";
+	}
+	if (vkCode == VK_NUMLOCK )
+	{
+		return L"NumLock";
+	}
+	// NumLock 开启时，返回数字名称
+	if (numLockOn)
+	{
+		switch (vkCode)
+		{
+		case VK_NUMPAD0: return L"Numpad0-";
+		case VK_NUMPAD1: return L"Numpad1-";
+		case VK_NUMPAD2: return L"Numpad2";
+		case VK_NUMPAD3: return L"Numpad3";
+		case VK_NUMPAD4: return L"Numpad4";
+		case VK_NUMPAD5: return L"Numpad5";
+		case VK_NUMPAD6: return L"Numpad6";
+		case VK_NUMPAD7: return L"Numpad7";
+		case VK_NUMPAD8: return L"Numpad8";
+		case VK_NUMPAD9: return L"Numpad9";
+		case VK_DECIMAL:  return L"NumpadDot";
+		}
+	}
+
+	// NumLock 关闭时，通过扫描码返回功能名称
+	// 注意：只有 extended == 1 时才会进入这个分支
+	switch (scancode)
+	{
+	case 0x52: return L"Insert";   // 小键盘 0
+	case 0x4F: return L"End";   // 小键盘 1
+	case 0x50: return L"Down";  // 小键盘 2
+	case 0x51: return L"PgDn";  // 小键盘 3
+	case 0x4B: return L"Left";  // 小键盘 4
+	case 0x4C: return L"Clear"; // 小键盘 5
+	case 0x4D: return L"Right"; // 小键盘 6
+	case 0x47: return L"Home";  // 小键盘 7
+	case 0x48: return L"Up";    // 小键盘 8
+	case 0x49: return L"PgUp";  // 小键盘 9
+
+	case 0x37:  return L"NumpadMult";    // *
+	case 0x4E:  return L"NumpadAdd";     // +
+	case 0x4A:  return L"NumpadSub";     // -
+	case 0x53:  return L"NumpadDel";     // -
+	case 0x35:  if (extended) return L"NumpadDiv"; // /（必须extended=true）
+
+	}
+
+	return L"NumpadUnknown";
+}
+
+/**
+ * @brief 获取普通按键名称
+ */
+std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
+{
+	// 特殊按键映射
 	switch (vkCode)
 	{
-		// 控制键
-	case VK_LCONTROL: keyName = L"LControl"; break;
-	case VK_RCONTROL: keyName = L"RControl"; break;
-	case VK_LSHIFT:  keyName = L"LShift";  break;
-	case VK_RSHIFT:  keyName = L"RShift";  break;
-	case VK_LMENU:   keyName = L"LAlt";    break;
-	case VK_RMENU:   keyName = L"RAlt";    break;
-	case VK_LWIN:    keyName = L"LWin";    break;
-	case VK_RWIN:    keyName = L"RWin";    break;
-	case VK_APPS:    keyName = L"App";     break;
+	case VK_SPACE:      return L"Space";
+	case VK_BACK:       return L"Backspace";
+	case VK_TAB:        return L"Tab";
+	case VK_ESCAPE:     return L"Esc";
+	case VK_DELETE:     return extended?L"Del":L"NumpadDel";
+	case VK_INSERT:     return L"NumpadIns";
+	case VK_HOME:       return L"NumpadHome";
+	case VK_END:        return L"NumpadEnd";
+	case VK_PRIOR:      return L"NumpadPgUp";
+	case VK_NEXT:       return L"NumpadPgDn";
+	case VK_UP:         return L"NumpadUp";
+	case VK_DOWN:       return L"NumpadDown";
+	case VK_LEFT:       return L"NumpadLeft";
+	case VK_RIGHT:      return L"NumpadRight";
+	case VK_CONTROL:
+		return extended ? L"RCtrl" : L"LCtrl";
+	case VK_SHIFT:
+		// 通过扫描码区分左右 Shift
+		if (scancode == 0x2A) return L"LShift";
+		if (scancode == 0x36) return L"RShift";
+		return L"Shift";
+	case VK_MENU:  // Alt
+		return extended ? L"RightAlt" : L"LAlt";
+	case VK_LWIN:       return L"LWin";
+	case VK_RWIN:       return L"RWin";
+	case VK_APPS:       return L"AppsKey";
+	case VK_CAPITAL:    return L"CapsLock";
+	case VK_SCROLL:     return L"ScrollLock";
+	case VK_SNAPSHOT:   return L"PrintScreen";
+	case VK_PAUSE:      return L"Pause";
 
-		// 功能键
-	case VK_ESCAPE:    keyName = L"Esc";     break;
-	case VK_TAB:       keyName = L"Tab";     break;
-	case VK_CAPITAL:   keyName = L"CapsLock"; break;
-	case VK_SPACE:     keyName = L"Space";   break;
-	case VK_BACK:      keyName = L"Backspace"; break;
-	case VK_RETURN:    keyName = L"Enter";   break;
-	case VK_INSERT:    keyName = L"Insert";  break;
-	case VK_DELETE:    keyName = L"Delete";  break;
-	case VK_HOME:      keyName = L"Home";    break;
-	case VK_END:       keyName = L"End";     break;
-	case VK_PRIOR:     keyName = L"PageUp";  break;
-	case VK_NEXT:      keyName = L"PageDown"; break;
-	case VK_UP:        keyName = L"Up";      break;
-	case VK_LEFT:      keyName = L"Left";    break;
-	case VK_RIGHT:     keyName = L"Right";   break;
-	case VK_DOWN:      keyName = L"Down";    break;
-
-		// 小键盘（完全正确区分）
-	case VK_NUMPAD0: keyName = L"Num0"; break;
-	case VK_NUMPAD1: keyName = L"Num1"; break;
-	case VK_NUMPAD2: keyName = L"Num2"; break;
-	case VK_NUMPAD3: keyName = L"Num3"; break;
-	case VK_NUMPAD4: keyName = L"Num4"; break;
-	case VK_NUMPAD5: keyName = L"Num5"; break;
-	case VK_NUMPAD6: keyName = L"Num6"; break;
-	case VK_NUMPAD7: keyName = L"Num7"; break;
-	case VK_NUMPAD8: keyName = L"Num8"; break;
-	case VK_NUMPAD9: keyName = L"Num9"; break;
-	case VK_MULTIPLY: keyName = L"Num*"; break;
-	case VK_ADD:      keyName = L"Num+"; break;
-	case VK_SUBTRACT: keyName = L"Num-"; break;
-	case VK_DECIMAL:  keyName = L"Num."; break;
-	case VK_DIVIDE:   keyName = L"Num/"; break;
-
-	default:
-		// 普通按键 字母/数字/符号 走 GetKeyNameFromSC
-		keyName = GetKeyNameFromSC(pKeyboardData->scanCode, extended);
-		break;
+	case VK_LCONTROL: return L"LCtrl";
+	case VK_RCONTROL: return L"RCtrl";
+	case VK_LSHIFT:  return L"LShift";
+	case VK_RSHIFT:  return L"RShift";
+	case VK_LMENU:   return L"LAlt";  
+	case VK_RMENU:   return L"RAlt";  
 	}
-	return keyName;
+
+	// 字母键 A-Z
+	if (vkCode >= 'A' && vkCode <= 'Z')
+	{
+		wchar_t ch = vkCode;
+		return std::wstring(1, ch);
+	}
+
+	// 数字键 0-9（主键盘区）
+	if (vkCode >= '0' && vkCode <= '9')
+	{
+		wchar_t ch = vkCode;
+		return std::wstring(1, ch);
+	}
+
+	// F1-F24
+	if (vkCode >= VK_F1 && vkCode <= VK_F24)
+	{
+		wchar_t buf[16];
+		swprintf_s(buf, L"F%d", vkCode - VK_F1 + 1);
+		return buf;
+	}
+	// 通过扫描码获取名称（兜底）
+	return GetKeyNameFromSC(scancode, extended);
+
+}
+/**
+ * @brief 判断扫描码是否属于小键盘按键
+ */
+
+
+std::wstring GetKeyNameVCode(KBDLLHOOKSTRUCT* pKeyboardData) {
+	DWORD vkCode = pKeyboardData->vkCode;
+	DWORD scanCode = pKeyboardData->scanCode;
+	DWORD flags = pKeyboardData->flags;
+	bool extended = !!(pKeyboardData->flags & LLKHF_EXTENDED);
+	if (IsNumpadKey(vkCode, scanCode, flags))
+	{
+		bool numLockOn = IsNumLockOn();
+		return GetNumpadKeyName(vkCode, scanCode, flags, numLockOn);
+	}
+	// 普通按键
+	return GetNormalKeyName(vkCode, scanCode, extended);
 }
 // -------------------------- 核心钩子回调函数 --------------------------
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
@@ -344,15 +502,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	bool isKeyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
 	bool isKeyUp = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP);
 
-	// ====================== 更新全局修饰键状态 ======================
-	if (vk == VK_LCONTROL) g_bLControl = isKeyDown;
-	if (vk == VK_RCONTROL) g_bRControl = isKeyDown;
-	if (vk == VK_LSHIFT)   g_bLShift = isKeyDown;
-	if (vk == VK_RSHIFT)   g_bRShift = isKeyDown;
-	if (vk == VK_LMENU)    g_bLAlt = isKeyDown;
-	if (vk == VK_RMENU)    g_bRAlt = isKeyDown;
-	if (vk == VK_LWIN)     g_bLWin = isKeyDown;
-	if (vk == VK_RWIN)     g_bRWin = isKeyDown;
 	// 1. 按键抬起：重置计数
 	if (isKeyUp)
 	{
@@ -370,7 +519,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			std::wstring Name = GetKeyNameVCode(pKeyboardData);
 			// std::wstring Name = GetKeyNameFromSC(pKeyboardData->scanCode, extended);
 			std::wstring Name2 = L"{" + Name + L"}";
-			wprintf(Name2.c_str());
+			// wprintf(Name2.c_str());
 			// 跳过指定按键
 			if (skipKeys.find(Name2) != std::wstring::npos )
 			{
@@ -379,7 +528,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			repeatRecord++;
 			std::wstring fullKey = AddModifier() + Name;
-
+			wprintf(fullKey.c_str());
 			PushTxt(fullKey); // 仅推入队列，不直接输出
 		}
 	}
@@ -391,8 +540,9 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 int main(int argc, char* argv[])
 {
 	// 设置控制台为 UTF-8 编码
-	SetConsoleOutputCP(CP_UTF8);
-	SetConsoleCP(CP_UTF8);
+	//SetConsoleOutputCP(CP_UTF8);
+	//SetConsoleCP(CP_UTF8);
+
 	// ====================== 获取参数 ======================
 	if (argc >2)
 	{
