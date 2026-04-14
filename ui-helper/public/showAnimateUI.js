@@ -488,8 +488,8 @@ function initMainCore() {
         <div id="monitorId${i + 1}" oriWidth="${x.Width}" oriHeight="${x.Height}" style="width:${x.Width * scale}px;height:${x.Height * scale}px;" class="demo-color-changing-div">
         <span style="background-color:lightgrey;color:black"></span>
         <span><input id="colorValue" placeholder="#FFFFFF" value="#FFFFFF" maxlength="7" style="width:${120 * scale}px"  oninput="this.value = this.value.replace(/[^#a-fA-F0-9]/g, '')" title="color" />
-        <input type="button" id="btChangeOK" title="change background color" value="OK"/>
-        <input type="button" value="➡️" title="next background color" id="btChangeNext"/>
+        <input type="button" name="btChangeOK" title="change background color" value="OK"/>
+        <input type="button" value="➡️" title="next background color" name="btChangeNext"/>
         </span>
         </div>
     </div>`
@@ -497,10 +497,10 @@ function initMainCore() {
     })
     objMain.innerHTML = arrHTML.join('')
 
-    let objBtNext = document.getElementById("btChangeNext")
-    let objBtOK = document.getElementById("btChangeOK")
-    objBtNext.onclick = changeNext
-    objBtOK.onclick = changeOK
+    let objBtNext = document.getElementsByName("btChangeNext")
+    let objBtOK = document.getElementsByName("btChangeOK")
+    objBtNext.forEach( o =>{ o.onclick = changeNext})
+    objBtOK.forEach( o =>{ o.onclick = changeOK})
 
     // 设定具体哪个模块中显示
     let monitorIndex = winOpt.guiMonitorNum

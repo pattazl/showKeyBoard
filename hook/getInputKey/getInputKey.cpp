@@ -13,7 +13,7 @@
 #include <condition_variable>
 #include <atomic>
 
-char sendKeySep = '|';  // 链接分隔符
+char sendKeySep = '|';  // 链接分隔符,启用了多线程无需合并发送数据
 // 全局变量：存储目标窗口标识
 HWND g_targetWindowId = 0;
 // 全局：存储找到的窗口句柄
@@ -34,7 +34,19 @@ BOOL CALLBACK EnumWindowsProc_GetHwndByPid(HWND hWnd, LPARAM lParam)
 	}
 	return TRUE;
 }
-
+// 格式化输出调试字符串
+void DbgPrint(const wchar_t* format, ...)
+{
+	const wchar_t prefix[] = L"[KeyInput] "; // 11字符
+	const int prefixLen = wcslen(prefix);
+	wchar_t buf[512] = { 0 };
+	wcscpy_s(buf, _countof(buf), prefix);
+	va_list args;
+	va_start(args, format);
+	vswprintf_s(buf + prefixLen, _countof(buf) - prefixLen, format, args);
+	va_end(args);
+	OutputDebugStringW(buf);
+}
 // 通过 PID 获取顶层窗口 HWND（支持隐藏窗口）
 HWND GetHwndByPid(DWORD pid)
 {
@@ -99,24 +111,15 @@ void getMainPid(int initFlag)
 	// 2. 读取PID文件
 	int txtPid = -1;
 	FILE* file = NULL;
-	_wfopen_s(&file, pidFilePath.c_str(), L"r");
-	if (file != NULL)
+	errno_t err = _wfopen_s(&file, pidFilePath.c_str(), L"r");
+	if (err == 0 && file != NULL)
 	{
-		char pidStr[32] = { 0 };
-		if (fgets(pidStr, sizeof(pidStr), file) != NULL)
-		{
-			// 去除换行符
-			char* newline = strchr(pidStr, '\n');
-			if (newline) *newline = '\0';
-			newline = strchr(pidStr, '\r');
-			if (newline) *newline = '\0';
-
-			printf("%s", pidStr);
-			txtPid = atoi(pidStr);
-		}
+		wchar_t buf[32] = { 0 };
+		fgetws(buf, _countof(buf), file);
 		fclose(file);
+		DbgPrint(L"PID in file:%s", buf);
+		txtPid = _wtoi(buf);
 	}
-
 	// 3. 验证PID有效性（按PID查窗口）
 	DWORD tarPid = -1;
 	HWND hWnd = NULL;
@@ -134,17 +137,17 @@ void getMainPid(int initFlag)
 	// 4. PID无效时：按窗口标题包含"ShowKeyBoard.exe"查找
 	if (tarPid == -1)
 	{
+		DbgPrint(L"EnumWindows2FindTarget");
 		EnumWindows(EnumWindowsProc, (LPARAM)&tarPid);
 	}
 
 	// 5. 调试输出 + 无效PID处理
 	if (tarPid == -1)
 	{
-		OutputDebugStringW(L"CPP: no targetWindow");
+		DbgPrint(L"CPP: no targetWindow");
 		if (initFlag == 1) ExitProcess(0);
 		return;
 	}
-
 	// 6. 赋值目标窗口标识
 	g_targetWindowId =  GetHwndByPid(tarPid);
 }
@@ -428,7 +431,7 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 		if (scancode == 0x36) return L"RShift";
 		return L"Shift";
 	case VK_MENU:  // Alt
-		return extended ? L"RightAlt" : L"LAlt";
+		return extended ? L"RAlt" : L"LAlt";
 	case VK_LWIN:       return L"LWin";
 	case VK_RWIN:       return L"RWin";
 	case VK_APPS:       return L"AppsKey";
@@ -448,14 +451,15 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 	// 字母键 A-Z
 	if (vkCode >= 'A' && vkCode <= 'Z')
 	{
-		wchar_t ch = vkCode;
+		// 大写转小写：+ 32
+		wchar_t ch = (wchar_t)(vkCode +32);
 		return std::wstring(1, ch);
 	}
 
 	// 数字键 0-9（主键盘区）
 	if (vkCode >= '0' && vkCode <= '9')
 	{
-		wchar_t ch = vkCode;
+		wchar_t ch = (wchar_t)vkCode;
 		return std::wstring(1, ch);
 	}
 
@@ -528,31 +532,121 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			repeatRecord++;
 			std::wstring fullKey = AddModifier() + Name;
-			wprintf(fullKey.c_str());
+			//wprintf(fullKey.c_str());
 			PushTxt(fullKey); // 仅推入队列，不直接输出
 		}
 	}
 
 	return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
+// 窗口过程（必须！处理关闭、退出消息）
+LRESULT CALLBACK HiddenWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+		// 接收关闭消息（AHK 可发送 WM_CLOSE）
+	case WM_CLOSE:
+		DestroyWindow(hWnd);
+		break;
+
+		// 窗口销毁 → 发送退出消息，结束消息循环
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+
+	default:
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+	return 0;
+}
+
+// ==============================================
+// 创建隐藏窗口（在 main 开头调用）
+// ==============================================
+bool CreateHiddenWindow()
+{
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+
+	// 1. 注册窗口类
+	WNDCLASSEX wc = { 0 };
+	wc.cbSize = sizeof(WNDCLASSEX);
+	wc.lpfnWndProc = HiddenWndProc;
+	wc.hInstance = hInstance;
+	wc.lpszClassName = L"ShowKeyBoardGetKeyInputCls";
+	if (!RegisterClassEx(&wc))
+		return false;
+
+	// 2. 创建隐藏窗口（无标题、隐藏、不激活）
+	HWND hHiddenWnd = CreateWindowEx(
+		0,
+		wc.lpszClassName,
+		L"HiddenWindow",
+		0,            // 无样式
+		0, 0, 0, 0,   // 宽高0
+		NULL, NULL, hInstance, NULL
+	);
+
+	return hHiddenWnd != NULL;
+}
+// 唯一标识（随便写一个唯一字符串即可，不要和别人重复）
+#define UNIQUE_MUTEX_NAME L"GetKeyInput_8765ABCD"
+
+// ==============================================
+// 函数：确保程序只运行一个实例（单例守护）
+// 返回值：true = 可以启动 | false = 已经在运行，直接退出
+// ==============================================
+bool CheckSingleInstance()
+{
+	// 创建互斥体
+	HANDLE hMutex = CreateMutexW(NULL, TRUE, UNIQUE_MUTEX_NAME);
+
+	if (hMutex != NULL)
+	{
+		// 已经存在实例
+		if (GetLastError() == ERROR_ALREADY_EXISTS)
+		{
+			CloseHandle(hMutex); // 安全关闭
+			return false;
+		}
+		return true;
+	}
+	return true;
+}
 
 // -------------------------- 主函数 --------------------------
-int main(int argc, char* argv[])
+// 正确的 wWinMain 签名（与 SDK 一致）
+int WINAPI wWinMain(
+	_In_ HINSTANCE hInstance,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR lpCmdLine,
+	_In_ int nCmdShow
+)
 {
 	// 设置控制台为 UTF-8 编码
 	//SetConsoleOutputCP(CP_UTF8);
 	//SetConsoleCP(CP_UTF8);
-
+	// 需要防止重复打开
+	if (!CheckSingleInstance())
+	{
+		DbgPrint(L"Exist Instance!!");
+		return -1;
+	}
 	// ====================== 获取参数 ======================
-	if (argc >2)
+	LPWSTR cmdLine = GetCommandLineW();
+	int argc;
+	LPWSTR* argv = CommandLineToArgvW(cmdLine, &argc);
+	if (argc > 2)
 	{
 		// 第1个参数：转成 int 数字
-		maxKeypressCount = std::atoi(argv[1]);
+		maxKeypressCount = _wtoi(argv[1]);
 		// 第2个参数：字符串
-		std::string str = argv[2];
-		skipKeys = std::wstring(str.begin(), str.end());
-		// wprintf( L"count:%d,keys:%s", maxKeypressCount,skipKeys.c_str());
+		skipKeys = argv[2];
+		DbgPrint( L"maxKeypressCount:%d,keys:%s", maxKeypressCount,skipKeys.c_str());
 	}
+	// 需要增加隐藏窗口用于获取窗口句柄发消息关闭
+	CreateHiddenWindow();
+
+
 	// 获取目标进程 PID
 	getMainPid(1);
 	// 启动消费线程
@@ -565,7 +659,7 @@ int main(int argc, char* argv[])
 
 	if (hKeyboardHook == NULL)
 	{
-		printf("安装键盘钩子失败！错误码：%d\n", GetLastError());
+		DbgPrint(L"安装键盘钩子失败！错误码：%d", GetLastError());
 		// 触发退出信号
 		g_exitFlag = true;
 		cv.notify_one();
@@ -575,8 +669,8 @@ int main(int argc, char* argv[])
 		}
 		return 1;
 	}
-	printf("键盘钩子安装成功！按 Ctrl+C 退出程序...\n");
-	printf("测试：按下空格键/Shift+空格/Ctrl+空格，可看到输出\n");
+	DbgPrint(L"键盘钩子安装成功！按 Ctrl+C 退出程序...");
+	// DbgPrint(L"测试：按下空格键/Shift+空格/Ctrl+空格，可看到输出\n");
 
 	// 消息循环
 	MSG msg;
@@ -584,10 +678,6 @@ int main(int argc, char* argv[])
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
-		if (msg.message == WM_QUIT || msg.message == WM_CLOSE)
-		{
-			break;
-		}
 	}
 	// 程序退出前的清理
 	g_exitFlag = true; // 设置退出标志

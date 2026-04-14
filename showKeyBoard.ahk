@@ -1,8 +1,8 @@
 ;编译信息
 ;@Ahk2Exe-SetName ShowKeyBoard
 ;@Ahk2Exe-SetDescription Show and Analyse Mouse/KeyBoard
-;@Ahk2Exe-SetProductVersion 1.58.0.0
-;@Ahk2Exe-SetFileVersion 1.58.0.0
+;@Ahk2Exe-SetProductVersion 1.59.0.0
+;@Ahk2Exe-SetFileVersion 1.59.0.0
 ;@Ahk2Exe-SetCopyright Austing.Young (2023 - )
 ;@Ahk2Exe-SetMainIcon res\keyboard.ico
 ;@Ahk2Exe-ExeName build/release/ShowKeyBoard.exe
@@ -293,6 +293,7 @@ MenuHandler(ItemName, ItemPos, MyMenu) {
   if (ItemName = L_menu_hook)
   {
     CloseGetKeyInput()
+    Sleep(1000) ; 退出需要时间，只允许一个实例
     CreateGetKeyInput()
   }
   if (ItemName = L_menu_4show)
@@ -340,10 +341,15 @@ CreateMenu()
 ; 是否可以控制隐藏的窗口
 DetectHiddenWindows(true)
 CloseGetKeyInput(){
-  ; 如果是未编译的脚本
-  str := getKeyInputTitle " ahk_class AutoHotkey"
+  str := "ahk_id " getKeyInputHwnd
   if WinExist(str) {
       PostMessage 0x0010, 0, 0, , str
+      return
+  }
+  str := "ahk_class " getKeyInputClass
+  if WinExist(str) {
+      PostMessage 0x0010, 0, 0, , str
+      return
   }
 }
 ; 关闭前需要退出后台服务
@@ -507,9 +513,21 @@ ReceiveKeyInput()
 ; 启动进程用于读取按键
 CreateGetKeyInput(){
   try {
-    Run(getKeyInputTitle " " maxKeypressCount " " skipKeys)
+    OutputVarPID := 0
+    Run(getKeyInputExe " " maxKeypressCount " " skipKeys,,,&OutputVarPID)
+    ; MsgBox("OutputVarPID: " OutputVarPID)
+    ; 根据 PID 获取窗口句柄
+    str := "ahk_pid " OutputVarPID
+    ; 等待窗口（关键）
+    myHWnd := WinWait(str,,1.5)
+    if( myHWnd > 0 ){
+      global getKeyInputHwnd
+      getKeyInputHwnd := myHWnd
+    } else {
+      throw "Run Err"
+    }
   } catch {
-    MsgBox(msgNotLaunchHook ":" getKeyInputTitle)
+    MsgBox(msgNotLaunchHook ":" getKeyInputExe)
   }
 }
 

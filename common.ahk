@@ -256,4 +256,6 @@ lastTextArr := []  ; 		lastTextArr := textArr
 ; 最近一次窗口时间
 lastTextTick := 0 ; 用于控制是否显示新窗口
 
-getKeyInputTitle := "getKeyInput"  ; 底层获取按键的程序名
+getKeyInputExe := "getKeyInput"  ; 底层获取按键的程序名
+getKeyInputHwnd := 0 ; 窗口句柄，优先通过句柄关闭
+getKeyInputClass := "ShowKeyBoardGetKeyInputCls"  ; 类名
