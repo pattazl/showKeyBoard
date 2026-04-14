@@ -16,24 +16,7 @@
 char sendKeySep = '|';  // 链接分隔符,启用了多线程无需合并发送数据
 // 全局变量：存储目标窗口标识
 HWND g_targetWindowId = 0;
-// 全局：存储找到的窗口句柄
-HWND g_hWndByPid = NULL;
-// 枚举回调
-BOOL CALLBACK EnumWindowsProc_GetHwndByPid(HWND hWnd, LPARAM lParam)
-{
-	DWORD targetPid = (DWORD)lParam;
-	DWORD winPid = 0;
-
-	// 获取窗口所属进程 PID
-	GetWindowThreadProcessId(hWnd, &winPid);
-
-	if (winPid == targetPid)
-	{
-		g_hWndByPid = hWnd;  // 匹配成功，保存句柄
-		return FALSE;        // 停止枚举
-	}
-	return TRUE;
-}
+std::wstring targetTitle = L"ShowKeyBoard.exe";
 // 格式化输出调试字符串
 void DbgPrint(const wchar_t* format, ...)
 {
@@ -47,12 +30,31 @@ void DbgPrint(const wchar_t* format, ...)
 	va_end(args);
 	OutputDebugStringW(buf);
 }
-// 通过 PID 获取顶层窗口 HWND（支持隐藏窗口）
-HWND GetHwndByPid(DWORD pid)
+// 枚举回调
+BOOL CALLBACK EnumWindowsProc_GetHwndByPid(HWND hWnd, LPARAM lParam)
 {
-	g_hWndByPid = NULL;
+	DWORD targetPid = (DWORD)lParam;
+	DWORD winPid = 0;
+
+	// 获取窗口所属进程 PID + 标题名结合判断 ShowKeyBoard.exe
+	GetWindowThreadProcessId(hWnd, &winPid);
+	if (winPid == targetPid)
+	{
+		DbgPrint(L"hWnd:%d", hWnd);
+		if (IsWindowVisible(hWnd))
+			return TRUE; // 可见的跳过
+		g_targetWindowId = hWnd;  // 匹配成功，保存句柄
+		return FALSE;        // 停止枚举
+	}
+	return TRUE;
+}
+
+// 通过 PID 获取顶层窗口 HWND（支持隐藏窗口）
+void GetHwndByPid(DWORD pid)
+{
+	g_targetWindowId = NULL;
 	EnumWindows(EnumWindowsProc_GetHwndByPid, (LPARAM)pid);
-	return g_hWndByPid;
+	DbgPrint(L" g_hWndByPid: %d", g_targetWindowId);
 }
 // -------------------------- 线程安全队列 + 同步变量 --------------------------
 // 按键信息结构体
@@ -76,15 +78,10 @@ BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam)
 	wchar_t szWindowTitle[256] = { 0 };
 	GetWindowTextW(hWnd, szWindowTitle, 256);
 
-	// 查找标题中是否包含"ShowKeyBoard.exe"（不区分大小写）
+	// 查找标题中是否包含"ShowKeyBoard.exe"
 	std::wstring title = szWindowTitle;
-	std::wstring target = L"ShowKeyBoard.exe";
 
-	// 转小写
-	for (auto& c : title) c = towlower(c);
-	for (auto& c : target) c = towlower(c);
-
-	if (title.find(target) != std::wstring::npos)
+	if (title.find(targetTitle) != std::wstring::npos)
 	{
 		DWORD* pPid = (DWORD*)lParam;
 		GetWindowThreadProcessId(hWnd, pPid);
@@ -149,7 +146,7 @@ void getMainPid(int initFlag)
 		return;
 	}
 	// 6. 赋值目标窗口标识
-	g_targetWindowId =  GetHwndByPid(tarPid);
+	GetHwndByPid(tarPid);
 }
 // wstring 全部替换
 std::wstring ReplaceAll(std::wstring str, const std::wstring& from, const std::wstring& to)
@@ -206,11 +203,12 @@ std::wstring GetKeyNameFromSC(DWORD scancode, bool extended)
 void SendToTargetWindow(const KeyInfo& keyInfo) {
 	std::wstring text = keyInfo.fullKey;
 	//printf("[KeyPress] %ls | Repeat: %d hwnd:%d\n", keyInfo.fullKey.c_str(), keyInfo.repeatRecord, g_targetWindowId);
-	//OutputDebugStringW((L"Pressed: " + keyInfo.fullKey).c_str());
+	DbgPrint(L"Pressed: %s", keyInfo.fullKey.c_str());
+	DbgPrint(L"g_targetWindowId: %d,%d", g_targetWindowId, IsWindow(g_targetWindowId));
 	if (!g_targetWindowId || !IsWindow(g_targetWindowId)) {
 		return;
 	}
-	
+	DbgPrint(L"SendMessageTimeout");
 	// 构造 COPYDATASTRUCT 用于跨进程 SendMessage
 	COPYDATASTRUCT cds{};
 	cds.dwData = 0;                  // 自定义数据
