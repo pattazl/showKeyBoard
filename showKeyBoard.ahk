@@ -292,8 +292,7 @@ MenuHandler(ItemName, ItemPos, MyMenu) {
   }
   if (ItemName = L_menu_hook)
   {
-    CloseGetKeyInput()
-    Sleep(1000) ; 退出需要时间，只允许一个实例
+    CloseGetKeyInput(1)
     CreateGetKeyInput()
   }
   if (ItemName = L_menu_4show)
@@ -340,16 +339,29 @@ CreateMenu()
 CreateMenu()
 ; 是否可以控制隐藏的窗口
 DetectHiddenWindows(true)
-CloseGetKeyInput(){
+; flag = 1 是重启底层，需要发送成功
+CloseGetKeyInput(flag){
   str := "ahk_id " getKeyInputHwnd
   if WinExist(str) {
+    OutputDebug("[KeyInput] Close " str)
+    if(flag == 1){
+      SendMessage 0x0010, 0, 0, , str
+      Sleep(1000) ; 退出需要时间，只允许一个实例
+    }else{
       PostMessage 0x0010, 0, 0, , str
-      return
+    }
+    return
   }
   str := "ahk_class " getKeyInputClass
   if WinExist(str) {
+    OutputDebug("[KeyInput] Close " str)
+    if(flag == 1){
+      SendMessage 0x0010, 0, 0, , str
+      Sleep(1000) ; 退出需要时间，只允许一个实例
+    }else{
       PostMessage 0x0010, 0, 0, , str
-      return
+    }
+    return
   }
 }
 ; 关闭前需要退出后台服务
@@ -388,7 +400,7 @@ ExitFunc(ExitReason, ExitCode)
     }
     FileAppend(JSON.stringify(AllKeyRecord, 0), lastRecordPath)
   }
-  CloseGetKeyInput()
+  CloseGetKeyInput(0)
 }
 
 #Include dialog.ahk
@@ -513,18 +525,28 @@ ReceiveKeyInput()
 ; 启动进程用于读取按键
 CreateGetKeyInput(){
   try {
-    OutputVarPID := 0
-    Run(getKeyInputExe " " maxKeypressCount " " skipKeys,,,&OutputVarPID)
-    ; MsgBox("OutputVarPID: " OutputVarPID)
-    ; 根据 PID 获取窗口句柄
-    str := "ahk_pid " OutputVarPID
-    ; 等待窗口（关键）
-    myHWnd := WinWait(str,,1.5)
-    if( myHWnd > 0 ){
-      global getKeyInputHwnd
-      getKeyInputHwnd := myHWnd
-    } else {
-      throw "Run Err"
+    global getKeyInputHwnd
+    ; 先检查是否已经存在进程
+    str := "ahk_class " getKeyInputClass
+    lastHwnd := WinExist(str)
+    if( lastHwnd ){
+      if ( getKeyInputHwnd == lastHwnd){
+        MsgBox('Not Closed')
+      }
+      getKeyInputHwnd := lastHwnd
+    }else{
+      OutputVarPID := 0
+      Run(getKeyInputExe " " maxKeypressCount " " skipKeys,,,&OutputVarPID)
+      ; MsgBox("OutputVarPID: " OutputVarPID)
+      ; 根据 PID 获取窗口句柄
+      str := "ahk_pid " OutputVarPID
+      ; 等待窗口（关键）
+      myHWnd := WinWait(str,,1.5)
+      if( myHWnd > 0 ){
+        getKeyInputHwnd := myHWnd
+      }else{
+        MsgBox(msgNotLaunchHook ":" getKeyInputExe "," str)
+      }
     }
   } catch {
     MsgBox(msgNotLaunchHook ":" getKeyInputExe)
@@ -791,8 +813,10 @@ if ( joyMethod == 1) {
 } else if (joyMethod == 2)
 {
   ; 方案2
-  XInput_Init()
-  SetTimer(checkJoyState2, 100)  ; 0.1秒检测一次
+  try{
+    XInput_Init()
+    SetTimer(checkJoyState2, 100)  ; 0.1秒检测一次
+  }
 }
 
 ; 初始化托盘图标的核心函数

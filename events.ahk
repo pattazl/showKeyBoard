@@ -102,7 +102,7 @@ IniMonitor(reloadAll){
     {
         ; 重新开底层
         OutputDebug('AHK: HookChange')
-        CloseGetKeyInput()
+        CloseGetKeyInput(1)
         CreateGetKeyInput()
     }
     ; 参数变化直接修改即可 调用 GetKeyList
@@ -158,7 +158,7 @@ CheckServer(){
 		ShowTxt(msgTry (CheckServerCount+1) msgTimes )
 		StartHttp('connect','/version','')
 	}else{
-		MsgBox msgTry CheckServerCount msgTimes msgNotLaunch
+		MsgBox msgTry CheckServerCount msgTimes ",Port:" serverPort "," msgNotLaunch
 	}
 	CheckServerCount +=1
 	Sleep 3000

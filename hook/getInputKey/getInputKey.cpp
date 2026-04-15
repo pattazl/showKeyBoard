@@ -16,6 +16,7 @@
 char sendKeySep = '|';  // 链接分隔符,启用了多线程无需合并发送数据
 // 全局变量：存储目标窗口标识
 HWND g_targetWindowId = 0;
+DWORD tarPid = -1; // 窗口进程
 std::wstring targetTitle = L"ShowKeyBoard.exe";
 // 格式化输出调试字符串
 void DbgPrint(const wchar_t* format, ...)
@@ -40,7 +41,7 @@ BOOL CALLBACK EnumWindowsProc_GetHwndByPid(HWND hWnd, LPARAM lParam)
 	GetWindowThreadProcessId(hWnd, &winPid);
 	if (winPid == targetPid)
 	{
-		DbgPrint(L"hWnd:%d", hWnd);
+		// DbgPrint(L"hWnd:%d", hWnd);
 		if (IsWindowVisible(hWnd))
 			return TRUE; // 可见的跳过
 		g_targetWindowId = hWnd;  // 匹配成功，保存句柄
@@ -89,7 +90,28 @@ BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam)
 	}
 	return TRUE;
 }
+int GetValidPid(int txtPid) {
+	HWND hWnd = NULL;
+	int tmpPid = -1;
+	while ((hWnd = FindWindowExW(NULL, hWnd, NULL, NULL)) != NULL)
+	{
+		DWORD dwPid = 0;
+		GetWindowThreadProcessId(hWnd, &dwPid);
+		if (dwPid == (DWORD)txtPid && txtPid != -1)
+		{
+			tmpPid = txtPid;
+			break;
+		}
+	}
 
+	// 4. PID无效时：按窗口标题包含"ShowKeyBoard.exe"查找
+	if (tmpPid == -1)
+	{
+		DbgPrint(L"EnumWindows2FindTarget");
+		EnumWindows(EnumWindowsProc, (LPARAM)&tmpPid);
+	}
+	return tmpPid;
+}
 // 核心函数：获取目标进程PID（按窗口标题匹配）
 void getMainPid(int initFlag)
 {
@@ -117,28 +139,10 @@ void getMainPid(int initFlag)
 		DbgPrint(L"PID in file:%s", buf);
 		txtPid = _wtoi(buf);
 	}
-	// 3. 验证PID有效性（按PID查窗口）
-	DWORD tarPid = -1;
-	HWND hWnd = NULL;
-	while ((hWnd = FindWindowExW(NULL, hWnd, NULL, NULL)) != NULL)
-	{
-		DWORD dwPid = 0;
-		GetWindowThreadProcessId(hWnd, &dwPid);
-		if (dwPid == (DWORD)txtPid && txtPid != -1)
-		{
-			tarPid = txtPid;
-			break;
-		}
-	}
+	// 验证PID有效性（按PID查窗口）
+	tarPid = GetValidPid(txtPid);
 
-	// 4. PID无效时：按窗口标题包含"ShowKeyBoard.exe"查找
-	if (tarPid == -1)
-	{
-		DbgPrint(L"EnumWindows2FindTarget");
-		EnumWindows(EnumWindowsProc, (LPARAM)&tarPid);
-	}
-
-	// 5. 调试输出 + 无效PID处理
+	// 调试输出 + 无效PID处理
 	if (tarPid == -1)
 	{
 		DbgPrint(L"CPP: no targetWindow");
@@ -203,12 +207,27 @@ std::wstring GetKeyNameFromSC(DWORD scancode, bool extended)
 void SendToTargetWindow(const KeyInfo& keyInfo) {
 	std::wstring text = keyInfo.fullKey;
 	//printf("[KeyPress] %ls | Repeat: %d hwnd:%d\n", keyInfo.fullKey.c_str(), keyInfo.repeatRecord, g_targetWindowId);
-	DbgPrint(L"Pressed: %s", keyInfo.fullKey.c_str());
-	DbgPrint(L"g_targetWindowId: %d,%d", g_targetWindowId, IsWindow(g_targetWindowId));
-	if (!g_targetWindowId || !IsWindow(g_targetWindowId)) {
+	// DbgPrint(L"Pressed: %s", keyInfo.fullKey.c_str());
+	bool getTarget = false;
+	for (int i = 0;i < 3;i++) {
+		// 可能窗口句柄丢失
+		if (!g_targetWindowId || !IsWindow(g_targetWindowId)) {
+			tarPid = GetValidPid(tarPid); // 首先检查之前PID需要有效
+			if (tarPid == -1) {
+				DbgPrint(L" Pid invalid");
+				return;
+			}
+			GetHwndByPid(tarPid); // 修改 g_targetWindowId 变量
+			Sleep(10);
+		}
+		else {
+			getTarget = true;
+		}
+	}
+	if (!getTarget) {
+		DbgPrint(L"targetWindowId Fail!");
 		return;
 	}
-	DbgPrint(L"SendMessageTimeout");
 	// 构造 COPYDATASTRUCT 用于跨进程 SendMessage
 	COPYDATASTRUCT cds{};
 	cds.dwData = 0;                  // 自定义数据

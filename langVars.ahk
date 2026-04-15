@@ -13,7 +13,7 @@ global L_menu_4show:="按键显示 " showOnlyWebTxt
 global L_menu_set:="参数设置"
 global L_menu_stat:="数据统计"
 global L_menu_exit:="退出程序"
-global msgNotLaunch := '服务启动失败，不能通过界面设置参数和查看统计信息!`n可尝试用管理员方式重启应用或重启系统'
+global msgNotLaunch := '服务启动失败，不能通过界面设置参数和查看统计信息!`n可尝试用管理员方式重启应用或重启系统`n端口可能属于禁用范围，查看命令:`n netsh interface ipv4 show excludedportrange protocol=tcp`n修改配置文件showKeyBoard.ini的serverPort参数跳过'
 global msgXML := '不能创建XMLHTTP,'
 global msgTry := '尝试'
 global msgTimes := '次,'
@@ -33,7 +33,7 @@ if defaultLang = 'en-US' {
 
     menu_msg_noserver := 'Launch Server Fail! Can not Statistics and set parameters by UI'
     
-    msgNotLaunch := 'Start Server fail, can not set parameter and data statistics, please relaunch app or restart system!'
+    msgNotLaunch := 'Start Server fail, can not set parameter and data statistics, please relaunch app or restart system!`nThe port may fall within the excluded range.Check command:`n netsh interface ipv4 show excludedportrange protocol=tcp `nModify the serverPort in showKeyBoard.ini to fix it.'
     msgXML := 'Can not create XMLHTTP,'
     msgTry := 'Try '
     msgTimes := ' times ,'
