@@ -121,17 +121,22 @@ ShowTxt(text)
 	if needNewGui=1 {
 		MyGui := CreateGui(guiTextSize)
 	}
-	dpiScale :=  1 ; 不缩放，为默认值1
+	global globalDpiScale  ; 不缩放，为默认值1
 	if(guiDpiscale = 1){
 		try{
-			dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
+      ; 获取屏幕句柄
+      hMon := DllCall("User32\MonitorFromPoint", "Int", Left+1, "Int", Top+1, "UInt", 0, "Ptr")
+      ; 获取 DPI
+      dpiX := 1, dpiY := 1 
+      DllCall("Shcore\GetDpiForMonitor", "Ptr", hMon, "UInt", 0, "UInt*", &dpiX, "UInt*", &dpiY)
+			; dpi := DllCall("GetDpiForWindow", "Ptr", MyGui.Hwnd, "UInt")
       ; 经测试对于自己创建的窗体好像无效，都是主窗口的DPI，但用notepad测试有效
-			dpiScale :=  dpi/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
+			globalDpiScale :=  dpiX/96 ; 固定默认值为96 ，只在显示时候设置宽度和高度进行设置
 		}
 	}
-	; OutputDebug('AHK DPIScale:' dpiScale)
+	; OutputDebug('AHK DPIScale:' globalDpiScale)
 	; Edit支持自动换行  BackgroundEEAA99 BackgroundTrans 高度自动 , editOpt 对象受缩放影响，需要控制比例
-	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth/dpiScale " c" guiTextColor
+	editOpt := "Multi Background" guiBgcolor " +Wrap -Border +ReadOnly x0 y0 w" guiWidth/globalDpiScale " c" guiTextColor
 	if guiHeigth = 0
 	{
 		editOpt := editOpt " -VScroll"
@@ -194,7 +199,7 @@ ShowTxt(text)
 		guiArr.push(
 		{
 		gui:MyGui,edit:MyEdit,tick:nowTick,
-		x:guiX,y:guiY,w:guiWidth,h:editHeight,dpi:dpiScale,isFade:0
+		x:guiX,y:guiY,w:guiWidth,h:editHeight,isFade:0
 		})
 	}Else{
 		lastGui.edit := MyEdit
@@ -328,7 +333,6 @@ ReLayOut(x,y,w,h)
     }
 		guiX := lastObj.x
 		guiY := lastObj.y
-		dpiScale := lastObj.dpi
 		if guiPosXY = "Y"{
 			Switch substr(guiPos,1,1)
 			{
@@ -353,7 +357,7 @@ ReLayOut(x,y,w,h)
 		; DllCall("SetThreadDpiAwarenessContext", "ptr", -4, "ptr")
     ; 有可能窗口被异常释放
     try{
-      lastObj.gui.Move(guiX/dpiScale,guiY/dpiScale)
+      lastObj.gui.Move(guiX/globalDpiScale,guiY/globalDpiScale)
     ; 设置下一个窗口的起始位置
       px := guiX
       pw := lastObj.w

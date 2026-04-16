@@ -250,6 +250,7 @@ export default {
 	intro215: '按键显示仅在Web端显示，桌面不显示。Web端通过设置->按键界面->Web按键显示',
 	intro216: 'Web按键显示',
 	intro217: '合并连续相同的字符,用×计数',
+	intro218: '手指使用统计',
   },
   'en-US': {
     title: 'Show Keyboard Management',
@@ -503,5 +504,6 @@ export default {
 	intro215: 'Key display is only shown on the web, not on the desktop. Setting → Popup UI → Web Key Display.',
 	intro216: 'Web Key Display',
 	intro217: 'Merge consecutive same chars, count with ×',
+	intro218: 'Finger usage statistics',
   }
 };

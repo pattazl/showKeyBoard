@@ -4,10 +4,11 @@
       <n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false" :ignore-gap="true"
         type='block' position='fix'>
         <n-anchor-link :title="contentText.intro86" href="#intro86" />
+        <n-anchor-link :title="contentText.intro87" href="#intro87" />
+        <n-anchor-link :title="contentText.intro218" href="#intro218" />
         <n-anchor-link :title="contentText.intro97" href="#intro97" />
         <n-anchor-link :title="contentText.intro149" href="#intro149" />
         <n-anchor-link :title="contentText.intro182" href="#intro149_" />
-        <n-anchor-link :title="contentText.intro87" href="#intro87" />
         <n-anchor-link :title="contentText.intro165" href="#intro165" />
         <n-anchor-link :title="contentText.intro167" href="#intro167" />
         <n-anchor-link :title="contentText.intro170" href="#intro170" />
@@ -25,15 +26,6 @@
       <div @click="getClickTime">
         <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
           <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
-        </n-card>
-        <n-card id="intro97" :title="contentText.intro97 + contentText.intro142 + updateTime">
-          <n-data-table :columns="columns0" :data="mouseTable" />
-        </n-card>
-        <n-card id="intro149" :title="contentText.intro149 + contentText.intro142 + updateTime">
-          <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
-        </n-card>
-        <n-card id="intro149_" :title="contentText.intro182 + contentText.intro142 + updateTime">
-          <n-data-table :columns="columns2" :data="appListData" />
         </n-card>
         <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
           <template #header-extra>
@@ -61,11 +53,23 @@
           </template>
           <n-data-table :columns="columns" :data="dataTable" />
         </n-card>
+        <n-card id="intro218" :title="contentText.intro218 + contentText.intro142 + updateTime">
+          
+        </n-card>
         <n-card id="intro193" :title="contentText.intro193 +'('+store.data.config.common.recordHistoryMax+')' + contentText.intro142 + updateTime">
           <n-input readonly="true" 
             v-model:value="recordHistory"
             type="textarea"
           />
+        </n-card>
+        <n-card id="intro97" :title="contentText.intro97 + contentText.intro142 + updateTime">
+          <n-data-table :columns="columns0" :data="mouseTable" />
+        </n-card>
+        <n-card id="intro149" :title="contentText.intro149 + contentText.intro142 + updateTime">
+          <div id="main2" style="height: 300px; min-width: 800px;width:95%;"></div>
+        </n-card>
+        <n-card id="intro149_" :title="contentText.intro182 + contentText.intro142 + updateTime">
+          <n-data-table :columns="columns2" :data="appListData" />
         </n-card>
         <n-card id="intro165" :title="contentText.intro165">
           <div id="main3" style="height: 500px; min-width: 800px;width:95%;"></div>

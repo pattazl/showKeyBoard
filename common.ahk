@@ -259,3 +259,4 @@ lastTextTick := 0 ; 用于控制是否显示新窗口
 getKeyInputExe := "getKeyInput"  ; 底层获取按键的程序名
 getKeyInputHwnd := 0 ; 窗口句柄，优先通过句柄关闭
 getKeyInputClass := "ShowKeyBoardGetKeyInputCls"  ; 类名
+globalDpiScale := 1  ; 全局缩放，自动参考最新创建的窗口，默认缩放为1
