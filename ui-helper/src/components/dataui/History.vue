@@ -66,6 +66,24 @@
         </template>
         <n-data-table :columns="columns" :data="dataTable" />
       </n-card>
+      <n-card id="intro218" :title="contentText.intro218">
+  <div class="dashboard">
+    <!-- 第一行：3列，每列3个卡片 -->
+    <div class="cards-grid">
+      <div class="card-col">
+        <div id="main8">1</div>
+      </div>
+      <div class="card-col">
+        <div id="main9">2</div>
+      </div>
+      <div class="card-col">
+        <div id="main10">3</div>
+      </div>
+    </div>
+    <!-- 第二行：柱状图 -->
+    <div id="main11" class="chart">4</div>
+  </div>
+        </n-card>
       <n-card id="intro97" :title="contentText.intro97">
         <n-data-table :columns="columns0" :data="mouseTable" />
       </n-card>
@@ -356,7 +374,9 @@ export default defineComponent({
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
     let optionArr = [], myChartArr: Array<echarts.ECharts> = [], chartDomArr = [];
-    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5', 'main6', 'main7'] // ,'main6','main7'
+    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5', 'main6', 'main7'
+      // , 'main8', 'main9', 'main10', 'main11'
+    ] // ,'mai86','main7'
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
     let mouseTable = ref([])

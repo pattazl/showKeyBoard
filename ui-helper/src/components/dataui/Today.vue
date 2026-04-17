@@ -54,7 +54,22 @@
           <n-data-table :columns="columns" :data="dataTable" />
         </n-card>
         <n-card id="intro218" :title="contentText.intro218 + contentText.intro142 + updateTime">
-          
+  <div class="dashboard">
+    <!-- 第一行：3列，每列3个卡片 -->
+    <div class="cards-grid">
+      <div class="card-col">
+        <div id="main6">1</div>
+      </div>
+      <div class="card-col">
+        <div id="main7">2</div>
+      </div>
+      <div class="card-col">
+        <div id="main8">3</div>
+      </div>
+    </div>
+    <!-- 第二行：柱状图 -->
+    <div id="main9" class="chart">4</div>
+  </div>
         </n-card>
         <n-card id="intro193" :title="contentText.intro193 +'('+store.data.config.common.recordHistoryMax+')' + contentText.intro142 + updateTime">
           <n-input readonly="true" 
@@ -288,6 +303,61 @@ let option2 = {
     }
   ]
 };
+let fingerOption = [
+{
+  series: [{
+    type: 'pie',
+    data: [
+      { value: 70, name: '类别A' },
+      { value: 30, name: '类别B' }
+    ],
+    label: { show: true, formatter: '{b}: {d}%' },
+    itemStyle: {
+      borderWidth: 5,         // 间隙宽度
+      borderColor: '#fff'
+    }
+  }]
+},
+{
+  xAxis: { type: 'value', name: '数值' },
+  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'], name: '项目' },
+  series: [{
+    type: 'bar',
+    data: [120, 200, 150, 80, 70],
+    label: { show: true, position: 'right' },
+    itemStyle: { color: '#18a058', borderRadius: [0, 4, 4, 0] }
+  }]
+},
+{
+  xAxis: { type: 'value', name: '数值' },
+  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'] },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  legend: { data: ['类别1', '类别2'] },
+  series: [
+    {
+      name: '类别1',
+      type: 'bar',
+      stack: 'total',
+      data: [120, 200, 150, 80, 70],
+      label: { show: true, position: 'right' },
+      itemStyle: { color: '#18a058' }
+    },
+    {
+      name: '类别2',
+      type: 'bar',
+      stack: 'total',
+      data: [80, 120, 100, 60, 50],
+      label: { show: true, position: 'right' },
+      itemStyle: { color: '#f0a020' }
+    }
+  ]
+},
+{
+  xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E'] },
+  yAxis: { type: 'value' },
+  series: [{ type: 'bar', data: [120, 200, 150, 80, 70] }]
+}
+]
 // 合并最匹配的键盘统计数据，并整理遗留的数据信息
 function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   let val, matchKey;
@@ -404,7 +474,9 @@ export default defineComponent({
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
     let optionArr = [], myChartArr: Array<echarts.ECharts> = [], chartDomArr = [];
-    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5'] // ,'main4','main5'
+    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5', 
+    'main6', 'main7', 'main8', 'main9'
+  ] // ,'main4','main5'
     let updateFlag = null;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
@@ -680,7 +752,7 @@ export default defineComponent({
         myChartArr.push(myChart)
       })
       let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
-      optionArr = [option, option2].concat(arr)
+      optionArr = [option, option2, ...arr ,...fingerOption];
       // console.log(optionArr)
       setWS(updateKeyData)
       setupMinuteData() // 启动定时获取分钟信息
