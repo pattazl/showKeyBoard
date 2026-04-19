@@ -126,7 +126,7 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText, showFinger } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -719,6 +719,8 @@ export default defineComponent({
         }
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
+      // 手指使用统计图表展示，传入4个图表索引
+      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash,keyData);
     }
     function showLeftKeyRef() {
       dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, lastLeftKey,lastAllKey,LastKeyStatHash)

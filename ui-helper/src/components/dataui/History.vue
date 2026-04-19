@@ -140,7 +140,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel,exportToText } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel,exportToText, showFinger } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -375,7 +375,7 @@ export default defineComponent({
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
     let optionArr = [], myChartArr: Array<echarts.ECharts> = [], chartDomArr = [];
     let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5', 'main6', 'main7'
-      // , 'main8', 'main9', 'main10', 'main11'
+      , 'main8', 'main9', 'main10', 'main11'
     ] // ,'mai86','main7'
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
@@ -563,6 +563,9 @@ export default defineComponent({
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
       dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, leftKey, allKey, keyStatHash)
+      // 手指使用统计图表展示，传入4个图表索引
+      showFinger(myChartArr, optionArr, [7, 8, 9, 10], allKey, keyStatHash,keyData);
+
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       mouseTable.value = []
       if (keyStatHash['mouseDistance'] > 0) {

@@ -402,8 +402,209 @@ const exportToText = (columns, tableData) => {
   URL.revokeObjectURL(url)
 }
 
+const fingerKeyMap = {
+  leftPinky: ['Q', 'A', 'Z', '1', '`', '~', '!', '@'],
+  leftRing: ['W', 'S', 'X', '2'],
+  leftMiddle: ['E', 'D', 'C', '3', '#'],
+  leftIndex: ['R', 'T', 'F', 'G', 'V', 'B', '4', '5', '$', '%'],
+  rightIndex: ['Y', 'U', 'H', 'J', 'N', 'M', '6', '7', '^', '&'],
+  rightMiddle: ['I', 'K', ',', '<', '8', '*'],
+  rightRing: ['O', 'L', '.', '>', '9', '('],
+  rightPinky: ['P', ';', ':', "'", '"', '[', '{', ']', '}', '\\', '|', '-', '_', '=', '+',
+    '/', '?', 'Backspace', 'Enter', '0', ')'],
+  thumb: [' ']
+}
+
+const rowKeyMap = {
+  row1: ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'Backspace', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+'],
+  row2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\', '{', '}', '|'],
+  row3: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", 'Enter', ':', '"'],
+  row4: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', '<', '>', '?'],
+  row5: [' ']
+}
+
+const fingerNames = {
+  leftPinky: '小指',
+  leftRing: '无名指',
+  leftMiddle: '中指',
+  leftIndex: '食指',
+  rightIndex: '食指',
+  rightMiddle: '中指',
+  rightRing: '无名指',
+  rightPinky: '小指',
+  thumb: '拇指'
+}
+
+const rowNames = {
+  row1: '第一行(数字行)',
+  row2: '第二行(QWER行)',
+  row3: '第三行(ASDF行)',
+  row4: '第四行(ZXCV行)',
+  row5: '第五行(空格)'
+}
+
+function matchKey(keyName, matchList) {
+  let cleanKey = keyName.replace(/[!+^#<>]/g, '').toUpperCase()
+  return matchList.some(k =>
+    cleanKey.includes(k) ||
+    keyName.toUpperCase().includes(k) ||
+    k.toUpperCase().includes(cleanKey)
+  )
+}
+
+function calculateStats(allKey, keyStatHash) {
+  let fingerStats = {}, handStats = { left: 0, right: 0, thumb: 0 }
+  let rowStats = {}, totalCount = 0
+
+  Object.keys(fingerKeyMap).forEach(finger => { fingerStats[finger] = 0 })
+  Object.keys(rowKeyMap).forEach(row => { rowStats[row] = 0 })
+
+  allKey.forEach(keyName => {
+    let count = keyStatHash[keyName] || 0
+    if (count === 0 || keyName.startsWith('App-')) return
+
+    totalCount += count
+
+    Object.keys(fingerKeyMap).forEach(finger => {
+      if (matchKey(keyName, fingerKeyMap[finger])) {
+        fingerStats[finger] += count
+        if (finger.includes('left')) handStats.left += count
+        else if (finger.includes('right')) handStats.right += count
+        else handStats.thumb += count
+      }
+    })
+
+    Object.keys(rowKeyMap).forEach(row => {
+      if (matchKey(keyName, rowKeyMap[row])) {
+        rowStats[row] += count
+      }
+    })
+  })
+
+  return { fingerStats, handStats, rowStats, totalCount }
+}
+
+function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,keyMap) {
+  if (!myChartArr || !optionArr || !allKey || !keyStatHash || !chartIndices) return
+  if (chartIndices.length !== 4) return
+
+  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash)
+
+  chartIndices.forEach((chartIdx, i) => {
+    if (chartIdx >= myChartArr.length) return
+
+    const chart = myChartArr[chartIdx]
+    let opt = {}
+
+    if (i === 0) {
+      opt = {
+        title: { text: '左右手按键总数', left: 'center', top: 10 },
+        tooltip: { trigger: 'item', formatter: '{b}: {c}次 ({d}%)' },
+        legend: { bottom: 10 },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          data: [
+            { name: '左手', value: handStats.left, itemStyle: { color: '#2080f0' } },
+            { name: '右手', value: handStats.right, itemStyle: { color: '#d03050' } },
+            { name: '拇指', value: handStats.thumb, itemStyle: { color: '#18a058' } }
+          ].filter(d => d.value > 0),
+          label: { show: true, formatter: '{b}: {d}%' }
+        }]
+      }
+    } else if (i === 1) {
+      const rowData = Object.keys(rowStats).map(row => ({
+        name: rowNames[row],
+        value: rowStats[row]
+      })).filter(d => d.value > 0)
+
+      opt = {
+        title: { text: '键盘每行按键数', left: 'center', top: 10 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '10%', bottom: '3%', top: '60px', containLabel: true },
+        xAxis: { type: 'value', name: '按键次数' },
+        yAxis: { type: 'category', data: rowData.map(d => d.name), name: '键盘行' },
+        series: [{
+          type: 'bar',
+          data: rowData.map(d => d.value),
+          label: { show: true, position: 'right', formatter: '{c}次' },
+          itemStyle: {
+            color: ['#d03050', '#f0a020', '#18a058', '#2080f0', '#8050f0']
+          }
+        }]
+      }
+    } else if (i === 2) {
+      const leftFingers = ['leftPinky', 'leftRing', 'leftMiddle', 'leftIndex']
+      const rightFingers = ['rightPinky', 'rightRing', 'rightMiddle', 'rightIndex']
+
+      opt = {
+        title: { text: '左右手各手指对比', left: 'center', top: 10 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { bottom: 10, data: ['左手', '右手'] },
+        grid: { left: '3%', right: '10%', bottom: '60px', top: '60px', containLabel: true },
+        xAxis: {
+          type: 'category',
+          data: ['小指', '无名指', '中指', '食指']
+        },
+        yAxis: { type: 'value', name: '按键次数' },
+        series: [
+          {
+            name: '左手',
+            type: 'bar',
+            data: leftFingers.map(f => fingerStats[f]),
+            itemStyle: { color: '#2080f0' },
+            label: { show: true, position: 'top' }
+          },
+          {
+            name: '右手',
+            type: 'bar',
+            data: rightFingers.map(f => fingerStats[f]),
+            itemStyle: { color: '#d03050' },
+            label: { show: true, position: 'top' }
+          }
+        ]
+      }
+    } else if (i === 3) {
+      const allFingers = [
+        { key: 'leftPinky', name: '左小指', color: '#a0c8ff' },
+        { key: 'leftRing', name: '左无名指', color: '#60a0f0' },
+        { key: 'leftMiddle', name: '左中指', color: '#2080f0' },
+        { key: 'leftIndex', name: '左食指', color: '#0060d0' },
+        { key: 'thumb', name: '拇指', color: '#18a058' },
+        { key: 'rightIndex', name: '右食指', color: '#a03050' },
+        { key: 'rightMiddle', name: '右中指', color: '#d03050' },
+        { key: 'rightRing', name: '右无名指', color: '#f05070' },
+        { key: 'rightPinky', name: '右小指', color: '#ff80a0' }
+      ]
+
+      opt = {
+        title: { text: '各手指按键次数', left: 'center', top: 10 },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '10%', bottom: '3%', top: '60px', containLabel: true },
+        xAxis: { type: 'value', name: '按键次数' },
+        yAxis: {
+          type: 'category',
+          data: allFingers.map(f => f.name)
+        },
+        series: [{
+          type: 'bar',
+          data: allFingers.map(f => ({
+            value: fingerStats[f.key],
+            itemStyle: { color: f.color }
+          })),
+          label: { show: true, position: 'right', formatter: '{c}次' },
+          itemStyle: { borderRadius: [0, 4, 4, 0] }
+        }]
+      }
+    }
+
+    chart.setOption(opt)
+  })
+}
+
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
-  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText
+  dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
+  showFinger
 }
