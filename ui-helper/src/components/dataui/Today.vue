@@ -58,13 +58,13 @@
     <!-- 第一行：3列，每列3个卡片 -->
     <div class="cards-grid">
       <div class="card-col">
-        <div id="main6">1</div>
+        <div id="main6" class="chart"></div>
       </div>
       <div class="card-col">
-        <div id="main7">2</div>
+        <div id="main7" class="chart"></div>
       </div>
       <div class="card-col">
-        <div id="main8">3</div>
+        <div id="main8" class="chart"></div>
       </div>
     </div>
     <!-- 第二行：柱状图 -->
@@ -126,7 +126,8 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText, showFinger } from '@/common';
+import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText
+  , showFinger,fingerOption } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -303,61 +304,6 @@ let option2 = {
     }
   ]
 };
-let fingerOption = [
-{
-  series: [{
-    type: 'pie',
-    data: [
-      { value: 70, name: '类别A' },
-      { value: 30, name: '类别B' }
-    ],
-    label: { show: true, formatter: '{b}: {d}%' },
-    itemStyle: {
-      borderWidth: 5,         // 间隙宽度
-      borderColor: '#fff'
-    }
-  }]
-},
-{
-  xAxis: { type: 'value', name: '数值' },
-  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'], name: '项目' },
-  series: [{
-    type: 'bar',
-    data: [120, 200, 150, 80, 70],
-    label: { show: true, position: 'right' },
-    itemStyle: { color: '#18a058', borderRadius: [0, 4, 4, 0] }
-  }]
-},
-{
-  xAxis: { type: 'value', name: '数值' },
-  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'] },
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: ['类别1', '类别2'] },
-  series: [
-    {
-      name: '类别1',
-      type: 'bar',
-      stack: 'total',
-      data: [120, 200, 150, 80, 70],
-      label: { show: true, position: 'right' },
-      itemStyle: { color: '#18a058' }
-    },
-    {
-      name: '类别2',
-      type: 'bar',
-      stack: 'total',
-      data: [80, 120, 100, 60, 50],
-      label: { show: true, position: 'right' },
-      itemStyle: { color: '#f0a020' }
-    }
-  ]
-},
-{
-  xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E'] },
-  yAxis: { type: 'value' },
-  series: [{ type: 'bar', data: [120, 200, 150, 80, 70] }]
-}
-]
 // 合并最匹配的键盘统计数据，并整理遗留的数据信息
 function getKeyVal(key, mapkey, keyStatHash, leftKey) {
   let val, matchKey;

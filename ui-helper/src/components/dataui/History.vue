@@ -71,13 +71,13 @@
     <!-- 第一行：3列，每列3个卡片 -->
     <div class="cards-grid">
       <div class="card-col">
-        <div id="main8">1</div>
+        <div id="main8" class="chart"></div>
       </div>
       <div class="card-col">
-        <div id="main9">2</div>
+        <div id="main9" class="chart"></div>
       </div>
       <div class="card-col">
-        <div id="main10">3</div>
+        <div id="main10" class="chart"></div>
       </div>
     </div>
     <!-- 第二行：柱状图 -->
@@ -140,7 +140,8 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel,exportToText, showFinger } from '@/common';
+import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel,exportToText
+   , showFinger,fingerOption } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -625,7 +626,9 @@ export default defineComponent({
         myChartArr.push(myChart)
       })
       let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
-      optionArr = [option, option2].concat(arr)
+      optionArr = [option, option2,...arr,
+      null,null/**5,6都是空值 updateMinuteData 中专门设定 */,...fingerOption]; // 
+      console.log(optionArr)
       addExtListener(myChartArr);
       // 需要增加多个数据源的选择
       let dbs = [{label:contentText.value.intro210,value:''}]
@@ -640,8 +643,10 @@ export default defineComponent({
         myChartArr[i].dispose()
         myChartArr[i] = echarts.init(dom, newValue);
         let opt = optionArr[i]
+        // 此处进行通用设置
         if (opt != null) myChartArr[i].setOption(opt);
       })
+      // 分数数据专门设定
       updateMinuteData()
     });
     // 更新应用时间区间数据

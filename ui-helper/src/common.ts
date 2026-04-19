@@ -402,6 +402,73 @@ const exportToText = (columns, tableData) => {
   URL.revokeObjectURL(url)
 }
 
+const fingerOption = [
+{
+  title: {
+      "text": "Left VS Right"
+  },
+  series: [{
+    type: 'pie',
+    data: [
+      { value: 70, name: '类别A' },
+      { value: 30, name: '类别B' }
+    ],
+    label: { show: true, formatter: '{b}: {d}%' },
+    itemStyle: {
+      borderWidth: 5,         // 间隙宽度
+      borderColor: '#fff'
+    }
+  }]
+},
+{
+  title: {
+      "text": "By Rows"
+  },
+  xAxis: { type: 'value', name: '数值' },
+  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'], name: '项目' },
+  series: [{
+    type: 'bar',
+    data: [120, 200, 150, 80, 70],
+    label: { show: true, position: 'right' },
+    itemStyle: { color: '#18a058', borderRadius: [0, 4, 4, 0] }
+  }]
+},
+{
+  title: {
+      "text": "By Finger"
+  },
+  xAxis: { type: 'value', name: '数值' },
+  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'] },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+  legend: { data: ['类别1', '类别2'] },
+  series: [
+    {
+      name: '类别1',
+      type: 'bar',
+      stack: 'total',
+      data: [120, 200, 150, 80, 70],
+      label: { show: true, position: 'right' },
+      itemStyle: { color: '#18a058' }
+    },
+    {
+      name: '类别2',
+      type: 'bar',
+      stack: 'total',
+      data: [80, 120, 100, 60, 50],
+      label: { show: true, position: 'right' },
+      itemStyle: { color: '#f0a020' }
+    }
+  ]
+},
+{
+  title: {
+      "text": "Every Finger"
+  },
+  xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E'] },
+  yAxis: { type: 'value' },
+  series: [{ type: 'bar', data: [120, 200, 150, 80, 70] }]
+}
+]
 const fingerKeyMap = {
   leftPinky: ['Q', 'A', 'Z', '1', '`', '~', '!', '@'],
   leftRing: ['W', 'S', 'X', '2'],
@@ -489,13 +556,16 @@ function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,key
   if (chartIndices.length !== 4) return
 
   const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash)
-
+  console.log('----')
+  console.log(optionArr)
   chartIndices.forEach((chartIdx, i) => {
     if (chartIdx >= myChartArr.length) return
 
     const chart = myChartArr[chartIdx]
-    let opt = {}
-
+    let opt = optionArr[chartIdx]
+    console.log(opt)
+    chart.setOption(opt)
+    return
     if (i === 0) {
       opt = {
         title: { text: '左右手按键总数', left: 'center', top: 10 },
@@ -606,5 +676,5 @@ export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
-  showFinger
+  showFinger,fingerOption
 }
