@@ -4,8 +4,8 @@
       <n-anchor affix :top="80" style="z-index: 10; font-size: 18px; " :bound="50" :show-rail="false" :ignore-gap="true"
         type='block' position='fix'>
         <n-anchor-link :title="contentText.intro86" href="#intro86" />
-        <n-anchor-link :title="contentText.intro87" href="#intro87" />
         <n-anchor-link :title="contentText.intro218" href="#intro218" />
+        <n-anchor-link :title="contentText.intro87" href="#intro87" />
         <n-anchor-link :title="contentText.intro97" href="#intro97" />
         <n-anchor-link :title="contentText.intro149" href="#intro149" />
         <n-anchor-link :title="contentText.intro182" href="#intro149_" />
@@ -26,6 +26,31 @@
       <div @click="getClickTime">
         <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
           <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
+        </n-card>
+        <n-card id="intro218" :title="contentText.intro218 + contentText.intro142 + updateTime">
+          <template #header-extra>
+          <n-select v-model:value="mouseFinger" :options="[
+            { label: contentText.intro231, value: 0 },
+            { label: contentText.intro232, value: 1 },
+            { label: contentText.intro233, value: 2 }
+          ]" />
+          </template>
+  <div class="dashboard">
+    <div class="cards-grid">
+      <div class="card-col">
+        <div id="main6" class="chart"></div>
+      </div>
+      <div class="card-col">
+        <div id="main7" class="chart"></div>
+      </div>
+      <div class="card-col">
+        <div id="main8" class="chart"></div>
+      </div>
+      <div class="card-col">
+        <div id="main9" class="chart"></div>
+      </div>
+    </div>
+  </div>
         </n-card>
         <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
           <template #header-extra>
@@ -52,24 +77,6 @@
             </n-space>
           </template>
           <n-data-table :columns="columns" :data="dataTable" />
-        </n-card>
-        <n-card id="intro218" :title="contentText.intro218 + contentText.intro142 + updateTime">
-  <div class="dashboard">
-    <!-- 第一行：3列，每列3个卡片 -->
-    <div class="cards-grid">
-      <div class="card-col">
-        <div id="main6" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main7" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main8" class="chart"></div>
-      </div>
-    </div>
-    <!-- 第二行：柱状图 -->
-    <div id="main9" class="chart">4</div>
-  </div>
         </n-card>
         <n-card id="intro193" :title="contentText.intro193 +'('+store.data.config.common.recordHistoryMax+')' + contentText.intro142 + updateTime">
           <n-input readonly="true" 
@@ -127,7 +134,7 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
 import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText
-  , showFinger,fingerOption } from '@/common';
+  , showFinger,fingerOption,setLangContent } from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -414,7 +421,7 @@ export default defineComponent({
     historyData = []
     tickSet = new Set();
 
-    const contentText = computed(() => content[props.lang])
+    const contentText = computed(() => {setLangContent(content[props.lang]);return content[props.lang]})
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
@@ -436,6 +443,7 @@ export default defineComponent({
     const endDate = ref(0);
     const updateTime = ref('');
     const appListData = ref([]);
+    const mouseFinger = ref(1);
     let firstUpdate = ref(true); // 用于控制第一次显示时没有延时，其他均有延时显示
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
@@ -666,7 +674,7 @@ export default defineComponent({
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
       // 手指使用统计图表展示，传入4个图表索引
-      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash,keyData);
+      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash,keyData,mouseFinger);
     }
     function showLeftKeyRef() {
       dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, lastLeftKey,lastAllKey,LastKeyStatHash)
@@ -808,7 +816,8 @@ export default defineComponent({
       appListData,
       store,
       firstUpdate,
-      exportToText
+      exportToText,
+      mouseFinger
     }
   },
 })

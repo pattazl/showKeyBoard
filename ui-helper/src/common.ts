@@ -1,6 +1,6 @@
 import { CSSProperties } from 'vue'
 import dayjs from 'dayjs'
-
+let contentText = {} // 语言包
 function deepCopy(obj) {
   if (typeof obj !== 'object' || obj === null) {
     return obj;
@@ -402,73 +402,99 @@ const exportToText = (columns, tableData) => {
   URL.revokeObjectURL(url)
 }
 
-const fingerOption = [
-{
-  title: {
-      "text": "Left VS Right"
-  },
-  series: [{
-    type: 'pie',
-    data: [
-      { value: 70, name: '类别A' },
-      { value: 30, name: '类别B' }
-    ],
-    label: { show: true, formatter: '{b}: {d}%' },
-    itemStyle: {
-      borderWidth: 5,         // 间隙宽度
-      borderColor: '#fff'
-    }
-  }]
-},
-{
-  title: {
-      "text": "By Rows"
-  },
-  xAxis: { type: 'value', name: '数值' },
-  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'], name: '项目' },
-  series: [{
-    type: 'bar',
-    data: [120, 200, 150, 80, 70],
-    label: { show: true, position: 'right' },
-    itemStyle: { color: '#18a058', borderRadius: [0, 4, 4, 0] }
-  }]
-},
-{
-  title: {
-      "text": "By Finger"
-  },
-  xAxis: { type: 'value', name: '数值' },
-  yAxis: { type: 'category', data: ['项目A', '项目B', '项目C', '项目D', '项目E'] },
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  legend: { data: ['类别1', '类别2'] },
-  series: [
+let fingerOption= []; // 手指图表参数
+let allCharts = []  // 全部图表对象
+let fingerCharts = []  // 手指对象的列表
+let fingerIndex = [] // 手指对象的序号 
+// 获取手指图表配置，根据当前语言动态生成
+function getFingerOption() {
+  const t = (key: string) => (contentText as any)[key] || key;
+  return [
     {
-      name: '类别1',
-      type: 'bar',
-      stack: 'total',
-      data: [120, 200, 150, 80, 70],
-      label: { show: true, position: 'right' },
-      itemStyle: { color: '#18a058' }
+      title: { 
+        text: t('intro219'),
+      },
+      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      series: [{
+        type: 'pie',
+        radius: ['45%', '70%'],
+        data: [
+          { value: 120, name: t('intro224'), itemStyle: { color: '#d03050' } }, // 红 右
+          { value: 70, name: t('intro223'), itemStyle: { color: '#2080f0' } },  // 蓝 左
+        ],
+        itemStyle: { borderWidth: 5, borderColor: '#fff' },
+        label: { show: true, position: 'outside', formatter: '{b}\n{c} ({d}%)' }
+      }]
     },
     {
-      name: '类别2',
-      type: 'bar',
-      stack: 'total',
-      data: [80, 120, 100, 60, 50],
-      label: { show: true, position: 'right' },
-      itemStyle: { color: '#f0a020' }
+      title: { text: t('intro220') },
+      xAxis: { type: 'value' },
+      yAxis: { type: 'category', data: [t('intro230'), t('intro231'), t('intro232'), t('intro233')] },
+      series: [{
+        type: 'bar',
+        data: [120, 200, 150, 80],
+        label: { show: true, position: 'right' },
+        itemStyle: { color: '#18a058', borderRadius: [0, 4, 4, 0] }
+      }]
+    },
+    {
+      title: { text: t('intro221') },
+      xAxis: { type: 'value' },
+      yAxis: { type: 'category', data: [t('intro225'), t('intro226'), t('intro227'), t('intro228')] },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      series: [
+        {
+          name: t('intro223'),
+          type: 'bar',
+          stack: 'total',
+          data: [120, 200, 150, 80],
+          label: { show: true, position: 'inside' },
+          itemStyle: { color: '#2080f0' }
+        },
+        {
+          name: t('intro224'),
+          type: 'bar',
+          stack: 'total',
+          data: [80, 120, 100, 60],
+          label: { show: true, position: 'inside' },
+          itemStyle: { color: '#d03050' }
+        }
+      ]
+    },
+    {
+      title: { text: t('intro222') },
+      tooltip: { 
+        trigger: 'axis', 
+        axisPointer: { type: 'shadow' },
+        formatter: (params: any) => {
+          const p = params[0];
+          return `${p.name} (${p.data.hand})<br/>${p.data.hand}: ${p.value}`;
+        }
+      },
+      xAxis: { 
+        type: 'category', 
+        data: [t('intro225'), t('intro226'), t('intro227'), t('intro228'), t('intro229'), t('intro228'), t('intro227'), t('intro226'), t('intro225')],
+        axisLabel: { rotate: 30 }
+      },
+      yAxis: { type: 'value' },
+      series: [{
+        type: 'bar',
+        label: { show: true, position: 'top', formatter: '{c}' },
+        data: [
+          { value: 120, hand: t('intro223'), itemStyle: { color: '#2080f0' } },
+          { value: 200, hand: t('intro223'), itemStyle: { color: '#2080f0' } },
+          { value: 150, hand: t('intro223'), itemStyle: { color: '#2080f0' } },
+          { value: 80, hand: t('intro223'), itemStyle: { color: '#2080f0' } },
+          { value: 70, hand: t('intro229'), itemStyle: { color: '#18a058' } },
+          { value: 70, hand: t('intro224'), itemStyle: { color: '#d03050' } },
+          { value: 140, hand: t('intro224'), itemStyle: { color: '#d03050' } },
+          { value: 190, hand: t('intro224'), itemStyle: { color: '#d03050' } },
+          { value: 110, hand: t('intro224'), itemStyle: { color: '#d03050' } }
+        ]
+      }]
     }
-  ]
-},
-{
-  title: {
-      "text": "Every Finger"
-  },
-  xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E'] },
-  yAxis: { type: 'value' },
-  series: [{ type: 'bar', data: [120, 200, 150, 80, 70] }]
+  ];
 }
-]
 const fingerKeyMap = {
   leftPinky: ['Q', 'A', 'Z', '1', '`', '~', '!', '@'],
   leftRing: ['W', 'S', 'X', '2'],
@@ -550,131 +576,84 @@ function calculateStats(allKey, keyStatHash) {
 
   return { fingerStats, handStats, rowStats, totalCount }
 }
-
-function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,keyMap) {
-  if (!myChartArr || !optionArr || !allKey || !keyStatHash || !chartIndices) return
-  if (chartIndices.length !== 4) return
-
-  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash)
-  console.log('----')
-  console.log(optionArr)
-  chartIndices.forEach((chartIdx, i) => {
-    if (chartIdx >= myChartArr.length) return
-
-    const chart = myChartArr[chartIdx]
-    let opt = optionArr[chartIdx]
-    console.log(opt)
-    chart.setOption(opt)
-    return
-    if (i === 0) {
-      opt = {
-        title: { text: '左右手按键总数', left: 'center', top: 10 },
-        tooltip: { trigger: 'item', formatter: '{b}: {c}次 ({d}%)' },
-        legend: { bottom: 10 },
-        series: [{
-          type: 'pie',
-          radius: ['40%', '70%'],
-          data: [
-            { name: '左手', value: handStats.left, itemStyle: { color: '#2080f0' } },
-            { name: '右手', value: handStats.right, itemStyle: { color: '#d03050' } },
-            { name: '拇指', value: handStats.thumb, itemStyle: { color: '#18a058' } }
-          ].filter(d => d.value > 0),
-          label: { show: true, formatter: '{b}: {d}%' }
-        }]
-      }
-    } else if (i === 1) {
-      const rowData = Object.keys(rowStats).map(row => ({
-        name: rowNames[row],
-        value: rowStats[row]
-      })).filter(d => d.value > 0)
-
-      opt = {
-        title: { text: '键盘每行按键数', left: 'center', top: 10 },
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '10%', bottom: '3%', top: '60px', containLabel: true },
-        xAxis: { type: 'value', name: '按键次数' },
-        yAxis: { type: 'category', data: rowData.map(d => d.name), name: '键盘行' },
-        series: [{
-          type: 'bar',
-          data: rowData.map(d => d.value),
-          label: { show: true, position: 'right', formatter: '{c}次' },
-          itemStyle: {
-            color: ['#d03050', '#f0a020', '#18a058', '#2080f0', '#8050f0']
-          }
-        }]
-      }
-    } else if (i === 2) {
-      const leftFingers = ['leftPinky', 'leftRing', 'leftMiddle', 'leftIndex']
-      const rightFingers = ['rightPinky', 'rightRing', 'rightMiddle', 'rightIndex']
-
-      opt = {
-        title: { text: '左右手各手指对比', left: 'center', top: 10 },
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        legend: { bottom: 10, data: ['左手', '右手'] },
-        grid: { left: '3%', right: '10%', bottom: '60px', top: '60px', containLabel: true },
-        xAxis: {
-          type: 'category',
-          data: ['小指', '无名指', '中指', '食指']
-        },
-        yAxis: { type: 'value', name: '按键次数' },
-        series: [
-          {
-            name: '左手',
-            type: 'bar',
-            data: leftFingers.map(f => fingerStats[f]),
-            itemStyle: { color: '#2080f0' },
-            label: { show: true, position: 'top' }
-          },
-          {
-            name: '右手',
-            type: 'bar',
-            data: rightFingers.map(f => fingerStats[f]),
-            itemStyle: { color: '#d03050' },
-            label: { show: true, position: 'top' }
-          }
-        ]
-      }
-    } else if (i === 3) {
-      const allFingers = [
-        { key: 'leftPinky', name: '左小指', color: '#a0c8ff' },
-        { key: 'leftRing', name: '左无名指', color: '#60a0f0' },
-        { key: 'leftMiddle', name: '左中指', color: '#2080f0' },
-        { key: 'leftIndex', name: '左食指', color: '#0060d0' },
-        { key: 'thumb', name: '拇指', color: '#18a058' },
-        { key: 'rightIndex', name: '右食指', color: '#a03050' },
-        { key: 'rightMiddle', name: '右中指', color: '#d03050' },
-        { key: 'rightRing', name: '右无名指', color: '#f05070' },
-        { key: 'rightPinky', name: '右小指', color: '#ff80a0' }
-      ]
-
-      opt = {
-        title: { text: '各手指按键次数', left: 'center', top: 10 },
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '10%', bottom: '3%', top: '60px', containLabel: true },
-        xAxis: { type: 'value', name: '按键次数' },
-        yAxis: {
-          type: 'category',
-          data: allFingers.map(f => f.name)
-        },
-        series: [{
-          type: 'bar',
-          data: allFingers.map(f => ({
-            value: fingerStats[f.key],
-            itemStyle: { color: f.color }
-          })),
-          label: { show: true, position: 'right', formatter: '{c}次' },
-          itemStyle: { borderRadius: [0, 4, 4, 0] }
-        }]
-      }
-    }
-
-    chart.setOption(opt)
+function batchSetOption(myChartArr){
+    myChartArr.forEach((chart,i)=>{
+    chart.setOption(fingerOption[i])
   })
 }
+// 将父对象的全局变量重新赋值
+function setFingerChart(){
+  fingerCharts = fingerIndex.map((idx: number) => allCharts[idx])
+}
+function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,keyMap,mouse) {
+  if (!myChartArr || !optionArr || !allKey || !keyStatHash || !chartIndices) return
+  if (chartIndices.length !== 4) return
+  allCharts = myChartArr; // 指向对象
+  fingerIndex = chartIndices; // 标记
+  setFingerChart()
+  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash)
+  //fingerOption = getFingerOption()
+  chartIndices.forEach((chartIdx, i) => {
+    if (chartIdx >= myChartArr.length) return
+    let opt = fingerOption[i]
+    // 根据数据跳转 opt 的值
+    optionArr[chartIdx] = opt // 替换全局option变量内的值
+  })
+  // 批量设置数据
+  batchSetOption(fingerCharts)
+}
 
+// 只更新 fingerOption 中的语言相关文本部分 和 getFingerOption中的内容相匹配
+function updateFingerOptionLang() {
+  if (fingerOption.length === 0) return;
+  const t = (key: string) => (contentText as any)[key] || key;
+  setFingerChart()
+  // 图表1：饼图
+  if (fingerOption[0]) {
+    fingerOption[0].title.text = t('intro219');
+    fingerOption[0].series[0].data[0].name = t('intro224');
+    fingerOption[0].series[0].data[1].name = t('intro223');
+  }
+  
+  // 图表2：键盘行
+  if (fingerOption[1]) {
+    fingerOption[1].title.text = t('intro220');
+    fingerOption[1].yAxis.data = [t('intro230'), t('intro231'), t('intro232'), t('intro233')];
+  }
+  
+  // 图表3：手指对比
+  if (fingerOption[2]) {
+    fingerOption[2].title.text = t('intro221');
+    fingerOption[2].yAxis.data = [t('intro225'), t('intro226'), t('intro227'), t('intro228')];
+    fingerOption[2].series[0].name = t('intro223');
+    fingerOption[2].series[1].name = t('intro224');
+  }
+  
+  // 图表4：各手指
+  if (fingerOption[3]) {
+    fingerOption[3].title.text = t('intro222');
+    const fingerData = [t('intro225'), t('intro226'), t('intro227'), t('intro228'), t('intro229'), t('intro228'), t('intro227'), t('intro226'), t('intro225')];
+    fingerOption[3].xAxis.data = fingerData;
+    fingerOption[3].series[0].data.forEach((d: any, i: number) => {
+      if (i < 4) d.hand = t('intro223');
+      else if (i === 4) d.hand = t('intro229');
+      else d.hand = t('intro224');
+    });
+  }
+  
+  batchSetOption(fingerCharts);
+}
+
+function setLangContent(content: Object) {
+  contentText = content;
+  if(fingerOption.length ==0)
+    fingerOption = getFingerOption();
+  else
+    updateFingerOptionLang();
+}
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
-  showFinger,fingerOption
+  showFinger,fingerOption,setLangContent
 }
