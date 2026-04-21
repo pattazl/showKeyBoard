@@ -489,6 +489,18 @@
               </template>
             </n-list-item>
             <div id="main" style="height: 500px; min-width: 800px;width:95%"></div>
+    <div style="display: flex; flex-direction: row; gap: 20px;">
+      <div>
+        <n-list-item>{{ contentText?.intro235 }}</n-list-item>
+        <n-input v-model:value="fingerKeyMapRef" type="textarea" placeholder="fingerKeyMap JSON" show-count
+          size="medium" rows="8" style="min-width: 450px" />
+      </div>
+      <div>
+        <n-list-item>{{ contentText?.intro236 }}</n-list-item>
+        <n-input v-model:value="mouseKeyMapRef" type="textarea" placeholder="mouseKeyMap JSON" show-count
+          size="medium" rows="8" style="min-width: 300px" />
+      </div>
+    </div>
           </n-list>
         </n-card>
         <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
@@ -525,7 +537,8 @@ import mapping from '../../mapping.js';
 import { setLangText, initContain, updateWinOpt, changeContainSize } from '@/../public/showAnimateUI.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
-import { deepCopy, ajax, str2Type, splitArr } from '@/common.ts'
+import { deepCopy, ajax, str2Type, splitArr, updateFingerMap, updateMouseMap
+  , defaultFingerKeyNames, defaultMouseKeyNames } from '@/common.ts'
 import CodeDiff from './CodeDiff.vue'
 
 import * as echarts from 'echarts/core';
@@ -719,6 +732,8 @@ export default defineComponent({
     const dataSetting = ref<any>({})  // 屏幕
     const keymapsRef = ref([])  // 选择的键盘清单
     const mapDetailRef = ref('')  // 键盘详细定义
+    const fingerKeyMapRef = ref('')  // 手指按键映射
+    const mouseKeyMapRef = ref('')  // 鼠标按键映射
     const keyboardDetail = ref('')  // 键盘定义的相关说明和提示
     const keyboardSaveInfo = ref('')    // 键盘保存按钮
     const guiBgcolorRef = ref('')    // 颜色需要额外处理
@@ -742,6 +757,10 @@ export default defineComponent({
       allConfig.value = data.config;
       dataSetting.value = data.dataSetting;
       keymapsRef.value = data.keymaps.map(x => { return { label: x.mapName, value: x.mapName } });
+
+      // 加载 fingerKeyMap 和 mouseKeyMap 配置
+      fingerKeyMapRef.value = data.dataSetting.fingerKeyMap;
+      mouseKeyMapRef.value = data.dataSetting.mouseKeyMap;
 
       let sinfo = data.infoPC?.screen; // [{Left:0, Top:0, Right:100, Bottom:200},{Left:0, Top:0, Right:100, Bottom:200}]
       if (sinfo == null) {
@@ -801,6 +820,56 @@ export default defineComponent({
         { deep: false }
       );
     });
+    // fingerKeyMap 和 mouseKeyMap 实时验证
+    function validateFingerMouseMap() {
+      // fingerKeyMap 验证
+      if (fingerKeyMapRef.value) {
+        try {
+          const fingerMap = JSON.parse(fingerKeyMapRef.value)
+          for (const key of Object.keys(fingerMap)) {
+            if (!defaultFingerKeyNames.includes(key)) {
+              message.warning(`fingerKeyMap 键名 "${key}" 不规范，必须是: ${defaultFingerKeyNames.join(', ')}`)
+              return false
+            }
+            if (!Array.isArray(fingerMap[key])) {
+              message.warning(`fingerKeyMap 的 "${key}" 必须是数组`)
+              return false
+            }
+          }
+          // 验证通过，保存到 dataSetting
+          dataSetting.value.fingerKeyMap = fingerKeyMapRef.value
+          updateFingerMap(fingerKeyMapRef.value)
+        } catch (e) {
+          message.warning('fingerKeyMap JSON 格式错误: ' + (e as Error).message)
+          return false
+        }
+      }
+      // mouseKeyMap 验证
+      if (mouseKeyMapRef.value) {
+        try {
+          const mouseMap = JSON.parse(mouseKeyMapRef.value)
+          for (const key of Object.keys(mouseMap)) {
+            if (!defaultMouseKeyNames.includes(key)) {
+              message.warning(`mouseKeyMap 键名 "${key}" 不规范，必须是: ${defaultMouseKeyNames.join(', ')}`)
+              return false
+            }
+            if (!Array.isArray(mouseMap[key])) {
+              message.warning(`mouseKeyMap 的 "${key}" 必须是数组`)
+              return false
+            }
+          }
+          // 验证通过，保存到 dataSetting
+          dataSetting.value.mouseKeyMap = mouseKeyMapRef.value
+          updateMouseMap(mouseKeyMapRef.value)
+        } catch (e) {
+          message.warning('mouseKeyMap JSON 格式错误: ' + (e as Error).message)
+          return false
+        }
+      }
+      return true
+    }
+    watch(fingerKeyMapRef, () => validateFingerMouseMap())
+    watch(mouseKeyMapRef, () => validateFingerMouseMap())
     onMounted(() => {
       chartDom = document.getElementById('main');
       myChart = echarts.init(chartDom);
@@ -903,6 +972,19 @@ export default defineComponent({
           if (mapDetailArr.length > 0) {
             dataSetting.value.mapDetail = JSON.stringify(mapDetailArr)
           }
+          // 验证 fingerKeyMap 和 mouseKeyMap
+          if (!fingerMouseKeyValid()) {
+            return
+          }
+          // 保存 fingerKeyMap 和 mouseKeyMap
+          if (fingerKeyMapRef.value) {
+            dataSetting.value.fingerKeyMap = fingerKeyMapRef.value;
+            updateFingerMap(fingerKeyMapRef.value);
+          }
+          if (mouseKeyMapRef.value) {
+            dataSetting.value.mouseKeyMap = mouseKeyMapRef.value;
+            updateMouseMap(mouseKeyMapRef.value);
+          }
           store.preData.dataSetting = deepCopy(dataSetting.value)
         }
       })
@@ -956,6 +1038,48 @@ export default defineComponent({
       } else {
         keyboardSaveInfo.value = contentText.value.intro108
       }
+    }
+    // fingerKeyMap 和 mouseKeyMap 有效性检查
+    function fingerMouseKeyValid(): boolean {
+      // 验证 fingerKeyMap
+      if (fingerKeyMapRef.value) {
+        try {
+          const fingerMap = JSON.parse(fingerKeyMapRef.value)
+          for (const key of Object.keys(fingerMap)) {
+            if (!defaultFingerKeyNames.includes(key)) {
+              message.error(`fingerKeyMap 键名 "${key}" 不规范，必须是: ${defaultFingerKeyNames.join(', ')}`)
+              return false
+            }
+            if (!Array.isArray(fingerMap[key])) {
+              message.error(`fingerKeyMap 的 "${key}" 必须是数组`)
+              return false
+            }
+          }
+        } catch (e) {
+          message.error('fingerKeyMap JSON 格式错误: ' + (e as Error).message)
+          return false
+        }
+      }
+      // 验证 mouseKeyMap
+      if (mouseKeyMapRef.value) {
+        try {
+          const mouseMap = JSON.parse(mouseKeyMapRef.value)
+          for (const key of Object.keys(mouseMap)) {
+            if (!defaultMouseKeyNames.includes(key)) {
+              message.error(`mouseKeyMap 键名 "${key}" 不规范，必须是: ${defaultMouseKeyNames.join(', ')}`)
+              return false
+            }
+            if (!Array.isArray(mouseMap[key])) {
+              message.error(`mouseKeyMap 的 "${key}" 必须是数组`)
+              return false
+            }
+          }
+        } catch (e) {
+          message.error('mouseKeyMap JSON 格式错误: ' + (e as Error).message)
+          return false
+        }
+      }
+      return true
     }
     // 进行有效性检查
     function keyboardValid() {
@@ -1109,6 +1233,8 @@ export default defineComponent({
       preAppNameListRef,
       changeContainSize,
       openNewKeyPage,
+      fingerKeyMapRef,
+      mouseKeyMapRef,
     }
   },
 })

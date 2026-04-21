@@ -41,7 +41,9 @@ import content from '../content.js';
 import {setOpt} from '../leftmenu';
 // import { useAustinStore } from '../App.vue'
 import { useMessage } from 'naive-ui';
-import { deepCopy,ajax,str2Type } from '@/common.ts'
+import { deepCopy,ajax,str2Type
+  ,fingerKeyMap,mouseKeyMap 
+ } from '@/common.ts'
 import { useAustinStore } from '@/App.vue'
 import myImage from '@/res/loading.gif';
 
@@ -102,6 +104,8 @@ export default defineComponent({
         data.dataSetting.afterClickTodayMs = data.dataSetting.afterClickTodayMs??10000
         data.dataSetting.autoBackupDays = data.dataSetting.autoBackupDays??3
         data.dataSetting.minuteKeepDays = data.dataSetting.minuteKeepDays??7
+        data.dataSetting.fingerKeyMap = data.dataSetting.fingerKeyMap??JSON.stringify(fingerKeyMap,null,2)
+        data.dataSetting.mouseKeyMap = data.dataSetting.mouseKeyMap??JSON.stringify(mouseKeyMap,null,2)
         data.config.common.defaultLang = data.config.common.defaultLang??'zh-CN'  // 配置文件默认中文
 
         store.data = data  // 在 setting中保留一份数据,进行页面切换后无需重新载入，除非页面整个刷新

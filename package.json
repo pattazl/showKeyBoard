@@ -1,5 +1,5 @@
 {
-  "version": "1.59",
+  "version": "1.60",
   "name": "node",
   "scripts": {
     "build": "node ./build/buildMain.js"

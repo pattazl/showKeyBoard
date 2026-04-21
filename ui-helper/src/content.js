@@ -250,7 +250,7 @@ export default {
 	intro215: '按键显示仅在Web端显示，桌面不显示。Web端通过设置->按键界面->Web按键显示',
 	intro216: 'Web按键显示',
 	intro217: '合并连续相同的字符,用×计数',
-	intro218: '手指使用统计,键位定义在 httpdist/dist/ui/ui-setting.js',
+	intro218: '手指使用统计',
 	intro219: '左右手按键统计',
 	intro220: '基于自定义键盘行分析',
 	intro221: '手指使用对比',
@@ -266,6 +266,9 @@ export default {
 	intro231: '不统计鼠标',
 	intro232: '右手鼠标',
 	intro233: '左手鼠标',
+	intro234: ' 键位定义在 httpdist/dist/ui/ui-setting.js',
+	intro235: '手指键盘按键表',
+	intro236: '手指鼠标按键表',
   },
   'en-US': {
     title: 'Show Keyboard Management',
@@ -519,7 +522,7 @@ export default {
 	intro215: 'Key display is only shown on the web, not on the desktop. Setting → Popup UI → Web Key Display.',
 	intro216: 'Web Key Display',
 	intro217: 'Merge consecutive same chars, count with ×',
-	intro218: 'Finger usage statistics, KeyMap is defined in httpdist/dist/ui/ui-setting.js',
+	intro218: 'Finger usage statistics',
 	intro219: 'Left/Right Hand Keystrokes',
 	intro220: 'Custom Keyboard Row Analysis',
 	intro221: 'Finger Usage Comparison',
@@ -535,6 +538,8 @@ export default {
 	intro231: 'Do not include mouse',
 	intro232: 'Right-hand mouse',
 	intro233: 'Left-hand mouse',
-
+	intro234: ' KeyMap is defined in httpdist/dist/ui/ui-setting.js',
+	intro235: 'Finger-Keyboard Mapping',
+	intro236: 'Finger-Mouse Mapping',
   }
 };

@@ -521,6 +521,10 @@ let mouseKeyMap = {
   middle: ['RButton','WheelUp','WheelDown','MButton'], // 中指：右键 滚轮
 }
 
+// 默认的键名列表
+const defaultFingerKeyNames = ['leftPinky', 'leftRing', 'leftMiddle', 'leftIndex', 'rightIndex', 'rightMiddle', 'rightRing', 'rightPinky', 'thumb']
+const defaultMouseKeyNames = ['thumb', 'index', 'middle']
+
 function matchKey(keyName, matchList) {
   const upperKey = keyName.toUpperCase()
   return matchList.some(k => k.toUpperCase() === upperKey)
@@ -734,7 +738,7 @@ function setLangContent(content: Object) {
   }
 }
 // 更新 fingerKeyMap 配置
-function updateFingerMap(config: any) {
+function updateFingerMap(config: String) {
   if (config) {
     try {
       const parsed = typeof config === 'string' ? JSON.parse(config) : config;
@@ -767,5 +771,6 @@ export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
-  showFinger,fingerOption,setLangContent, updateFingerMap, updateMouseMap
+  showFinger,fingerOption,setLangContent, updateFingerMap, updateMouseMap,
+  defaultFingerKeyNames, defaultMouseKeyNames,fingerKeyMap,mouseKeyMap
 }

@@ -27,7 +27,7 @@
         <n-card id="intro86" :title="contentText.intro86 + contentText.intro142 + updateTime">
           <div id="main1" style="height: 500px; min-width: 800px;width:95%;"></div>
         </n-card>
-        <n-card id="intro218" :title="contentText.intro218 + contentText.intro142 + updateTime">
+        <n-card id="intro218" :title="contentText.intro218 + contentText.intro234 + contentText.intro142 + updateTime">
           <template #header-extra>
           <n-select v-model:value="mouseFinger" :options="[
             { label: contentText.intro231, value: 0 },
@@ -35,7 +35,6 @@
             { label: contentText.intro233, value: 2 }
           ]" @update:value="onMouseFingerChange" />
           </template>
-  <div class="dashboard">
     <div class="cards-grid">
       <div class="card-col">
         <div id="main6" class="chart"></div>
@@ -50,7 +49,6 @@
         <div id="main9" class="chart"></div>
       </div>
     </div>
-  </div>
         </n-card>
         <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
           <template #header-extra>
