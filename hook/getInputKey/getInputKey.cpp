@@ -378,8 +378,8 @@ std::wstring GetNumpadKeyName(DWORD vkCode, DWORD scancode, DWORD flags, bool nu
 	{
 		switch (vkCode)
 		{
-		case VK_NUMPAD0: return L"Numpad0-";
-		case VK_NUMPAD1: return L"Numpad1-";
+		case VK_NUMPAD0: return L"Numpad0";
+		case VK_NUMPAD1: return L"Numpad1";
 		case VK_NUMPAD2: return L"Numpad2";
 		case VK_NUMPAD3: return L"Numpad3";
 		case VK_NUMPAD4: return L"Numpad4";
@@ -462,7 +462,7 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 	case VK_LSHIFT:  return L"LShift";
 	case VK_RSHIFT:  return L"RShift";
 	case VK_LMENU:   return L"LAlt";  
-	case VK_RMENU:   return L"RAlt";  
+	case VK_RMENU:   return L"RAlt";
 	}
 
 	// 字母键 A-Z
@@ -496,6 +496,41 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
  */
 
 
+// -------------------- 多媒体键辅助函数 --------------------
+bool IsMultimediaKey(DWORD vkCode)
+{
+	return (vkCode >= 0xA1 && vkCode <= 0xA7) ||  // VK_BROWSER_* (0xA1-0xA7)
+		   (vkCode >= 0xAD && vkCode <= 0xAF) ||  // VK_VOLUME_* (0xAD-0xAF)
+		   (vkCode >= 0xB0 && vkCode <= 0xB3) ||  // VK_MEDIA_* (0xB0-0xB3)
+		   (vkCode >= 0xB6 && vkCode <= 0xB9);    // VK_LAUNCH_* (0xB6-0xB9)
+}
+
+std::wstring GetMultimediaKeyName(DWORD vkCode)
+{
+	switch (vkCode)
+	{
+	case 0xA1: return L"BrowserBack";
+	case 0xA2: return L"BrowserForward";
+	case 0xA3: return L"BrowserRefresh";
+	case 0xA4: return L"BrowserStop";
+	case 0xA5: return L"BrowserSearch";
+	case 0xA6: return L"BrowserFavorites";
+	case 0xA7: return L"BrowserHome";
+	case 0xAD: return L"VolumeMute";
+	case 0xAE: return L"VolumeDown";
+	case 0xAF: return L"VolumeUp";
+	case 0xB0: return L"MediaNext";
+	case 0xB1: return L"MediaPrev";
+	case 0xB2: return L"MediaStop";
+	case 0xB3: return L"MediaPlayPause";
+	case 0xB6: return L"LaunchMail";
+	case 0xB7: return L"LaunchMedia";
+	case 0xB8: return L"LaunchApp1";
+	case 0xB9: return L"LaunchApp2";
+	default:   return L"UnknownMedia";
+	}
+}
+
 std::wstring GetKeyNameVCode(KBDLLHOOKSTRUCT* pKeyboardData) {
 	DWORD vkCode = pKeyboardData->vkCode;
 	DWORD scanCode = pKeyboardData->scanCode;
@@ -518,8 +553,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	}
 
 	KBDLLHOOKSTRUCT* pKeyboardData = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
-	DWORD vk = pKeyboardData->vkCode;
-
+	
 	bool isKeyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
 	bool isKeyUp = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP);
 
@@ -532,12 +566,22 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	// 2. 处理物理按键按下
 	if (repeatRecord < maxKeypressCount)
 	{
-		bool isInjected = (pKeyboardData->flags & LLKHF_INJECTED) != 0;
-		if (!isInjected && isKeyDown)
+		bool isInjected = (pKeyboardData->flags & LLKHF_INJECTED) != 0; // 模拟按键
+		// DbgPrint(L"vkCode 2 %x, isInjected %d, isKeyDown %d", 
+		// 	pKeyboardData->vkCode,isInjected,isKeyDown);
+		bool isMultiMedia = IsMultimediaKey(pKeyboardData->vkCode);
+		if ( (!isInjected|| isMultiMedia ) && isKeyDown)
 		{
 			bool extended = (pKeyboardData->flags & LLKHF_EXTENDED) != 0;
 
-			std::wstring Name = GetKeyNameVCode(pKeyboardData);
+			// 多媒体键优先处理
+			std::wstring Name;
+			if (isMultiMedia)
+			{
+				Name = GetMultimediaKeyName(pKeyboardData->vkCode);
+			}else{
+				Name = GetKeyNameVCode(pKeyboardData);
+			}
 			// std::wstring Name = GetKeyNameFromSC(pKeyboardData->scanCode, extended);
 			std::wstring Name2 = L"{" + Name + L"}";
 			// wprintf(Name2.c_str());
