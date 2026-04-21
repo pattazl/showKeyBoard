@@ -40,11 +40,11 @@
       </n-card>
       <n-card id="intro218" :title="contentText.intro218">
         <template #header-extra>
-        <n-select v-model:value="mouseFinger" :options="[
+          <n-select v-model:value="mouseFinger" :options="[
           { label: contentText.intro231, value: 0 },
           { label: contentText.intro232, value: 1 },
           { label: contentText.intro233, value: 2 }
-        ]" />
+        ]" @update:value="onMouseFingerChange" />
         </template>
   <div class="dashboard">
     <div class="cards-grid">
@@ -397,7 +397,14 @@ export default defineComponent({
     const appListData = ref([]);
     const showEndDate = ref(0);
     const dbsOption = ref([]);
-    const mouseFinger = ref(1);
+    const mouseFinger = ref(Number(localStorage.getItem('mouseFinger')|| 1) );
+    // mouseFinger 变更事件
+    function onMouseFingerChange(val: number) {
+      localStorage.setItem('mouseFinger', String(val));
+      if (lastAllKey.length > 0 && Object.keys(LastKeyStatHash).length > 0) {
+        showFinger(myChartArr, optionArr, [7, 8, 9, 10], lastAllKey, LastKeyStatHash, keyData, mouseFinger.value);
+      }
+    }
 
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
@@ -573,7 +580,7 @@ export default defineComponent({
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
       dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, leftKey, allKey, keyStatHash)
       // 手指使用统计图表展示，传入4个图表索引
-      showFinger(myChartArr, optionArr, [7, 8, 9, 10], allKey, keyStatHash,keyData,mouseFinger);
+      showFinger(myChartArr, optionArr, [7, 8, 9, 10], allKey, keyStatHash,keyData,mouseFinger.value);
 
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       mouseTable.value = []
@@ -636,7 +643,6 @@ export default defineComponent({
       let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
       optionArr = [option, option2,...arr,
       null,null/**5,6都是空值 updateMinuteData 中专门设定 */,...fingerOption]; // 
-      console.log(optionArr)
       addExtListener(myChartArr);
       // 需要增加多个数据源的选择
       let dbs = [{label:contentText.value.intro210,value:''}]
@@ -709,7 +715,8 @@ export default defineComponent({
       dbsOption,
       changeDb,
       exportToText,
-      mouseFinger
+      mouseFinger,
+      onMouseFingerChange
     }
   },
 })

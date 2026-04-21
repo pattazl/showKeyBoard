@@ -33,7 +33,7 @@
             { label: contentText.intro231, value: 0 },
             { label: contentText.intro232, value: 1 },
             { label: contentText.intro233, value: 2 }
-          ]" />
+          ]" @update:value="onMouseFingerChange" />
           </template>
   <div class="dashboard">
     <div class="cards-grid">
@@ -443,7 +443,14 @@ export default defineComponent({
     const endDate = ref(0);
     const updateTime = ref('');
     const appListData = ref([]);
-    const mouseFinger = ref(1);
+    const mouseFinger = ref(Number(localStorage.getItem('mouseFinger')) || 1);
+    // mouseFinger 变更事件
+    function onMouseFingerChange(val: number) {
+      localStorage.setItem('mouseFinger', String(val));
+      if (lastAllKey.length > 0 && Object.keys(LastKeyStatHash).length > 0) {
+        showFinger(myChartArr, optionArr, [5, 6, 7, 8], lastAllKey, LastKeyStatHash, keyData, mouseFinger.value);
+      }
+    }
     let firstUpdate = ref(true); // 用于控制第一次显示时没有延时，其他均有延时显示
     // 显示剩余按键
     const leftKeySwitch = ref(store.data.dataSetting.mergeControl);
@@ -674,7 +681,7 @@ export default defineComponent({
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
       // 手指使用统计图表展示，传入4个图表索引
-      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash,keyData,mouseFinger);
+      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash,keyData,mouseFinger.value);
     }
     function showLeftKeyRef() {
       dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, lastLeftKey,lastAllKey,LastKeyStatHash)
@@ -817,7 +824,8 @@ export default defineComponent({
       store,
       firstUpdate,
       exportToText,
-      mouseFinger
+      mouseFinger,
+      onMouseFingerChange
     }
   },
 })

@@ -405,7 +405,8 @@ const exportToText = (columns, tableData) => {
 let fingerOption= []; // 手指图表参数
 let allCharts = []  // 全部图表对象
 let fingerCharts = []  // 手指对象的列表
-let fingerIndex = [] // 手指对象的序号 
+let fingerIndex = [] // 手指对象的序号
+let rowKeyMap: Record<string, string[]> = {} // 当前键盘行按键映射
 // 获取手指图表配置，根据当前语言动态生成
 function getFingerOption() {
   const t = (key: string) => (contentText as any)[key] || key;
@@ -428,8 +429,12 @@ function getFingerOption() {
     },
     {
       title: { text: t('intro220') },
+      tooltip: { trigger: 'axis', formatter: (params: any) => {
+        const p = params[0];
+        return `${p.name}${contentText.intro230}<br/>${listRowKey(p.name)}<br/>${contentText.intro115}: ${p.value}`;
+      }},
       xAxis: { type: 'value' },
-      yAxis: { type: 'category', data: [t('intro230'), t('intro231'), t('intro232'), t('intro233')] },
+      yAxis: { type: 'category', data: [1,2,3,4] },
       series: [{
         type: 'bar',
         data: [120, 200, 150, 80],
@@ -495,61 +500,106 @@ function getFingerOption() {
     }
   ];
 }
-const fingerKeyMap = {
-  leftPinky: ['Q', 'A', 'Z', '1', '`', '~', '!', '@'],
+// 默认值，可以从配置中读取更新
+let fingerKeyMap = {
+  leftPinky: ['Q', 'A', 'Z', '1', '`', 'Tab', 'CapsLock', 'LControl', 'LShift', 'LAlt'],
   leftRing: ['W', 'S', 'X', '2'],
-  leftMiddle: ['E', 'D', 'C', '3', '#'],
-  leftIndex: ['R', 'T', 'F', 'G', 'V', 'B', '4', '5', '$', '%'],
-  rightIndex: ['Y', 'U', 'H', 'J', 'N', 'M', '6', '7', '^', '&'],
-  rightMiddle: ['I', 'K', ',', '<', '8', '*'],
-  rightRing: ['O', 'L', '.', '>', '9', '('],
-  rightPinky: ['P', ';', ':', "'", '"', '[', '{', ']', '}', '\\', '|', '-', '_', '=', '+',
-    '/', '?', 'Backspace', 'Enter', '0', ')'],
-  thumb: [' ']
+  leftMiddle: ['E', 'D', 'C', '3'],
+  leftIndex: ['R', 'T', 'F', 'G', 'V', 'B', '4', '5'],
+  rightIndex: ['Y', 'U', 'H', 'J', 'N', 'M', '6', '7'],
+  rightMiddle: ['I', 'K', ',', '8'],
+  rightRing: ['O', 'L', '.', '9'],
+  rightPinky: ['P', ';', "'", '[', ']', '\\', '-', '=', '/', 'Backspace', 'Enter', '0', 'RControl', 'RShift', 'RAlt'],
+  thumb: ['Space', 'LWin', 'RWin']
 }
 
-const rowKeyMap = {
-  row1: ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'Backspace', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+'],
-  row2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\', '{', '}', '|'],
-  row3: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", 'Enter', ':', '"'],
-  row4: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', '<', '>', '?'],
-  row5: [' ']
-}
-
-const fingerNames = {
-  leftPinky: '小指',
-  leftRing: '无名指',
-  leftMiddle: '中指',
-  leftIndex: '食指',
-  rightIndex: '食指',
-  rightMiddle: '中指',
-  rightRing: '无名指',
-  rightPinky: '小指',
-  thumb: '拇指'
-}
-
-const rowNames = {
-  row1: '第一行(数字行)',
-  row2: '第二行(QWER行)',
-  row3: '第三行(ASDF行)',
-  row4: '第四行(ZXCV行)',
-  row5: '第五行(空格)'
+// 鼠标按键映射
+let mouseKeyMap = {
+  // 右手左手鼠标
+  thumb: ['XButton1', 'XButton2'],  // 拇指：侧键
+  index: ['LButton'],      // 食指：左键 
+  middle: ['RButton','WheelUp','WheelDown','MButton'], // 中指：右键 滚轮
 }
 
 function matchKey(keyName, matchList) {
-  let cleanKey = keyName.replace(/[!+^#<>]/g, '').toUpperCase()
-  return matchList.some(k =>
-    cleanKey.includes(k) ||
-    keyName.toUpperCase().includes(k) ||
-    k.toUpperCase().includes(cleanKey)
-  )
+  const upperKey = keyName.toUpperCase()
+  return matchList.some(k => k.toUpperCase() === upperKey)
 }
+// 获取所有鼠标按键名称
+function getMouseKeys(): string[] {
+  return [...new Set(Object.values(mouseKeyMap).flat())].map(k => k.toUpperCase());
+}
+// 根据keymap获取每一行的按键清单形成数组，去除重复的符号，keymap是二维数组
+// [19, 1, '1', 'Numpad1 NumpadEnd'] ,第一列为列号，第二列为行号，第三列为按键，但当有第四列时，按键以第四列优先
+// 第四列有可能有多个按键用空格分隔
+// mouse == 0 时排除鼠标按键
+// 返回: { 行号: [所有按键...] }
+function getRowKeyMap(keyMap: any[], mouse: number = 1): Record<string, string[]> {
+  const rowMap: Record<string, Set<string>> = {};
+  const mouseKeys = mouse === 0 ? new Set(getMouseKeys()) : new Set<string>();
+  keyMap.forEach(item => {
+    if (!item || item.length < 3) return;
+    const rowIndex = String(item[1]+1); // 第二列为行号
+    const keyName = item[2];
+    const priorityKey = item[3];
 
-function calculateStats(allKey, keyStatHash) {
+    if (!rowMap[rowIndex]) {
+      rowMap[rowIndex] = new Set();
+    }
+    // 有第四列优先使用，否则用第三列
+    const addKeys = priorityKey
+      ? priorityKey.split(' ').filter(k => k.trim())
+      : (keyName ? [keyName.trim()] : []);
+
+    addKeys.forEach(k => {
+      if (!mouseKeys.has(k.toUpperCase())) {
+        rowMap[rowIndex].add(k);
+      }
+    });
+  });
+  // 转换为数组，按行号排序，过滤空数组
+  const result: Record<string, string[]> = {};
+  Object.keys(rowMap).sort((a, b) => Number(a) - Number(b)).forEach(row => {
+    const arr = Array.from(rowMap[row]);
+    if (arr.length > 0) {
+      result[row] = arr;
+    }
+  });
+  return result;
+}
+// 根据行号返回该行的按键清单，每5个换行
+function listRowKey(rowIndex: string): string {
+  const keys = rowKeyMap[rowIndex] || [];
+  if (keys.length === 0) return '';
+  const grouped: string[] = [];
+  for (let i = 0; i < keys.length; i += 5) {
+    grouped.push(keys.slice(i, i + 5).join(', '));
+  }
+  return grouped.join('<br/>');
+}
+function calculateStats(allKey, keyStatHash,mouse,keyMap) {
   let fingerStats = {}, handStats = { left: 0, right: 0, thumb: 0 }
   let rowStats = {}, totalCount = 0
 
-  Object.keys(fingerKeyMap).forEach(finger => { fingerStats[finger] = 0 })
+  // 复制 fingerKeyMap，不修改原对象
+  const effectiveFingerMap: Record<string, string[]> = {};
+  Object.keys(fingerKeyMap).forEach(finger => {
+    effectiveFingerMap[finger] = [...fingerKeyMap[finger]];
+  });
+
+  // 鼠标 == 1 时，将鼠标按键添加到对应的手指
+  if (mouse === 1) {
+    effectiveFingerMap.thumb = [...effectiveFingerMap.thumb, ...mouseKeyMap.thumb];
+    effectiveFingerMap.rightIndex = [...effectiveFingerMap.rightIndex, ...mouseKeyMap.index];
+    effectiveFingerMap.rightMiddle = [...effectiveFingerMap.rightMiddle, ...mouseKeyMap.middle];
+  }else if(mouse === 2) {
+    effectiveFingerMap.thumb = [...effectiveFingerMap.thumb, ...mouseKeyMap.thumb];
+    effectiveFingerMap.leftIndex = [...effectiveFingerMap.leftIndex, ...mouseKeyMap.index];
+    effectiveFingerMap.leftMiddle = [...effectiveFingerMap.leftMiddle, ...mouseKeyMap.middle];
+  }
+
+  rowKeyMap = getRowKeyMap(keyMap, mouse) // 需要根据键盘计算
+  Object.keys(effectiveFingerMap).forEach(finger => { fingerStats[finger] = 0 })
   Object.keys(rowKeyMap).forEach(row => { rowStats[row] = 0 })
 
   allKey.forEach(keyName => {
@@ -558,8 +608,8 @@ function calculateStats(allKey, keyStatHash) {
 
     totalCount += count
 
-    Object.keys(fingerKeyMap).forEach(finger => {
-      if (matchKey(keyName, fingerKeyMap[finger])) {
+    Object.keys(effectiveFingerMap).forEach(finger => {
+      if (matchKey(keyName, effectiveFingerMap[finger])) {
         fingerStats[finger] += count
         if (finger.includes('left')) handStats.left += count
         else if (finger.includes('right')) handStats.right += count
@@ -567,11 +617,12 @@ function calculateStats(allKey, keyStatHash) {
       }
     })
 
-    Object.keys(rowKeyMap).forEach(row => {
+    // 行统计：匹配到某一行后跳出，避免同一按键被统计到多行
+    for (const row of Object.keys(rowKeyMap)) {
       if (matchKey(keyName, rowKeyMap[row])) {
         rowStats[row] += count
       }
-    })
+    }
   })
 
   return { fingerStats, handStats, rowStats, totalCount }
@@ -591,19 +642,49 @@ function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,key
   allCharts = myChartArr; // 指向对象
   fingerIndex = chartIndices; // 标记
   setFingerChart()
-  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash)
+
+  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash,mouse,keyMap)
   //fingerOption = getFingerOption()
+  // console.log(fingerStats, handStats,rowStats,totalCount)
   chartIndices.forEach((chartIdx, i) => {
     if (chartIdx >= myChartArr.length) return
     let opt = fingerOption[i]
+    if(i==0){
+      opt.series[0].data[0].value = handStats.right
+      opt.series[0].data[1].value = handStats.left
+    }else if (i==1) {
+      const rowKeys = Object.keys(rowStats).sort((a, b) => Number(a) - Number(b));
+      const rowValues = rowKeys.map(k => rowStats[k]);
+      opt.yAxis.data = rowKeys
+      opt.series[0].data = rowValues
+    } else if (i==2) {
+      opt.series[0].data = [fingerStats['leftPinky'],fingerStats['leftRing']
+    ,fingerStats['leftMiddle'],fingerStats['leftIndex']] // 左边
+
+      opt.series[1].data = [fingerStats['rightPinky'],fingerStats['rightRing']
+    ,fingerStats['rightMiddle'],fingerStats['rightIndex']]  // 右边
+    } else if (i==3) {
+      opt.series[0].data[0].value = fingerStats['leftPinky']
+      opt.series[0].data[1].value = fingerStats['leftRing']
+      opt.series[0].data[2].value = fingerStats['leftMiddle']
+      opt.series[0].data[3].value = fingerStats['leftIndex']
+      opt.series[0].data[4].value = fingerStats['thumb']
+      opt.series[0].data[5].value = fingerStats['rightIndex']
+      opt.series[0].data[6].value = fingerStats['rightMiddle']
+      opt.series[0].data[7].value = fingerStats['rightRing']
+      opt.series[0].data[8].value = fingerStats['rightPinky']
+    }else {
+      
+    }
     // 根据数据跳转 opt 的值
     optionArr[chartIdx] = opt // 替换全局option变量内的值
+    fingerOption[i] = opt; // 本模块变量也一样要更新
   })
   // 批量设置数据
   batchSetOption(fingerCharts)
 }
 
-// 只更新 fingerOption 中的语言相关文本部分 和 getFingerOption中的内容相匹配
+// 只更新 fingerOption 中的语言相关文本部分 和 getFingerOption 中的内容相匹配
 function updateFingerOptionLang() {
   if (fingerOption.length === 0) return;
   const t = (key: string) => (contentText as any)[key] || key;
@@ -618,7 +699,6 @@ function updateFingerOptionLang() {
   // 图表2：键盘行
   if (fingerOption[1]) {
     fingerOption[1].title.text = t('intro220');
-    fingerOption[1].yAxis.data = [t('intro230'), t('intro231'), t('intro232'), t('intro233')];
   }
   
   // 图表3：手指对比
@@ -646,14 +726,46 @@ function updateFingerOptionLang() {
 
 function setLangContent(content: Object) {
   contentText = content;
-  if(fingerOption.length ==0)
+  if(fingerOption.length ==0){
     fingerOption = getFingerOption();
-  else
+  }
+  else{
     updateFingerOptionLang();
+  }
+}
+// 更新 fingerKeyMap 配置
+function updateFingerMap(config: any) {
+  if (config) {
+    try {
+      const parsed = typeof config === 'string' ? JSON.parse(config) : config;
+      Object.keys(parsed).forEach(key => {
+        if (fingerKeyMap.hasOwnProperty(key) && Array.isArray(parsed[key])) {
+          fingerKeyMap[key] = parsed[key];
+        }
+      });
+    } catch (e) {
+      console.error('Failed to parse fingerKeyMap:', e);
+    }
+  }
+}
+// 更新 mouseKeyMap 配置
+function updateMouseMap(config: any) {
+  if (config) {
+    try {
+      const parsed = typeof config === 'string' ? JSON.parse(config) : config;
+      Object.keys(parsed).forEach(key => {
+        if (mouseKeyMap.hasOwnProperty(key) && Array.isArray(parsed[key])) {
+          mouseKeyMap[key] = parsed[key];
+        }
+      });
+    } catch (e) {
+      console.error('Failed to parse mouseKeyMap:', e);
+    }
+  }
 }
 export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
-  showFinger,fingerOption,setLangContent
+  showFinger,fingerOption,setLangContent, updateFingerMap, updateMouseMap
 }

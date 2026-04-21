@@ -423,13 +423,13 @@ std::wstring GetNumpadKeyName(DWORD vkCode, DWORD scancode, DWORD flags, bool nu
  */
 std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 {
-	// 特殊按键映射
+	// 特殊按键映射，需要完全匹配AHK的 List of Keys 
 	switch (vkCode)
 	{
 	case VK_SPACE:      return L"Space";
 	case VK_BACK:       return L"Backspace";
 	case VK_TAB:        return L"Tab";
-	case VK_ESCAPE:     return L"Esc";
+	case VK_ESCAPE:     return L"Escape";
 	case VK_DELETE:     return extended?L"Del":L"NumpadDel";
 	case VK_INSERT:     return L"NumpadIns";
 	case VK_HOME:       return L"NumpadHome";
@@ -441,7 +441,7 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 	case VK_LEFT:       return L"NumpadLeft";
 	case VK_RIGHT:      return L"NumpadRight";
 	case VK_CONTROL:
-		return extended ? L"RCtrl" : L"LCtrl";
+		return extended ? L"RControl " : L"LControl ";
 	case VK_SHIFT:
 		// 通过扫描码区分左右 Shift
 		if (scancode == 0x2A) return L"LShift";
