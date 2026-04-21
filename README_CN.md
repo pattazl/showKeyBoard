@@ -18,6 +18,7 @@
 12. 支持通过第三方工具（推荐FreeFileSync）实现多台设备记录的同步
 13. 支持历史应用时长统计和每日使用时长和应用数量趋势分析
 14. 支持通过Web页面实时查看按键信息，方法：设置->按键界面->Web按键显示，从而可以支持OBS(Open Broadcaster Software)中独立显示按键，也可关闭桌面按键显示只在web中显示。
+15. 支持根据键位(可自定义)分析各个手指的使用率
 
 ## 系统要求
 
@@ -65,6 +66,7 @@
 ![历史按键趋势](screenshot/%E5%8E%86%E5%8F%B2%E6%8C%89%E9%94%AE%E8%B6%8B%E5%8A%BF.png)
 
 ![实时按键热力图](screenshot/%E5%AE%9E%E6%97%B6%E6%8C%89%E9%94%AE%E7%83%AD%E5%8A%9B%E5%9B%BE.jpg)
+![手指按键使用率](screenshot/finger.png)
 
 ![image-20250324183940491](screenshot/today.png)
 

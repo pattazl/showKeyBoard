@@ -29,31 +29,32 @@
         </n-card>
         <n-card id="intro218" :title="contentText.intro218 + contentText.intro234 + contentText.intro142 + updateTime">
           <template #header-extra>
-          <n-select v-model:value="mouseFinger" :options="[
-            { label: contentText.intro231, value: 0 },
-            { label: contentText.intro232, value: 1 },
-            { label: contentText.intro233, value: 2 }
-          ]" @update:value="onMouseFingerChange" />
+            <n-select v-model:value="mouseFinger" :options="[
+              { label: contentText.intro231, value: 0 },
+              { label: contentText.intro232, value: 1 },
+              { label: contentText.intro233, value: 2 }
+            ]" @update:value="onMouseFingerChange" />
           </template>
-    <div class="cards-grid">
-      <div class="card-col">
-        <div id="main6" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main7" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main8" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main9" class="chart"></div>
-      </div>
-    </div>
+          <div class="cards-grid">
+            <div class="card-col">
+              <div id="main6" class="chart"></div>
+            </div>
+            <div class="card-col">
+              <div id="main7" class="chart"></div>
+            </div>
+            <div class="card-col">
+              <div id="main8" class="chart"></div>
+            </div>
+            <div class="card-col">
+              <div id="main9" class="chart"></div>
+            </div>
+          </div>
         </n-card>
         <n-card id="intro87" :title="contentText.intro87 + contentText.intro142 + updateTime">
           <template #header-extra>
             <n-space>
-              <n-switch :round="false" :rail-style="railStyle" v-model:value="leftAllKeySwitch" @update:value="showLeftKeyRef">
+              <n-switch :round="false" :rail-style="railStyle" v-model:value="leftAllKeySwitch"
+                @update:value="showLeftKeyRef">
                 <template #checked>
                   {{ contentText.intro180 }}
                 </template>
@@ -61,7 +62,8 @@
                   {{ contentText.intro181 }}
                 </template>
               </n-switch>
-              <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch" @update:value="showLeftKeyRef">
+              <n-switch :round="false" :rail-style="railStyle" v-model:value="leftKeySwitch"
+                @update:value="showLeftKeyRef">
                 <template #checked>
                   {{ contentText.intro143 }}
                 </template>
@@ -70,17 +72,15 @@
                 </template>
               </n-switch>
               <n-button type="primary" @click="exportToText(columns, dataTable)">
-              {{ contentText.intro213 }}
-             </n-button>
+                {{ contentText.intro213 }}
+              </n-button>
             </n-space>
           </template>
           <n-data-table :columns="columns" :data="dataTable" />
         </n-card>
-        <n-card id="intro193" :title="contentText.intro193 +'('+store.data.config.common.recordHistoryMax+')' + contentText.intro142 + updateTime">
-          <n-input readonly="true" 
-            v-model:value="recordHistory"
-            type="textarea"
-          />
+        <n-card id="intro193"
+          :title="contentText.intro193 + '(' + store.data.config.common.recordHistoryMax + ')' + contentText.intro142 + updateTime">
+          <n-input readonly="true" v-model:value="recordHistory" type="textarea" />
         </n-card>
         <n-card id="intro97" :title="contentText.intro97 + contentText.intro142 + updateTime">
           <n-data-table :columns="columns0" :data="mouseTable" />
@@ -131,8 +131,10 @@ import {
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener,exportToText
-  , showFinger,fingerOption,setLangContent } from '@/common';
+import {
+  setWS, arrRemove, getHistory, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS, ajax, deepCopy, dateFormat, timeFormat, addExtListener, exportToText
+  , showFinger, fingerOption, setLangContent
+} from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 import { Push } from '@vicons/ionicons5';
@@ -419,15 +421,15 @@ export default defineComponent({
     historyData = []
     tickSet = new Set();
 
-    const contentText = computed(() => {setLangContent(content[props.lang]);return content[props.lang]})
+    const contentText = computed(() => { setLangContent(content[props.lang]); return content[props.lang] })
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
     appNameListMap = JSON.parse((<any>store.preData).dataSetting.appNameList);
     let optionArr = [], myChartArr: Array<echarts.ECharts> = [], chartDomArr = [];
-    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5', 
-    'main6', 'main7', 'main8', 'main9'
-  ] // ,'main4','main5'
+    let domNameArr = ['main1', 'main2', 'main3', 'main4', 'main5',
+      'main6', 'main7', 'main8', 'main9'
+    ] // ,'main4','main5'
     let updateFlag = null;
     let strLeftKeyVal = ref('');
     let dataTable = ref([])
@@ -633,7 +635,7 @@ export default defineComponent({
         hashTxtData[item[0] + ',' + item[1]] = keyList[key] ?? key
         hashOriData[item[0] + ',' + item[1]] = key + strKeyMap
         // 将val 数据全部放到数组中，同于统计 max值
-        if(val!='-'){
+        if (val != '-') {
           keyArr.push(val) // 排序时候要去掉 '-'
         }
         return [item[0], item[1], val];
@@ -655,9 +657,9 @@ export default defineComponent({
       //strLeftKeyVal.value = leftKeyVal.join('\n')
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
-      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, leftKey,allKey,keyStatHash)
-      let tempArr = keyStatHash['recordHistory']??[];
-      if(Array.isArray(tempArr)){
+      dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, leftKey, allKey, keyStatHash)
+      let tempArr = keyStatHash['recordHistory'] ?? [];
+      if (Array.isArray(tempArr)) {
         recordHistory.value = tempArr.join('➡️');
       }
       mouseTable.value = []
@@ -679,10 +681,10 @@ export default defineComponent({
         mouseTable.value.push({ keyName: 'mousePhysicalDistance', count: Number(realPhysical.toFixed(4)), desc: contentText.value.intro96 })
       }
       // 手指使用统计图表展示，传入4个图表索引
-      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash,keyData,mouseFinger.value);
+      showFinger(myChartArr, optionArr, [5, 6, 7, 8], allKey, keyStatHash, keyData, mouseFinger.value);
     }
     function showLeftKeyRef() {
-      dataTable.value = showLeftKey(leftAllKeySwitch.value,leftKeySwitch.value, lastLeftKey,lastAllKey,LastKeyStatHash)
+      dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, lastLeftKey, lastAllKey, LastKeyStatHash)
     }
     let lastMinute = '', minuteDataInterval = null;
     function setupMinuteData() {
@@ -713,7 +715,7 @@ export default defineComponent({
         myChartArr.push(myChart)
       })
       let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
-      optionArr = [option, option2, ...arr ,...fingerOption];
+      optionArr = [option, option2, ...arr, ...fingerOption];
       // console.log(optionArr)
       setWS(updateKeyData)
       setupMinuteData() // 启动定时获取分钟信息

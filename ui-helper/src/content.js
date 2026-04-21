@@ -266,7 +266,7 @@ export default {
 	intro231: '不统计鼠标',
 	intro232: '右手鼠标',
 	intro233: '左手鼠标',
-	intro234: ' 键位定义在 httpdist/dist/ui/ui-setting.js',
+	intro234: ' 键位:设置->手指鼠标按键表',
 	intro235: '手指键盘按键表',
 	intro236: '手指鼠标按键表',
   },
@@ -538,7 +538,7 @@ export default {
 	intro231: 'Do not include mouse',
 	intro232: 'Right-hand mouse',
 	intro233: 'Left-hand mouse',
-	intro234: ' KeyMap is defined in httpdist/dist/ui/ui-setting.js',
+	intro234: ' KeyMap:Setting->Finger-Mouse Mapping',
 	intro235: 'Finger-Keyboard Mapping',
 	intro236: 'Finger-Mouse Mapping',
   }

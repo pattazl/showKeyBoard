@@ -51,7 +51,7 @@ async function ajax(path, data = null) {
 const boolArr = ['skipCtrlKey', 'recordMouseMove', 'needShowKey', 'needRecordKey', 'ctrlState', 'guiBgTrans',
   'guiTrans', 'guiEdge', 'guiDpiscale', 'showHttpDebug', 'hideInWinPwd', 'mergeControl', 'fillDate', 'statProcInfo',
   'mergeAppName', 'activeAppShow', 'preAppNameEnable', 'allKeySwitch', 'needTraytip'
-  , 'showKeyOnlyWeb','mergeChar']
+  , 'showKeyOnlyWeb', 'mergeChar']
 // 转换字符串为数字或boolean
 function str2Type(hash, flag) {
   for (const k in hash) {
@@ -402,7 +402,7 @@ const exportToText = (columns, tableData) => {
   URL.revokeObjectURL(url)
 }
 
-let fingerOption= []; // 手指图表参数
+let fingerOption = []; // 手指图表参数
 let allCharts = []  // 全部图表对象
 let fingerCharts = []  // 手指对象的列表
 let fingerIndex = [] // 手指对象的序号
@@ -412,7 +412,7 @@ function getFingerOption() {
   const t = (key: string) => (contentText as any)[key] || key;
   return [
     {
-      title: { 
+      title: {
         text: t('intro219'),
       },
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
@@ -429,12 +429,14 @@ function getFingerOption() {
     },
     {
       title: { text: t('intro220') },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        const p = params[0];
-        return `${p.name}${contentText.intro230}<br/>${listRowKey(p.name)}<br/>${contentText.intro115}: ${p.value}`;
-      }},
+      tooltip: {
+        trigger: 'axis', formatter: (params: any) => {
+          const p = params[0];
+          return `${p.name}${contentText.intro230}<br/>${listRowKey(p.name)}<br/>${contentText.intro115}: ${p.value}`;
+        }
+      },
       xAxis: { type: 'value' },
-      yAxis: { type: 'category', data: [1,2,3,4] },
+      yAxis: { type: 'category', data: [1, 2, 3, 4] },
       series: [{
         type: 'bar',
         data: [120, 200, 150, 80],
@@ -468,16 +470,16 @@ function getFingerOption() {
     },
     {
       title: { text: t('intro222') },
-      tooltip: { 
-        trigger: 'axis', 
+      tooltip: {
+        trigger: 'axis',
         axisPointer: { type: 'shadow' },
         formatter: (params: any) => {
           const p = params[0];
           return `${p.name} (${p.data.hand})<br/>${p.data.hand}: ${p.value}`;
         }
       },
-      xAxis: { 
-        type: 'category', 
+      xAxis: {
+        type: 'category',
         data: [t('intro225'), t('intro226'), t('intro227'), t('intro228'), t('intro229'), t('intro228'), t('intro227'), t('intro226'), t('intro225')],
         axisLabel: { rotate: 30 }
       },
@@ -518,7 +520,7 @@ let mouseKeyMap = {
   // 右手左手鼠标
   thumb: ['XButton1', 'XButton2'],  // 拇指：侧键
   index: ['LButton'],      // 食指：左键 
-  middle: ['RButton','WheelUp','WheelDown','MButton'], // 中指：右键 滚轮
+  middle: ['RButton', 'WheelUp', 'WheelDown', 'MButton'], // 中指：右键 滚轮
 }
 
 // 默认的键名列表
@@ -543,7 +545,7 @@ function getRowKeyMap(keyMap: any[], mouse: number = 1): Record<string, string[]
   const mouseKeys = mouse === 0 ? new Set(getMouseKeys()) : new Set<string>();
   keyMap.forEach(item => {
     if (!item || item.length < 3) return;
-    const rowIndex = String(item[1]+1); // 第二列为行号
+    const rowIndex = String(item[1] + 1); // 第二列为行号
     const keyName = item[2];
     const priorityKey = item[3];
 
@@ -581,7 +583,7 @@ function listRowKey(rowIndex: string): string {
   }
   return grouped.join('<br/>');
 }
-function calculateStats(allKey, keyStatHash,mouse,keyMap) {
+function calculateStats(allKey, keyStatHash, mouse, keyMap) {
   let fingerStats = {}, handStats = { left: 0, right: 0, thumb: 0 }
   let rowStats = {}, totalCount = 0
 
@@ -596,7 +598,7 @@ function calculateStats(allKey, keyStatHash,mouse,keyMap) {
     effectiveFingerMap.thumb = [...effectiveFingerMap.thumb, ...mouseKeyMap.thumb];
     effectiveFingerMap.rightIndex = [...effectiveFingerMap.rightIndex, ...mouseKeyMap.index];
     effectiveFingerMap.rightMiddle = [...effectiveFingerMap.rightMiddle, ...mouseKeyMap.middle];
-  }else if(mouse === 2) {
+  } else if (mouse === 2) {
     effectiveFingerMap.thumb = [...effectiveFingerMap.thumb, ...mouseKeyMap.thumb];
     effectiveFingerMap.leftIndex = [...effectiveFingerMap.leftIndex, ...mouseKeyMap.index];
     effectiveFingerMap.leftMiddle = [...effectiveFingerMap.leftMiddle, ...mouseKeyMap.middle];
@@ -631,43 +633,43 @@ function calculateStats(allKey, keyStatHash,mouse,keyMap) {
 
   return { fingerStats, handStats, rowStats, totalCount }
 }
-function batchSetOption(myChartArr){
-    myChartArr.forEach((chart,i)=>{
+function batchSetOption(myChartArr) {
+  myChartArr.forEach((chart, i) => {
     chart.setOption(fingerOption[i])
   })
 }
 // 将父对象的全局变量重新赋值
-function setFingerChart(){
+function setFingerChart() {
   fingerCharts = fingerIndex.map((idx: number) => allCharts[idx])
 }
-function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,keyMap,mouse) {
+function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash, keyMap, mouse) {
   if (!myChartArr || !optionArr || !allKey || !keyStatHash || !chartIndices) return
   if (chartIndices.length !== 4) return
   allCharts = myChartArr; // 指向对象
   fingerIndex = chartIndices; // 标记
   setFingerChart()
 
-  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash,mouse,keyMap)
+  const { fingerStats, handStats, rowStats, totalCount } = calculateStats(allKey, keyStatHash, mouse, keyMap)
   //fingerOption = getFingerOption()
   // console.log(fingerStats, handStats,rowStats,totalCount)
   chartIndices.forEach((chartIdx, i) => {
     if (chartIdx >= myChartArr.length) return
     let opt = fingerOption[i]
-    if(i==0){
+    if (i == 0) {
       opt.series[0].data[0].value = handStats.right
       opt.series[0].data[1].value = handStats.left
-    }else if (i==1) {
+    } else if (i == 1) {
       const rowKeys = Object.keys(rowStats).sort((a, b) => Number(a) - Number(b));
       const rowValues = rowKeys.map(k => rowStats[k]);
       opt.yAxis.data = rowKeys
       opt.series[0].data = rowValues
-    } else if (i==2) {
-      opt.series[0].data = [fingerStats['leftPinky'],fingerStats['leftRing']
-    ,fingerStats['leftMiddle'],fingerStats['leftIndex']] // 左边
+    } else if (i == 2) {
+      opt.series[0].data = [fingerStats['leftPinky'], fingerStats['leftRing']
+        , fingerStats['leftMiddle'], fingerStats['leftIndex']] // 左边
 
-      opt.series[1].data = [fingerStats['rightPinky'],fingerStats['rightRing']
-    ,fingerStats['rightMiddle'],fingerStats['rightIndex']]  // 右边
-    } else if (i==3) {
+      opt.series[1].data = [fingerStats['rightPinky'], fingerStats['rightRing']
+        , fingerStats['rightMiddle'], fingerStats['rightIndex']]  // 右边
+    } else if (i == 3) {
       opt.series[0].data[0].value = fingerStats['leftPinky']
       opt.series[0].data[1].value = fingerStats['leftRing']
       opt.series[0].data[2].value = fingerStats['leftMiddle']
@@ -677,8 +679,8 @@ function showFinger(myChartArr, optionArr, chartIndices, allKey, keyStatHash,key
       opt.series[0].data[6].value = fingerStats['rightMiddle']
       opt.series[0].data[7].value = fingerStats['rightRing']
       opt.series[0].data[8].value = fingerStats['rightPinky']
-    }else {
-      
+    } else {
+
     }
     // 根据数据跳转 opt 的值
     optionArr[chartIdx] = opt // 替换全局option变量内的值
@@ -699,12 +701,12 @@ function updateFingerOptionLang() {
     fingerOption[0].series[0].data[0].name = t('intro224');
     fingerOption[0].series[0].data[1].name = t('intro223');
   }
-  
+
   // 图表2：键盘行
   if (fingerOption[1]) {
     fingerOption[1].title.text = t('intro220');
   }
-  
+
   // 图表3：手指对比
   if (fingerOption[2]) {
     fingerOption[2].title.text = t('intro221');
@@ -712,7 +714,7 @@ function updateFingerOptionLang() {
     fingerOption[2].series[0].name = t('intro223');
     fingerOption[2].series[1].name = t('intro224');
   }
-  
+
   // 图表4：各手指
   if (fingerOption[3]) {
     fingerOption[3].title.text = t('intro222');
@@ -724,16 +726,16 @@ function updateFingerOptionLang() {
       else d.hand = t('intro224');
     });
   }
-  
+
   batchSetOption(fingerCharts);
 }
 
 function setLangContent(content: Object) {
   contentText = content;
-  if(fingerOption.length ==0){
+  if (fingerOption.length == 0) {
     fingerOption = getFingerOption();
   }
-  else{
+  else {
     updateFingerOptionLang();
   }
 }
@@ -771,6 +773,6 @@ export {
   deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
-  showFinger,fingerOption,setLangContent, updateFingerMap, updateMouseMap,
-  defaultFingerKeyNames, defaultMouseKeyNames,fingerKeyMap,mouseKeyMap
+  showFinger, fingerOption, setLangContent, updateFingerMap, updateMouseMap,
+  defaultFingerKeyNames, defaultMouseKeyNames, fingerKeyMap, mouseKeyMap
 }

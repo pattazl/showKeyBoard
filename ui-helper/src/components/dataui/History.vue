@@ -41,25 +41,25 @@
       <n-card id="intro218" :title="contentText.intro218 + contentText.intro234">
         <template #header-extra>
           <n-select v-model:value="mouseFinger" :options="[
-          { label: contentText.intro231, value: 0 },
-          { label: contentText.intro232, value: 1 },
-          { label: contentText.intro233, value: 2 }
-        ]" @update:value="onMouseFingerChange" />
+            { label: contentText.intro231, value: 0 },
+            { label: contentText.intro232, value: 1 },
+            { label: contentText.intro233, value: 2 }
+          ]" @update:value="onMouseFingerChange" />
         </template>
-    <div class="cards-grid">
-      <div class="card-col">
-        <div id="main8" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main9" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main10" class="chart"></div>
-      </div>
-      <div class="card-col">
-        <div id="main11" class="chart"></div>
-      </div>
-    </div>
+        <div class="cards-grid">
+          <div class="card-col">
+            <div id="main8" class="chart"></div>
+          </div>
+          <div class="card-col">
+            <div id="main9" class="chart"></div>
+          </div>
+          <div class="card-col">
+            <div id="main10" class="chart"></div>
+          </div>
+          <div class="card-col">
+            <div id="main11" class="chart"></div>
+          </div>
+        </div>
 
       </n-card>
       <n-card id="intro87" :title="contentText.intro87">
@@ -146,8 +146,10 @@ import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { MinuteType } from '../../myType.d'
 // 引入 Canvas 渲染器，注意引入 CanvasRenderer 或者 SVGRenderer 是必须的一步
 import { CanvasRenderer } from 'echarts/renderers';
-import { arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener,getDbs,setDbSel,exportToText
-   , showFinger,fingerOption,setLangContent } from '@/common';
+import {
+  arrRemove, getHistory, ajax, showLeftKey, railStyle, showAppChart, appPath2Name, deepCopy, dateFormat, addExtListener, getDbs, setDbSel, exportToText
+  , showFinger, fingerOption, setLangContent
+} from '@/common';
 import content from '../../content.js';
 import { setMinuteEcharts, getMinuteOption, appInfoList, showAppDuration } from './Minute';
 // 注册必须的组件
@@ -375,7 +377,7 @@ export default defineComponent({
     hashOriData = {}; // 原始定义的内容，提示框上显示
     historyData = []
 
-    const contentText = computed(() => {setLangContent(content[props.lang]) ;return content[props.lang]})
+    const contentText = computed(() => { setLangContent(content[props.lang]); return content[props.lang] })
     const store = useAustinStore();
     const keyList = (<any>store.preData).keyList;
     keyData = JSON.parse((<any>store.preData).dataSetting.mapDetail);
@@ -396,7 +398,7 @@ export default defineComponent({
     const appListData = ref([]);
     const showEndDate = ref(0);
     const dbsOption = ref([]);
-    const mouseFinger = ref(Number(localStorage.getItem('mouseFinger')|| 1) );
+    const mouseFinger = ref(Number(localStorage.getItem('mouseFinger') || 1));
     // mouseFinger 变更事件
     function onMouseFingerChange(val: number) {
       localStorage.setItem('mouseFinger', String(val));
@@ -420,7 +422,7 @@ export default defineComponent({
     watch(() => store.lang, (newValue, oldValue) => {
       setColumn(newValue)
     });
-    
+
     function setColumn(lang) {
       columns0.value = [
         {
@@ -579,7 +581,7 @@ export default defineComponent({
       lastLeftKey = leftKey, LastKeyStatHash = keyStatHash, lastAllKey = allKey;
       dataTable.value = showLeftKey(leftAllKeySwitch.value, leftKeySwitch.value, leftKey, allKey, keyStatHash)
       // 手指使用统计图表展示，传入4个图表索引
-      showFinger(myChartArr, optionArr, [7, 8, 9, 10], allKey, keyStatHash,keyData,mouseFinger.value);
+      showFinger(myChartArr, optionArr, [7, 8, 9, 10], allKey, keyStatHash, keyData, mouseFinger.value);
 
       // 需要添加2个，鼠标屏幕移动距离和鼠标物理移动距离 ，每英寸为25.4mm,约 0.0254米
       mouseTable.value = []
@@ -618,9 +620,9 @@ export default defineComponent({
       await setMinuteEcharts(bs, es, MinuteType.Duration, [myChartArr[4], myChartArr[5], myChartArr[6]], appNameListMap) // main5 6
       updateAppLenInfo()
     }
-    async function changeDb(db){
+    async function changeDb(db) {
       setDbSel(db);
-       // 设置下拉选择
+      // 设置下拉选择
       let dateArr = await ajax('getHistoryDate')
       historyDate.value = dateArr.map((x) => {
         return { label: x, value: x }
@@ -640,11 +642,11 @@ export default defineComponent({
         myChartArr.push(myChart)
       })
       let arr: Array<any> = getMinuteOption([MinuteType.ByMinute, MinuteType.Duration, MinuteType.AppByMinute])
-      optionArr = [option, option2,...arr,
-      null,null/**5,6都是空值 updateMinuteData 中专门设定 */,...fingerOption]; // 
+      optionArr = [option, option2, ...arr,
+        null, null/**5,6都是空值 updateMinuteData 中专门设定 */, ...fingerOption]; // 
       addExtListener(myChartArr);
       // 需要增加多个数据源的选择
-      let dbs = [{label:contentText.value.intro210,value:''}]
+      let dbs = [{ label: contentText.value.intro210, value: '' }]
       await getDbs(dbs)
       dbsOption.value = dbs
       changeDb('')

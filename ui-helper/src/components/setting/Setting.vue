@@ -47,9 +47,9 @@
               <div class="intro">{{ contentText.intro15 }}</div>
               <template #suffix>
                 <n-select v-model:value="allConfig.common.joyMethod" :options="[
-                { label: contentText.intro196, value: 0 /* 不记录游戏手柄 */ }, 
-                { label: contentText.intro197, value: 1 /* 方案1，支持旧游戏手柄，手柄数量变化会重启客户端*/ },
-                { label: contentText.intro198, value: 2 /* 方案2，支持新手柄协议 win10以上，推荐*/ }]" />
+                  { label: contentText.intro196, value: 0 /* 不记录游戏手柄 */ },
+                  { label: contentText.intro197, value: 1 /* 方案1，支持旧游戏手柄，手柄数量变化会重启客户端*/ },
+                  { label: contentText.intro198, value: 2 /* 方案2，支持新手柄协议 win10以上，推荐*/ }]" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro55 }}
@@ -120,7 +120,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro134 }}
               <div class="error" v-if="allConfig.common.remoteType != 0">{{ contentText.intro139 }}
-                <div v-for="(link, index) in IPlinks "  :key="index"> <a :href="link" target="blank">{{ link }}</a></div>
+                <div v-for="(link, index) in IPlinks" :key="index"> <a :href="link" target="blank">{{ link }}</a></div>
               </div>
               <template #suffix>
                 <n-select v-model:value="allConfig.common.remoteType" :options="[{ label: contentText.intro135, value: 0 /* 00 高位表示显示，低位表示记录 */ }, { label: contentText.intro136, value: 1 /*01*/ },
@@ -182,26 +182,29 @@
             <n-list-item>{{ contentText.intro207 }}
               <div class="intro">{{ contentText.intro207_1 }}</div>
               <template #suffix>
-                <n-input-number v-model:value="allConfig.common.shareDbHour" :min="0" :max="24" :step="0.5"/>
+                <n-input-number v-model:value="allConfig.common.shareDbHour" :min="0" :max="24" :step="0.5" />
               </template>
             </n-list-item>
-            <div v-if="allConfig.common.shareDbHour>0">
-            <n-list-item>{{ contentText.intro205 }}
-              <template #suffix>
-                <n-input v-model:value="allConfig.common.shareDbPath" style="min-width: 500px" type="text" :placeholder="contentText.intro205_1" />
-              </template>
-            </n-list-item>
-            <n-list-item>{{ contentText.intro206 }}
-              <template #suffix>
-                <n-input v-model:value="allConfig.common.shareDbName" type="text" :placeholder="contentText.intro206_1" />
-              </template>
-            </n-list-item>
-            <n-list-item>{{ contentText.intro208 }}
-              <template #suffix>
-                <n-input v-model:value="allConfig.common.shareDbExec" style="min-width: 500px" type="text" :placeholder="contentText.intro208_1" />
-              </template>
-            </n-list-item>
-          </div>
+            <div v-if="allConfig.common.shareDbHour > 0">
+              <n-list-item>{{ contentText.intro205 }}
+                <template #suffix>
+                  <n-input v-model:value="allConfig.common.shareDbPath" style="min-width: 500px" type="text"
+                    :placeholder="contentText.intro205_1" />
+                </template>
+              </n-list-item>
+              <n-list-item>{{ contentText.intro206 }}
+                <template #suffix>
+                  <n-input v-model:value="allConfig.common.shareDbName" type="text"
+                    :placeholder="contentText.intro206_1" />
+                </template>
+              </n-list-item>
+              <n-list-item>{{ contentText.intro208 }}
+                <template #suffix>
+                  <n-input v-model:value="allConfig.common.shareDbExec" style="min-width: 500px" type="text"
+                    :placeholder="contentText.intro208_1" />
+                </template>
+              </n-list-item>
+            </div>
           </n-list>
         </n-card>
         <h2 id="KeyUI">{{ contentText?.menu?.setting2 }}</h2>
@@ -489,18 +492,18 @@
               </template>
             </n-list-item>
             <div id="main" style="height: 500px; min-width: 800px;width:95%"></div>
-    <div style="display: flex; flex-direction: row; gap: 20px;">
-      <div>
-        <n-list-item>{{ contentText?.intro235 }}</n-list-item>
-        <n-input v-model:value="fingerKeyMapRef" type="textarea" placeholder="fingerKeyMap JSON" show-count
-          size="medium" rows="8" style="min-width: 450px" />
-      </div>
-      <div>
-        <n-list-item>{{ contentText?.intro236 }}</n-list-item>
-        <n-input v-model:value="mouseKeyMapRef" type="textarea" placeholder="mouseKeyMap JSON" show-count
-          size="medium" rows="8" style="min-width: 300px" />
-      </div>
-    </div>
+            <div style="display: flex; flex-direction: row; gap: 20px;">
+              <div>
+                <n-list-item>{{ contentText?.intro235 }}</n-list-item>
+                <n-input v-model:value="fingerKeyMapRef" type="textarea" placeholder="fingerKeyMap JSON" show-count
+                  size="medium" rows="8" style="min-width: 450px" />
+              </div>
+              <div>
+                <n-list-item>{{ contentText?.intro236 }}</n-list-item>
+                <n-input v-model:value="mouseKeyMapRef" type="textarea" placeholder="mouseKeyMap JSON" show-count
+                  size="medium" rows="8" style="min-width: 300px" />
+              </div>
+            </div>
           </n-list>
         </n-card>
         <h2 id="KeyMap">{{ contentText?.menu?.setting4 }}</h2>
@@ -537,8 +540,10 @@ import mapping from '../../mapping.js';
 import { setLangText, initContain, updateWinOpt, changeContainSize } from '@/../public/showAnimateUI.js';
 import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
-import { deepCopy, ajax, str2Type, splitArr, updateFingerMap, updateMouseMap
-  , defaultFingerKeyNames, defaultMouseKeyNames } from '@/common.ts'
+import {
+  deepCopy, ajax, str2Type, splitArr, updateFingerMap, updateMouseMap
+  , defaultFingerKeyNames, defaultMouseKeyNames
+} from '@/common.ts'
 import CodeDiff from './CodeDiff.vue'
 
 import * as echarts from 'echarts/core';
@@ -793,11 +798,11 @@ export default defineComponent({
     // 要监听的UI属性列表
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
       'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval',
-       'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
-      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY', 
+      'guiPos', 'guiPosXY', 'guiPosOffsetX', 'guiPosOffsetY', 'guiDpiscale', 'guiMonitorNum',
+      'guiMargin', 'guiEdge', 'txtSplit', 'ctrlX', 'ctrlY', 'activeAppShowX', 'activeAppShowY',
       'ctrlWidth', 'ctrlBgcolor', 'ctrlOpacity',
-      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor','ctrlRadius','guiRadius',
-      'ctrlHeigth','guiFadeMs']
+      'ctrlTextFont', 'ctrlTextSize', 'ctrlTextWeight', 'ctrlTextColor', 'ctrlRadius', 'guiRadius',
+      'ctrlHeigth', 'guiFadeMs']
     watchedProps.forEach(prop => {
       watch(
         () => allConfig.value.dialog[prop],
@@ -809,7 +814,7 @@ export default defineComponent({
       );
     });
     // 要监听的COMMON属性列表
-    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState','recordHistoryMax']
+    let watchedCommonProps = ['needShowKey', 'activeAppShow', 'ctrlState', 'recordHistoryMax']
     watchedCommonProps.forEach(prop => {
       watch(
         () => allConfig.value.common[prop],
@@ -990,7 +995,7 @@ export default defineComponent({
       })
     }
     // 计算中修改全局变量的值，不推荐，但暂时这么用
-    function changeDataInComputed(data,appNameListRef,preAppNameListRef,skipRecordRef,ctrlListRef,skipShowRef){
+    function changeDataInComputed(data, appNameListRef, preAppNameListRef, skipRecordRef, ctrlListRef, skipShowRef) {
       dataSetting.value.appNameList = JSON.stringify(KVListTo(appNameListRef.value), null, 2);
       data.config.common.preAppNameList = JSON.stringify(KVListTo(preAppNameListRef.value), null, 2);
       // 转换数组为字符串
@@ -1010,7 +1015,7 @@ export default defineComponent({
       // 对 appNameListRef 进行空格清理
       // validAppNameList(appNameListRef)
       // validAppNameList(preAppNameListRef)
-      changeDataInComputed(data,appNameListRef,preAppNameListRef,skipRecordRef,ctrlListRef,skipShowRef)
+      changeDataInComputed(data, appNameListRef, preAppNameListRef, skipRecordRef, ctrlListRef, skipShowRef)
       /* */
       // 对比 config.common ，config.dialog ,store.preData.keyList
       getDiffHash(hash, data.config.common, predata.config.common, contentText.value.menu?.setting1, contentText.value)
@@ -1187,14 +1192,14 @@ export default defineComponent({
     //     });
     //   },1000)
     // }
-    function openNewKeyPage(){
+    function openNewKeyPage() {
       const newWindow = window.open('/showKey.html', '_blank');
       if (!newWindow) {
         alert('弹窗被拦截，请允许弹窗权限');
         return;
       }
-      newWindow.addEventListener('load',()=>{
-        newWindow.postMessage({'screen':JSON.stringify(screenInfo.value.slice(1)), 'config':JSON.stringify(allConfig.value)});
+      newWindow.addEventListener('load', () => {
+        newWindow.postMessage({ 'screen': JSON.stringify(screenInfo.value.slice(1)), 'config': JSON.stringify(allConfig.value) });
       });
     }
     return {
