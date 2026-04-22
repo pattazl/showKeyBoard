@@ -169,7 +169,8 @@ std::wstring ReplaceAll(std::wstring str, const std::wstring& from, const std::w
 // -------------------------- 全局配置 --------------------------
 volatile int repeatRecord = 0;
 int maxKeypressCount = 10;
-std::wstring skipKeys = L"{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"; // L""; // 
+//std::wstring skipKeys = L"{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"; // L""; // 
+std::wstring skipKeys = L"{LControl}{RControl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}";
 
 // -------------------------- 辅助函数 --------------------------
 
@@ -712,6 +713,9 @@ int WINAPI wWinMain(
 		maxKeypressCount = _wtoi(argv[1]);
 		// 第2个参数：字符串
 		skipKeys = argv[2];
+		// {LCtrl}{RCtrl} 替换 {LControl} {RControl}
+		skipKeys = ReplaceAll(skipKeys, L"{LCtrl}", L"{LControl}");
+		skipKeys = ReplaceAll(skipKeys, L"{RCtrl}", L"{RControl}");
 		DbgPrint( L"maxKeypressCount:%d,keys:%s", maxKeypressCount,skipKeys.c_str());
 	}
 	// 需要增加隐藏窗口用于获取窗口句柄发消息关闭
