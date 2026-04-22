@@ -42,6 +42,10 @@ BOOL CALLBACK EnumWindowsProc_GetHwndByPid(HWND hWnd, LPARAM lParam)
 	if (winPid == targetPid)
 	{
 		// DbgPrint(L"hWnd:%d", hWnd);
+		// 检查窗口样式：必须有 WS_CAPTION（有标题栏）
+		LONG style = GetWindowLong(hWnd, GWL_STYLE);
+		if (!(style & WS_CAPTION))
+			return TRUE; // 无标题栏的跳过
 		if (IsWindowVisible(hWnd))
 			return TRUE; // 可见的跳过
 		g_targetWindowId = hWnd;  // 匹配成功，保存句柄
@@ -55,7 +59,7 @@ void GetHwndByPid(DWORD pid)
 {
 	g_targetWindowId = NULL;
 	EnumWindows(EnumWindowsProc_GetHwndByPid, (LPARAM)pid);
-	DbgPrint(L" g_hWndByPid: %d", g_targetWindowId);
+	DbgPrint(L" g_hWndByPid: %d,pid:%d", g_targetWindowId, pid);
 }
 // -------------------------- 线程安全队列 + 同步变量 --------------------------
 // 按键信息结构体
@@ -457,8 +461,8 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 	case VK_SNAPSHOT:   return L"PrintScreen";
 	case VK_PAUSE:      return L"Pause";
 
-	case VK_LCONTROL: return L"LCtrl";
-	case VK_RCONTROL: return L"RCtrl";
+	case VK_LCONTROL: return L"LControl";
+	case VK_RCONTROL: return L"RControl";
 	case VK_LSHIFT:  return L"LShift";
 	case VK_RSHIFT:  return L"RShift";
 	case VK_LMENU:   return L"LAlt";  
@@ -497,37 +501,43 @@ std::wstring GetNormalKeyName(DWORD vkCode, DWORD scancode, bool extended)
 
 
 // -------------------- 多媒体键辅助函数 --------------------
+// VK 值参考: https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes
 bool IsMultimediaKey(DWORD vkCode)
 {
-	return (vkCode >= 0xA1 && vkCode <= 0xA7) ||  // VK_BROWSER_* (0xA1-0xA7)
+	return (vkCode >= 0xA6 && vkCode <= 0xAC) ||  // VK_BROWSER_* (0xA6-0xAC)
 		   (vkCode >= 0xAD && vkCode <= 0xAF) ||  // VK_VOLUME_* (0xAD-0xAF)
-		   (vkCode >= 0xB0 && vkCode <= 0xB3) ||  // VK_MEDIA_* (0xB0-0xB3)
-		   (vkCode >= 0xB6 && vkCode <= 0xB9);    // VK_LAUNCH_* (0xB6-0xB9)
+		   (vkCode >= 0xB0 && vkCode <= 0xB7);   // VK_MEDIA_* + VK_LAUNCH_* (0xB0-0xB7)
 }
 
 std::wstring GetMultimediaKeyName(DWORD vkCode)
 {
 	switch (vkCode)
 	{
-	case 0xA1: return L"BrowserBack";
-	case 0xA2: return L"BrowserForward";
-	case 0xA3: return L"BrowserRefresh";
-	case 0xA4: return L"BrowserStop";
-	case 0xA5: return L"BrowserSearch";
-	case 0xA6: return L"BrowserFavorites";
-	case 0xA7: return L"BrowserHome";
+	// Browser 键 (0xA6-0xAC)
+	case 0xA6: return L"BrowserBack";
+	case 0xA7: return L"BrowserForward";
+	case 0xA8: return L"BrowserRefresh";
+	case 0xA9: return L"BrowserStop";
+	case 0xAA: return L"BrowserSearch";
+	case 0xAB: return L"BrowserFavorites";
+	case 0xAC: return L"BrowserHome";
+	// Volume 键 (0xAD-0xAF)
 	case 0xAD: return L"VolumeMute";
 	case 0xAE: return L"VolumeDown";
 	case 0xAF: return L"VolumeUp";
+	// Media 键 (0xB0-0xB3)
 	case 0xB0: return L"MediaNext";
 	case 0xB1: return L"MediaPrev";
 	case 0xB2: return L"MediaStop";
 	case 0xB3: return L"MediaPlayPause";
-	case 0xB6: return L"LaunchMail";
-	case 0xB7: return L"LaunchMedia";
-	case 0xB8: return L"LaunchApp1";
-	case 0xB9: return L"LaunchApp2";
-	default:   return L"UnknownMedia";
+	// Launch 键 (0xB4-0xB7)
+	case 0xB4: return L"LaunchMail";
+	case 0xB5: return L"LaunchMedia";
+	case 0xB6: return L"LaunchApp1";
+	case 0xB7: return L"LaunchApp2";
+	default:
+		DbgPrint(L"[Media] Unknown VK: 0x%02X", vkCode);
+		return L"UnknownMedia";
 	}
 }
 
