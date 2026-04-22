@@ -269,6 +269,12 @@ export default {
 	intro234: ' 键位:设置->手指鼠标按键表',
 	intro235: '手指键盘按键表',
 	intro236: '手指鼠标按键表',
+	intro237: 'fingerKeyMap 键名不规范，必须是',
+	intro238: 'fingerKeyMap JSON 格式错误',
+	intro239: 'mouseKeyMap 键名不规范，必须是',
+	intro240: 'mouseKeyMap JSON 格式错误',
+	intro241: 'fingerKeyMap 已恢复默认值',
+	intro242: 'mouseKeyMap 已恢复默认值',
   },
   'en-US': {
     title: 'Show Keyboard Management',
@@ -541,5 +547,11 @@ export default {
 	intro234: ' KeyMap:Setting->Finger-Mouse Mapping',
 	intro235: 'Finger-Keyboard Mapping',
 	intro236: 'Finger-Mouse Mapping',
+	intro237: 'fingerKeyMap key name invalid, must be',
+	intro238: 'fingerKeyMap JSON format error',
+	intro239: 'mouseKeyMap key name invalid, must be',
+	intro240: 'mouseKeyMap JSON format error',
+	intro241: 'fingerKeyMap has been restored to default',
+	intro242: 'mouseKeyMap has been restored to default',
   }
 };

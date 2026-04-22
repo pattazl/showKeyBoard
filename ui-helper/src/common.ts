@@ -503,7 +503,7 @@ function getFingerOption() {
   ];
 }
 // 默认值，可以从配置中读取更新
-let fingerKeyMap = {
+const defaultFingerKeyMap = {
   leftPinky: ['Q', 'A', 'Z', '1', '`', 'Tab', 'CapsLock', 'LControl', 'LShift', 'LAlt'],
   leftRing: ['W', 'S', 'X', '2'],
   leftMiddle: ['E', 'D', 'C', '3'],
@@ -514,18 +514,18 @@ let fingerKeyMap = {
   rightPinky: ['P', ';', "'", '[', ']', '\\', '-', '=', '/', 'Backspace', 'Enter', '0', 'RControl', 'RShift', 'RAlt'],
   thumb: ['Space', 'LWin', 'RWin']
 }
-
+let fingerKeyMap = { ...defaultFingerKeyMap }
 // 鼠标按键映射
-let mouseKeyMap = {
+const defaultMouseKeyMap = {
   // 右手左手鼠标
   thumb: ['XButton1', 'XButton2'],  // 拇指：侧键
   index: ['LButton'],      // 食指：左键 
   middle: ['RButton', 'WheelUp', 'WheelDown', 'MButton'], // 中指：右键 滚轮
 }
-
-// 默认的键名列表
-const defaultFingerKeyNames = ['leftPinky', 'leftRing', 'leftMiddle', 'leftIndex', 'rightIndex', 'rightMiddle', 'rightRing', 'rightPinky', 'thumb']
-const defaultMouseKeyNames = ['thumb', 'index', 'middle']
+let mouseKeyMap = { ...defaultMouseKeyMap }
+// 默认的键名列表，动态从默认值获取
+const defaultFingerKeyNames = Object.keys(defaultFingerKeyMap)
+const defaultMouseKeyNames = Object.keys(defaultMouseKeyMap)
 
 function matchKey(keyName, matchList) {
   const upperKey = keyName.toUpperCase()
@@ -774,5 +774,5 @@ export {
   getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
   showFinger, fingerOption, setLangContent, updateFingerMap, updateMouseMap,
-  defaultFingerKeyNames, defaultMouseKeyNames, fingerKeyMap, mouseKeyMap
+  defaultFingerKeyNames, defaultMouseKeyNames, fingerKeyMap, mouseKeyMap,defaultFingerKeyMap, defaultMouseKeyMap
 }

@@ -542,7 +542,7 @@ import { storeToRefs } from 'pinia'
 import { useAustinStore } from '../../App.vue'
 import {
   deepCopy, ajax, str2Type, splitArr, updateFingerMap, updateMouseMap
-  , defaultFingerKeyNames, defaultMouseKeyNames
+  , defaultFingerKeyNames, defaultMouseKeyNames, defaultFingerKeyMap, defaultMouseKeyMap
 } from '@/common.ts'
 import CodeDiff from './CodeDiff.vue'
 
@@ -833,11 +833,11 @@ export default defineComponent({
           const fingerMap = JSON.parse(fingerKeyMapRef.value)
           for (const key of Object.keys(fingerMap)) {
             if (!defaultFingerKeyNames.includes(key)) {
-              message.warning(`fingerKeyMap 键名 "${key}" 不规范，必须是: ${defaultFingerKeyNames.join(', ')}`)
+              message.warning(`${contentText.value.intro237}: ${defaultFingerKeyNames.join(', ')}`)
               return false
             }
             if (!Array.isArray(fingerMap[key])) {
-              message.warning(`fingerKeyMap 的 "${key}" 必须是数组`)
+              message.warning(`fingerKeyMap "${key}" ${contentText.value.intro102}`)
               return false
             }
           }
@@ -845,7 +845,7 @@ export default defineComponent({
           dataSetting.value.fingerKeyMap = fingerKeyMapRef.value
           updateFingerMap(fingerKeyMapRef.value)
         } catch (e) {
-          message.warning('fingerKeyMap JSON 格式错误: ' + (e as Error).message)
+          message.warning(`${contentText.value.intro238}: ${(e as Error).message}`)
           return false
         }
       }
@@ -855,11 +855,11 @@ export default defineComponent({
           const mouseMap = JSON.parse(mouseKeyMapRef.value)
           for (const key of Object.keys(mouseMap)) {
             if (!defaultMouseKeyNames.includes(key)) {
-              message.warning(`mouseKeyMap 键名 "${key}" 不规范，必须是: ${defaultMouseKeyNames.join(', ')}`)
+              message.warning(`${contentText.value.intro239}: ${defaultMouseKeyNames.join(', ')}`)
               return false
             }
             if (!Array.isArray(mouseMap[key])) {
-              message.warning(`mouseKeyMap 的 "${key}" 必须是数组`)
+              message.warning(`mouseKeyMap "${key}" ${contentText.value.intro102}`)
               return false
             }
           }
@@ -867,14 +867,33 @@ export default defineComponent({
           dataSetting.value.mouseKeyMap = mouseKeyMapRef.value
           updateMouseMap(mouseKeyMapRef.value)
         } catch (e) {
-          message.warning('mouseKeyMap JSON 格式错误: ' + (e as Error).message)
+          message.warning(`${contentText.value.intro240}: ${(e as Error).message}`)
           return false
         }
       }
       return true
     }
-    watch(fingerKeyMapRef, () => validateFingerMouseMap())
-    watch(mouseKeyMapRef, () => validateFingerMouseMap())
+    // fingerKeyMap 和 mouseKeyMap 变化时验证，为空时恢复默认值
+    watch(fingerKeyMapRef, (newVal) => {
+      if (newVal === '') {
+        fingerKeyMapRef.value = JSON.stringify(defaultFingerKeyMap, null, 2)
+        dataSetting.value.fingerKeyMap = fingerKeyMapRef.value
+        updateFingerMap(fingerKeyMapRef.value)
+        message.info(contentText.value.intro241)
+      } else {
+        validateFingerMouseMap()
+      }
+    })
+    watch(mouseKeyMapRef, (newVal) => {
+      if (newVal === '') {
+        mouseKeyMapRef.value = JSON.stringify(defaultMouseKeyMap, null, 2)
+        dataSetting.value.mouseKeyMap = mouseKeyMapRef.value
+        updateMouseMap(mouseKeyMapRef.value)
+        message.info(contentText.value.intro242)
+      } else {
+        validateFingerMouseMap()
+      }
+    })
     onMounted(() => {
       chartDom = document.getElementById('main');
       myChart = echarts.init(chartDom);
