@@ -26,9 +26,7 @@ if lastProcHwnd {
     ;ExitApp
 }
 ; 正式代码开始
-loop skipRecord.length {
-  skipKeys := defaultSkipKeys "{" GetKeyName(skipRecord[A_Index]) "}"
-}
+
 ; 切换是否显示按键
 Switch4show() {
   global needShowKey := not needShowKey
@@ -38,73 +36,89 @@ Switch4show() {
 try {
   Hotkey hotkey4Show, Switch4show
 }
-; 不要阻塞按键
-CountCtrlKey()
-{
-  global ctrlKeyCount := 0
-}
-~LCtrl Up:: CountCtrlKey
-~RCtrl Up:: CountCtrlKey
-~LShift Up:: CountCtrlKey
-~RShift Up:: CountCtrlKey
-~LWin Up:: CountCtrlKey
-~RWin Up:: CountCtrlKey
-~LAlt Up:: CountCtrlKey
-~RAlt Up:: CountCtrlKey
-
-~LCtrl:: SendCtrlKey
-~RCtrl:: SendCtrlKey
-~LShift:: SendCtrlKey
-~RShift:: SendCtrlKey
-~LWin:: SendCtrlKey
-~RWin:: SendCtrlKey
-~LAlt:: SendCtrlKey
-~RAlt:: SendCtrlKey
-SendCtrlKey()
-{
-  if (skipCtrlKey = 0) {
-    ; pressKey := GetKeyName(StrReplace(StrReplace(A_ThisHotkey,'~',''),' Up',''))
-    if ctrlKeyCount < maxCtrlpressCount
-    {
-      pressKey := GetKeyName(StrReplace(A_ThisHotkey, '~', ''))
-      PushTxt pressKey
-      global ctrlKeyCount += 1
-    }
-  }
-}
+; ; 不要阻塞按键
+; CountCtrlKey()
+; {
+;   global ctrlKeyCount := 0
+; }
+; ~LCtrl Up:: CountCtrlKey
+; ~RCtrl Up:: CountCtrlKey
+; ~LShift Up:: CountCtrlKey
+; ~RShift Up:: CountCtrlKey
+; ~LWin Up:: CountCtrlKey
+; ~RWin Up:: CountCtrlKey
+; ~LAlt Up:: CountCtrlKey
+; ~RAlt Up:: CountCtrlKey
+; 
+; ~LCtrl:: SendCtrlKey
+; ~RCtrl:: SendCtrlKey
+; ~LShift:: SendCtrlKey
+; ~RShift:: SendCtrlKey
+; ~LWin:: SendCtrlKey
+; ~RWin:: SendCtrlKey
+; ~LAlt:: SendCtrlKey
+; ~RAlt:: SendCtrlKey
+; SendCtrlKey()
+; {
+;   if (skipCtrlKey = 0) {
+;     ; pressKey := GetKeyName(StrReplace(StrReplace(A_ThisHotkey,'~',''),' Up',''))
+;     if ctrlKeyCount < maxCtrlpressCount
+;     {
+;       pressKey := GetKeyName(StrReplace(A_ThisHotkey, '~', ''))
+;       PushTxt pressKey
+;       global ctrlKeyCount += 1
+;     }
+;   }
+; }
 ; 鼠标事件
 #HotIf InStr(skipKeys, "{WheelUp}") = 0
-~WheelUp:: SendMouse
+~*WheelUp:: SendMouse
 
 #HotIf InStr(skipKeys, "{WheelDown}") = 0
-~WheelDown:: SendMouse
+~*WheelDown:: SendMouse
 
 #HotIf InStr(skipKeys, "{LButton}") = 0
-~LButton:: SendMouse
+~*LButton:: SendMouse
 
 #HotIf InStr(skipKeys, "{MButton}") = 0
-~MButton:: SendMouse
+~*MButton:: SendMouse
 
 #HotIf InStr(skipKeys, "{RButton}") = 0
-~RButton:: SendMouse
+~*RButton:: SendMouse
 
 #HotIf InStr(skipKeys, "{WheelLeft}") = 0
-~WheelLeft:: SendMouse
+~*WheelLeft:: SendMouse
 
 #HotIf InStr(skipKeys, "{WheelRight}") = 0
-~WheelRight:: SendMouse
+~*WheelRight:: SendMouse
 
 #HotIf InStr(skipKeys, "{XButton1}") = 0
-~XButton1:: SendMouse
+~*XButton1:: SendMouse
 
 #HotIf InStr(skipKeys, "{XButton2}") = 0
-~XButton2:: SendMouse
+~*XButton2:: SendMouse
 
 SendMouse()
 {
+  ;OutputDebug('AHK hotkey:' A_ThisHotkey)
   if (showMouseEvent > 0) {
-    PushTxt(GetKeyName(StrReplace(A_ThisHotkey, '~', '')), True)
+  ; 需要加组合键
+    fullKey := AddModifier() GetKeyName(StrReplace(A_ThisHotkey, '~*', ''))
+    PushTxt(fullKey, True)
   }
+}
+; 添加 <^ 这些符号，以确保一致
+AddModifier() {
+  Modfier := ''
+  ; 判断 Shift 键是否按下
+  for key, val in ModifierMapping
+  {
+    if (GetKeyState(key))
+    {
+      Modfier .= val
+    }
+  }
+  return Modfier
 }
 CoordMode "ToolTip", "Screen"
 CoordMode "Mouse", "Screen"
@@ -536,7 +550,8 @@ CreateGetKeyInput(){
       getKeyInputHwnd := lastHwnd
     }else{
       OutputVarPID := 0
-      Run(getKeyInputExe " " maxKeypressCount " " skipKeys,,,&OutputVarPID)
+      cmd := getKeyInputExe " " maxKeypressCount " " skipKeys
+      Run(cmd,,,&OutputVarPID)
       ; MsgBox("OutputVarPID: " OutputVarPID)
       ; 根据 PID 获取窗口句柄
       str := "ahk_pid " OutputVarPID

@@ -170,7 +170,7 @@ std::wstring ReplaceAll(std::wstring str, const std::wstring& from, const std::w
 volatile int repeatRecord = 0;
 int maxKeypressCount = 10;
 //std::wstring skipKeys = L"{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"; // L""; // 
-std::wstring skipKeys = L"{LControl}{RControl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}";
+std::wstring skipKeys = L"";
 
 // -------------------------- 辅助函数 --------------------------
 
@@ -707,17 +707,24 @@ int WINAPI wWinMain(
 	LPWSTR cmdLine = GetCommandLineW();
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(cmdLine, &argc);
-	if (argc > 2)
+	if (argc > 1)
 	{
 		// 第1个参数：转成 int 数字
 		maxKeypressCount = _wtoi(argv[1]);
+	}
+	if (argc > 2)
+	{
 		// 第2个参数：字符串
 		skipKeys = argv[2];
 		// {LCtrl}{RCtrl} 替换 {LControl} {RControl}
 		skipKeys = ReplaceAll(skipKeys, L"{LCtrl}", L"{LControl}");
 		skipKeys = ReplaceAll(skipKeys, L"{RCtrl}", L"{RControl}");
-		DbgPrint( L"maxKeypressCount:%d,keys:%s", maxKeypressCount,skipKeys.c_str());
+		// 需要考虑单独传递 Ctrl Shift Alt
+		skipKeys = ReplaceAll(skipKeys, L"{Ctrl}", L"{LControl}{RControl}");
+		skipKeys = ReplaceAll(skipKeys, L"{Shift}", L"{LShift}{RShift}");
+		skipKeys = ReplaceAll(skipKeys, L"{Alt}", L"{LAlt}{RAlt}");
 	}
+	DbgPrint(L"maxKeypressCount:%d,keys:%s", maxKeypressCount, skipKeys.c_str());
 	// 需要增加隐藏窗口用于获取窗口句柄发消息关闭
 	CreateHiddenWindow();
 

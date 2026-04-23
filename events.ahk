@@ -36,11 +36,11 @@ HookChange(){
   global maxKeypressCount
 
   hasChanged := false
-  tempKeys := defaultSkipKeys
+  ; 过滤键是由3个参数组合而成
+  skipCK := DescRead("common", "skipCtrlKey", "")
+  cl := StrSplit(DescRead("dialog", "ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock"), "|") 
   record := StrSplit(DescRead("common", "skipRecord", ""), '|')
-  loop record.length {
-    tempKeys := defaultSkipKeys "{" GetKeyName(record[A_Index]) "}"
-  }
+  tempKeys := getAllSkipKey(skipCK, cl, record)
   if(skipKeys!=tempKeys){
     ; 按键改变需要底层重启
     skipKeys := tempKeys
@@ -52,7 +52,7 @@ HookChange(){
     maxKeypressCount := maxCount
     hasChanged := true
   }
-  
+
   return hasChanged
 }
 CheckListChange(lists){

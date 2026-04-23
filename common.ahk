@@ -6,8 +6,7 @@ global MinuteRecords := Array()
 A_MaxHotkeysPerInterval := 240  ; 应对快速的宏操作
 ; 默认需要忽略的按键清单 "{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}"
 ; 这些按键用独立的监控来发送
-defaultSkipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
-skipKeys := defaultSkipKeys
+; 通过定义控制键来实现 defaultSkipKeys := "{LCtrl}{RCtrl}{LShift}{RShift}{LWin}{RWin}{LAlt}{RAlt}"
 ; 基础配置文件读取
 ; 自定义函数，优先从目标的 showKeyBoard.desc.ini 文件中读取默认参数，如果没有才使用第三个默认参数
 global DescIniPath := '', httpDistPath := '', httpPath := '', needRecordKey := -1
@@ -260,3 +259,29 @@ getKeyInputExe := "getKeyInput"  ; 底层获取按键的程序名
 getKeyInputHwnd := 0 ; 窗口句柄，优先通过句柄关闭
 getKeyInputClass := "ShowKeyBoardGetKeyInputCls"  ; 类名
 globalDpiScale := 1  ; 全局缩放，自动参考最新创建的窗口，默认缩放为1
+; 全局修饰键清单
+ModifierMapping := Map()
+ModifierMapping['LControl'] := '<^'
+ModifierMapping['RControl'] := '>^'
+ModifierMapping['LWin'] := '<#'
+ModifierMapping['RWin'] := '>#'
+ModifierMapping['LAlt'] := '<!'
+ModifierMapping['RAlt'] := '>!'
+ModifierMapping['LShift'] := '<+'
+ModifierMapping['RShift'] := '>+'
+
+; 调整忽略的按键，自动根据多个开关组合成需要忽略的清单
+getAllSkipKey(skipCK,cl,record){
+  tempKeys := ""
+  if(skipCK == 1){
+    loop cl.Length{
+      tempKeys := tempKeys "{" cl[A_Index] "}"
+    }
+  }
+  loop record.length {
+    tempKeys := tempKeys "{" GetKeyName(record[A_Index]) "}"
+  }
+  return tempKeys
+}
+skipKeys := getAllSkipKey(skipCtrlKey, ctrlList, skipRecord)
+
