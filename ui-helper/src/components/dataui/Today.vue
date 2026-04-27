@@ -443,7 +443,7 @@ export default defineComponent({
     const endDate = ref(0);
     const updateTime = ref('');
     const appListData = ref([]);
-    const mouseFinger = ref(Number(localStorage.getItem('mouseFinger')) || 1);
+    const mouseFinger = ref(Number(localStorage.getItem('mouseFinger') || 1));
     // mouseFinger 变更事件
     function onMouseFingerChange(val: number) {
       localStorage.setItem('mouseFinger', String(val));
