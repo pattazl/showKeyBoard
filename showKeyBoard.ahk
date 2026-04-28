@@ -28,7 +28,7 @@ if lastProcHwnd {
 ; 正式代码开始
 
 ; 切换是否显示按键
-Switch4show() {
+Switch4show(*) {
   global needShowKey := not needShowKey
   UpdatMenu4Show()
 }
