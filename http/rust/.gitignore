@@ -1,0 +1,22 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+*.pdb
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Local config (if different from repo)
+# showKeyBoard.ini
