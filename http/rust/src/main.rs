@@ -29,23 +29,35 @@ async fn main() {
     
     println!("Starting ShowKeyBoard Rust Server v1.56.0");
     
-    // Get the parent directory (http -> showKeyBoard)
-    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let base_dir = manifest_dir.parent().unwrap().parent().unwrap();
-    let config_path = base_dir.join("showKeyBoard.ini");
-    let db_path_str = base_dir.join("records.db").to_string_lossy().to_string();
-    
-    println!("Config: {:?}", config_path);
-    println!("Database: {:?}", db_path_str);
-    
-    // Load configuration
-    let config = config::AppConfig::load(&config_path);
+    // Get the exe directory, then go up 2 levels for showKeyBoard.ini only
+    let exe_dir = std::env::current_exe()
+        .expect("Failed to get executable path")
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let base_dir = exe_dir.parent().unwrap().parent().unwrap().to_path_buf();
+    let desc_path = exe_dir.join("showKeyBoard.desc.ini");
+    let user_ini_path = base_dir.join("showKeyBoard.ini");
+
+    println!("Desc config: {:?}", desc_path);
+    println!("User config: {:?}", user_ini_path);
+
+    // Load configuration: desc.ini first, then user.ini overrides
+    let config = config::AppConfig::load_with_override(&desc_path, &user_ini_path);
+
+    // Database and runtime files are relative to exe directory
     let db_path = if config.db_path.starts_with("./") {
-        base_dir.join(config.db_path.trim_start_matches("./")).to_string_lossy().to_string()
+        exe_dir.join(config.db_path.trim_start_matches("./")).to_string_lossy().to_string()
     } else {
         config.get_db_path()
     };
-    
+
+    // Extract values from config before moving into shared state
+    let port = config.port;
+    let ui_path = config.ui_path.clone();
+
+    println!("Port: {}", port);
+    println!("UI path: {}", ui_path);
     println!("Database path: {}", db_path);
     
     // Initialize database
@@ -67,12 +79,12 @@ async fn main() {
     // Build router
     let app = Router::new()
         // Static files
-        .nest_service("/", ServeDir::new("ui"))
-        .nest_service("/Setting", ServeDir::new("ui"))
-        .nest_service("/Today", ServeDir::new("ui"))
-        .nest_service("/History", ServeDir::new("ui"))
-        .nest_service("/Statistics", ServeDir::new("ui"))
-        .nest_service("/Export", ServeDir::new("ui"))
+        .nest_service("/", ServeDir::new(&ui_path))
+        .nest_service("/Setting", ServeDir::new(&ui_path))
+        .nest_service("/Today", ServeDir::new(&ui_path))
+        .nest_service("/History", ServeDir::new(&ui_path))
+        .nest_service("/Statistics", ServeDir::new(&ui_path))
+        .nest_service("/Export", ServeDir::new(&ui_path))
         // API routes
         .route("/getPara", post(handlers::get_para))
         .route("/setPara", post(handlers::set_para))
@@ -87,7 +99,7 @@ async fn main() {
         .route("/deleteData", post(handlers::delete_data))
         .route("/zipDownload", get(handlers::zip_download))
         .route("/zipUpload", post(handlers::zip_upload))
-        .route("/version", get(handlers::version))
+        .route("/version", get(handlers::version).post(handlers::version))
         .route("/getDbs", post(handlers::get_dbs))
         .route("/getAppMinute", post(handlers::get_app_minute))
         // WebSocket endpoint
@@ -95,7 +107,7 @@ async fn main() {
         .layer(cors)
         .with_state(shared_state);
     
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8888));
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
     println!("Server listening on http://{}", addr);
     
     let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind port");
