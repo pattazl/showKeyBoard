@@ -7,8 +7,11 @@ pub struct GetParaRequest {}
 
 #[derive(Debug, Deserialize)]
 pub struct SetParaRequest {
-    pub key: Option<String>,
-    pub value: Option<String>,
+    pub config: Option<serde_json::Value>,
+    #[serde(rename = "keyList")]
+    pub key_list: Option<serde_json::Value>,
+    #[serde(rename = "dataSetting")]
+    pub data_setting: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,11 +57,11 @@ pub struct MinuteDataRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct KeymapRequest {
-    #[serde(rename = "optType")]
-    pub opt_type: Option<String>,
-    pub id: Option<i64>,
-    pub name: Option<String>,
-    pub data: Option<serde_json::Value>,
+    pub flag: Option<i32>,
+    #[serde(rename = "mapName")]
+    pub map_name: Option<String>,
+    #[serde(rename = "mapDetail")]
+    pub map_detail: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -149,16 +152,48 @@ pub struct StatRecord {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserKeymap {
-    pub id: i64,
-    pub name: String,
-    pub data: String,
-    pub date: String,
+    #[serde(rename = "mapName")]
+    pub map_name: String,
+    #[serde(rename = "mapDetail")]
+    pub map_detail: String,
+}
+
+/// Keymap in {mapName, mapDetail} format for getPara compatibility
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct KeymapBrief {
+    #[serde(rename = "mapName")]
+    pub map_name: String,
+    #[serde(rename = "mapDetail")]
+    pub map_detail: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DbInfo {
     pub name: String,
     pub path: String,
+}
+
+// ============== getPara Response ==============
+
+#[derive(Debug, Serialize)]
+pub struct ParaResponse {
+    pub config: ConfigSection,
+    #[serde(rename = "keyList")]
+    pub key_list: std::collections::HashMap<String, String>,
+    pub fonts: Vec<String>,
+    #[serde(rename = "infoPC")]
+    pub info_pc: serde_json::Value,
+    #[serde(rename = "dataSetting")]
+    pub data_setting: std::collections::HashMap<String, String>,
+    pub keymaps: Vec<KeymapBrief>,
+    #[serde(rename = "networkIP")]
+    pub network_ip: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ConfigSection {
+    pub common: std::collections::HashMap<String, String>,
+    pub dialog: std::collections::HashMap<String, String>,
 }
 
 // ============== WebSocket Messages ==============

@@ -3,6 +3,7 @@ mod models;
 mod db;
 mod websocket;
 mod config;
+pub mod font;
 
 use axum::{
     Router,
@@ -13,13 +14,18 @@ use tower_http::services::ServeDir;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::net::SocketAddr;
-use log::{info, error};
+use log::info;
 
 pub type AppState = Arc<RwLock<SharedState>>;
 
 pub struct SharedState {
     pub config: config::AppConfig,
     pub db_path: String,
+    pub desc_ini_path: String,
+    pub user_ini_path: String,
+    pub key_list_path: String,
+    pub network_ip: Vec<String>,
+    pub info_pc: serde_json::Value,
 }
 
 #[tokio::main]
@@ -29,34 +35,64 @@ async fn main() {
     
     println!("Starting ShowKeyBoard Rust Server v1.56.0");
     
-    // Get the exe directory, then go up 2 levels for showKeyBoard.ini only
+    // Get the exe directory
     let exe_dir = std::env::current_exe()
         .expect("Failed to get executable path")
         .parent()
         .unwrap()
         .to_path_buf();
-    let base_dir = exe_dir.parent().unwrap().parent().unwrap().to_path_buf();
+    let cwd = std::env::current_dir().unwrap_or_else(|_| exe_dir.clone());
+
+    // desc.ini is always relative to the exe directory (bundled with binary)
     let desc_path = exe_dir.join("showKeyBoard.desc.ini");
-    let user_ini_path = base_dir.join("showKeyBoard.ini");
+    // User config: smart path search (exe_dir → cwd → exe_dir/../..)
+    let user_ini_path = config::find_config_file(&exe_dir, &cwd, "showKeyBoard.ini");
 
     println!("Desc config: {:?}", desc_path);
     println!("User config: {:?}", user_ini_path);
 
     // Load configuration: desc.ini first, then user.ini overrides
-    let config = config::AppConfig::load_with_override(&desc_path, &user_ini_path);
+    let mut config = config::AppConfig::load_with_override(&desc_path, &user_ini_path);
 
-    // Database and runtime files are relative to exe directory
-    let db_path = if config.db_path.starts_with("./") {
-        exe_dir.join(config.db_path.trim_start_matches("./")).to_string_lossy().to_string()
-    } else {
-        config.get_db_path()
+    // Database: prefer cwd → parent2 → exe_dir (avoid empty db in target/debug/)
+    // Node.js: dbsPath = basePath/dbs/, so also check dbs/ subdirectory
+    let db_filename = config.db_path.trim_start_matches("./");
+    let db_path = {
+        let parent2 = exe_dir.parent().and_then(|p| p.parent());
+        // Order matters: cwd first (cargo run from rust/), then parent2 (http/), then exe_dir fallback
+        let candidates: Vec<std::path::PathBuf> = vec![
+            cwd.join(db_filename),
+            cwd.join("dbs").join(db_filename),
+        ].into_iter().chain(
+            parent2.iter().flat_map(|p2| {
+                [p2.join(db_filename), p2.join("dbs").join(db_filename)].into_iter()
+            })
+        ).chain(
+            vec![
+                exe_dir.join(db_filename),
+                exe_dir.join("dbs").join(db_filename),
+            ]
+        ).collect();
+        
+        let found = candidates.iter().find(|p| p.exists()).cloned();
+        match found {
+            Some(path) => {
+                info!("Database found at: {}", path.display());
+                path.to_string_lossy().to_string()
+            }
+            None => {
+                let fallback = cwd.join(db_filename);
+                info!("Database not found, creating at: {}", fallback.display());
+                fallback.to_string_lossy().to_string()
+            }
+        }
     };
 
     // Extract values from config before moving into shared state
-    let port = config.port;
     let ui_path = config.ui_path.clone();
+    let mut port = config.port;
 
-    println!("Port: {}", port);
+    println!("Initial port from config: {}", port);
     println!("UI path: {}", ui_path);
     println!("Database path: {}", db_path);
     
@@ -65,9 +101,79 @@ async fn main() {
         println!("Failed to initialize database: {}", e);
     }
     
+    // Try to bind with port retry: config.port → config.port+4 (max 5 attempts)
+    const MAX_PORT_RETRIES: u16 = 5;
+    let initial_port = port;
+    let listener = loop {
+        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+        match tokio::net::TcpListener::bind(addr).await {
+            Ok(listener) => {
+                println!("Server bound to port {}", port);
+                break listener;
+            }
+            Err(e) => {
+                let attempts = port - initial_port + 1;
+                if attempts >= MAX_PORT_RETRIES {
+                    panic!(
+                        "Failed to bind any port from {} to {} ({} attempts): {}",
+                        initial_port, port, attempts, e
+                    );
+                }
+                println!(
+                    "Port {} is in use, retrying with port {} (attempt {}/{})...",
+                    port,
+                    port + 1,
+                    attempts + 1,
+                    MAX_PORT_RETRIES
+                );
+                port += 1;
+            }
+        }
+    };
+    
+    // If port changed, save the new port to showKeyBoard.ini
+    if port != initial_port {
+        config.port = port;
+        config.common.insert("serverPort".to_string(), port.to_string());
+        if let Err(e) = config.save(&user_ini_path) {
+            println!(
+                "Warning: failed to save updated port {} to {:?}: {}",
+                port, user_ini_path, e
+            );
+        } else {
+            println!("Saved updated port {} to {:?}", port, user_ini_path);
+        }
+    }
+    
+    // Read keyList.txt path (same directory as user ini)
+    let key_list_path = config::find_config_file(&exe_dir, &cwd, "keyList.txt")
+        .to_string_lossy().to_string();
+    
+    // Get local network IPs (uses final port after retry)
+    let network_ip: Vec<String> = match local_ip_address::list_afinet_netifas() {
+        Ok(interfaces) => interfaces
+            .iter()
+            .filter(|(_, ip)| {
+                // Only IPv4, exclude 127.0.0.1/8 loopback
+                ip.is_ipv4() && !ip.is_loopback()
+            })
+            .map(|(_, ip)| format!("{}:{}", ip, port))
+            .collect(),
+        Err(e) => {
+            println!("Failed to list network interfaces: {}", e);
+            Vec::new()
+        }
+    };
+    println!("Network IPs: {:?}", network_ip);
+    
     let shared_state = Arc::new(RwLock::new(SharedState {
         config,
         db_path,
+        desc_ini_path: desc_path.to_string_lossy().to_string(),
+        user_ini_path: user_ini_path.to_string_lossy().to_string(),
+        key_list_path,
+        network_ip,
+        info_pc: serde_json::Value::Object(serde_json::Map::new()),
     }));
     
     // CORS layer
@@ -107,9 +213,5 @@ async fn main() {
         .layer(cors)
         .with_state(shared_state);
     
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    println!("Server listening on http://{}", addr);
-    
-    let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind port");
     axum::serve(listener, app).await.expect("Server error");
 }
