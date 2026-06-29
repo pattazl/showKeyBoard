@@ -22,14 +22,19 @@ import {
 import ServerPage from './components/ServerPage.vue';
 
 export const useAustinStore = defineStore('austin', () => {
-  let str = useOsTheme().value;
-  console.log('App.vue theme',str)
-  let myTheme = ref(str);
+  // 从本地获取，默认为auto
+  let themeSave = localStorage.getItem('theme') ?? 'auto';
+  let theme = themeSave;
+  if(themeSave==='auto'){
+    theme = useOsTheme().value;
+  }
+  console.log('App.vue theme',theme)
+  let myTheme = ref(theme);
   let data = <any>ref({})
   let preData = <any>ref({})
   let lang = ref('')
   //return { myTheme ,lang}
-  return { myTheme,data,preData,lang}
+  return { themeSave/**界面配置的主题 */,myTheme/**真实展示的主题 */,data,preData,lang}
 })
 export default defineComponent({
   name: 'App',

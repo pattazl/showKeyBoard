@@ -2,6 +2,7 @@ export default {
   'zh-CN': {
     title: '按键显示工具后台',
     lang: 'zh-CN',
+    theme0:'自动',
     theme1:'深色',
     theme2:'浅色',
     menu:{
@@ -279,6 +280,7 @@ export default {
   'en-US': {
     title: 'Show Keyboard Management',
     lang: 'en-US',
+    theme0:'Auto',
     theme1:'Dark',
     theme2:'Light',
     menu:{

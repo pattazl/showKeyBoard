@@ -11,7 +11,7 @@
         <n-button v-else @click="onLangChange('zh-CN')">
           中文</n-button>
         <n-button @click="changeTheme()">
-          {{ theme === 'dark' ? contentText.theme2 : contentText.theme1 }}
+          {{ themeSave === 'auto' ? contentText.theme0: themeSave === 'dark' ? contentText.theme1 : contentText.theme2 }}
         </n-button>
       </n-space>
     </div>
@@ -23,6 +23,7 @@ import { defineComponent, PropType, toRef, computed, onMounted, ref } from 'vue'
 import { strVersion } from '@/version.ts';
 import {
   NMenu, NLayoutHeader, NText, NButton, NSpace
+  ,useOsTheme
 } from 'naive-ui';
 import { useAustinStore } from '../App.vue'
 import content from '../content.js';
@@ -56,16 +57,25 @@ export default defineComponent({
     const contentText = computed(() => content[lang.value]);
 
     const store = useAustinStore();
-    // console.log(store.myTheme)
-    const theme = toRef(store.myTheme)  // 修复默认主题异常
+    // const theme = toRef(store.myTheme)  // 修复默认主题异常
+    let themeSave = toRef(store.themeSave)  // 修复默认主题异常
     function changeTheme() {
-      if (store.myTheme == 'dark') {
+      let save = ''
+      if (store.themeSave == 'dark') {
         store.myTheme = 'light'
-        theme.value = 'light'
+        save = 'light'
+      } else if (store.themeSave == 'light') {
+        // 浅色变成auto
+        store.myTheme = useOsTheme().value;
+        // store.myTheme = 'auto'
+        save = 'auto'
       } else {
         store.myTheme = 'dark'
-        theme.value = 'dark'
+        save = 'dark'
       }
+      store.themeSave =  save
+      themeSave.value =  save
+      localStorage.setItem('theme',save)
     };
     // 获取 gitee 或github上的信息
     async function getGitLatestRelease() {
@@ -174,7 +184,7 @@ export default defineComponent({
       }
     })
     return {
-      theme,
+      themeSave,
       changeTheme,
       contentText,
       strVersion,
