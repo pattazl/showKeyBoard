@@ -170,12 +170,14 @@ impl AppConfig {
         }
     }
 
+    /// Save config to INI file. Matches Node.js myIniwrite: only writes [common] + [dialog].
+    /// Does NOT write [server], [db], [share] sections — those are internal-only.
+    /// serverPort lives under [common] (matches Node.js config.common.serverPort).
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
         let mut content = String::new();
 
-        // [common]
+        // [common] — serverPort is already in self.common
         content.push_str("[common]\n");
-        content.push_str(&format!("serverPort = {}\n", self.port));
         for (k, v) in &self.common {
             content.push_str(&format!("{} = {}\n", k, v));
         }
@@ -188,39 +190,6 @@ impl AppConfig {
                 content.push_str(&format!("{} = {}\n", k, v));
             }
             content.push('\n');
-        }
-
-        // [server]
-        content.push_str("[server]\n");
-        content.push_str(&format!("port = {}\n", self.port));
-        content.push_str(&format!("ui = {}\n\n", self.ui_path));
-
-        // [db]
-        content.push_str("[db]\n");
-        content.push_str(&format!("path = {}\n\n", self.db_path));
-
-        // [keymaps]
-        if !self.keymaps.is_empty() {
-            content.push_str("[keymaps]\n");
-            for (k, v) in &self.keymaps {
-                content.push_str(&format!("{} = {}\n", k, v));
-            }
-            content.push('\n');
-        }
-
-        // [share]
-        content.push_str("[share]\n");
-        content.push_str(&format!(
-            "auto = {}\n\n",
-            if self.auto_share { "1" } else { "0" }
-        ));
-
-        // [setting] - deprecated, kept for compatibility
-        if !self.settings.is_empty() {
-            content.push_str("[setting]\n");
-            for (k, v) in &self.settings {
-                content.push_str(&format!("{} = {}\n", k, v));
-            }
         }
 
         std::fs::write(path, content).map_err(|e| e.to_string())

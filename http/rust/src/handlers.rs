@@ -3,7 +3,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use log::info;
+use log::{info, warn};
 use std::io::Write;
 use crate::AppState;
 use crate::models::*;
@@ -132,55 +132,82 @@ pub async fn get_para(
     })
 }
 
+/// Matches Node.js setParaFun: saves config, keyList, dataSetting.
+/// When config or keyList changes, broadcasts "IniMonitor" to ahkClient via WebSocket.
 pub async fn set_para(
     State(state): State<AppState>,
     Json(req): Json<SetParaRequest>,
 ) -> impl IntoResponse {
     info!("POST /setPara");
 
-    let state_guard = state.read().await;
-    let desc_ini_path = state_guard.desc_ini_path.clone();
-    let user_ini_path = state_guard.user_ini_path.clone();
-    let key_list_path = state_guard.key_list_path.clone();
-    let db_path = state_guard.db_path.clone();
-    drop(state_guard);
+    let mut is_update = false;
+
+    // Read current state
+    let (desc_ini_path, user_ini_path, key_list_path, db_path, ws_tx) = {
+        let sg = state.read().await;
+        (
+            sg.desc_ini_path.clone(),
+            sg.user_ini_path.clone(),
+            sg.key_list_path.clone(),
+            sg.db_path.clone(),
+            sg.ws_tx.clone(),
+        )
+    };
+
+    // Load current config for change detection
+    let current_config = AppConfig::load_with_override(&desc_ini_path, &user_ini_path);
 
     // 1. Save keyList to file (key : value format, one per line)
     if let Some(ref key_list) = req.key_list {
         if let Some(obj) = key_list.as_object() {
-            let lines: Vec<String> = obj.iter()
-                .map(|(k, v)| format!("{} : {}", k, v.as_str().unwrap_or("")))
-                .collect();
-            let _ = std::fs::write(&key_list_path, lines.join("\n"));
+            let new_key_list_str = serde_json::to_string(key_list).unwrap_or_default();
+            // Compare with current file content
+            let old_content = std::fs::read_to_string(&key_list_path).unwrap_or_default();
+            if old_content.trim() != new_key_list_str.trim() {
+                let lines: Vec<String> = obj.iter()
+                    .map(|(k, v)| format!("{} : {}", k, v.as_str().unwrap_or("")))
+                    .collect();
+                let _ = std::fs::write(&key_list_path, lines.join("\n"));
+                is_update = true;
+                info!("keyList changed, saved to {:?}", key_list_path);
+            }
         }
     }
 
     // 2. Save config to ini file (reload fresh, merge, then save)
     if let Some(ref config_json) = req.config {
-        // Re-parse desc.ini + user.ini as base, then apply changes
-        let mut config = AppConfig::load_with_override(&desc_ini_path, &user_ini_path);
+        let _new_config_str = serde_json::to_string(config_json).unwrap_or_default();
+        // Build merged config to compare
+        let mut new_config = AppConfig::load_with_override(&desc_ini_path, &user_ini_path);
 
-        // Merge common section from request into config
         if let Some(common) = config_json.get("common").and_then(|c| c.as_object()) {
             for (k, v) in common {
                 let val = v.as_str().unwrap_or("").to_string();
                 if k == "serverPort" {
                     if let Ok(port) = val.parse() {
-                        config.port = port;
+                        new_config.port = port;
                     }
                 }
-                config.common.insert(k.clone(), val);
+                new_config.common.insert(k.clone(), val);
             }
         }
-
-        // Merge dialog section from request
         if let Some(dialog) = config_json.get("dialog").and_then(|d| d.as_object()) {
             for (k, v) in dialog {
-                config.dialog.insert(k.clone(), v.as_str().unwrap_or("").to_string());
+                new_config.dialog.insert(k.clone(), v.as_str().unwrap_or("").to_string());
             }
         }
 
-        let _ = config.save(&user_ini_path);
+        // Compare with current config
+        let current_config_str = serde_json::to_string(&current_config.common).unwrap_or_default()
+            + &serde_json::to_string(&current_config.dialog).unwrap_or_default();
+        let new_cfg_str = serde_json::to_string(&new_config.common).unwrap_or_default()
+            + &serde_json::to_string(&new_config.dialog).unwrap_or_default();
+
+        if current_config_str != new_cfg_str {
+            let _ = new_config.save(&user_ini_path);
+            is_update = true;
+            info!("config changed, saved to {:?}", user_ini_path);
+        }
     }
 
     // 3. Save dataSetting to database
@@ -188,26 +215,76 @@ pub async fn set_para(
         let _ = db::set_data_setting(&db_path, data_setting);
     }
 
+    // 4. Broadcast "IniMonitor" to ahkClient clients (matches Node.js WebSocket notification)
+    if is_update {
+        info!("Config/keyList changed, broadcasting IniMonitor to ahkClient");
+        let _ = ws_tx.send(("ahkClient".to_string(), "IniMonitor".to_string()));
+    }
+
     Json(serde_json::json!({
         "code": 200
     }))
 }
 
-pub async fn exit_server() -> impl IntoResponse {
+/// Matches Node.js exitFun: saves last data (saveLastData → insertDataFun),
+/// then triggers graceful shutdown (server.close + process.exit equivalent).
+pub async fn exit_server(State(state): State<AppState>) -> impl IntoResponse {
     info!("POST /exit - Server shutdown requested");
+
+    // 1. Save last data before exit (matches Node.js saveLastData → insertDataFun)
+    {
+        let sg = state.read().await;
+        let pre_data = sg.pre_data.clone();
+        let db_path = sg.db_path.clone();
+        let base_dir = sg.base_dir.clone();
+
+        // Check if there is pending data to save (tick > 0 means new data came in)
+        let tick = pre_data.get("tick").and_then(|v| v.as_i64()).unwrap_or(0);
+        if tick > 0 {
+            let keyname = pre_data
+                .get("data")
+                .and_then(|d| d.get("key"))
+                .and_then(|k| k.as_str())
+                .unwrap_or("");
+            let date = pre_data
+                .get("date")
+                .and_then(|d| d.as_str())
+                .unwrap_or("");
+
+            if let Err(e) = db::insert_key_record(&db_path, keyname, 1, tick, date) {
+                warn!("Failed to save last data before exit: {}", e);
+            } else {
+                info!("Saved last data before exit: key={}, tick={}, date={}", keyname, tick, date);
+            }
+
+            // Handle updateTime (matches Node.js: write to updateTime.txt)
+            if let Some(update_time) = pre_data.get("updateTime").and_then(|v| v.as_str()) {
+                let update_time_path = std::path::PathBuf::from(&base_dir).join("updateTime.txt");
+                if let Err(e) = std::fs::write(&update_time_path, update_time) {
+                    warn!("Failed to write updateTime.txt: {}", e);
+                }
+            }
+        }
+
+        // Trigger graceful shutdown (matches Node.js: wss.close() + server.close() + process.exit)
+        sg.shutdown_notify.notify_one();
+    }
+
+    info!("Shutdown signal sent, server is shutting down...");
     Json(serde_json::json!({
         "success": true,
         "message": "Server exiting"
     }))
 }
 
+/// Matches Node.js dataFun: inserts into events table, stores preData, broadcasts to web clients.
 pub async fn upload_data(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(req): Json<DataRequest>,
 ) -> impl IntoResponse {
     info!("POST /data - app: {:?}, type: {:?}", req.app_name, req.data_type);
     
-    let db_path = get_db_path(&_state).await;
+    let db_path = get_db_path(&state).await;
     
     let keyname = req.data.as_ref()
         .and_then(|d| d.get("key"))
@@ -216,7 +293,17 @@ pub async fn upload_data(
     let tick = req.tick.unwrap_or(0);
     let date = req.date.as_deref().unwrap_or("");
     
-    match db::insert_key_record(&db_path, keyname, 1, tick, date) {
+    let result = db::insert_key_record(&db_path, keyname, 1, tick, date);
+    
+    // Store preData and broadcast to web clients (matches Node.js dataFun)
+    {
+        let mut sg = state.write().await;
+        sg.pre_data = serde_json::to_value(&req).unwrap_or(serde_json::Value::Null);
+        let pre_data_str = serde_json::to_string(&sg.pre_data).unwrap_or_default();
+        let _ = sg.ws_tx.send(("".to_string(), pre_data_str));
+    }
+    
+    match result {
         Ok(id) => Json(serde_json::json!({
             "success": true,
             "id": id

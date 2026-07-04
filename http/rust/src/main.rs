@@ -12,7 +12,7 @@ use axum::{
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::services::ServeDir;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, broadcast, Notify};
 use std::net::SocketAddr;
 use log::info;
 
@@ -25,8 +25,16 @@ pub struct SharedState {
     pub desc_ini_path: String,
     pub user_ini_path: String,
     pub key_list_path: String,
+    pub ui_path: String,
     pub network_ip: Vec<String>,
     pub info_pc: serde_json::Value,
+    /// WebSocket broadcast: (target_type, message)
+    /// target_type: "" = web, "ahkClient", "ahkKeyShow"
+    pub ws_tx: broadcast::Sender<(String, String)>,
+    /// Latest key data (for preData sent to web clients)
+    pub pre_data: serde_json::Value,
+    /// Graceful shutdown signal (matches Node.js exitFun)
+    pub shutdown_notify: Arc<Notify>,
 }
 
 #[tokio::main]
@@ -173,6 +181,11 @@ async fn main() {
     };
     println!("Network IPs: {:?}", network_ip);
     
+    // Create WebSocket broadcast channel (capacity 1024)
+    let (ws_tx, _) = broadcast::channel::<(String, String)>(1024);
+    // Graceful shutdown signal
+    let shutdown_notify = Arc::new(Notify::new());
+    
     let shared_state = Arc::new(RwLock::new(SharedState {
         config,
         db_path,
@@ -180,8 +193,12 @@ async fn main() {
         desc_ini_path: desc_path.to_string_lossy().to_string(),
         user_ini_path: user_ini_path.to_string_lossy().to_string(),
         key_list_path,
+        ui_path: ui_path.clone(),
         network_ip,
         info_pc: serde_json::Value::Object(serde_json::Map::new()),
+        ws_tx,
+        pre_data: serde_json::Value::Object(serde_json::Map::new()),
+        shutdown_notify: shutdown_notify.clone(),
     }));
     
     // CORS layer
@@ -192,8 +209,9 @@ async fn main() {
     
     // Build router
     let app = Router::new()
-        // Static files
-        .nest_service("/", ServeDir::new(&ui_path))
+        // Root: WebSocket upgrade or serve index.html
+        .route("/", get(websocket::root_handler))
+        // Static files (sub-paths)
         .nest_service("/Setting", ServeDir::new(&ui_path))
         .nest_service("/Today", ServeDir::new(&ui_path))
         .nest_service("/History", ServeDir::new(&ui_path))
@@ -216,10 +234,18 @@ async fn main() {
         .route("/version", get(handlers::version).post(handlers::version))
         .route("/getDbs", post(handlers::get_dbs))
         .route("/getAppMinute", post(handlers::get_app_minute))
-        // WebSocket endpoint
+        // WebSocket endpoint (explicit path)
         .route("/ws", get(websocket::ws_handler))
+        // Fallback: serve static files (JS, CSS, images, etc.) for all unmatched paths
+        .fallback_service(ServeDir::new(&ui_path))
         .layer(cors)
         .with_state(shared_state);
     
-    axum::serve(listener, app).await.expect("Server error");
+    println!("⚡ WebSocket server ready at ws://127.0.0.1:{}/", port);
+    println!("🚀 Server listening on http://127.0.0.1:{}", port);
+    
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async move { shutdown_notify.notified().await })
+        .await
+        .expect("Server error");
 }

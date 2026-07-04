@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 // ============== Request Models ==============
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct GetParaRequest {}
 
 #[derive(Debug, Deserialize)]
@@ -14,7 +15,7 @@ pub struct SetParaRequest {
     pub data_setting: Option<std::collections::HashMap<String, String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DataRequest {
     #[serde(rename = "appName")]
     pub app_name: Option<String>,
@@ -26,6 +27,7 @@ pub struct DataRequest {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct PcInfoRequest {
     pub display: Option<String>,
     pub resolution: Option<String>,
@@ -59,6 +61,7 @@ pub struct KeymapRequest {
 pub struct DeleteDataRequest {
     #[serde(rename = "optType")]
     pub opt_type: Option<String>,
+    #[allow(dead_code)]
     pub id: Option<i64>,
     pub date: Option<String>,
     pub db: Option<String>,
@@ -76,39 +79,6 @@ pub struct AppMinuteRequest {
 }
 
 // ============== Response Models ==============
-
-#[derive(Debug, Serialize)]
-pub struct ApiResponse<T: Serialize> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub message: Option<String>,
-}
-
-impl<T: Serialize> ApiResponse<T> {
-    pub fn success(data: T) -> Self {
-        Self {
-            success: true,
-            data: Some(data),
-            message: None,
-        }
-    }
-    
-    pub fn error(message: &str) -> ApiResponse<()> {
-        ApiResponse {
-            success: false,
-            data: None,
-            message: Some(message.to_string()),
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-pub struct VersionResponse {
-    pub msg: String,
-    pub ver: String,
-    #[serde(rename = "majorVersion")]
-    pub major_version: String,
-}
 
 /// Node.js getRecords response: { keyname, keycount, date, tick }
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -197,13 +167,4 @@ pub struct ParaResponse {
 pub struct ConfigSection {
     pub common: std::collections::HashMap<String, String>,
     pub dialog: std::collections::HashMap<String, String>,
-}
-
-// ============== WebSocket Messages ==============
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WsMessage {
-    #[serde(rename = "type")]
-    pub msg_type: String,
-    pub data: Option<serde_json::Value>,
 }
