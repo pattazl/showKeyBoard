@@ -273,23 +273,65 @@ pub async fn history_data(
 }
 
 pub async fn minute_data(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(req): Json<MinuteDataRequest>,
 ) -> impl IntoResponse {
-    info!("POST /minuteData - freqType: {:?}, isApp: {:?}", req.freq_type, req.is_app);
-    
-    let db_path = get_db_path(&_state).await;
-    let is_app = req.is_app.unwrap_or(true);
-    
-    match db::get_app_minutes(&db_path, req.begin_date.as_deref(), req.end_date.as_deref(), is_app) {
-        Ok(records) => Json(serde_json::json!({
-            "success": true,
-            "data": records
-        })),
-        Err(e) => Json(serde_json::json!({
-            "success": false,
-            "error": e
-        }))
+    let freq_type = match req.freq_type {
+        Some(serde_json::Value::Number(ref n)) => n.as_i64().unwrap_or(0) as i32,
+        Some(serde_json::Value::String(ref s)) => s.parse::<i32>().unwrap_or(0),
+        _ => 0,
+    };
+    let is_app = req.is_app.unwrap_or(false);
+    info!("POST /minuteData - freqType: {}, isApp: {}, db: {:?}", freq_type, is_app, req.db);
+
+    // Resolve database path: if req.db is provided, look in <base_dir>/dbs/<db>.db
+    let state_guard = state.read().await;
+    let default_db_path = state_guard.db_path.clone();
+    let base_dir = state_guard.base_dir.clone();
+    drop(state_guard);
+
+    let db_path = resolve_minute_db(&req.db, &default_db_path, &base_dir);
+
+    // Node.js: if (null == db) return []
+    if db_path.is_empty() {
+        return Json(serde_json::json!([]));
+    }
+
+    match db::get_minute_records(
+        &db_path,
+        req.begin_date.as_deref(),
+        req.end_date.as_deref(),
+        freq_type,
+        is_app,
+    ) {
+        Ok(records) => Json(serde_json::Value::Array(records)),
+        Err(_e) => {
+            info!("minute_data query error: {}", _e);
+            Json(serde_json::json!([]))
+        }
+    }
+}
+
+/// Resolve database path for minute_data matching Node.js getDbObj().
+fn resolve_minute_db(db_name: &Option<String>, default_db: &str, base_dir: &str) -> String {
+    let dbn = match db_name {
+        Some(name) => name.trim().to_string(),
+        None => String::new(),
+    };
+
+    if dbn.is_empty() {
+        // Use default database
+        return default_db.to_string();
+    }
+
+    // Node.js: dbpath = path.join(dbsPath, newDbName + '.db')
+    let dbpath = std::path::Path::new(base_dir).join("dbs").join(format!("{}.db", dbn));
+    if dbpath.exists() {
+        info!("minute_data: using external db: {}", dbpath.display());
+        dbpath.to_string_lossy().to_string()
+    } else {
+        info!("minute_data: external db not found: {}", dbpath.display());
+        String::new()
     }
 }
 
@@ -485,25 +527,53 @@ pub async fn version(
     }))
 }
 
+/// Matches Node.js getDbsFun: scan <base_dir>/dbs/ for .db files, return names without extension.
 pub async fn get_dbs(
-    State(_state): State<AppState>,
-    Json(_req): Json<serde_json::Value>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
     info!("POST /getDbs");
-    
-    let db_path = get_db_path(&_state).await;
-    
-    let dbs = vec![
-        DbInfo {
-            name: "main".to_string(),
-            path: db_path,
+
+    let state_guard = state.read().await;
+    let base_dir = state_guard.base_dir.clone();
+    drop(state_guard);
+
+    let dbs_dir = std::path::Path::new(&base_dir).join("dbs");
+
+    match std::fs::read_dir(&dbs_dir) {
+        Ok(entries) => {
+            let mut db_files: Vec<String> = Vec::new();
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    if let Some(ext) = path.extension() {
+                        if ext.to_ascii_lowercase() == "db" {
+                            // basename without .db extension
+                            if let Some(name) = path.file_stem().and_then(|n| n.to_str()) {
+                                db_files.push(name.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            info!("getDbs: found {} db files in {:?}", db_files.len(), dbs_dir);
+            Json(serde_json::json!({ "code": 200, "dbs": db_files }))
         }
-    ];
-    
-    Json(serde_json::json!({
-        "success": true,
-        "data": dbs
-    }))
+        Err(e) => {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                info!("getDbs: directory not found: {:?}", dbs_dir);
+                Json(serde_json::json!({
+                    "code": 10,
+                    "msg": format!("目录不存在: {}", dbs_dir.display())
+                }))
+            } else {
+                info!("getDbs: error reading directory {:?}: {}", dbs_dir, e);
+                Json(serde_json::json!({
+                    "code": 10,
+                    "msg": format!("获取文件时出错: {}", e)
+                }))
+            }
+        }
+    }
 }
 
 pub async fn get_app_minute(

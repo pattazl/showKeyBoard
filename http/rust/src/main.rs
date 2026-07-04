@@ -21,6 +21,7 @@ pub type AppState = Arc<RwLock<SharedState>>;
 pub struct SharedState {
     pub config: config::AppConfig,
     pub db_path: String,
+    pub base_dir: String,
     pub desc_ini_path: String,
     pub user_ini_path: String,
     pub key_list_path: String,
@@ -42,6 +43,10 @@ async fn main() {
         .unwrap()
         .to_path_buf();
     let cwd = std::env::current_dir().unwrap_or_else(|_| exe_dir.clone());
+    // base_dir = exe_dir/../.. — used for dbs/ directory resolution (matching Node.js basePath)
+    let base_dir = exe_dir.parent().and_then(|p| p.parent())
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| cwd.clone());
 
     // desc.ini is always relative to the exe directory (bundled with binary)
     let desc_path = exe_dir.join("showKeyBoard.desc.ini");
@@ -58,15 +63,12 @@ async fn main() {
     // Node.js: dbsPath = basePath/dbs/, so also check dbs/ subdirectory
     let db_filename = config.db_path.trim_start_matches("./");
     let db_path = {
-        let parent2 = exe_dir.parent().and_then(|p| p.parent());
-        // Order matters: cwd first (cargo run from rust/), then parent2 (http/), then exe_dir fallback
+        // Order matters: cwd first (cargo run from rust/), then base_dir, then exe_dir fallback
         let candidates: Vec<std::path::PathBuf> = vec![
             cwd.join(db_filename),
             cwd.join("dbs").join(db_filename),
         ].into_iter().chain(
-            parent2.iter().flat_map(|p2| {
-                [p2.join(db_filename), p2.join("dbs").join(db_filename)].into_iter()
-            })
+            [base_dir.join(db_filename), base_dir.join("dbs").join(db_filename)].into_iter()
         ).chain(
             vec![
                 exe_dir.join(db_filename),
@@ -89,7 +91,12 @@ async fn main() {
     };
 
     // Extract values from config before moving into shared state
-    let ui_path = config.ui_path.clone();
+    // Resolve ui_path relative to exe_dir (matching Node.js: everything is relative to __dirname)
+    let ui_path = if std::path::Path::new(&config.ui_path).is_absolute() {
+        config.ui_path.clone()
+    } else {
+        exe_dir.join(&config.ui_path).to_string_lossy().to_string()
+    };
     let mut port = config.port;
 
     println!("Initial port from config: {}", port);
@@ -169,6 +176,7 @@ async fn main() {
     let shared_state = Arc::new(RwLock::new(SharedState {
         config,
         db_path,
+        base_dir: base_dir.to_string_lossy().to_string(),
         desc_ini_path: desc_path.to_string_lossy().to_string(),
         user_ini_path: user_ini_path.to_string_lossy().to_string(),
         key_list_path,

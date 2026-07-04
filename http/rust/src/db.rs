@@ -2,7 +2,7 @@ use rusqlite::{Connection, params, Result as SqlResult};
 use std::path::Path;
 use std::collections::HashMap;
 use log::info;
-use crate::models::{KeyRecord, AppMinuteRecord, HistoryDate, StatRecord, UserKeymap, KeymapBrief};
+use crate::models::{KeyRecord, AppMinuteRecord, HistoryDate, StatRecord, UserKeymap, KeymapBrief, MinuteStatRecord, MinuteAppRecord};
 
 pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
@@ -94,6 +94,40 @@ pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     conn.execute("CREATE INDEX IF NOT EXISTS idx_key_records_app ON key_records(app)", [])
         .map_err(|e| e.to_string())?;
     conn.execute("CREATE INDEX IF NOT EXISTS idx_app_minutes_date ON app_minutes(date)", [])
+        .map_err(|e| e.to_string())?;
+    
+    // Create statFreq table — matches Node.js schema for /minuteData (non-app)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS statFreq (
+            keyTime TEXT, 
+            keyCount INTEGER, 
+            mouseCount INTEGER, 
+            distance INTEGER,  
+            freqType INTEGER,
+            date TEXT
+        )",
+        [],
+    ).map_err(|e| e.to_string())?;
+    conn.execute("CREATE INDEX IF NOT EXISTS statFreq_date_IDX ON statFreq (date)", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute("CREATE INDEX IF NOT EXISTS statFreq_type_IDX ON statFreq (freqType)", [])
+        .map_err(|e| e.to_string())?;
+    
+    // Create appFreq table — matches Node.js schema for /minuteData (app)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS appFreq (
+            keyTime TEXT, 
+            appPath TEXT, 
+            keyCount INTEGER, 
+            mouseCount INTEGER, 
+            freqType INTEGER,
+            date TEXT
+        )",
+        [],
+    ).map_err(|e| e.to_string())?;
+    conn.execute("CREATE INDEX IF NOT EXISTS appFreq_date_IDX ON appFreq (date)", [])
+        .map_err(|e| e.to_string())?;
+    conn.execute("CREATE INDEX IF NOT EXISTS appFreq_type_IDX ON appFreq (freqType)", [])
         .map_err(|e| e.to_string())?;
     
     info!("Database initialized successfully");
@@ -206,6 +240,100 @@ pub fn get_app_minutes(
       .map_err(|e| e.to_string())?;
     
     Ok(records)
+}
+
+// ============== Minute/App Frequency Operations (Node.js getMinuteRecords) ==============
+
+/// Query statFreq (non-app) or appFreq (app) matching Node.js getMinuteRecords logic.
+pub fn get_minute_records(
+    db_path: &str,
+    begin_date: Option<&str>,
+    end_date: Option<&str>,
+    freq_type: i32,
+    is_app: bool,
+) -> Result<Vec<serde_json::Value>, String> {
+    use rusqlite::types::Value as SqlValue;
+
+    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+
+    if is_app {
+        // Node.js: if (freqType > 0) sqlFreqType = 'freqType > 0'
+        let sql_freq_type = if freq_type > 0 {
+            "freqType > 0".to_string()
+        } else {
+            format!("freqType = {}", freq_type)
+        };
+
+        let (sql, params): (String, Vec<SqlValue>) = match (begin_date, end_date) {
+            (Some(begin), Some(end)) => (
+                format!(
+                    "SELECT keyTime, keyCount, mouseCount, appPath, date, freqType \
+                     FROM appFreq WHERE {} AND date BETWEEN ?1 AND ?2 ORDER BY date",
+                    sql_freq_type
+                ),
+                vec![SqlValue::Text(begin.to_string()), SqlValue::Text(end.to_string())],
+            ),
+            _ => (
+                format!(
+                    "SELECT keyTime, keyCount, mouseCount, appPath, date, freqType \
+                     FROM appFreq WHERE {} ORDER BY date",
+                    sql_freq_type
+                ),
+                vec![],
+            ),
+        };
+
+        let params_ref: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p as &dyn rusqlite::types::ToSql).collect();
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let rows = stmt.query_map(params_ref.as_slice(), |row| {
+            Ok(serde_json::to_value(MinuteAppRecord {
+                minute: row.get(0)?,
+                key_count: row.get(1)?,
+                mouse_count: row.get(2)?,
+                apps: row.get(3)?,
+                date: row.get(4)?,
+                duration: row.get(5)?,
+            }).unwrap_or(serde_json::Value::Null))
+        }).map_err(|e| e.to_string())?;
+
+        Ok(rows.collect::<SqlResult<Vec<_>>>().map_err(|e| e.to_string())?)
+    } else {
+        // Node.js: sqlFreqType = `freqType = ${freqType} `
+        let sql_freq_type = format!("freqType = {}", freq_type);
+
+        let (sql, params): (String, Vec<SqlValue>) = match (begin_date, end_date) {
+            (Some(begin), Some(end)) => (
+                format!(
+                    "SELECT keyTime, keyCount, mouseCount, distance, date \
+                     FROM statFreq WHERE {} AND date BETWEEN ?1 AND ?2 ORDER BY date",
+                    sql_freq_type
+                ),
+                vec![SqlValue::Text(begin.to_string()), SqlValue::Text(end.to_string())],
+            ),
+            _ => (
+                format!(
+                    "SELECT keyTime, keyCount, mouseCount, distance, date \
+                     FROM statFreq WHERE {} ORDER BY date",
+                    sql_freq_type
+                ),
+                vec![],
+            ),
+        };
+
+        let params_ref: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p as &dyn rusqlite::types::ToSql).collect();
+        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+        let rows = stmt.query_map(params_ref.as_slice(), |row| {
+            Ok(serde_json::to_value(MinuteStatRecord {
+                minute: row.get(0)?,
+                key_count: row.get(1)?,
+                mouse_count: row.get(2)?,
+                distance: row.get(3)?,
+                date: row.get(4)?,
+            }).unwrap_or(serde_json::Value::Null))
+        }).map_err(|e| e.to_string())?;
+
+        Ok(rows.collect::<SqlResult<Vec<_>>>().map_err(|e| e.to_string())?)
+    }
 }
 
 // ============== History Date Operations ==============

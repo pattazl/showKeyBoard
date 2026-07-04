@@ -49,7 +49,7 @@ pub struct MinuteDataRequest {
     #[serde(rename = "endDate")]
     pub end_date: Option<String>,
     #[serde(rename = "freqType")]
-    pub freq_type: Option<String>,
+    pub freq_type: Option<serde_json::Value>,
     #[serde(rename = "isApp")]
     pub is_app: Option<bool>,
     pub db: Option<String>,
@@ -138,6 +138,38 @@ pub struct AppMinuteRecord {
     pub minutes: Option<i64>,
 }
 
+/// Node.js /minuteData response when isApp != true (statFreq table)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MinuteStatRecord {
+    #[serde(rename = "Distance")]
+    pub distance: Option<i32>,
+    #[serde(rename = "KeyCount")]
+    pub key_count: Option<i32>,
+    #[serde(rename = "Minute")]
+    pub minute: Option<String>,
+    #[serde(rename = "MouseCount")]
+    pub mouse_count: Option<i32>,
+    #[serde(rename = "Date")]
+    pub date: Option<String>,
+}
+
+/// Node.js /minuteData response when isApp == true (appFreq table)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MinuteAppRecord {
+    #[serde(rename = "Apps")]
+    pub apps: Option<String>,
+    #[serde(rename = "KeyCount")]
+    pub key_count: Option<i32>,
+    #[serde(rename = "Minute")]
+    pub minute: Option<String>,
+    #[serde(rename = "MouseCount")]
+    pub mouse_count: Option<i32>,
+    #[serde(rename = "Date")]
+    pub date: Option<String>,
+    #[serde(rename = "Duration")]
+    pub duration: Option<i32>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HistoryDate {
     pub date: String,
@@ -165,12 +197,6 @@ pub struct KeymapBrief {
     pub map_name: String,
     #[serde(rename = "mapDetail")]
     pub map_detail: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DbInfo {
-    pub name: String,
-    pub path: String,
 }
 
 // ============== getPara Response ==============
