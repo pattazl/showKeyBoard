@@ -2,20 +2,28 @@ use rusqlite::{Connection, params, Result as SqlResult};
 use std::path::Path;
 use std::collections::HashMap;
 use log::info;
-use crate::models::{KeyRecord, AppMinuteRecord, HistoryDate, StatRecord, UserKeymap, KeymapBrief, MinuteStatRecord, MinuteAppRecord};
+use crate::models::{HistoryRecord, AppMinuteRecord, UserKeymap, KeymapBrief, MinuteStatRecord, MinuteAppRecord};
 
 pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
     
-    // Create key_records table
+    // Create events table — matches Node.js schema for /historyData (today's data)
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS key_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT,
-            app TEXT,
-            tick INTEGER,
+        "CREATE TABLE IF NOT EXISTS events (
+            keyname TEXT,
+            keycount INTEGER,
             date TEXT,
-            count INTEGER DEFAULT 1
+            tick INTEGER
+        )",
+        [],
+    ).map_err(|e| e.to_string())?;
+
+    // Create stat table — matches Node.js schema for /historyData (historical aggregated data)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS stat (
+            keyname TEXT,
+            keycount INTEGER,
+            date TEXT
         )",
         [],
     ).map_err(|e| e.to_string())?;
@@ -89,9 +97,9 @@ pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     }
     
     // Create indexes
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_key_records_date ON key_records(date)", [])
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_events_date ON events(date)", [])
         .map_err(|e| e.to_string())?;
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_key_records_app ON key_records(app)", [])
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_stat_date ON stat(date)", [])
         .map_err(|e| e.to_string())?;
     conn.execute("CREATE INDEX IF NOT EXISTS idx_app_minutes_date ON app_minutes(date)", [])
         .map_err(|e| e.to_string())?;
@@ -134,68 +142,73 @@ pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     Ok(())
 }
 
-// ============== Key Records Operations ==============
+// ============== Key Records Operations (Node.js getRecords) ==============
 
-pub fn insert_key_record(db_path: &str, record: &KeyRecord) -> Result<i64, String> {
+/// Insert into `events` table — matches Node.js insertData: INSERT INTO events (keyname, keycount, tick, date)
+pub fn insert_key_record(db_path: &str, keyname: &str, keycount: i64, tick: i64, date: &str) -> Result<i64, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    
+
     conn.execute(
-        "INSERT INTO key_records (key, app, tick, date, count) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![
-            record.key,
-            record.app,
-            record.tick,
-            record.date,
-            record.count.unwrap_or(1)
-        ],
+        "INSERT INTO events (keyname, keycount, date, tick) VALUES (?1, ?2, ?3, ?4)",
+        params![keyname, keycount, date, tick],
     ).map_err(|e| e.to_string())?;
-    
+
     Ok(conn.last_insert_rowid())
 }
 
-pub fn get_key_records(
-    db_path: &str, 
-    begin_date: Option<&str>, 
-    end_date: Option<&str>
-) -> Result<Vec<KeyRecord>, String> {
+/// Matches Node.js getRecords(begin, end, newDbName).
+/// - Today (begin == today && end == today): query `events` table → keyname, keycount, date, tick
+/// - Single day (begin == end, not today): query `stat` table → keyname, keycount, date
+/// - Date range (begin != end): query `stat` table with SUM+GROUP BY → keyname, sum(keycount), min(date)
+/// Returns Vec<HistoryRecord> in Node.js format.
+pub fn get_records(
+    db_path: &str,
+    begin: &str,
+    end: &str,
+) -> Result<Vec<HistoryRecord>, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    
-    let sql = match (begin_date, end_date) {
-        (Some(begin), Some(end)) => format!(
-            "SELECT id, key, app, tick, date, count, (SELECT SUM(count) FROM key_records WHERE date = kr.date AND app = kr.app) as totalCount 
-             FROM key_records kr 
-             WHERE date BETWEEN '{}' AND '{}' 
-             ORDER BY date DESC, tick DESC", 
-            begin, end
-        ),
-        (Some(begin), None) => format!(
-            "SELECT id, key, app, tick, date, count, (SELECT SUM(count) FROM key_records WHERE date = kr.date AND app = kr.app) as totalCount 
-             FROM key_records kr 
-             WHERE date >= '{}' 
-             ORDER BY date DESC, tick DESC", 
-            begin
-        ),
-        _ => "SELECT id, key, app, tick, date, count, (SELECT SUM(count) FROM key_records WHERE date = kr.date AND app = kr.app) as totalCount 
-              FROM key_records kr 
-              ORDER BY date DESC, tick DESC".to_string()
+
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let is_today = begin == today.as_str() && end == today.as_str();
+
+    let (sql, has_tick): (&str, bool) = if is_today {
+        // Node.js: SELECT keyname, keycount, date, tick FROM events where date between ? and ?
+        ("SELECT keyname, keycount, date, tick FROM events WHERE date BETWEEN ?1 AND ?2", true)
+    } else if begin == end {
+        // Node.js: SELECT keyname, keycount, date FROM stat where date between ? and ?
+        ("SELECT keyname, keycount, date FROM stat WHERE date BETWEEN ?1 AND ?2", false)
+    } else {
+        // Node.js: SELECT keyname, sum(keycount) as keycount, min(date) as date FROM stat where date between ? and ? group by keyname
+        ("SELECT keyname, sum(keycount) as keycount, min(date) as date FROM stat WHERE date BETWEEN ?1 AND ?2 GROUP BY keyname", false)
     };
-    
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-    let records = stmt.query_map([], |row| {
-        Ok(KeyRecord {
-            id: row.get(0)?,
-            key: row.get(1)?,
-            app: row.get(2)?,
-            tick: row.get(3)?,
-            date: row.get(4)?,
-            count: row.get(5)?,
-            total_count: row.get(6)?,
-        })
-    }).map_err(|e| e.to_string())?
-      .collect::<SqlResult<Vec<_>>>()
-      .map_err(|e| e.to_string())?;
-    
-    Ok(records)
+
+    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+
+    let results = if has_tick {
+        stmt.query_map(params![begin, end], |row| {
+            Ok(HistoryRecord {
+                keyname: row.get(0)?,
+                keycount: row.get(1)?,
+                date: row.get(2)?,
+                tick: row.get::<_, Option<i64>>(3)?.map(|t| t.to_string()).unwrap_or_default(),
+            })
+        }).map_err(|e| e.to_string())?
+          .collect::<SqlResult<Vec<_>>>()
+          .map_err(|e| e.to_string())?
+    } else {
+        stmt.query_map(params![begin, end], |row| {
+            Ok(HistoryRecord {
+                keyname: row.get(0)?,
+                keycount: row.get(1)?,
+                date: row.get(2)?,
+                tick: String::new(),
+            })
+        }).map_err(|e| e.to_string())?
+          .collect::<SqlResult<Vec<_>>>()
+          .map_err(|e| e.to_string())?
+    };
+
+    Ok(results)
 }
 
 // ============== App Minutes Operations ==============
@@ -338,60 +351,119 @@ pub fn get_minute_records(
 
 // ============== History Date Operations ==============
 
-pub fn get_history_dates(db_path: &str) -> Result<Vec<HistoryDate>, String> {
+/// Matches Node.js getHistoryDate: query stat table for all distinct dates, descending.
+/// Returns a flat array of date strings like ["2025-01-15", "2025-01-14", ...].
+pub fn get_history_dates(db_path: &str) -> Result<Vec<String>, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    
+
     let mut stmt = conn.prepare(
-        "SELECT DISTINCT date FROM key_records ORDER BY date DESC"
+        "SELECT date FROM stat group by date order by date desc"
     ).map_err(|e| e.to_string())?;
-    
+
     let dates = stmt.query_map([], |row| {
-        Ok(HistoryDate {
-            date: row.get(0)?
-        })
+        row.get::<_, String>(0)
     }).map_err(|e| e.to_string())?
       .collect::<SqlResult<Vec<_>>>()
       .map_err(|e| e.to_string())?;
-    
+
     Ok(dates)
 }
 
-// ============== Statistics Operations ==============
+// ============== Statistics Operations (Node.js statData) ==============
 
-pub fn get_statistics(
+/// Matches Node.js statData(begin, end, newDbName):
+/// 4 parallel queries on `stat` table, returns 4-element array:
+///   [0] mouseDistance by date
+///   [1] mouse + keyboard grouped by date
+///   [2] top N keys
+///   [3] top N apps
+pub fn stat_data(
     db_path: &str,
-    begin_date: Option<&str>,
-    end_date: Option<&str>
-) -> Result<Vec<StatRecord>, String> {
+    begin: &str,
+    end: &str,
+    top_n: i32,
+    app_top_n: i32,
+) -> Result<Vec<Vec<serde_json::Value>>, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    
-    let sql = match (begin_date, end_date) {
-        (Some(begin), Some(end)) => format!(
-            "SELECT date, app, SUM(count) as count 
-             FROM key_records 
-             WHERE date BETWEEN '{}' AND '{}' 
-             GROUP BY date, app 
-             ORDER BY date DESC, count DESC", 
-            begin, end
-        ),
-        _ => "SELECT date, app, SUM(count) as count 
-              FROM key_records 
-              GROUP BY date, app 
-              ORDER BY date DESC, count DESC".to_string()
-    };
-    
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-    let records = stmt.query_map([], |row| {
-        Ok(StatRecord {
-            date: row.get(0)?,
-            app: row.get(1)?,
-            count: row.get(2)?,
-        })
+
+    // pro1: mouseDistance by date
+    let sql1 = "SELECT keycount, date FROM stat WHERE date BETWEEN ?1 AND ?2 AND keyname = 'mouseDistance' ORDER BY date";
+    let mut stmt1 = conn.prepare(sql1).map_err(|e| e.to_string())?;
+    let pro1: Vec<serde_json::Value> = stmt1.query_map(params![begin, end], |row| {
+        Ok(serde_json::json!({
+            "keycount": row.get::<_, i64>(0)?,
+            "date": row.get::<_, String>(1)?,
+        }))
     }).map_err(|e| e.to_string())?
       .collect::<SqlResult<Vec<_>>>()
       .map_err(|e| e.to_string())?;
-    
-    Ok(records)
+
+    // pro2: mouse + keyboard grouped by date
+    let sql2 = "SELECT sum(keycount) as keycount, date, 'mouse' as keyname FROM stat
+        WHERE date BETWEEN ?1 AND ?2 AND keyname IN ('LButton','RButton','MButton','WheelDown','WheelUp') GROUP BY date
+        UNION
+        SELECT sum(keycount) as keycount, date, 'keyboard' FROM stat
+        WHERE date BETWEEN ?1 AND ?2 AND keyname NOT IN ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
+        AND keyname NOT LIKE 'App-%'
+        GROUP BY date";
+    let mut stmt2 = conn.prepare(sql2).map_err(|e| e.to_string())?;
+    let pro2: Vec<serde_json::Value> = stmt2.query_map(params![begin, end, begin, end], |row| {
+        Ok(serde_json::json!({
+            "keycount": row.get::<_, i64>(0)?,
+            "date": row.get::<_, String>(1)?,
+            "keyname": row.get::<_, String>(2)?,
+        }))
+    }).map_err(|e| e.to_string())?
+      .collect::<SqlResult<Vec<_>>>()
+      .map_err(|e| e.to_string())?;
+
+    // pro3: top N keys
+    let sql3 = format!(
+        "WITH temp AS (SELECT * FROM stat WHERE date BETWEEN ?1 AND ?2)
+         SELECT keycount, date, keyname FROM temp WHERE keyname IN
+         (SELECT keyname FROM temp WHERE keyname NOT IN ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
+          AND keyname NOT LIKE 'App-%'
+          GROUP BY keyname ORDER BY sum(keycount) DESC LIMIT {})
+         ORDER BY date",
+        top_n
+    );
+    let mut stmt3 = conn.prepare(&sql3).map_err(|e| e.to_string())?;
+    let pro3: Vec<serde_json::Value> = stmt3.query_map(params![begin, end], |row| {
+        Ok(serde_json::json!({
+            "keycount": row.get::<_, i64>(0)?,
+            "date": row.get::<_, String>(1)?,
+            "keyname": row.get::<_, String>(2)?,
+        }))
+    }).map_err(|e| e.to_string())?
+      .collect::<SqlResult<Vec<_>>>()
+      .map_err(|e| e.to_string())?;
+
+    // pro4: top N apps
+    let sql4 = format!(
+        "WITH temp AS (
+            SELECT * FROM stat WHERE keyname LIKE 'App-%' AND date BETWEEN ?1 AND ?2
+        ),
+        temp2 AS (
+            SELECT REPLACE(REPLACE(keyname,'App-Mouse-',''),'App-Key-','') as pathname, sum(keycount) as count
+            FROM temp GROUP BY pathname ORDER BY count DESC LIMIT {}
+        )
+        SELECT * FROM temp WHERE keyname IN (SELECT 'App-Mouse-' || pathname FROM temp2)
+        UNION
+        SELECT * FROM temp WHERE keyname IN (SELECT 'App-Key-' || pathname FROM temp2)",
+        app_top_n
+    );
+    let mut stmt4 = conn.prepare(&sql4).map_err(|e| e.to_string())?;
+    let pro4: Vec<serde_json::Value> = stmt4.query_map(params![begin, end], |row| {
+        Ok(serde_json::json!({
+            "keyname": row.get::<_, String>(0)?,
+            "keycount": row.get::<_, i64>(1)?,
+            "date": row.get::<_, String>(2)?,
+        }))
+    }).map_err(|e| e.to_string())?
+      .collect::<SqlResult<Vec<_>>>()
+      .map_err(|e| e.to_string())?;
+
+    Ok(vec![pro1, pro2, pro3, pro4])
 }
 
 // ============== Keymap Operations ==============
@@ -452,9 +524,9 @@ pub fn get_keymaps(db_path: &str) -> Result<Vec<UserKeymap>, String> {
 pub fn delete_data_by_date(db_path: &str, date: &str) -> Result<(), String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
     
-    conn.execute("DELETE FROM key_records WHERE date = ?1", params![date])
+    conn.execute("DELETE FROM events WHERE date = ?1", params![date])
         .map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM app_minutes WHERE date = ?1", params![date])
+    conn.execute("DELETE FROM stat WHERE date = ?1", params![date])
         .map_err(|e| e.to_string())?;
     
     Ok(())

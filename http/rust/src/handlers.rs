@@ -209,17 +209,14 @@ pub async fn upload_data(
     
     let db_path = get_db_path(&_state).await;
     
-    let record = KeyRecord {
-        id: None,
-        key: req.data.as_ref().and_then(|d| d.get("key").and_then(|k| k.as_str().map(String::from))),
-        app: req.app_name,
-        tick: req.tick,
-        date: req.date,
-        count: Some(1),
-        total_count: None,
-    };
+    let keyname = req.data.as_ref()
+        .and_then(|d| d.get("key"))
+        .and_then(|k| k.as_str())
+        .unwrap_or("");
+    let tick = req.tick.unwrap_or(0);
+    let date = req.date.as_deref().unwrap_or("");
     
-    match db::insert_key_record(&db_path, &record) {
+    match db::insert_key_record(&db_path, keyname, 1, tick, date) {
         Ok(id) => Json(serde_json::json!({
             "success": true,
             "id": id
@@ -252,23 +249,55 @@ pub async fn send_pc_info(
     }))
 }
 
+/// Matches Node.js getRecords(begin, end, newDbName).
+/// Queries `events` table for today, `stat` table for historical data.
+/// Returns a flat JSON array: [{keyname, keycount, date, tick}, ...].
 pub async fn history_data(
-    State(_state): State<AppState>,
-    Json(req): Json<HistoryDataRequest>,
+    State(state): State<AppState>,
+    body: Option<Json<serde_json::Value>>,
 ) -> impl IntoResponse {
-    info!("POST /historyData - begin: {:?}, end: {:?}", req.begin_date, req.end_date);
-    
-    let db_path = get_db_path(&_state).await;
-    
-    match db::get_key_records(&db_path, req.begin_date.as_deref(), req.end_date.as_deref()) {
-        Ok(records) => Json(serde_json::json!({
-            "success": true,
-            "data": records
-        })),
-        Err(e) => Json(serde_json::json!({
-            "success": false,
-            "error": e
-        }))
+    // Extract params with optional chaining like Node.js req.body?.beginDate
+    let begin = body.as_ref()
+        .and_then(|b| b.get("beginDate"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let end = body.as_ref()
+        .and_then(|b| b.get("endDate"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let db_name = body.as_ref()
+        .and_then(|b| b.get("db"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    info!("POST /historyData - begin: {:?}, end: {:?}, db: {:?}", begin, end, db_name);
+
+    // Resolve DB path (Node.js getDbObj)
+    let state_guard = state.read().await;
+    let default_db_path = state_guard.db_path.clone();
+    let base_dir = state_guard.base_dir.clone();
+    drop(state_guard);
+
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+
+    // Node.js: if (null == db) return []
+    if db_path.is_empty() {
+        return Json(serde_json::json!([]));
+    }
+
+    // Node.js: if (begin > end) return [] (string comparison)
+    if !begin.is_empty() && !end.is_empty() && begin > end {
+        return Json(serde_json::json!([]));
+    }
+
+    match db::get_records(&db_path, begin, end) {
+        Ok(records) => Json(serde_json::Value::Array(
+            records.into_iter().map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)).collect(),
+        )),
+        Err(_e) => {
+            info!("historyData query error: {}", _e);
+            Json(serde_json::json!([]))
+        }
     }
 }
 
@@ -383,47 +412,87 @@ pub async fn opt_keymap(
     }
 }
 
+/// Matches Node.js getHistoryDate: query stat table for all distinct dates.
+/// Returns a flat JSON array like ["2025-01-15","2025-01-14",...].
 pub async fn get_history_date(
-    State(_state): State<AppState>,
-    Json(req): Json<serde_json::Value>,
+    State(state): State<AppState>,
+    body: Option<Json<serde_json::Value>>,
 ) -> impl IntoResponse {
     info!("POST /getHistoryDate");
-    
-    let db_path = get_db_path(&_state).await;
-    let req_db = req.get("db").and_then(|d| d.as_str()).unwrap_or(&db_path);
-    
-    match db::get_history_dates(req_db) {
-        Ok(dates) => Json(serde_json::json!({
-            "success": true,
-            "data": dates
-        })),
-        Err(e) => Json(serde_json::json!({
-            "success": false,
-            "error": e
-        }))
+
+    let state_guard = state.read().await;
+    let default_db_path = state_guard.db_path.clone();
+    let base_dir = state_guard.base_dir.clone();
+    drop(state_guard);
+
+    // Node.js: req.body?.db — optional db name, look in dbs/<name>.db if provided
+    let db_name = body
+        .as_ref()
+        .and_then(|b| b.get("db"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+
+    // Node.js: if (null == db) return []
+    if db_path.is_empty() {
+        return Json(serde_json::json!([]));
+    }
+
+    match db::get_history_dates(&db_path) {
+        Ok(dates) => Json(serde_json::Value::Array(
+            dates.into_iter().map(serde_json::Value::String).collect(),
+        )),
+        Err(_e) => {
+            info!("getHistoryDate query error: {}", _e);
+            Json(serde_json::json!([]))
+        }
     }
 }
 
+/// Matches Node.js statData(begin, end, newDbName):
+/// 4 parallel queries on `stat` table, returns 4-element array.
 pub async fn stat_data(
-    State(_state): State<AppState>,
-    Json(req): Json<serde_json::Value>,
+    State(state): State<AppState>,
+    body: Option<Json<serde_json::Value>>,
 ) -> impl IntoResponse {
-    info!("POST /statData");
-    
-    let db_path = get_db_path(&_state).await;
-    let begin_date = req.get("beginDate").and_then(|d| d.as_str());
-    let end_date = req.get("endDate").and_then(|d| d.as_str());
-    let req_db = req.get("db").and_then(|d| d.as_str()).unwrap_or(&db_path);
-    
-    match db::get_statistics(req_db, begin_date, end_date) {
-        Ok(stats) => Json(serde_json::json!({
-            "success": true,
-            "data": stats
-        })),
-        Err(e) => Json(serde_json::json!({
-            "success": false,
-            "error": e
-        }))
+    let begin = body.as_ref()
+        .and_then(|b| b.get("beginDate"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let end = body.as_ref()
+        .and_then(|b| b.get("endDate"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let db_name = body.as_ref()
+        .and_then(|b| b.get("db"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    info!("POST /statData - begin: {:?}, end: {:?}, db: {:?}", begin, end, db_name);
+
+    let state_guard = state.read().await;
+    let default_db_path = state_guard.db_path.clone();
+    let base_dir = state_guard.base_dir.clone();
+    drop(state_guard);
+
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+    if db_path.is_empty() {
+        return Json(serde_json::json!([]));
+    }
+
+    // Default topN = 10, matching Node.js: globalTopN = dataSetting?.topN || 10
+    let top_n = 10i32;
+    let app_top_n = 10i32;
+
+    match db::stat_data(&db_path, begin, end, top_n, app_top_n) {
+        Ok(results) => Json(serde_json::Value::Array(
+            results.into_iter().map(|v| serde_json::Value::Array(v)).collect(),
+        )),
+        Err(_e) => {
+            info!("statData query error: {}", _e);
+            Json(serde_json::json!([]))
+        }
     }
 }
 

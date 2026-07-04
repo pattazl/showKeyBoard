@@ -34,15 +34,6 @@ pub struct PcInfoRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct HistoryDataRequest {
-    #[serde(rename = "beginDate")]
-    pub begin_date: Option<String>,
-    #[serde(rename = "endDate")]
-    pub end_date: Option<String>,
-    pub db: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct MinuteDataRequest {
     #[serde(rename = "beginDate")]
     pub begin_date: Option<String>,
@@ -119,16 +110,14 @@ pub struct VersionResponse {
     pub major_version: String,
 }
 
+/// Node.js getRecords response: { keyname, keycount, date, tick }
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct KeyRecord {
-    pub id: Option<i64>,
-    pub key: Option<String>,
-    pub app: Option<String>,
-    pub tick: Option<i64>,
-    pub date: Option<String>,
-    pub count: Option<i64>,
-    #[serde(rename = "totalCount")]
-    pub total_count: Option<i64>,
+pub struct HistoryRecord {
+    pub keyname: String,
+    pub keycount: i64,
+    pub date: String,
+    #[serde(default)]
+    pub tick: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -168,18 +157,6 @@ pub struct MinuteAppRecord {
     pub date: Option<String>,
     #[serde(rename = "Duration")]
     pub duration: Option<i32>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct HistoryDate {
-    pub date: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StatRecord {
-    pub date: Option<String>,
-    pub app: Option<String>,
-    pub count: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
