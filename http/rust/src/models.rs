@@ -81,13 +81,50 @@ pub struct AppMinuteRequest {
 // ============== Response Models ==============
 
 /// Node.js getRecords response: { keyname, keycount, date, tick }
+/// tick: Some(n) → number, None → "" (matches Node.js behavior)
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HistoryRecord {
     pub keyname: String,
     pub keycount: i64,
     pub date: String,
-    #[serde(default)]
-    pub tick: String,
+    #[serde(default, serialize_with = "ser_tick", deserialize_with = "de_tick")]
+    pub tick: Option<i64>,
+}
+
+fn ser_tick<S>(tick: &Option<i64>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match tick {
+        Some(n) => serializer.serialize_i64(*n),
+        None => serializer.serialize_str(""),
+    }
+}
+
+fn de_tick<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct TickVisitor;
+    impl<'de> serde::de::Visitor<'de> for TickVisitor {
+        type Value = Option<i64>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("number, string or null")
+        }
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> { Ok(Some(v)) }
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> { Ok(Some(v as i64)) }
+        fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E> { Ok(Some(v as i64)) }
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+            Ok(v.parse::<i64>().ok())
+        }
+        fn visit_unit<E>(self) -> Result<Self::Value, E> { Ok(None) }
+        fn visit_none<E>(self) -> Result<Self::Value, E> { Ok(None) }
+        fn visit_some<D2>(self, d: D2) -> Result<Self::Value, D2::Error>
+        where D2: serde::Deserializer<'de> {
+            d.deserialize_any(TickVisitor)
+        }
+    }
+    deserializer.deserialize_any(TickVisitor)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -190,7 +190,7 @@ pub fn get_records(
                 keyname: row.get(0)?,
                 keycount: row.get(1)?,
                 date: row.get(2)?,
-                tick: row.get::<_, Option<i64>>(3)?.map(|t| t.to_string()).unwrap_or_default(),
+                tick: row.get::<_, Option<i64>>(3)?,
             })
         }).map_err(|e| e.to_string())?
           .collect::<SqlResult<Vec<_>>>()
@@ -201,7 +201,7 @@ pub fn get_records(
                 keyname: row.get(0)?,
                 keycount: row.get(1)?,
                 date: row.get(2)?,
-                tick: String::new(),
+                tick: None,
             })
         }).map_err(|e| e.to_string())?
           .collect::<SqlResult<Vec<_>>>()
@@ -521,14 +521,31 @@ pub fn get_keymaps(db_path: &str) -> Result<Vec<UserKeymap>, String> {
 
 // ============== Data Delete Operations ==============
 
-pub fn delete_data_by_date(db_path: &str, date: &str) -> Result<(), String> {
+/// Matches Node.js deleteData(date, flag) in records.js:
+/// - flag == 0: DELETE FROM events WHERE tick IN (dates)   — dates are tick values
+/// - flag == 1: DELETE FROM stat / statFreq / appFreq WHERE date IN (dates)
+/// Only operates on the main db (records.db), matches Node.js `new sqlite3.Database(dbName)`.
+pub fn delete_data(db_path: &str, dates: &[String], flag: i64) -> Result<(), String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    
-    conn.execute("DELETE FROM events WHERE date = ?1", params![date])
-        .map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM stat WHERE date = ?1", params![date])
-        .map_err(|e| e.to_string())?;
-    
+
+    let placeholders = dates.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+
+    match flag {
+        0 => {
+            let sql = format!("DELETE FROM events WHERE tick IN ({})", placeholders);
+            conn.execute(&sql, rusqlite::params_from_iter(dates.iter()))
+                .map_err(|e| e.to_string())?;
+        }
+        1 => {
+            for table in ["stat", "statFreq", "appFreq"] {
+                let sql = format!("DELETE FROM {} WHERE date IN ({})", table, placeholders);
+                conn.execute(&sql, rusqlite::params_from_iter(dates.iter()))
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        _ => return Err(format!("Unknown flag: {}", flag)),
+    }
+
     Ok(())
 }
 

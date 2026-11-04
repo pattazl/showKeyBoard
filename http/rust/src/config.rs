@@ -3,13 +3,16 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct AppConfig {
+    /// Server port — derived from common["serverPort"] (matches Node.js config.common.serverPort)
     pub port: u16,
+    /// Database filename — fixed default, NOT read from ini (matches Node.js basePath/records.db)
     pub db_path: String,
+    /// UI directory — fixed default, NOT read from ini (matches Node.js __dirname/ui)
     pub ui_path: String,
     pub keymaps: HashMap<String, String>,
-    pub auto_share: bool,
-    pub settings: HashMap<String, String>,
+    /// [common] section (includes serverPort)
     pub common: HashMap<String, String>,
+    /// [dialog] section
     pub dialog: HashMap<String, String>,
 }
 
@@ -17,6 +20,7 @@ impl AppConfig {
     /// Load config with two-tier override:
     /// 1. Load desc.ini as base defaults
     /// 2. Override with user ini values
+    /// Port is always derived from [common] serverPort after merging.
     pub fn load_with_override<P1: AsRef<Path>, P2: AsRef<Path>>(
         desc_path: P1,
         user_path: P2,
@@ -70,65 +74,21 @@ impl AppConfig {
                 let key = key.trim().to_string();
                 let value = strip_ini_quotes(value.trim());
 
+                // Only [common], [dialog], [keymaps] are recognized.
+                // [server], [db], [share] and any other sections are ignored
+                // (matches Node.js: config only contains common + dialog).
                 match current_section.as_str() {
                     "common" => {
-                        match key.as_str() {
-                            "serverPort" => {
-                                if let Ok(port) = value.parse() {
-                                    config.port = port;
-                                }
-                                config.common.insert(key, value);
-                            }
-                            _ => {
-                                config.common.insert(key, value);
-                            }
-                        }
-                    }
-                    "server" => {
-                        match key.as_str() {
-                            "port" => {
-                                if let Ok(port) = value.parse() {
-                                    config.port = port;
-                                }
-                            }
-                            "ui" => config.ui_path = value,
-                            _ => {
-                                config.settings.insert(
-                                    format!("server.{}", key),
-                                    value,
-                                );
-                            }
-                        }
-                    }
-                    "db" => {
-                        if key == "path" {
-                            config.db_path = value;
-                        } else {
-                            config
-                                .settings
-                                .insert(format!("db.{}", key), value);
-                        }
-                    }
-                    "share" => {
-                        if key == "auto" {
-                            config.auto_share =
-                                value == "1" || value.to_lowercase() == "true";
-                        } else {
-                            config
-                                .settings
-                                .insert(format!("share.{}", key), value);
-                        }
-                    }
-                    "keymaps" => {
-                        config.keymaps.insert(key, value);
+                        config.common.insert(key, value);
                     }
                     "dialog" => {
                         config.dialog.insert(key, value);
                     }
+                    "keymaps" => {
+                        config.keymaps.insert(key, value);
+                    }
                     _ => {
-                        config
-                            .settings
-                            .insert(format!("{}.{}", current_section, key), value);
+                        // Unknown sections are ignored — never read or written
                     }
                 }
             }
@@ -139,23 +99,12 @@ impl AppConfig {
         config
     }
 
-    /// Override non-default values from another config
+    /// Override values from user config (matches Node.js mergeObjects):
+    /// user ini values override desc.ini values; port is derived from
+    /// the merged [common] serverPort afterwards.
     fn override_with(&mut self, other: &Self) {
         println!("[config] override_with: other has common={} keys, dialog={} keys",
             other.common.len(), other.dialog.len());
-        // Only override if the other config has explicit (non-default) values
-        if other.port != Self::default().port {
-            self.port = other.port;
-        }
-        if other.db_path != Self::default().db_path {
-            self.db_path = other.db_path.clone();
-        }
-        if other.ui_path != Self::default().ui_path {
-            self.ui_path = other.ui_path.clone();
-        }
-        if other.auto_share != Self::default().auto_share {
-            self.auto_share = other.auto_share;
-        }
         for (k, v) in &other.keymaps {
             self.keymaps.insert(k.clone(), v.clone());
         }
@@ -165,8 +114,12 @@ impl AppConfig {
         for (k, v) in &other.dialog {
             self.dialog.insert(k.clone(), v.clone());
         }
-        for (k, v) in &other.settings {
-            self.settings.insert(k.clone(), v.clone());
+        // Port always comes from [common] serverPort (matches Node.js
+        // parseInt(config.common?.serverPort ?? 9900))
+        if let Some(v) = self.common.get("serverPort") {
+            if let Ok(p) = v.parse() {
+                self.port = p;
+            }
         }
     }
 
@@ -179,7 +132,7 @@ impl AppConfig {
         // [common] — serverPort is already in self.common
         content.push_str("[common]\n");
         for (k, v) in &self.common {
-            content.push_str(&format!("{} = {}\n", k, v));
+            content.push_str(&format!("{} = {}\n", k, escape_ini_value(v)));
         }
         content.push('\n');
 
@@ -187,24 +140,12 @@ impl AppConfig {
         if !self.dialog.is_empty() {
             content.push_str("[dialog]\n");
             for (k, v) in &self.dialog {
-                content.push_str(&format!("{} = {}\n", k, v));
+                content.push_str(&format!("{} = {}\n", k, escape_ini_value(v)));
             }
             content.push('\n');
         }
 
         std::fs::write(path, content).map_err(|e| e.to_string())
-    }
-
-    pub fn get_db_path(&self) -> String {
-        self.db_path.clone()
-    }
-
-    pub fn get(&self, key: &str) -> Option<&String> {
-        self.settings.get(key)
-    }
-
-    pub fn set(&mut self, key: &str, value: &str) {
-        self.settings.insert(key.to_string(), value.to_string());
     }
 }
 
@@ -232,6 +173,20 @@ pub fn find_config_file(exe_dir: &Path, cwd: &Path, filename: &str) -> PathBuf {
     // Fallback to exe_dir (file may not exist, parse_ini handles that)
     println!("[config] {} not found in any search path, using default: {:?}", filename, candidates[0]);
     candidates[0].clone()
+}
+
+/// Escape an INI value for writing, matching Node.js `ini.stringify` behavior:
+/// - Values containing newlines, quotes, `#` or `;` are JSON-escaped and wrapped
+///   in double quotes, e.g. `{...multi-line json...}` → `"{\n  \"key\": \"\"\n}"`
+/// - Plain values are written as-is.
+/// This round-trips with `strip_ini_quotes` on the read side.
+fn escape_ini_value(val: &str) -> String {
+    if val.contains('\n') || val.contains('\r') || val.contains('"')
+        || val.contains('#') || val.contains(';') {
+        serde_json::to_string(val).unwrap_or_else(|_| val.to_string())
+    } else {
+        val.to_string()
+    }
 }
 
 /// Strip surrounding quotes and unescape JSON escape sequences from an INI value.
@@ -292,12 +247,10 @@ pub fn read_config_file(path: &Path) -> Result<String, String> {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            port: 8888,
+            port: 9900,
             db_path: "./records.db".to_string(),
             ui_path: "ui".to_string(),
             keymaps: HashMap::new(),
-            auto_share: false,
-            settings: HashMap::new(),
             common: HashMap::new(),
             dialog: HashMap::new(),
         }
