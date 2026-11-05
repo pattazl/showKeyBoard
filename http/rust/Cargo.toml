@@ -1,6 +1,6 @@
 [package]
 name = "showkeyboard_server"
-version = "1.56.0"
+version = "1.61.0"
 edition = "2021"
 description = "ShowKeyBoard HTTP and WebSocket server"
 

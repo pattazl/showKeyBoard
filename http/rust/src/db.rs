@@ -144,16 +144,120 @@ pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
 
 // ============== Key Records Operations (Node.js getRecords) ==============
 
-/// Insert into `events` table — matches Node.js insertData: INSERT INTO events (keyname, keycount, tick, date)
-pub fn insert_key_record(db_path: &str, keyname: &str, keycount: i64, tick: i64, date: &str) -> Result<i64, String> {
+/// Matches Node.js insertData(records):
+/// - tick null/0 → skip
+/// - DELETE FROM events WHERE tick = ? (dedupe)
+/// - every numeric field (except tick) → one row (keyname, keycount, tick, date)
+/// - date = local date from tick timestamp (dayjs(new Date(tick)).format('YYYY-MM-DD'))
+/// - skip if stat table already has this date (already summarized)
+pub fn insert_key_records(db_path: &str, records: &serde_json::Value) -> Result<i64, String> {
+    let tick = records.get("tick").and_then(|v| v.as_i64()).unwrap_or(0);
+    if tick == 0 {
+        return Ok(0);
+    }
+
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
 
-    conn.execute(
-        "INSERT INTO events (keyname, keycount, date, tick) VALUES (?1, ?2, ?3, ?4)",
-        params![keyname, keycount, date, tick],
-    ).map_err(|e| e.to_string())?;
+    // Node.js: delete FROM events where tick = ?
+    conn.execute("DELETE FROM events WHERE tick = ?1", params![tick])
+        .map_err(|e| e.to_string())?;
 
-    Ok(conn.last_insert_rowid())
+    // Collect numeric fields (typeof records[k] == 'number', k != 'tick')
+    let mut arr: Vec<(String, f64)> = Vec::new();
+    if let Some(obj) = records.as_object() {
+        for (k, v) in obj {
+            if k != "tick" {
+                if let Some(n) = v.as_f64() {
+                    arr.push((k.clone(), n));
+                }
+            }
+        }
+    }
+    if arr.is_empty() {
+        return Ok(0);
+    }
+
+    // date from tick (local timezone, matching new Date(tick))
+    use chrono::TimeZone;
+    let tick_date = chrono::Local
+        .timestamp_millis_opt(tick)
+        .single()
+        .map(|dt| dt.format("%Y-%m-%d").to_string())
+        .unwrap_or_default();
+
+    // Node.js: skip if stat already summarized this date
+    let exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM stat WHERE date = ?1 LIMIT 1",
+            params![tick_date],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+    if exists > 0 {
+        info!("insertData: Exist rows in {}", tick_date);
+        return Ok(0);
+    }
+
+    let mut changes: i64 = 0;
+    for (name, count) in &arr {
+        changes += conn
+            .execute(
+                "INSERT INTO events (keyname, keycount, tick, date) VALUES (?1, ?2, ?3, ?4)",
+                params![name, count, tick, tick_date],
+            )
+            .map_err(|e| e.to_string())? as i64;
+    }
+    info!("insertData: {} rows inserted (tick={}, date={})", changes, tick, tick_date);
+    Ok(changes)
+}
+
+/// 'YYYYMMDDHHmm' → 'YYYY-MM-DD' (matches Node.js convert2Date)
+fn minute_str_to_date(minute: &str) -> String {
+    if minute.len() >= 8 {
+        format!("{}-{}-{}", &minute[0..4], &minute[4..6], &minute[6..8])
+    } else {
+        String::new()
+    }
+}
+
+/// Matches Node.js insertMiniute(records):
+/// - statFreq: (keyTime=Minute, keyCount, mouseCount, distance, freqType=0, date)
+/// - appFreq: (keyTime, appPath, keyCount=App.Key, mouseCount=App.Mouse, freqType=0, date)
+///   for each entry in Apps (skip empty-string keys)
+pub fn insert_minute_records(db_path: &str, records: &[serde_json::Value]) -> Result<(), String> {
+    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+
+    for r in records {
+        let minute = r.get("Minute").and_then(|v| v.as_str()).unwrap_or("");
+        if minute.is_empty() {
+            continue;
+        }
+        let date = minute_str_to_date(minute);
+        let key_count = r.get("KeyCount").and_then(|v| v.as_i64()).unwrap_or(0);
+        let mouse_count = r.get("MouseCount").and_then(|v| v.as_i64()).unwrap_or(0);
+        let distance = r.get("Distance").and_then(|v| v.as_i64()).unwrap_or(0);
+
+        conn.execute(
+            "INSERT INTO statFreq (keyTime, keyCount, mouseCount, distance, freqType, date) VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+            params![minute, key_count, mouse_count, distance, date],
+        ).map_err(|e| e.to_string())?;
+
+        // Apps: { appPath: { Key, Mouse } }
+        if let Some(apps) = r.get("Apps").and_then(|v| v.as_object()) {
+            for (app_path, app) in apps {
+                if app_path.is_empty() {
+                    continue; // 为空值时跳过
+                }
+                let app_key = app.get("Key").and_then(|v| v.as_i64()).unwrap_or(0);
+                let app_mouse = app.get("Mouse").and_then(|v| v.as_i64()).unwrap_or(0);
+                conn.execute(
+                    "INSERT INTO appFreq (keyTime, appPath, keyCount, mouseCount, freqType, date) VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+                    params![minute, app_path, app_key, app_mouse, date],
+                ).map_err(|e| e.to_string())?;
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Matches Node.js getRecords(begin, end, newDbName).
@@ -353,6 +457,7 @@ pub fn get_minute_records(
 
 /// Matches Node.js getHistoryDate: query stat table for all distinct dates, descending.
 /// Returns a flat array of date strings like ["2025-01-15", "2025-01-14", ...].
+/// Empty / NULL dates are filtered out.
 pub fn get_history_dates(db_path: &str) -> Result<Vec<String>, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
 
@@ -360,11 +465,14 @@ pub fn get_history_dates(db_path: &str) -> Result<Vec<String>, String> {
         "SELECT date FROM stat group by date order by date desc"
     ).map_err(|e| e.to_string())?;
 
-    let dates = stmt.query_map([], |row| {
-        row.get::<_, String>(0)
+    let dates: Vec<String> = stmt.query_map([], |row| {
+        row.get::<_, Option<String>>(0)
     }).map_err(|e| e.to_string())?
-      .collect::<SqlResult<Vec<_>>>()
-      .map_err(|e| e.to_string())?;
+      .filter_map(|r| r.ok())
+      .flatten()
+      .map(|d| d.trim().to_string())
+      .filter(|d| !d.is_empty())
+      .collect();
 
     Ok(dates)
 }

@@ -15,17 +15,6 @@ pub struct SetParaRequest {
     pub data_setting: Option<std::collections::HashMap<String, String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DataRequest {
-    #[serde(rename = "appName")]
-    pub app_name: Option<String>,
-    #[serde(rename = "dataType")]
-    pub data_type: Option<String>,
-    pub data: Option<serde_json::Value>,
-    pub tick: Option<i64>,
-    pub date: Option<String>,
-}
-
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct PcInfoRequest {
@@ -57,14 +46,11 @@ pub struct KeymapRequest {
     pub map_detail: Option<String>,
 }
 
+/// Matches Node.js deleteDataFun: { flag: number, date: [array] }
 #[derive(Debug, Deserialize)]
 pub struct DeleteDataRequest {
-    #[serde(rename = "optType")]
-    pub opt_type: Option<String>,
-    #[allow(dead_code)]
-    pub id: Option<i64>,
-    pub date: Option<String>,
-    pub db: Option<String>,
+    pub flag: Option<i64>,
+    pub date: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]

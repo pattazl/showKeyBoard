@@ -31,8 +31,12 @@ pub struct SharedState {
     /// WebSocket broadcast: (target_type, message)
     /// target_type: "" = web, "ahkClient", "ahkKeyShow"
     pub ws_tx: broadcast::Sender<(String, String)>,
-    /// Latest key data (for preData sent to web clients)
+    /// Latest key data (for preData sent to web clients) — matches Node.js preData
     pub pre_data: serde_json::Value,
+    /// Last minute record kept for merging (matches Node.js lastMinuteRecords)
+    pub last_minute_record: serde_json::Value,
+    /// Pending last record with LastFlag=1 (matches Node.js lastFlagRecord)
+    pub last_flag_record: serde_json::Value,
     /// Graceful shutdown signal (matches Node.js exitFun)
     pub shutdown_notify: Arc<Notify>,
 }
@@ -198,6 +202,8 @@ async fn main() {
         info_pc: serde_json::Value::Object(serde_json::Map::new()),
         ws_tx,
         pre_data: serde_json::Value::Object(serde_json::Map::new()),
+        last_minute_record: serde_json::Value::Null,
+        last_flag_record: serde_json::Value::Null,
         shutdown_notify: shutdown_notify.clone(),
     }));
     

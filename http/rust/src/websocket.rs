@@ -8,11 +8,20 @@ use tokio::sync::broadcast;
 use log::{info, warn};
 use crate::AppState;
 
+/// Client identity flags — matches Node.js consts in common.js:
+/// `const ahkClientFlag = 'ahkClient'` / `const ahkKeyShowFlag = 'ahkKeyShow'`
+/// 标记识别为客户端, 接受按键消息
+pub const AHK_CLIENT_FLAG: &str = "ahkClient";
+/// 标记识别显示按键消息
+pub const AHK_KEY_SHOW_FLAG: &str = "ahkKeyShow";
+/// Web client — default clientType (matches Node.js: ws.clientType = '')
+pub const WEB_CLIENT_FLAG: &str = "";
+
 /// WebSocket upgrade handler — matches Node.js startWS().
 /// Clients connect and send their type as first message:
 ///   - "" (empty/other) → web client, receives preData + real-time data broadcasts
-///   - "ahkClient"      → AHK key collector, receives "IniMonitor" on config change
-///   - "ahkKeyShow"     → AHK key display, receives forwarded key messages from ahkClient
+///   - AHK_CLIENT_FLAG  → AHK key collector, receives "IniMonitor" on config change
+///   - AHK_KEY_SHOW_FLAG → AHK key display, receives forwarded key messages from ahkClient
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
@@ -43,14 +52,14 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
 
                         // Client identity identification (Node.js: ahkClientFlag / ahkKeyShowFlag)
                         if client_type.is_empty() {
-                            if text_str == "ahkClient" || text_str == "ahkKeyShow" {
+                            if text_str == AHK_CLIENT_FLAG || text_str == AHK_KEY_SHOW_FLAG {
                                 client_type = text_str.clone();
                                 info!("WS client identified as: {}", client_type);
                                 continue;
                             }
                         }
 
-                        if client_type.is_empty() {
+                        if client_type == WEB_CLIENT_FLAG {
                             // Web client (clientType == ''): any message → reply with preData
                             let s = state.read().await;
                             let pre_data_str = serde_json::to_string(&s.pre_data).unwrap_or_default();
@@ -58,9 +67,9 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                             if socket.send(Message::Text(pre_data_str.into())).await.is_err() {
                                 break;
                             }
-                        } else if client_type == "ahkClient" {
+                        } else if client_type == AHK_CLIENT_FLAG {
                             // AHK client sends key data → forward to all ahkKeyShow clients
-                            let _ = ws_tx.send(("ahkKeyShow".to_string(), text_str));
+                            let _ = ws_tx.send((AHK_KEY_SHOW_FLAG.to_string(), text_str));
                         }
                         // ahkKeyShow doesn't send messages (passive receiver)
                     }
