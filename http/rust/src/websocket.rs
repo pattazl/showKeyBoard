@@ -48,30 +48,29 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
             msg_result = socket.recv() => {
                 match msg_result {
                     Some(Ok(Message::Text(text))) => {
-                        let text_str = text.to_string();
-
-                        // Client identity identification (Node.js: ahkClientFlag / ahkKeyShowFlag)
-                        if client_type.is_empty() {
-                            if text_str == AHK_CLIENT_FLAG || text_str == AHK_KEY_SHOW_FLAG {
-                                client_type = text_str.clone();
-                                info!("WS client identified as: {}", client_type);
-                                continue;
-                            }
+                        if !handle_client_payload(
+                            &mut socket,
+                            &mut client_type,
+                            &ws_tx,
+                            &state,
+                            text.to_string(),
+                        ).await {
+                            break;
                         }
-
-                        if client_type == WEB_CLIENT_FLAG {
-                            // Web client (clientType == ''): any message → reply with preData
-                            let s = state.read().await;
-                            let pre_data_str = serde_json::to_string(&s.pre_data).unwrap_or_default();
-                            drop(s);
-                            if socket.send(Message::Text(pre_data_str.into())).await.is_err() {
-                                break;
-                            }
-                        } else if client_type == AHK_CLIENT_FLAG {
-                            // AHK client sends key data → forward to all ahkKeyShow clients
-                            let _ = ws_tx.send((AHK_KEY_SHOW_FLAG.to_string(), text_str));
+                    }
+                    Some(Ok(Message::Binary(data))) => {
+                        // Node.js 收到的是 Buffer，二进制帧与文本帧处理方式完全一致
+                        let payload = String::from_utf8_lossy(&data).to_string();
+                        info!("WS binary frame ({} bytes) from client {:?}", data.len(), client_type);
+                        if !handle_client_payload(
+                            &mut socket,
+                            &mut client_type,
+                            &ws_tx,
+                            &state,
+                            payload,
+                        ).await {
+                            break;
                         }
-                        // ahkKeyShow doesn't send messages (passive receiver)
                     }
                     Some(Ok(Message::Close(_))) => {
                         info!("WS client disconnected: {}", client_type);
@@ -83,9 +82,6 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                         }
                     }
                     Some(Ok(Message::Pong(_))) => {}
-                    Some(Ok(Message::Binary(data))) => {
-                        info!("WS binary data: {} bytes", data.len());
-                    }
                     Some(Err(e)) => {
                         warn!("WS recv error: {}", e);
                         break;
@@ -119,6 +115,43 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     }
 
     info!("WebSocket connection closed: {}", client_type);
+}
+
+/// Handle one client payload — matches Node.js `ws.on('message')`.
+///
+/// Node.js always receives the frame as a Buffer, so **text and binary frames are
+/// handled identically** (AHK WebSocket clients often send binary frames).
+/// Returns false when the connection should be closed.
+async fn handle_client_payload(
+    socket: &mut WebSocket,
+    client_type: &mut String,
+    ws_tx: &broadcast::Sender<(String, String)>,
+    state: &AppState,
+    payload: String,
+) -> bool {
+    // 身份识别：Node.js 对每条消息都做判断（不限于首次），这里同样处理
+    let token = payload.trim();
+    if token == AHK_CLIENT_FLAG || token == AHK_KEY_SHOW_FLAG {
+        *client_type = token.to_string();
+        info!("ahkFlag:{}", client_type);
+        return true; // 身份识别完毕
+    }
+
+    if *client_type == WEB_CLIENT_FLAG {
+        // Web 端的链接，发送消息给客户端用于刷新界面（Node.js: ws.send(JSON.stringify(preData))）
+        let pre_data_str = {
+            let s = state.read().await;
+            serde_json::to_string(&s.pre_data).unwrap_or_default()
+        };
+        if socket.send(Message::Text(pre_data_str.into())).await.is_err() {
+            return false;
+        }
+    } else if *client_type == AHK_CLIENT_FLAG {
+        // 按键消息需要发送给全部的显示接收端（node: 遍历 clients, clientType == ahkKeyShow）
+        let _ = ws_tx.send((AHK_KEY_SHOW_FLAG.to_string(), payload));
+    }
+    // ahkKeyShow 只接收，不处理其发来的消息
+    true
 }
 
 /// Root path handler: handles BOTH WebSocket upgrades and normal HTTP requests.

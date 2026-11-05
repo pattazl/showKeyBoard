@@ -53,17 +53,6 @@ pub struct DeleteDataRequest {
     pub date: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AppMinuteRequest {
-    #[serde(rename = "beginDate")]
-    pub begin_date: Option<String>,
-    #[serde(rename = "endDate")]
-    pub end_date: Option<String>,
-    #[serde(rename = "isTotal")]
-    pub is_total: Option<bool>,
-    pub db: Option<String>,
-}
-
 // ============== Response Models ==============
 
 /// Node.js getRecords response: { keyname, keycount, date, tick }
@@ -111,13 +100,6 @@ where
         }
     }
     deserializer.deserialize_any(TickVisitor)
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AppMinuteRecord {
-    pub app: Option<String>,
-    pub date: Option<String>,
-    pub minutes: Option<i64>,
 }
 
 /// Node.js /minuteData response when isApp != true (statFreq table)

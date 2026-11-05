@@ -2,7 +2,7 @@ use rusqlite::{Connection, params, Result as SqlResult};
 use std::path::Path;
 use std::collections::HashMap;
 use log::info;
-use crate::models::{HistoryRecord, AppMinuteRecord, UserKeymap, KeymapBrief, MinuteStatRecord, MinuteAppRecord};
+use crate::models::{HistoryRecord, UserKeymap, KeymapBrief, MinuteStatRecord, MinuteAppRecord};
 
 pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
@@ -136,6 +136,18 @@ pub fn init_database<P: AsRef<Path>>(db_path: P) -> Result<(), String> {
     conn.execute("CREATE INDEX IF NOT EXISTS appFreq_date_IDX ON appFreq (date)", [])
         .map_err(|e| e.to_string())?;
     conn.execute("CREATE INDEX IF NOT EXISTS appFreq_type_IDX ON appFreq (freqType)", [])
+        .map_err(|e| e.to_string())?;
+
+    // Create appStat table — matches Node.js updateDBStruct() (application usage minutes)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS appStat (
+            appPath TEXT,
+            minuteCount REAL,
+            date TEXT
+        )",
+        [],
+    ).map_err(|e| e.to_string())?;
+    conn.execute("CREATE INDEX IF NOT EXISTS appStat_date_IDX ON appStat (date)", [])
         .map_err(|e| e.to_string())?;
     
     info!("Database initialized successfully");
@@ -315,48 +327,88 @@ pub fn get_records(
     Ok(results)
 }
 
-// ============== App Minutes Operations ==============
+// ============== App Minutes Operations (Node.js getAppMinute) ==============
 
-pub fn get_app_minutes(
+/// Format a REAL/INTEGER SQLite number the way Node.js would: integral values
+/// serialize without a fractional part (161.0 → 161, 161.32 → 161.32).
+fn js_num(v: f64) -> serde_json::Value {
+    if v.fract() == 0.0 && v.abs() < 9.007_199_254_740_992e15 {
+        serde_json::json!(v as i64)
+    } else {
+        serde_json::Value::from(v)
+    }
+}
+
+/// Matches Node.js getAppMinute(beginDate, endDate, isTotal, newDbName):
+/// - is_total truthy → per-date totals from `appStat`:
+///     `{ "Date": date, "Minutes": sum(minuteCount), "AppCount": count(1) }`
+/// - else → per-date top `app_top_n` apps by minutes:
+///     `{ "Apps": appPath, "Date": date, "Minutes": minuteCount }`
+/// NOTE: `app_top_n` corresponds to Node.js `~~globalAppTopN` (dataSetting2.appTopN, default 10).
+pub fn get_app_minute(
     db_path: &str,
     begin_date: Option<&str>,
     end_date: Option<&str>,
-    is_app: bool
-) -> Result<Vec<AppMinuteRecord>, String> {
+    is_total: bool,
+    app_top_n: i64,
+) -> Result<Vec<serde_json::Value>, String> {
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
-    
-    let group_by = if is_app { "app, date" } else { "date" };
-    
-    let sql = match (begin_date, end_date) {
-        (Some(begin), Some(end)) => format!(
-            "SELECT app, date, SUM(minutes) as minutes 
-             FROM app_minutes 
-             WHERE date BETWEEN '{}' AND '{}' 
-             GROUP BY {} 
-             ORDER BY date DESC", 
-            begin, end, group_by
-        ),
-        _ => format!(
-            "SELECT app, date, SUM(minutes) as minutes 
-             FROM app_minutes 
-             GROUP BY {} 
-             ORDER BY date DESC", 
-            group_by
-        )
-    };
-    
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-    let records = stmt.query_map([], |row| {
-        Ok(AppMinuteRecord {
-            app: row.get(0)?,
-            date: row.get(1)?,
-            minutes: row.get(2)?,
-        })
-    }).map_err(|e| e.to_string())?
-      .collect::<SqlResult<Vec<_>>>()
-      .map_err(|e| e.to_string())?;
-    
-    Ok(records)
+
+    // Node.js: beginDate ?? '' / endDate ?? ''
+    let begin = begin_date.unwrap_or("");
+    let end = end_date.unwrap_or("");
+
+    let mut out: Vec<serde_json::Value> = Vec::new();
+
+    if is_total {
+        // select sum(minuteCount) as minuteCount,date,count(1) as appCount from appStat
+        //   where date between ? and ? group by date
+        let sql = "SELECT sum(minuteCount) AS minuteCount, date, count(1) AS appCount \
+                   FROM appStat WHERE date BETWEEN ? AND ? GROUP BY date";
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![begin, end], |row| {
+                let minutes: Option<f64> = row.get(0)?;
+                Ok(serde_json::json!({
+                    "Date": row.get::<_, Option<String>>(1)?,
+                    "Minutes": js_num(minutes.unwrap_or(0.0)),
+                    "AppCount": row.get::<_, i64>(2)?,
+                }))
+            })
+            .map_err(|e| e.to_string())?;
+        for r in rows {
+            out.push(r.map_err(|e| e.to_string())?);
+        }
+    } else {
+        // WITH ranked_data AS (
+        //   SELECT date, appPath, minuteCount,
+        //          ROW_NUMBER() OVER (PARTITION BY date ORDER BY minuteCount DESC) AS rank_num
+        //   FROM appStat where date between ? and ?)
+        // SELECT date, appPath, minuteCount FROM ranked_data WHERE rank_num <= ? ORDER BY date
+        let sql = "WITH ranked_data AS ( \
+                       SELECT date, appPath, minuteCount, \
+                              ROW_NUMBER() OVER (PARTITION BY date ORDER BY minuteCount DESC) AS rank_num \
+                       FROM appStat WHERE date BETWEEN ? AND ? \
+                   ) \
+                   SELECT date, appPath, minuteCount FROM ranked_data \
+                   WHERE rank_num <= ? ORDER BY date";
+        let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![begin, end, app_top_n], |row| {
+                let minutes: Option<f64> = row.get(2)?;
+                Ok(serde_json::json!({
+                    "Apps": row.get::<_, Option<String>>(1)?,
+                    "Date": row.get::<_, Option<String>>(0)?,
+                    "Minutes": js_num(minutes.unwrap_or(0.0)),
+                }))
+            })
+            .map_err(|e| e.to_string())?;
+        for r in rows {
+            out.push(r.map_err(|e| e.to_string())?);
+        }
+    }
+
+    Ok(out)
 }
 
 // ============== Minute/App Frequency Operations (Node.js getMinuteRecords) ==============
@@ -495,7 +547,9 @@ pub fn stat_data(
     let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
 
     // pro1: mouseDistance by date
-    let sql1 = "SELECT keycount, date FROM stat WHERE date BETWEEN ?1 AND ?2 AND keyname = 'mouseDistance' ORDER BY date";
+    // NOTE: use plain `?` placeholders (not ?1/?2) so the bind order matches
+    // Node.js sqlite3, which binds parameters strictly left-to-right.
+    let sql1 = "SELECT keycount, date FROM stat WHERE date BETWEEN ? AND ? AND keyname = 'mouseDistance' ORDER BY date";
     let mut stmt1 = conn.prepare(sql1).map_err(|e| e.to_string())?;
     let pro1: Vec<serde_json::Value> = stmt1.query_map(params![begin, end], |row| {
         Ok(serde_json::json!({
@@ -506,12 +560,12 @@ pub fn stat_data(
       .collect::<SqlResult<Vec<_>>>()
       .map_err(|e| e.to_string())?;
 
-    // pro2: mouse + keyboard grouped by date
+    // pro2: mouse + keyboard grouped by date (4 placeholders, Node.js binds begin,end,begin,end)
     let sql2 = "SELECT sum(keycount) as keycount, date, 'mouse' as keyname FROM stat
-        WHERE date BETWEEN ?1 AND ?2 AND keyname IN ('LButton','RButton','MButton','WheelDown','WheelUp') GROUP BY date
+        WHERE date BETWEEN ? AND ? AND keyname IN ('LButton','RButton','MButton','WheelDown','WheelUp') GROUP BY date
         UNION
         SELECT sum(keycount) as keycount, date, 'keyboard' FROM stat
-        WHERE date BETWEEN ?1 AND ?2 AND keyname NOT IN ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
+        WHERE date BETWEEN ? AND ? AND keyname NOT IN ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
         AND keyname NOT LIKE 'App-%'
         GROUP BY date";
     let mut stmt2 = conn.prepare(sql2).map_err(|e| e.to_string())?;
@@ -527,7 +581,7 @@ pub fn stat_data(
 
     // pro3: top N keys
     let sql3 = format!(
-        "WITH temp AS (SELECT * FROM stat WHERE date BETWEEN ?1 AND ?2)
+        "WITH temp AS (SELECT * FROM stat WHERE date BETWEEN ? AND ?)
          SELECT keycount, date, keyname FROM temp WHERE keyname IN
          (SELECT keyname FROM temp WHERE keyname NOT IN ('mouseDistance','LButton','RButton','MButton','WheelDown','WheelUp')
           AND keyname NOT LIKE 'App-%'
@@ -549,7 +603,7 @@ pub fn stat_data(
     // pro4: top N apps
     let sql4 = format!(
         "WITH temp AS (
-            SELECT * FROM stat WHERE keyname LIKE 'App-%' AND date BETWEEN ?1 AND ?2
+            SELECT * FROM stat WHERE keyname LIKE 'App-%' AND date BETWEEN ? AND ?
         ),
         temp2 AS (
             SELECT REPLACE(REPLACE(keyname,'App-Mouse-',''),'App-Key-','') as pathname, sum(keycount) as count

@@ -973,24 +973,70 @@ pub async fn get_dbs(
     }
 }
 
+/// Matches Node.js route: POST /getAppMinute → getAppMinute(beginDate, endDate, isTotal, db)
+/// Body: { beginDate, endDate, isTotal (0/1), db }
+/// Response: raw JSON array (Node.js: res.send(JSON.stringify(arr)))
 pub async fn get_app_minute(
-    State(_state): State<AppState>,
-    Json(req): Json<AppMinuteRequest>,
+    State(state): State<AppState>,
+    body: Option<Json<serde_json::Value>>,
 ) -> impl IntoResponse {
-    info!("POST /getAppMinute - isTotal: {:?}", req.is_total);
-    
-    let db_path = get_db_path(&_state).await;
-    let req_db = req.db.as_deref().unwrap_or(&db_path);
-    let is_app = req.is_total.unwrap_or(false);
-    
-    match db::get_app_minutes(req_db, req.begin_date.as_deref(), req.end_date.as_deref(), is_app) {
-        Ok(records) => Json(serde_json::json!({
-            "success": true,
-            "data": records
-        })),
-        Err(e) => Json(serde_json::json!({
-            "success": false,
-            "error": e
-        }))
+    let begin = body.as_ref()
+        .and_then(|b| b.get("beginDate"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let end = body.as_ref()
+        .and_then(|b| b.get("endDate"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let db_name = body.as_ref()
+        .and_then(|b| b.get("db"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    // Node.js: `if (isTotal)` — 0 / false / null / undefined 均为 false
+    let is_total = body.as_ref()
+        .and_then(|b| b.get("isTotal"))
+        .map(|v| match v {
+            serde_json::Value::Bool(b) => *b,
+            serde_json::Value::Number(n) => n.as_f64().unwrap_or(0.0) != 0.0,
+            serde_json::Value::String(s) => !s.is_empty() && s != "0",
+            serde_json::Value::Null => false,
+            _ => true,
+        })
+        .unwrap_or(false);
+
+    info!("POST /getAppMinute - begin: {:?}, end: {:?}, isTotal: {}, db: {:?}",
+        begin, end, is_total, db_name);
+
+    let (default_db_path, base_dir) = {
+        let sg = state.read().await;
+        (sg.db_path.clone(), sg.base_dir.clone())
+    };
+
+    // Node.js getDbObj: invalid/unknown db name → null → return []
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+    if db_path.is_empty() {
+        return Json(serde_json::json!([]));
+    }
+
+    // Node.js: ~~globalAppTopN (dataSetting2.appTopN, default 10)
+    let settings = db::get_data_setting(&db_path).unwrap_or_default();
+    let app_top_n = settings
+        .get("appTopN")
+        .and_then(|s| s.trim().parse::<i64>().ok())
+        .unwrap_or(10);
+
+    // Node.js wraps each query in try/catch and returns whatever was collected (usually [])
+    match db::get_app_minute(
+        &db_path,
+        begin.as_deref(),
+        end.as_deref(),
+        is_total,
+        app_top_n,
+    ) {
+        Ok(rows) => Json(serde_json::Value::Array(rows)),
+        Err(e) => {
+            info!("getAppMinute query error: {}", e);
+            Json(serde_json::json!([]))
+        }
     }
 }
