@@ -1,0 +1,94 @@
+// ShowKeyBoard Rust 版 - Slint UI
+// KeyOverlay : 按键浮窗（透明背景、圆角、渐隐）
+// CtrlOverlay: 控制键状态窗 / 应用路径提示窗
+
+export component KeyOverlay inherits Window {
+    in property <string> overlay-id: "SKBOverlay";
+    in property <string> label;
+    in property <color> bg-color: #9611AA99;
+    in property <color> txt-color: #FFFF0000;
+    in property <string> font-name: "Verdana";
+    in property <int> font-size: 26;
+    in property <int> font-weight: 700;
+    in property <length> corner-radius: 0px;
+    in property <float> fade: 1.0; // 1.0 不透明，渐隐时逐步降到 0
+    in property <length> o-width: 300px;
+    in property <length> o-height: 60px;
+
+    title: overlay-id;
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    width: o-width;
+    height: o-height;
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        background: bg-color;
+        border-radius: root.corner-radius;
+        clip: true;
+        opacity: root.fade;
+        Text {
+            x: 4px;
+            width: parent.width - 8px;
+            height: parent.height;
+            text: root.label;
+            color: txt-color;
+            font-family: root.font-name;
+            font-size: root.font-size * 1px;
+            font-weight: root.font-weight;
+            wrap: word-wrap;
+            vertical-alignment: center;
+            horizontal-alignment: left;
+            overflow: elide;
+        }
+    }
+}
+
+export component CtrlOverlay inherits Window {
+    in property <string> overlay-id: "SKBCtrl";
+    in property <string> label;
+    in property <color> bg-color: #9611AA99;
+    in property <color> txt-color: #FFFF0000;
+    in property <string> font-name: "Verdana";
+    in property <int> font-size: 20;
+    in property <int> font-weight: 700;
+    in property <length> corner-radius: 0px;
+    in property <float> fade: 1.0;
+    in property <length> o-width: 240px;
+    in property <length> o-height: 40px;
+
+    title: overlay-id;
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    width: o-width;
+    height: o-height;
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        background: bg-color;
+        border-radius: root.corner-radius;
+        clip: true;
+        opacity: root.fade;
+        Text {
+            x: 4px;
+            width: parent.width - 8px;
+            height: parent.height;
+            text: root.label;
+            color: txt-color;
+            font-family: root.font-name;
+            font-size: root.font-size * 1px;
+            font-weight: root.font-weight;
+            wrap: no-wrap;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}

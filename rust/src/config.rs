@@ -1,0 +1,445 @@
+//! 配置读取：完全使用 showKeyBoard.ini（含 showKeyBoard.desc.ini 默认值机制）。
+//! INI 文件为 ANSI/GBK 编码（Node 端 iniAnsiWrite 写入），兼容 UTF-8。
+#![allow(dead_code)]
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+use crate::winutil;
+
+fn decode_ini(bytes: &[u8]) -> String {
+    // 优先 UTF-8（含 BOM），失败则按 GBK 解码
+    if let Ok(s) = std::str::from_utf8(bytes) {
+        return s.trim_start_matches('\u{feff}').to_string();
+    }
+    let (cow, _, _) = encoding_rs::GBK.decode(bytes);
+    cow.into_owned()
+}
+
+/// 极简 INI 解析（节 -> 键 -> 值），注释 ; 或 #
+fn parse_ini(text: &str) -> HashMap<String, HashMap<String, String>> {
+    let mut map: HashMap<String, HashMap<String, String>> = HashMap::new();
+    let mut section = String::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with(';') || line.starts_with('#') {
+            continue;
+        }
+        if line.starts_with('[') && line.ends_with(']') {
+            section = line[1..line.len() - 1].trim().to_string();
+            continue;
+        }
+        if let Some(pos) = line.find('=') {
+            let key = line[..pos].trim().to_string();
+            let mut val = line[pos + 1..].trim().to_string();
+            // JS ini 写入时对包含 # 的值加了引号，去掉成对引号
+            if val.len() >= 2 && val.starts_with('"') && val.ends_with('"') {
+                val = val[1..val.len() - 1].to_string();
+            }
+            map.entry(section.clone()).or_default().insert(key, val);
+        }
+    }
+    map
+}
+
+pub struct Ini {
+    map: HashMap<String, HashMap<String, String>>,
+}
+
+impl Ini {
+    pub fn load(path: &Path) -> Ini {
+        let text = std::fs::read(path)
+            .map(|b| decode_ini(&b))
+            .unwrap_or_default();
+        Ini { map: parse_ini(&text) }
+    }
+    pub fn get(&self, section: &str, key: &str) -> Option<&str> {
+        self.map.get(section)?.get(key).map(|s| s.as_str())
+    }
+}
+
+fn split_pipe(s: &str) -> Vec<String> {
+    s.split('|').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()
+}
+
+/// 解析 "RRGGBB" -> (r,g,b)
+pub fn parse_color(s: &str) -> (u8, u8, u8) {
+    let s = s.trim().trim_start_matches('#');
+    if s.len() >= 6 {
+        if let (Ok(r), Ok(g), Ok(b)) = (
+            u8::from_str_radix(&s[0..2], 16),
+            u8::from_str_radix(&s[2..4], 16),
+            u8::from_str_radix(&s[4..6], 16),
+        ) {
+            return (r, g, b);
+        }
+    }
+    (0x11, 0xAA, 0x99)
+}
+
+/// UI 参数（dialog 节 + 部分 common 节），热重载使用
+#[derive(Clone, Debug)]
+pub struct UiParams {
+    pub gui_width: i32,
+    pub gui_height: i32,          // 0 自动
+    pub gui_bgcolor: (u8, u8, u8),
+    pub gui_bg_trans: bool,
+    pub gui_trans: bool,
+    pub gui_opacity: i32,         // 0-255
+    pub gui_text_font: String,
+    pub gui_text_size: i32,
+    pub gui_text_bold: bool,
+    pub gui_text_color: (u8, u8, u8),
+    pub gui_life: u64,
+    pub gui_interval: u64,
+    pub gui_pos: String,          // TL TR BL BR
+    pub gui_pos_xy: String,       // X / Y
+    pub gui_pos_offset_x: i32,
+    pub gui_pos_offset_y: i32,
+    pub gui_monitor_num: i32,
+    pub gui_margin: i32,
+    pub gui_radius: i32,
+    pub gui_fade_ms: u64,
+    pub txt_split: String,
+    pub merge_char: bool,
+    pub ctrl_state: bool,
+    pub ctrl_x: i32,
+    pub ctrl_y: i32,
+    pub ctrl_text_size: i32,
+    pub ctrl_width: i32,
+    pub ctrl_height: i32,
+    pub ctrl_bgcolor: (u8, u8, u8),
+    pub ctrl_opacity: i32,
+    pub ctrl_text_font: String,
+    pub ctrl_text_bold: bool,
+    pub ctrl_text_color: (u8, u8, u8),
+    pub ctrl_radius: i32,
+    pub ctrl_list: Vec<String>,
+    pub skip_show: Vec<String>,
+    pub active_app_show: bool,
+    pub active_app_show_x: i32,
+    pub active_app_show_y: i32,
+    pub show_key_only_web: bool,
+}
+
+impl Default for UiParams {
+    fn default() -> Self {
+        Self {
+            gui_width: 300, gui_height: 0,
+            gui_bgcolor: (0x11, 0xAA, 0x99), gui_bg_trans: false, gui_trans: true,
+            gui_opacity: 150, gui_text_font: "Verdana".into(), gui_text_size: 26,
+            gui_text_bold: true, gui_text_color: (0xFF, 0, 0),
+            gui_life: 7000, gui_interval: 1000, gui_pos: "BR".into(), gui_pos_xy: "Y".into(),
+            gui_pos_offset_x: 0, gui_pos_offset_y: -50, gui_monitor_num: 2, gui_margin: 5,
+            gui_radius: 0, gui_fade_ms: 500, txt_split: " ".into(), merge_char: true,
+            ctrl_state: true, ctrl_x: 10, ctrl_y: 10, ctrl_text_size: 20, ctrl_width: 240,
+            ctrl_height: 0, ctrl_bgcolor: (0x11, 0xAA, 0x99), ctrl_opacity: 150,
+            ctrl_text_font: "Verdana".into(), ctrl_text_bold: true, ctrl_text_color: (0xFF, 0, 0),
+            ctrl_radius: 0,
+            ctrl_list: ["Ctrl", "Alt", "LWin", "Shift", "RWin", "CapsLock"].iter().map(|s| s.to_string()).collect(),
+            skip_show: vec![],
+            active_app_show: false, active_app_show_x: 0, active_app_show_y: 0,
+            show_key_only_web: false,
+        }
+    }
+}
+
+/// 运行期配置（DescRead 全量对应）
+#[derive(Clone, Debug)]
+pub struct Config {
+    pub ini_path: PathBuf,
+    pub desc_path: Option<PathBuf>, // showKeyBoard.desc.ini
+    pub http_path: PathBuf,         // node 脚本所在目录
+    pub need_record_key: bool,
+
+    // common
+    pub joy_method: i32,
+    pub need_traytip: bool,
+    pub skip_record: Vec<String>,
+    pub skip_ctrl_key: bool,
+    pub show_mouse_event: i32,
+    pub record_mouse_move: bool,
+    pub record_minute: bool,
+    pub need_show_key: bool,
+    pub hotkey4_show: String,
+    pub server_port: u16,
+    pub active_window_proc: String,
+    pub monitor_proc: String,
+    pub max_keypress_count: i32,
+    pub remote_type: i32,
+    pub hide_in_win_pwd: bool,
+    pub stat_proc_info: bool,
+    pub default_lang: String,
+    pub server_exec_name: String,
+    pub pre_app_name_enable: bool,
+    pub pre_app_name_list: Vec<(String, String)>, // 替换规则
+    pub record_history_max: usize,
+    pub check_server_max: i32,
+    pub max_count_of_connect_fail: i32,
+    pub show_http_debug: bool,
+
+    pub ui: UiParams,
+    pub generation: u64,
+}
+
+impl Config {
+    /// DescRead：先 desc.ini 再用户 ini
+    fn desc_read(user: &Ini, desc: &Option<Ini>, section: &str, key: &str, default: &str) -> String {
+        let mut val = default.to_string();
+        if let Some(d) = desc {
+            if let Some(v) = d.get(section, key) {
+                val = v.to_string();
+            }
+        }
+        if let Some(v) = user.get(section, key) {
+            val = v.to_string();
+        }
+        val
+    }
+
+    fn desc_read_i32(user: &Ini, desc: &Option<Ini>, section: &str, key: &str, default: i32) -> i32 {
+        Self::desc_read(user, desc, section, key, &default.to_string())
+            .trim()
+            .parse()
+            .unwrap_or(default)
+    }
+
+    fn desc_read_bool(user: &Ini, desc: &Option<Ini>, section: &str, key: &str, default: bool) -> bool {
+        matches!(
+            Self::desc_read(user, desc, section, key, if default { "1" } else { "0" }).trim(),
+            "1" | "true" | "True" | "TRUE"
+        )
+    }
+
+    pub fn load() -> Config {
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| PathBuf::from("."));
+        // 与 AHK 一致：以工作目录为基准；启动器已保证工作目录 = exe 目录
+        let work = std::env::current_dir().unwrap_or(exe_dir);
+        let ini_path = work.join("showKeyBoard.ini");
+        let user_ini = Ini::load(&ini_path);
+
+        let http_dist_path = Self::desc_read(&user_ini, &None, "common", "httpDistPath", "\\httpdist\\dist\\");
+        let mut http_path = work.join(http_dist_path.trim_start_matches(['\\', '/']).replace('/', "\\"));
+        if !http_path.exists() {
+            http_path = work.join(http_dist_path.trim().replace('/', "\\"));
+        }
+
+        let desc_path = {
+            let p = http_path.join("showKeyBoard.desc.ini");
+            if p.exists() { Some(Ini::load(&p)) } else { None }
+        };
+        let desc = &desc_path;
+
+        let mut need_record_key = Self::desc_read_bool(&user_ini, desc, "common", "needRecordKey", true);
+        if !http_path.exists() {
+            need_record_key = false; // 后端不存在则不启动记录
+        }
+
+        let joy_method = Self::desc_read_i32(&user_ini, desc, "common", "joyMethod", 2);
+        let server_port = Self::desc_read_i32(&user_ini, desc, "common", "serverPort", 19999) as u16;
+
+        let pre_app_name_enable = Self::desc_read_bool(&user_ini, desc, "common", "preAppNameEnable", false);
+        let mut pre_app_name_list = Vec::new();
+        if pre_app_name_enable {
+            let raw = Self::desc_read(&user_ini, desc, "common", "preAppNameList", "{}");
+            let raw = raw.replace("\\\\", "\\").replace("\\\"", "\"");
+            if let Ok(serde_json::Value::Object(obj)) = serde_json::from_str::<serde_json::Value>(&raw) {
+                for (k, v) in obj {
+                    if let Some(s) = v.as_str() {
+                        pre_app_name_list.push((k, s.to_string()));
+                    }
+                }
+            }
+        }
+
+        let show_mouse_event = Self::desc_read_i32(&user_ini, desc, "common", "showMouseEvent", 1);
+        let ui = UiParams {
+            gui_width: Self::desc_read_i32(&user_ini, desc, "dialog", "guiWidth", 300),
+            gui_height: Self::desc_read_i32(&user_ini, desc, "dialog", "guiHeigth", 0),
+            gui_bgcolor: parse_color(&Self::desc_read(&user_ini, desc, "dialog", "guiBgcolor", "11AA99")),
+            gui_bg_trans: Self::desc_read_i32(&user_ini, desc, "dialog", "guiBgTrans", 0) == 1,
+            gui_trans: Self::desc_read_i32(&user_ini, desc, "dialog", "guiTrans", 1) == 1,
+            gui_opacity: Self::desc_read_i32(&user_ini, desc, "dialog", "guiOpacity", 150).clamp(0, 255),
+            gui_text_font: Self::desc_read(&user_ini, desc, "dialog", "guiTextFont", "Verdana"),
+            gui_text_size: Self::desc_read_i32(&user_ini, desc, "dialog", "guiTextSize", 26),
+            gui_text_bold: Self::desc_read(&user_ini, desc, "dialog", "guiTextWeight", "bold").eq_ignore_ascii_case("bold"),
+            gui_text_color: parse_color(&Self::desc_read(&user_ini, desc, "dialog", "guiTextColor", "FF0000")),
+            gui_life: Self::desc_read_i32(&user_ini, desc, "dialog", "guiLife", 7000).max(0) as u64,
+            gui_interval: Self::desc_read_i32(&user_ini, desc, "dialog", "guiInterval", 1000).max(0) as u64,
+            gui_pos: Self::desc_read(&user_ini, desc, "dialog", "guiPos", "BR").to_uppercase(),
+            gui_pos_xy: Self::desc_read(&user_ini, desc, "dialog", "guiPosXY", "Y").to_uppercase(),
+            gui_pos_offset_x: Self::desc_read_i32(&user_ini, desc, "dialog", "guiPosOffsetX", 0),
+            gui_pos_offset_y: Self::desc_read_i32(&user_ini, desc, "dialog", "guiPosOffsetY", -50),
+            gui_monitor_num: Self::desc_read_i32(&user_ini, desc, "dialog", "guiMonitorNum", 2),
+            gui_margin: Self::desc_read_i32(&user_ini, desc, "dialog", "guiMargin", 5),
+            gui_radius: Self::desc_read_i32(&user_ini, desc, "dialog", "guiRadius", 0),
+            gui_fade_ms: Self::desc_read_i32(&user_ini, desc, "dialog", "guiFadeMs", 500).max(0) as u64,
+            txt_split: Self::desc_read(&user_ini, desc, "dialog", "txtSplit", " "),
+            merge_char: Self::desc_read_i32(&user_ini, desc, "dialog", "mergeChar", 1) == 1,
+            ctrl_state: Self::desc_read_i32(&user_ini, desc, "common", "ctrlState", 1) == 1,
+            ctrl_x: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlX", 10),
+            ctrl_y: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlY", 10),
+            ctrl_text_size: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlTextSize", 20),
+            ctrl_width: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlWidth", 240),
+            ctrl_height: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlHeight", 0),
+            ctrl_bgcolor: parse_color(&Self::desc_read(&user_ini, desc, "dialog", "ctrlBgcolor", "11AA99")),
+            ctrl_opacity: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlOpacity", 150).clamp(0, 255),
+            ctrl_text_font: Self::desc_read(&user_ini, desc, "dialog", "ctrlTextFont", "Verdana"),
+            ctrl_text_bold: Self::desc_read(&user_ini, desc, "dialog", "ctrlTextWeight", "bold").eq_ignore_ascii_case("bold"),
+            ctrl_text_color: parse_color(&Self::desc_read(&user_ini, desc, "dialog", "ctrlTextColor", "FF0000")),
+            ctrl_radius: Self::desc_read_i32(&user_ini, desc, "dialog", "ctrlRadius", 0),
+            ctrl_list: split_pipe(&Self::desc_read(&user_ini, desc, "dialog", "ctrlList", "Ctrl|Alt|LWin|Shift|RWin|CapsLock")),
+            skip_show: split_pipe(&Self::desc_read(&user_ini, desc, "dialog", "skipShow", "")),
+            active_app_show: Self::desc_read_i32(&user_ini, desc, "common", "activeAppShow", 0) == 1,
+            active_app_show_x: Self::desc_read_i32(&user_ini, desc, "dialog", "activeAppShowX", 0),
+            active_app_show_y: Self::desc_read_i32(&user_ini, desc, "dialog", "activeAppShowY", 0),
+            show_key_only_web: Self::desc_read_i32(&user_ini, desc, "common", "showKeyOnlyWeb", 0) == 1,
+        };
+
+        Config {
+            ini_path,
+            desc_path: None, // desc 已解析为 Ini，外部无需保存
+            http_path,
+            need_record_key,
+            joy_method,
+            need_traytip: Self::desc_read_bool(&user_ini, desc, "common", "needTraytip", true),
+            skip_record: split_pipe(&Self::desc_read(&user_ini, desc, "common", "skipRecord", "")),
+            skip_ctrl_key: Self::desc_read_i32(&user_ini, desc, "common", "skipCtrlKey", 0) == 1,
+            show_mouse_event,
+            record_mouse_move: Self::desc_read_bool(&user_ini, desc, "common", "recordMouseMove", false),
+            record_minute: Self::desc_read_bool(&user_ini, desc, "common", "recordMinute", true),
+            need_show_key: Self::desc_read_bool(&user_ini, desc, "common", "needShowKey", true),
+            hotkey4_show: Self::desc_read(&user_ini, desc, "common", "hotkey4Show", "^!+s"),
+            server_port,
+            active_window_proc: Self::desc_read(&user_ini, desc, "common", "activeWindowProc", ""),
+            monitor_proc: Self::desc_read(&user_ini, desc, "common", "monitorProc", ""),
+            max_keypress_count: Self::desc_read_i32(&user_ini, desc, "common", "maxKeypressCount", 10),
+            remote_type: Self::desc_read_i32(&user_ini, desc, "common", "remoteType", 0),
+            hide_in_win_pwd: Self::desc_read_bool(&user_ini, desc, "common", "hideInWinPwd", false),
+            stat_proc_info: Self::desc_read_bool(&user_ini, desc, "common", "statProcInfo", true),
+            default_lang: Self::desc_read(&user_ini, desc, "common", "defaultLang", "zh-CN"),
+            server_exec_name: Self::desc_read(&user_ini, desc, "common", "serverExecName", "node.exe"),
+            pre_app_name_enable,
+            pre_app_name_list,
+            record_history_max: Self::desc_read_i32(&user_ini, desc, "common", "recordHistoryMax", 50).max(0) as usize,
+            check_server_max: Self::desc_read_i32(&user_ini, desc, "common", "CheckServerMax", 9),
+            max_count_of_connect_fail: Self::desc_read_i32(&user_ini, desc, "common", "maxCountOfConnectFail", 60),
+            show_http_debug: Self::desc_read_bool(&user_ini, desc, "common", "showHttpDebug", false),
+            ui,
+            generation: 1,
+        }
+    }
+
+    /// 服务器地址
+    pub fn server_url(&self) -> String {
+        format!("http://127.0.0.1:{}", self.server_port)
+    }
+    pub fn server_ws_url(&self) -> String {
+        format!("ws://127.0.0.1:{}", self.server_port)
+    }
+
+    /// skipKeys：与 AHK getAllSkipKey 一致，"{Name}" 集合
+    pub fn skip_keys(&self) -> Vec<String> {
+        let mut keys = Vec::new();
+        if self.skip_ctrl_key {
+            for k in &self.ui.ctrl_list {
+                keys.push(k.clone());
+                // Ctrl -> LControl/RControl 等展开
+                match k.as_str() {
+                    "Ctrl" => { keys.push("LControl".into()); keys.push("RControl".into()); }
+                    "Alt" => { keys.push("LAlt".into()); keys.push("RAlt".into()); }
+                    "Shift" => { keys.push("LShift".into()); keys.push("RShift".into()); }
+                    "LWin" => { keys.push("RWin".into()); }
+                    "LCtrl" => { keys.push("RCtrl".into()); }
+                    _ => {}
+                }
+            }
+        }
+        for k in &self.skip_record {
+            keys.push(k.clone());
+        }
+        keys
+    }
+
+    pub fn server_url_print(&self) -> String {
+        format!("http://127.0.0.1:{}", self.server_port)
+    }
+
+    pub fn gen(&self) -> u64 {
+        self.generation
+    }
+}
+
+/// KeyList.txt 按键转换映射
+pub struct KeyMapping {
+    map: Vec<(String, String)>, // 保持文件顺序，转换时长键优先
+}
+
+impl KeyMapping {
+    pub fn load(work_dir: &Path) -> KeyMapping {
+        let file = work_dir.join("KeyList.txt");
+        let mut map = Vec::new();
+        if let Ok(bytes) = std::fs::read(&file) {
+            let text = String::from_utf8_lossy(&bytes);
+            for line in text.lines() {
+                if let Some(pos) = line.find(':') {
+                    let k = line[..pos].trim();
+                    let v = line[pos + 1..].trim();
+                    if !k.is_empty() && !v.is_empty() {
+                        map.push((k.to_string(), v.to_string()));
+                    }
+                }
+            }
+            // 长键名优先替换，避免子串误替换
+            map.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+        }
+        KeyMapping { map }
+    }
+    /// ConvertTxt：完全匹配优先，其次子串替换
+    pub fn convert(&self, t: &str) -> String {
+        for (k, v) in &self.map {
+            if k == t {
+                return v.clone();
+            }
+        }
+        let mut out = t.to_string();
+        for (k, v) in &self.map {
+            if out.contains(k.as_str()) {
+                out = out.replace(k.as_str(), v);
+            }
+        }
+        out
+    }
+}
+
+/// 单实例互斥（对应 AHK #SingleInstance Ignore）
+pub struct SingleInstance {
+    _handle: windows_sys::Win32::Foundation::HANDLE,
+}
+
+impl SingleInstance {
+    pub fn acquire(name: &str) -> Option<SingleInstance> {
+        use windows_sys::Win32::System::Threading::CreateMutexW;
+        let wname = winutil::wide(name);
+        unsafe {
+            let h = CreateMutexW(std::ptr::null(), 0, wname.as_ptr());
+            if h.is_null() {
+                return None;
+            }
+            // ERROR_ALREADY_EXISTS(183) 表示已有实例
+            let err = windows_sys::Win32::Foundation::GetLastError();
+            if err == 183 {
+                return None;
+            }
+            Some(SingleInstance { _handle: h })
+        }
+    }
+}
+
+/// 写 PID 文件（kb.pid），getKeyInput 兼容保留
+pub fn write_pid_file(dir: &Path) {
+    let pid_file = dir.join("kb.pid");
+    let _ = std::fs::write(pid_file, std::process::id().to_string());
+}

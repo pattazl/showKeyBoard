@@ -1,0 +1,9 @@
+# 构建产物
+/target
+check.log
+check.err
+build_no.txt
+
+# 运行时状态
+kb.pid
+lastRecord.json
