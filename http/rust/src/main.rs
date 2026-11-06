@@ -3,6 +3,7 @@ mod models;
 mod db;
 mod websocket;
 mod config;
+mod tasks;
 pub mod font;
 
 use axum::{
@@ -39,6 +40,8 @@ pub struct SharedState {
     pub last_flag_record: serde_json::Value,
     /// Graceful shutdown signal (matches Node.js exitFun)
     pub shutdown_notify: Arc<Notify>,
+    /// 触发 doCleanData 数据整理（Node: 插入数据后 setTimeout(doCleanData, 3000)）
+    pub clean_notify: Arc<Notify>,
 }
 
 #[tokio::main]
@@ -205,6 +208,7 @@ async fn main() {
         last_minute_record: serde_json::Value::Null,
         last_flag_record: serde_json::Value::Null,
         shutdown_notify: shutdown_notify.clone(),
+        clean_notify: Arc::new(Notify::new()),
     }));
     
     // CORS layer
@@ -245,11 +249,14 @@ async fn main() {
         // Fallback: serve static files (JS, CSS, images, etc.) for all unmatched paths
         .fallback_service(ServeDir::new(&ui_path))
         .layer(cors)
-        .with_state(shared_state);
+        .with_state(shared_state.clone());
     
     println!("⚡ WebSocket server ready at ws://127.0.0.1:{}/", port);
     println!("🚀 Server listening on http://127.0.0.1:{}", port);
-    
+
+    // 启动后台定时任务：doCleanData 数据整理 / autoSave2Db 落库 / autoShare 共享库
+    tasks::start(shared_state.clone());
+
     axum::serve(listener, app)
         .with_graceful_shutdown(async move { shutdown_notify.notified().await })
         .await

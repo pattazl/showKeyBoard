@@ -15,6 +15,38 @@ async fn get_db_path(state: &AppState) -> String {
     state.read().await.db_path.clone()
 }
 
+/// 把 JSON 值转成 Node.js 经 sqlite3 绑定入库再读出的字符串形态：
+/// - string  → 原样
+/// - bool    → "1" / "0"（node-sqlite3 将布尔绑定为整数 1/0）
+/// - number  → JS 数字字面量（整数无小数点：10 而非 10.0）
+/// - null    → ""（Node 存 NULL 读回 null，前端按 falsy 处理，效果一致）
+/// - array/object → JSON 文本（Node 实际不支持，此处防御性处理）
+fn js_val_to_string(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Bool(b) => {
+            if *b { "1".to_string() } else { "0".to_string() }
+        }
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                i.to_string()
+            } else if let Some(u) = n.as_u64() {
+                u.to_string()
+            } else {
+                match n.as_f64() {
+                    Some(f) if f.fract() == 0.0 && f.abs() < 9.007_199_254_740_992e15 => {
+                        format!("{}", f as i64)
+                    }
+                    Some(f) => format!("{}", f),
+                    None => String::new(),
+                }
+            }
+        }
+        serde_json::Value::Null => String::new(),
+        other => other.to_string(),
+    }
+}
+
 pub async fn get_para(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
@@ -166,7 +198,8 @@ pub async fn set_para(
             let old_content = std::fs::read_to_string(&key_list_path).unwrap_or_default();
             if old_content.trim() != new_key_list_str.trim() {
                 let lines: Vec<String> = obj.iter()
-                    .map(|(k, v)| format!("{} : {}", k, v.as_str().unwrap_or("")))
+                    // Node: k + ' : ' + data.keyList[k]（任意类型做字符串拼接）
+                    .map(|(k, v)| format!("{} : {}", k, js_val_to_string(v)))
                     .collect();
                 let _ = std::fs::write(&key_list_path, lines.join("\n"));
                 is_update = true;
@@ -212,8 +245,20 @@ pub async fn set_para(
     }
 
     // 3. Save dataSetting to database
+    // Node.js setDataSetting: 任意类型的值直接交给 sqlite3 绑定（bool→1/0，number→number），
+    // 且保存前会 delete hash['mapDetail']（mapDetail 存于 keymaps 表，无需保存）。
     if let Some(ref data_setting) = req.data_setting {
-        let _ = db::set_data_setting(&db_path, data_setting);
+        if let Some(obj) = data_setting.as_object() {
+            let mut settings = std::collections::HashMap::new();
+            for (k, v) in obj {
+                if k == "mapDetail" {
+                    continue; // Node: delete hash['mapDetail']
+                }
+                settings.insert(k.clone(), js_val_to_string(v));
+            }
+            let _ = db::set_data_setting(&db_path, &settings);
+            info!("setDataSetting ({} entries)", settings.len());
+        }
     }
 
     // 4. Broadcast "IniMonitor" to ahkClient clients (matches Node.js WebSocket notification)
@@ -233,25 +278,10 @@ pub async fn exit_server(State(state): State<AppState>) -> impl IntoResponse {
     info!("POST /exit - Server shutdown requested");
 
     // 1. Save last data before exit (matches Node.js saveLastData → insertDataFun)
-    {
-        let (pre_data, db_path) = {
-            let sg = state.read().await;
-            (sg.pre_data.clone(), sg.db_path.clone())
-        };
+    save_last_data(&state).await;
 
-        // Node.js: if (preData['tick'] > 0) { await insertDataFun(preData); preData['tick'] = 0 }
-        let tick = pre_data.get("tick").and_then(|v| v.as_i64()).unwrap_or(0);
-        if tick > 0 {
-            info!("insertDataFun");
-            let mut pre = pre_data.clone();
-            insert_data_fun(&state, &db_path, &mut pre).await;
-            let mut sg = state.write().await;
-            sg.pre_data["tick"] = serde_json::json!(0);
-        }
-
-        // Trigger graceful shutdown (matches Node.js: wss.close() + server.close() + process.exit)
-        state.read().await.shutdown_notify.notify_one();
-    }
+    // Trigger graceful shutdown (matches Node.js: wss.close() + server.close() + process.exit)
+    state.read().await.shutdown_notify.notify_one();
 
     info!("Shutdown signal sent, server is shutting down...");
     Json(serde_json::json!({
@@ -354,6 +384,25 @@ async fn insert_data_fun(state: &AppState, db_path: &str, records: &mut serde_js
     }
 }
 
+/// Matches Node.js saveLastData():
+/// preData.tick > 0 时执行 insertDataFun(preData) 并把 tick 置 0。
+/// 由 /exit 与 autoSave2Db 定时任务共用。
+pub(crate) async fn save_last_data(state: &AppState) {
+    let pre_data = {
+        let sg = state.read().await;
+        sg.pre_data.clone()
+    };
+    // Node.js: if (preData['tick'] > 0) { await insertDataFun(preData); preData['tick'] = 0 }
+    let tick = pre_data.get("tick").and_then(|v| v.as_i64()).unwrap_or(0);
+    if tick > 0 {
+        info!("insertDataFun");
+        let db_path = state.read().await.db_path.clone();
+        let mut pre = pre_data.clone();
+        insert_data_fun(state, &db_path, &mut pre).await;
+        state.write().await.pre_data["tick"] = serde_json::json!(0);
+    }
+}
+
 /// Matches Node.js dataFun: 
 /// 1. insertMiniuteFun(data) — process MinuteRecords into statFreq/appFreq
 /// 2. if preData.tick > 0 && data.tick > 0 && tick differs → insertDataFun(preData)
@@ -388,6 +437,9 @@ pub async fn upload_data(
     if let Some(mut pre) = to_save {
         insert_data_fun(&state, &db_path, &mut pre).await;
     }
+
+    // Node.js: insertData 之后 setTimeout(doCleanData, 3000) —— 通知后台任务延迟整理旧数据
+    state.read().await.clean_notify.notify_one();
 
     // 4. broadcast to web clients (matches Node.js: JSON.stringify(data))
     let payload = serde_json::to_string(&data).unwrap_or_default();

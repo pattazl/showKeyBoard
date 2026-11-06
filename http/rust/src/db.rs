@@ -736,10 +736,12 @@ pub fn get_data_setting(db_path: &str) -> Result<HashMap<String, String>, String
     let rows = stmt.query_map([], |row| {
         Ok((
             row.get::<_, String>(0)?,
-            row.get::<_, String>(1)?,
+            // val 列可能为 NULL（Node 允许存 NULL）或数字类型，统一容忍
+            row.get::<_, Option<String>>(1)?
+                .unwrap_or_default(),
         ))
     }).map_err(|e| format!("get_data_setting: query dataSetting2 failed: {}", e))?;
-    
+
     let mut settings = HashMap::new();
     for row in rows {
         let (key, val) = row.map_err(|e| e.to_string())?;
@@ -823,6 +825,202 @@ pub fn get_keymaps_brief(db_path: &str) -> Result<Vec<KeymapBrief>, String> {
     
     info!("get_keymaps_brief: loaded {} keymaps", keymaps.len());
     Ok(keymaps)
+}
+
+// ============== 定时数据整理（Node.js records.js doCleanData / mergeAppStat） ==============
+
+/// Matches Node.js mergeAppStat(): 将旧的 appFreq 中的应用时长数据合并到 appStat 中。
+/// tz: sqlite date() 修正串，如 "8 hours"（Node: -(new Date().getTimezoneOffset()/60) + ' hours'）
+pub fn merge_app_stat(db_path: &str, tz: &str) -> Result<usize, String> {
+    let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+    let sql = format!(
+        "insert into appStat(date,appPath,minuteCount)
+        SELECT
+            date,
+            appPath,
+            ROUND(SUM(1.0 / minute_a_count), 2) AS minuteCount  -- 保留两位小数
+        FROM (
+            -- 子查询：计算每个日期的每分钟内A的数量
+            SELECT
+                date,
+                appPath,
+                keyTime,
+                COUNT(appPath) OVER (PARTITION BY date, keyTime) AS minute_a_count  -- 同一日期和分钟内A的总数
+            FROM appFreq where date < DATE('now','{tz}') and date>(select IFNULL(max(date),'1900-01-01') from appStat WHERE date <= date('now','{tz}') ) and freqType = 0
+        ) AS subquery
+        GROUP BY date, appPath  -- 按日期和A分组汇总"
+    );
+    let lines = conn.execute(&sql, []).map_err(|e| e.to_string())?;
+    info!("转移分钟应用行数: {}", lines);
+    Ok(lines)
+}
+
+/// Matches Node.js doCleanData()：
+/// 1. events 中早于今天的旧数据汇总进 stat 后删除
+/// 2. statFreq/appFreq 中超过 minuteKeepDays（默认 7 天）的分钟数据删除
+/// 3. appStat 最大日期小于昨天 → mergeAppStat
+/// 4. statFreq freqType=1 最大日期小于昨天 → 按 24 小时汇总分钟数据（statFreq + appFreq 平分）
+/// 返回执行报告（供日志输出）。
+pub fn clean_daily_data(
+    db_path: &str,
+    str_now: &str,
+    before_days: &str,
+    yesterday: &str,
+    tz: &str,
+) -> Result<String, String> {
+    let mut report = String::new();
+    let mut conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+
+    // 1. 检查 events 是否有小于当天的数据（Node: SELECT tick FROM events where date<? limit 1）
+    let has_old: bool = conn
+        .query_row(
+            "SELECT tick FROM events where date < ? limit 1",
+            params![str_now],
+            |row| row.get::<_, i64>(0),
+        )
+        .is_ok();
+    if has_old {
+        // Node: runBatchExec —— 两条 SQL 作为一个批次（此处包在事务里保证原子性）
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        tx.execute(
+            "INSERT INTO stat (keyname, keycount, date)
+             SELECT keyname, sum(keycount), date FROM events
+             WHERE date < ?1 GROUP BY date, keyname",
+            params![str_now],
+        ).map_err(|e| e.to_string())?;
+        let deleted = tx
+            .execute("DELETE FROM events where date < ?1", params![str_now])
+            .map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())?;
+        report.push_str(&format!("doCleanData: events→stat 转移并删除 {} 行; ", deleted));
+    }
+
+    // 2. 删除 statFreq 中超过保留天数的分钟数据
+    let lines1 = conn
+        .execute(
+            "DELETE FROM statFreq where freqType = 0 and date < ?",
+            params![before_days],
+        )
+        .map_err(|e| e.to_string())?;
+    report.push_str(&format!("删除分钟统计 {} 行; ", lines1));
+
+    // 3. appStat 最大日期小于昨天（且不能是未来）则汇总转移
+    let need_merge = conn
+        .query_row(
+            &format!(
+                "SELECT MAX(date) AS max_date FROM appStat
+                 WHERE date <= date('now','{}')
+                 HAVING max_date < date('now', '-1 day','{}')",
+                tz, tz
+            ),
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .is_ok();
+    if need_merge {
+        merge_app_stat(db_path, tz).map_err(|e| e.to_string())?;
+        report.push_str("mergeAppStat 执行; ");
+    }
+
+    // 4. 删除 appFreq 中超过保留天数的分钟应用数据
+    let lines2 = conn
+        .execute(
+            "DELETE FROM appFreq where freqType = 0 and date < ?",
+            params![before_days],
+        )
+        .map_err(|e| e.to_string())?;
+    report.push_str(&format!("删除分钟应用 {} 行; ", lines2));
+
+    // 5. statFreq 的小时数据最大日期小于昨天 → 按 24 小时汇总
+    let max_date: String = conn
+        .query_row(
+            &format!(
+                "SELECT COALESCE(max(date),'1900-00-00') as maxDate FROM statFreq
+                 where freqType = 1 and date <= date('now','{}')",
+                tz
+            ),
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if max_date.as_str() < yesterday {
+        // 5.1 分钟 → 小时汇总
+        let lines3 = conn
+            .execute(
+                "INSERT INTO statFreq (keyTime, keyCount, mouseCount, distance, freqType, date)
+SELECT
+    SUBSTR(keyTime, 0, 11) as kt,
+    SUM(keyCount),
+    SUM(mouseCount),
+    SUM(distance),
+    1,
+    date
+FROM
+    statFreq
+WHERE
+    freqType = 0
+    AND date BETWEEN ?1 AND ?2
+    AND NOT EXISTS (
+        SELECT 1
+        FROM statFreq sf
+        WHERE sf.keyTime = SUBSTR(statFreq.keyTime, 0, 11)
+    )
+GROUP BY
+    kt;",
+                params![max_date, yesterday],
+            )
+            .map_err(|e| e.to_string())?;
+        report.push_str(&format!("插入小时统计 {} 行; ", lines3));
+
+        // 5.2 应用分钟 → 小时（一分钟内多个应用平分时长）
+        let lines4 = conn
+            .execute(
+                "WITH tempApp AS (
+    SELECT keyTime, appPath, keyCount, mouseCount, date
+    FROM appFreq
+    WHERE freqType = 0 AND date BETWEEN ?1 AND ?2
+),
+tempApp2 AS (
+    SELECT a.*, 1.0 / b.times AS times
+    FROM tempApp a
+    LEFT JOIN (
+        SELECT keyTime, COUNT(keyTime) AS times
+        FROM tempApp
+        GROUP BY keyTime
+    ) b ON b.keyTime = a.keyTime
+),
+tempInsertData AS (
+    SELECT
+        SUBSTR(keyTime, 0, 11) AS kt,
+        appPath,
+        SUM(keyCount) AS keyCount,
+        SUM(mouseCount) AS mouseCount,
+        SUM(times) AS times,
+        date
+    FROM tempApp2
+    GROUP BY appPath, SUBSTR(keyTime, 0, 11)
+)
+INSERT INTO appFreq (keyTime, appPath, keyCount, mouseCount, freqType, date)
+SELECT
+    kt,
+    appPath,
+    keyCount,
+    mouseCount,
+    1,
+    date
+FROM tempInsertData
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM appFreq
+    WHERE keyTime = tempInsertData.kt AND appPath = tempInsertData.appPath
+);",
+                params![max_date, yesterday],
+            )
+            .map_err(|e| e.to_string())?;
+        report.push_str(&format!("插入小时应用 {} 行", lines4));
+    }
+
+    Ok(report)
 }
 
 

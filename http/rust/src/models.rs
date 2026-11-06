@@ -11,8 +11,11 @@ pub struct SetParaRequest {
     pub config: Option<serde_json::Value>,
     #[serde(rename = "keyList")]
     pub key_list: Option<serde_json::Value>,
+    /// Node.js 的 dataSetting 是任意对象：前端会提交布尔（fillDate）、数字（topN/appTopN）
+    /// 和字符串，因此不能用 HashMap<String, String>（否则 422 反序列化失败）。
+    /// 由 handler 按 node-sqlite3 绑定语义逐项转换为字符串后再入库。
     #[serde(rename = "dataSetting")]
-    pub data_setting: Option<std::collections::HashMap<String, String>>,
+    pub data_setting: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
