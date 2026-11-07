@@ -75,11 +75,12 @@ ShowTxt(text)
   ; 塞数据到websocket
   if( handleWS != 0 ){
 	try{
-		if(needNewGui){
-			handleWS.sendText( newText )
-		}else{
-			handleWS.sendText( '0::' newText) ; 表明是复用旧窗口
+        wsText := newText
+		if(!needNewGui){
+			wsText :=  '0::' newText  ; 表明是复用旧窗口
 		}
+        handleWS.sendText( wsText )
+        OutputDebug ("AHK : " wsText)
 	}
   }
   if( showKeyOnlyWeb = 1 ){

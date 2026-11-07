@@ -41,14 +41,31 @@ fn main() {
         &std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
     );
 
+    // 在创建任何窗口之前指定 winit 窗口属性：popup 方式（带 owner + 不显示在任务栏），
+    // 这样启动时预热的多个窗口不会在任务栏冒出多个按钮。
+    // 该 owner 窗口同时用于托盘气泡提示（needTraytip）。
+    let owner_hwnd = winutil::owner_hwnd() as isize;
+    {
+        // 保留 SLINT_BACKEND=winit-software 的调试入口
+        let name = match std::env::var("SLINT_BACKEND") {
+            Ok(v) if v.contains("winit") => v,
+            _ => "winit".to_string(),
+        };
+        let _ = slint::BackendSelector::new()
+            .backend_name(name)
+            .with_winit_window_attributes_hook(move |attributes| {
+                use slint::winit_030::winit::platform::windows::WindowAttributesExtWindows;
+                attributes.with_skip_taskbar(true).with_owner_window(owner_hwnd)
+            })
+            .select();
+    }
+
     let cfg = config::Config::load();
     let (tx, rx) = crossbeam_channel::unbounded::<String>();
     let shared = stats::Shared::new(cfg, tx);
 
     // 键鼠钩子线程（合并 getKeyInput 功能）
-    let shared2 = shared.clone();
-    let tx2 = shared.ui_tx.clone();
-    let hook_thread = input::start(shared2, tx2);
+    let hook_thread = input::start(shared.clone());
 
     // 轮询线程：鼠标距离 + 手柄 + 分钟刷新
     let poll_thread = joy::start(shared.clone());
@@ -58,7 +75,7 @@ fn main() {
     let ws_thread = net::start_ws(shared.clone());
 
     // 托盘
-    let tray_thread = tray::start(shared.clone());
+    let tray_thread = tray::start(shared.clone(), owner_hwnd);
 
     // UI 主循环（阻塞）
     ui::run(shared.clone(), rx);

@@ -99,11 +99,12 @@ HTTP 端负责写配置文件，接收 HTML 前端数据
 ```mermaid
 graph LR
 Client -->|Post/Launch|NodeServer ---|WebSocket/Post/Get|Web
-NodeServer -->|WebSocket|Client
+NodeServer ---|WebSocket|Client
 NodeServer ---|R/W|ConfigFile
 ConfigFile -->|Reload|Client
 HookKey -->|SendMessage|Client
 Client -->|Launch|HookKey
+
 ```
 
 ## 编译说明

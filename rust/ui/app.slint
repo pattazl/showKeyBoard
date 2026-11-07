@@ -7,6 +7,8 @@ export component KeyOverlay inherits Window {
     in property <string> label;
     in property <color> bg-color: #9611AA99;
     in property <color> txt-color: #FFFF0000;
+    in property <color> edge-color: #9611AA99;
+    in property <bool> show-edge: true;
     in property <string> font-name: "Verdana";
     in property <int> font-size: 26;
     in property <int> font-weight: 700;
@@ -31,6 +33,8 @@ export component KeyOverlay inherits Window {
         border-radius: root.corner-radius;
         clip: true;
         opacity: root.fade;
+        border-width: root.show-edge ? 1px : 0px;
+        border-color: root.edge-color;
         Text {
             x: 4px;
             width: parent.width - 8px;
@@ -53,6 +57,8 @@ export component CtrlOverlay inherits Window {
     in property <string> label;
     in property <color> bg-color: #9611AA99;
     in property <color> txt-color: #FFFF0000;
+    in property <color> edge-color: #9611AA99;
+    in property <bool> show-edge: true;
     in property <string> font-name: "Verdana";
     in property <int> font-size: 20;
     in property <int> font-weight: 700;
@@ -77,6 +83,8 @@ export component CtrlOverlay inherits Window {
         border-radius: root.corner-radius;
         clip: true;
         opacity: root.fade;
+        border-width: root.show-edge ? 1px : 0px;
+        border-color: root.edge-color;
         Text {
             x: 4px;
             width: parent.width - 8px;

@@ -34,6 +34,8 @@ struct CtrlWin {
     title: String,
     last_text: String,
     styled: bool,
+    /// 位置/尺寸是否已按物理像素成功应用（窗口刚创建时 winit 窗口尚未就绪，需要下一轮重试）
+    positioned: bool,
 }
 
 /// 回收待复用的浮窗（窗口/GL 画布复用，避免每次新建造成内存膨胀）
@@ -64,11 +66,16 @@ pub struct UiManager {
     keymap: KeyMapping,
     generation: u64,
     next_id: usize,
+    /// 已成功注册的自定义字体文件名（字体族名 = stem）
     fonts_loaded: HashSet<String>,
-    /// 是否安装了 “Segoe UI Symbol”（用于 SMP 符号字形回退）
+    /// 系统已存在 / 已确认不存在的字体族名缓存
+    fonts_confirmed: HashSet<String>,
+    /// 是否安装了 "Segoe UI Symbol"（用于 SMP 符号字形回退）
     symbol_font_ok: Option<bool>,
     last_app_path: String,
     last_app_check: Instant,
+    /// 上次切换键状态同步时间（CapsLock/NumLock/ScrollLock）
+    last_lock_sync: Instant,
 }
 
 impl UiManager {
@@ -88,14 +95,16 @@ impl UiManager {
             generation: 0,
             next_id: 0,
             fonts_loaded: HashSet::new(),
+            fonts_confirmed: HashSet::new(),
             symbol_font_ok: None,
             last_app_path: String::new(),
             last_app_check: Instant::now() - Duration::from_secs(10),
+            last_lock_sync: Instant::now() - Duration::from_secs(10),
         }
     }
 
     /// 自定义字体：配置值若是存在的字体文件路径则运行期注册（AddFontResourceW），
-    /// 否则作为系统字体族名使用
+    /// 否则作为系统字体族名使用；字体不存在时回退到 "Tahoma"（Windows 全版本预装）
     fn ensure_font(&mut self, name: &str) -> String {
         if self.fonts_loaded.contains(name) {
             return name.to_string();
@@ -103,15 +112,23 @@ impl UiManager {
         let p = std::path::Path::new(name);
         if p.exists() {
             if crate::winutil::add_font_resource(p) {
-                self.fonts_loaded.insert(name.to_string());
-                // 字体族名取文件名（不含扩展名）
-                return p
+                let family = p
                     .file_stem()
                     .map(|s| s.to_string_lossy().to_string())
                     .unwrap_or_else(|| name.to_string());
+                self.fonts_loaded.insert(family.clone());
+                return family;
             }
         }
-        name.to_string()
+        let low = name.to_lowercase();
+        if self.fonts_confirmed.contains(&low) {
+            return name.to_string();
+        }
+        if crate::winutil::font_family_exists(name) {
+            self.fonts_confirmed.insert(low);
+            return name.to_string();
+        }
+        "Tahoma".to_string()
     }
 
     fn mon_rect(cfg: &Config) -> (i32, i32, i32, i32) {
@@ -278,10 +295,11 @@ impl UiManager {
         let last_idx = len - 1;
         let merged = {
             let texts = &self.overlays[last_idx].texts;
-            Self::merged_text(cfg, texts).trim().to_string()
+            let t = Self::merged_text(cfg, texts);
+            crate::winutil::strip_variation_selectors(t.trim())
         };
 
-        // 字体：配置字体无法显示 🖰/🖱 等 SMP 符号时回退到 Segoe UI Symbol
+        // 字体：配置字体无法显示 🖰/🖱、⎇/⇧ 等符号时回退到 Segoe UI Symbol
         let font = {
             let base = self.ensure_font(&ui.gui_text_font.clone());
             self.resolve_font(&base, &merged)
@@ -300,9 +318,16 @@ impl UiManager {
             let win_s = self.overlays[last_idx].comp.window().scale_factor();
             if mon_s > 0.0 { mon_s } else if win_s > 0.0 { win_s } else { 1.0 }
         };
-        let font_px = ((ui.gui_text_size as f32) * scale).round().max(1.0) as i32;
+        let win_scale = {
+            let s = self.overlays[last_idx].comp.window().scale_factor();
+            if s > 0.0 { s } else { scale }
+        };
+        // guiDpiscale=true：配置宽高按物理像素固定；false：按逻辑像素（随系统 DPI 放大）
+        let use_scale = if ui.gui_dpiscale { win_scale } else { 1.0 };
+        let measure_scale = if ui.gui_dpiscale { scale } else { 1.0 };
+        let font_px = ((ui.gui_text_size as f32) * measure_scale).round().max(1.0) as i32;
         // Text 左右各 4px 逻辑边距
-        let usable_w = (w as f32 - 8.0 * scale).round().max(40.0) as i32;
+        let usable_w = (w as f32 - 8.0 * measure_scale).round().max(40.0) as i32;
         let h = if ui.gui_height > 0 {
             ui.gui_height
         } else {
@@ -315,16 +340,19 @@ impl UiManager {
                 Self::estimate_height(&merged, w, ui.gui_text_size)
             }
         };
+        // 窗口实际渲染出的物理尺寸：排布必须用它，否则高 DPI 下窗口比计算出的大而互相重叠
+        let pw = ((w as f32 / use_scale) * win_scale).round() as i32;
+        let ph = ((h as f32 / use_scale) * win_scale).round() as i32;
 
         // 位置
         let mut x = ui.gui_pos_offset_x + ml;
         let mut y = ui.gui_pos_offset_y + mt;
         match ui.gui_pos.as_str() {
-            "TR" => x += mr - ml - w,
-            "BL" => y += mb - mt - h,
+            "TR" => x += mr - ml - pw,
+            "BL" => y += mb - mt - ph,
             "BR" => {
-                x += mr - ml - w;
-                y += mb - mt - h;
+                x += mr - ml - pw;
+                y += mb - mt - ph;
             }
             _ => {}
         }
@@ -333,24 +361,25 @@ impl UiManager {
             let ov = &mut self.overlays[last_idx];
             ov.x = x;
             ov.y = y;
-            ov.w = w;
-            ov.h = h;
+            ov.w = pw;
+            ov.h = ph;
+            let edge_color = Color::from_argb_u8(ui.gui_opacity as u8, br, bg_, bb);
             ov.comp.set_label(merged.as_str().into());
             ov.comp.set_bg_color(bg);
             ov.comp.set_txt_color(tc);
+            ov.comp.set_edge_color(edge_color);
+            ov.comp.set_show_edge(ui.gui_edge);
             ov.comp.set_font_name(font.as_str().into());
             ov.comp.set_font_size(ui.gui_text_size);
             ov.comp.set_font_weight(if ui.gui_text_bold { 700 } else { 400 });
-            ov.comp.set_corner_radius(ui.gui_radius as f32 / scale);
-            ov.comp.set_o_width(w as f32 / scale);
-            ov.comp.set_o_height(h as f32 / scale);
+            ov.comp.set_corner_radius(ui.gui_radius as f32 / use_scale);
+            ov.comp.set_o_width(w as f32 / use_scale);
+            ov.comp.set_o_height(h as f32 / use_scale);
             ov.comp.window().set_position(PhysicalPosition::new(x, y));
             ov.comp
                 .window()
-                .set_size(WindowSize::Physical(PhysicalSize::new(w as u32, h as u32)));
+                .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
             ov.comp.show().ok();
-            // 每次 show 后都复查一次：winit 在显示窗口时会用自身 flags 重写扩展样式，
-            // 会清掉点击穿透位；复用窗口时这里是幂等操作，不会重绘闪烁
             let title = ov.title.clone();
             if crate::winutil::apply_overlay_styles(&title, ui.gui_trans) {
                 ov.styled = true;
@@ -509,11 +538,17 @@ impl UiManager {
         let cfg = self.shared.cfg.read().unwrap().clone();
         let ui = &cfg.ui;
         if !ui.ctrl_state {
-            if let Some(c) = &mut self.ctrl {
-                c.comp.set_label("".into());
-                c.comp.window().set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
+            if let Some(c) = &self.ctrl {
+                c.comp.hide().ok();
             }
             return;
+        }
+        // 切换键（CapsLock/NumLock/ScrollLock）状态每秒从系统同步一次。
+        // 放在 UI 线程：本线程有正在运行的消息循环，读到的 toggle 位才是最新的；
+        // 输入钩子线程里读到的可能是启动时残留的旧值。
+        if self.last_lock_sync.elapsed() >= Duration::from_secs(1) {
+            self.last_lock_sync = Instant::now();
+            crate::winutil::sync_lock_states();
         }
         // 计算按下的控制键
         let mut txt = String::new();
@@ -550,15 +585,37 @@ impl UiManager {
                 txt.push_str(&ui.txt_split);
             }
         }
-        let txt = txt.trim().to_string();
-        if txt == self.ctrl.as_ref().map(|c| c.last_text.clone()).unwrap_or_default() && self.ctrl.is_some() {
-            return; // 避免刷新闪烁
+        let txt = crate::winutil::strip_variation_selectors(txt.trim());
+        // 避免刷新闪烁（位置尚未成功应用时也要继续尝试）
+        if self
+            .ctrl
+            .as_ref()
+            .map(|c| c.last_text == txt && c.positioned)
+            .unwrap_or(false)
+        {
+            return;
+        }
+        // 没有按下的控制键：直接隐藏（AHK 也是 hide）。
+        // 这里不能像浮窗那样移到屏幕外——窗口在屏外时 scale_factor 会退化为 1.0，
+        // 导致后续按显示器 DPI 计算的尺寸/位置全部被缩小。
+        if txt.is_empty() {
+            if let Some(c) = &mut self.ctrl {
+                c.last_text.clear();
+                c.comp.hide().ok();
+            }
+            return;
         }
         if self.ctrl.is_none() {
             let comp = CtrlOverlay::new().expect("create CtrlOverlay");
             let title = "SKBCtrlState".to_string();
             comp.set_overlay_id(title.as_str().into());
-            self.ctrl = Some(CtrlWin { comp, title, last_text: String::new(), styled: false });
+            self.ctrl = Some(CtrlWin {
+                comp,
+                title,
+                last_text: String::new(),
+                styled: false,
+                positioned: false,
+            });
         }
         let font = {
             let base = self.ensure_font(&ui.ctrl_text_font.clone());
@@ -569,34 +626,58 @@ impl UiManager {
         win.last_text = txt.clone();
         let (br, bg_, bb) = ui.ctrl_bgcolor;
         let (tr, tg, tb) = ui.ctrl_text_color;
+        let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
         win.comp.set_label(txt.as_str().into());
-        win.comp.set_bg_color(Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb));
+        win.comp.set_bg_color(bg_col);
         win.comp.set_txt_color(Color::from_argb_u8(ui.ctrl_opacity as u8, tr, tg, tb));
+        win.comp.set_edge_color(bg_col);
+        win.comp.set_show_edge(ui.gui_edge);
         win.comp.set_font_name(font.as_str().into());
         win.comp.set_font_size(ui.ctrl_text_size);
         win.comp.set_font_weight(if ui.ctrl_text_bold { 700 } else { 400 });
-        win.comp.set_corner_radius(ui.ctrl_radius as f32);
-        let w = ui.ctrl_width;
+        // 配置值即屏幕物理像素。实测本后端下窗口物理尺寸 == Slint 属性值，
+        // 而位置会再被 scale 除一次，因此位置需要预乘 scale 抵消。
+        // scale 必须取显示器 DPI：窗口刚创建/隐藏时 window().scale_factor() 会退化为 1.0。
         let scale = Self::scale_at_pos(ui.ctrl_x, ui.ctrl_y);
+        let use_scale = if ui.gui_dpiscale { scale } else { 1.0 };
+        win.comp.set_corner_radius(ui.ctrl_radius as f32 / use_scale);
+        let w = ui.ctrl_width;
         let h = if ui.ctrl_height != 0 {
             ui.ctrl_height
         } else {
-            (ui.ctrl_text_size as f32 * scale * 1.8).round() as i32
+            (ui.ctrl_text_size as f32 * use_scale * 1.8).round() as i32
         };
-        win.comp.set_o_width(w as f32 / scale);
-        win.comp.set_o_height(h as f32 / scale);
-        // 不 hide：显示一次后只改变位置/尺寸，避免 winit 在显示时重写扩展样式
-        // （那会把 WS_EX_APPWINDOW 加回来，导致任务栏闪一下）
-        let (x, y) = if txt.is_empty() {
-            (OFFSCREEN_X, OFFSCREEN_Y)
-        } else {
-            (ui.ctrl_x, ui.ctrl_y)
-        };
-        win.comp.window().set_position(PhysicalPosition::new(x, y));
+        // o_width/o_height 是 Slint 逻辑值，需除以 scale 才能填满目标物理尺寸
+        win.comp.set_o_width(w as f32 / use_scale);
+        win.comp.set_o_height(h as f32 / use_scale);
+        // show 之前先落一次位置/尺寸，避免窗口首帧出现在 (0,0)
+        let px = (ui.ctrl_x as f32 * scale).round() as i32;
+        let py = (ui.ctrl_y as f32 * scale).round() as i32;
+        let phw = (w as f32 * scale).round() as u32;
+        let phh = (h as f32 * scale).round() as u32;
+        win.comp.window().set_position(PhysicalPosition::new(px, py));
         win.comp
             .window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(w as u32, h as u32)));
+            .set_size(WindowSize::Physical(PhysicalSize::new(phw, phh)));
         win.comp.show().ok();
+        // 位置/尺寸走 winit 物理像素接口并预乘 scale：
+        // 本后端下 winit 实际换算用的是 1.0 倍率，而 scale_factor() 报的是显示器 DPI，
+        // 直接传物理值会被再除一次 scale，导致窗口缩小、位置偏移。
+        let mut winit_scale = 0.0f32;
+        {
+            use slint::winit_030::WinitWindowAccessor;
+            win.comp.window().with_winit_window(|ww| {
+                use slint::winit_030::winit::dpi::{
+                    PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
+                };
+                winit_scale = ww.scale_factor() as f32;
+                ww.set_outer_position(WinitPos::new(px, py));
+                let _ = ww.request_inner_size(WinitSize::new(phw, phh));
+            });
+        }
+        if winit_scale > 0.0 {
+            win.positioned = true;
+        }
         let title = win.title.clone();
         if crate::winutil::apply_overlay_styles(&title, click_through) {
             win.styled = true;
@@ -609,9 +690,7 @@ impl UiManager {
         let ui = &cfg.ui;
         if !ui.active_app_show {
             if let Some(c) = &mut self.appwin {
-                // 同样不 hide，只移出屏幕
-                c.comp.set_label("".into());
-                c.comp.window().set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
+                c.comp.hide().ok();
             }
             return;
         }
@@ -620,7 +699,12 @@ impl UiManager {
         }
         self.last_app_check = Instant::now();
         let path = crate::winutil::foreground_proc_path();
-        if path == self.last_app_path && self.appwin.is_some() {
+        let already = self
+            .appwin
+            .as_ref()
+            .map(|c| c.last_text == path && c.positioned)
+            .unwrap_or(false);
+        if already {
             return;
         }
         self.last_app_path = path.clone();
@@ -628,29 +712,58 @@ impl UiManager {
             let comp = CtrlOverlay::new().expect("create AppPathOverlay");
             let title = "SKBAppPath".to_string();
             comp.set_overlay_id(title.as_str().into());
-            self.appwin = Some(CtrlWin { comp, title, last_text: String::new(), styled: false });
+            self.appwin = Some(CtrlWin {
+                comp,
+                title,
+                last_text: String::new(),
+                styled: false,
+                positioned: false,
+            });
         }
         let font = self.ensure_font(&ui.ctrl_text_font.clone());
         let win = self.appwin.as_mut().unwrap();
         win.last_text = path.clone();
         let (br, bg_, bb) = ui.ctrl_bgcolor;
+        let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
         win.comp.set_label(path.as_str().into());
-        win.comp.set_bg_color(Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb));
+        win.comp.set_bg_color(bg_col);
         win.comp.set_txt_color(Color::from_argb_u8(ui.ctrl_opacity as u8, ui.gui_text_color.0, ui.gui_text_color.1, ui.gui_text_color.2));
+        win.comp.set_edge_color(bg_col);
+        win.comp.set_show_edge(ui.gui_edge);
         win.comp.set_font_name(font.as_str().into());
         win.comp.set_font_size(ui.ctrl_text_size.max(12));
         win.comp.set_font_weight(400);
-        win.comp.set_corner_radius(ui.ctrl_radius as f32);
-        let w = ui.ctrl_width.max(200);
         let scale = Self::scale_at_pos(ui.active_app_show_x, ui.active_app_show_y);
-        let h = (ui.ctrl_text_size.max(12) as f32 * scale * 1.8).round() as i32;
-        win.comp.set_o_width(w as f32 / scale);
-        win.comp.set_o_height(h as f32 / scale);
-        win.comp.window().set_position(PhysicalPosition::new(ui.active_app_show_x, ui.active_app_show_y));
+        let use_scale = if ui.gui_dpiscale { scale } else { 1.0 };
+        win.comp.set_corner_radius(ui.ctrl_radius as f32 / use_scale);
+        let w = ui.ctrl_width.max(200);
+        let h = (ui.ctrl_text_size.max(12) as f32 * use_scale * 1.8).round() as i32;
+        win.comp.set_o_width(w as f32 / use_scale);
+        win.comp.set_o_height(h as f32 / use_scale);
+        let px = (ui.active_app_show_x as f32 * scale).round() as i32;
+        let py = (ui.active_app_show_y as f32 * scale).round() as i32;
+        let phw = (w as f32 * scale).round() as u32;
+        let phh = (h as f32 * scale).round() as u32;
+        win.comp.window().set_position(PhysicalPosition::new(px, py));
         win.comp
             .window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(w as u32, h as u32)));
+            .set_size(WindowSize::Physical(PhysicalSize::new(phw, phh)));
         win.comp.show().ok();
+        let mut winit_scale = 0.0f32;
+        {
+            use slint::winit_030::WinitWindowAccessor;
+            win.comp.window().with_winit_window(|ww| {
+                use slint::winit_030::winit::dpi::{
+                    PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
+                };
+                winit_scale = ww.scale_factor() as f32;
+                ww.set_outer_position(WinitPos::new(px, py));
+                let _ = ww.request_inner_size(WinitSize::new(phw, phh));
+            });
+        }
+        if winit_scale > 0.0 {
+            win.positioned = true;
+        }
         let title = win.title.clone();
         if crate::winutil::apply_overlay_styles(&title, true) {
             win.styled = true;

@@ -11,7 +11,22 @@ use crate::stats::Shared;
 
 const UA: &str = "ShowKeyBoardRust";
 
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn OutputDebugStringW(lp_output_string: *const u16);
+}
+
+/// 输出调试信息到调试器（DebugViewNt 等工具可查看），统一以 "AHK-" 开头
+fn debug_out(msg: &str) {
+    let text = format!("AHK-{}\0", msg);
+    let wide: Vec<u16> = text.encode_utf16().collect();
+    unsafe { OutputDebugStringW(wide.as_ptr()) }
+}
+
 fn post_json(url: &str, body: &str, timeout: u64) -> Result<String, String> {
+    if !body.is_empty() {
+        debug_out(&format!("POST {} {}", url, body));
+    }
     let agent = ureq::AgentBuilder::new()
         .timeout(Duration::from_millis(timeout))
         .user_agent(UA)
@@ -47,13 +62,30 @@ fn send_pc_info(shared: &Arc<Shared>, flag: i32) {
     let _ = post_json(&url, &body, 8000);
 }
 
+/// 上报数据中的单个字母统一转小写（字母前后不能紧邻其他字母/数字，
+/// 避免把 F5、LControl、App-Key-xxx 这类名称里的字母也改掉）
+fn lower_single_letters(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::with_capacity(s.len());
+    for (i, &c) in chars.iter().enumerate() {
+        let prev_alnum = i > 0 && chars[i - 1].is_ascii_alphanumeric();
+        let next_alnum = chars.get(i + 1).is_some_and(|n| n.is_ascii_alphanumeric());
+        if c.is_ascii_uppercase() && !prev_alnum && !next_alnum {
+            out.push(c.to_ascii_lowercase());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 /// 序列化 AllKeyRecord（与 AHK JSON.stringify(AllKeyRecord) 字段一致）
 pub fn build_data_body(shared: &Arc<Shared>) -> Value {
     let stats = shared.stats.lock().unwrap();
     let mut obj = serde_json::Map::new();
-    // 按键计数（BTreeMap 按名称排序）
+    // 按键计数（BTreeMap 按名称排序）；单字母按键统一小写上报
     for (k, v) in &stats.keys {
-        obj.insert(k.clone(), json!(v));
+        obj.insert(lower_single_letters(k), json!(v));
     }
     obj.insert("tick".into(), json!(stats.tick));
     obj.insert("updateTime".into(), json!(stats.update_time));
@@ -62,7 +94,8 @@ pub fn build_data_body(shared: &Arc<Shared>) -> Value {
         obj.insert("MinuteRecords".into(), serde_json::to_value(&stats.minute_recs).unwrap_or(json!([])));
     }
     if cfg.record_history_max > 0 {
-        obj.insert("recordHistory".into(), serde_json::to_value(&stats.record_history).unwrap_or(json!([])));
+        let history: Vec<String> = stats.record_history.iter().map(|s| lower_single_letters(s)).collect();
+        obj.insert("recordHistory".into(), json!(history));
     }
     Value::Object(obj)
 }
@@ -179,7 +212,9 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         fail_count = 0;
                     } else {
                         fail_count += 1;
-                        if fail_count >= 3 {
+                        // maxCountOfConnectFail：连续失败超过该次数才判定掉线
+                        let max_fail = shared.cfg.read().unwrap().max_count_of_connect_fail;
+                        if fail_count >= max_fail {
                             shared.server_state.store(-1, Ordering::Relaxed);
                             check_count = 0;
                             started_server = false;
@@ -225,6 +260,7 @@ pub fn start_ws(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                     use tungstenite::stream::MaybeTlsStream;
                     use tungstenite::Message;
                     let _ = ws.send(Message::Text("ahkClient".into()));
+                    debug_out("WS send ahkClient");
                     if let MaybeTlsStream::Plain(tcp) = ws.get_mut() {
                         tcp.set_read_timeout(Some(Duration::from_secs(5))).ok();
                     }

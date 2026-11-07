@@ -1,6 +1,7 @@
 //! Win32 工具函数：显示器、前台进程、密码框检测、锁屏检测、窗口样式等。
 #![allow(dead_code)]
 use std::mem;
+use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
 use std::time::{Duration, Instant};
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, RECT, SYSTEMTIME};
@@ -374,7 +375,7 @@ unsafe extern "system" fn owner_wndproc(hwnd: HWND, msg: u32, wparam: usize, lpa
 }
 
 /// 创建（惰性）一个永不显示的 owner 窗口：被它拥有的窗口不会出现在任务栏 / Alt-Tab
-fn owner_hwnd() -> HWND {
+pub fn owner_hwnd() -> HWND {
     OWNER_HWND.with(|c| {
         if c.get() != 0 {
             return c.get() as HWND;
@@ -461,13 +462,30 @@ pub fn apply_overlay_styles(title: &str, click_through: bool) -> bool {
     }
 }
 
-/// 文本是否包含需要符号字体（Segoe UI Symbol）才能显示的 SMP 字符（🖰 🖱 🖲 等）
+/// 文本是否包含需要符号字体（Segoe UI Symbol）才能显示的字符。
+/// 常规文本字体（Verdana / Tahoma 等）缺少箭头、杂项技术符号（⎇ ⌘ ⇧ ␣）等字形，
+/// 直接用会显示成方块，因此需要切换到 Segoe UI Symbol。
 pub fn needs_symbol_font(text: &str) -> bool {
     text.chars().any(|c| {
-        let cp = c as u32;
-        // 杂项符号与象形文字 / 补充符号 / emoji（不含 CJK 扩展 B 及以后）
-        (0x1F000..=0x1FAFF).contains(&cp)
+        matches!(
+            c as u32,
+            0x2190..=0x21FF   // 箭头（⇧ ⇪ ⇡ ⇣ ↩）
+            | 0x2200..=0x23FF // 数学运算符 / 杂项技术符号（⊞ ⌘ ⎇ ⏎）
+            | 0x2400..=0x243F // 控制图形（␣）
+            | 0x25A0..=0x25FF // 几何图形
+            | 0x2700..=0x27BF // 装饰符号（➞）
+            | 0x2B00..=0x2BFF // 杂项符号与箭头（⬅ ⬆ ⬇ ⭐）
+            | 0x1F000..=0x1FAFF // 杂项符号与象形文字 / emoji（🖰 🖱 🖲）
+        )
     })
+}
+
+/// 去掉不可见的变体选择符（U+FE0E / U+FE0F）。
+/// Slint 只有单一字体、没有系统级字体链接，缺字形的变体选择符会被渲染成方块。
+pub fn strip_variation_selectors(text: &str) -> String {
+    text.chars()
+        .filter(|c| !matches!(*c, '\u{FE0E}' | '\u{FE0F}'))
+        .collect()
 }
 
 /// 系统是否安装了指定字体族（GDI 找不到时会回退到默认字体，名字不同即可判定）
@@ -571,9 +589,101 @@ pub fn add_font_resource(path: &std::path::Path) -> bool {
     unsafe { AddFontResourceW(w.as_ptr()) > 0 }
 }
 
-/// 切换键状态（CapsLock 等）
+/// 切换键本地状态：-1 未初始化，0 关闭，1 开启
+static CAPS_TOGGLE: AtomicI8 = AtomicI8::new(-1);
+static NUM_TOGGLE: AtomicI8 = AtomicI8::new(-1);
+static SCROLL_TOGGLE: AtomicI8 = AtomicI8::new(-1);
+/// 切换键物理按下状态（用于过滤自动重复，只在 up→down 跳变时翻转）
+static CAPS_DOWN: AtomicBool = AtomicBool::new(false);
+static NUM_DOWN: AtomicBool = AtomicBool::new(false);
+static SCROLL_DOWN: AtomicBool = AtomicBool::new(false);
+
+fn toggle_slots(vk: i32) -> Option<(&'static AtomicI8, &'static AtomicBool)> {
+    match vk {
+        0x14 => Some((&CAPS_TOGGLE, &CAPS_DOWN)),     // CapsLock
+        0x90 => Some((&NUM_TOGGLE, &NUM_DOWN)),       // NumLock
+        0x91 => Some((&SCROLL_TOGGLE, &SCROLL_DOWN)), // ScrollLock
+        _ => None,
+    }
+}
+
+/// 读取系统真实的 toggle 位。
+/// GetKeyState 的值随本线程消息队列更新，焦点不在本进程时可能滞后，
+/// 因此临时附加到前台线程的输入队列再读。
+fn system_toggle(vk: i32) -> bool {
+    unsafe {
+        let fg = GetForegroundWindow();
+        if !fg.is_null() {
+            let tid = GetWindowThreadProcessId(fg, std::ptr::null_mut());
+            let cur = GetCurrentThreadId();
+            if tid != 0 && tid != cur && AttachThreadInput(cur, tid, 1) != 0 {
+                let on = (GetKeyState(vk) & 1) != 0;
+                AttachThreadInput(cur, tid, 0);
+                return on;
+            }
+        }
+        (GetKeyState(vk) & 1) != 0
+    }
+}
+
+/// 切换键当前是否处于开启状态（CapsLock / NumLock / ScrollLock），可持续查询。
+///
+/// 状态由键盘钩子的按下事件翻转（见 lock_key_event），并每秒从系统重新同步一次
+/// （见 sync_lock_states）。注意不能用 GetAsyncKeyState(vk) & 1 直接判断：
+/// 该位是"自上次查询以来是否按下过"，读一次即清零，会让状态只显示一帧。
 pub fn key_toggled(vk: i32) -> bool {
-    unsafe { (GetKeyState(vk) as u16 & 1) != 0 }
+    let Some((slot, _down)) = toggle_slots(vk) else {
+        return false;
+    };
+    let v = slot.load(Ordering::Relaxed);
+    if v >= 0 {
+        return v != 0;
+    }
+    let on = system_toggle(vk);
+    slot.store(on as i8, Ordering::Relaxed);
+    on
+}
+
+/// 从系统重新同步三个切换键的开启状态（应由 UI 线程每秒调用一次）。
+/// 本线程必须有活跃的消息循环，GetKeyState 的 toggle 位才与系统一致；
+/// 兜底钩子事件丢失 / 通过其他途径切换的情况。
+pub fn sync_lock_states() {
+    unsafe {
+        // 只附加一次前台线程，读完三个键再分离
+        let fg = GetForegroundWindow();
+        let cur = GetCurrentThreadId();
+        let tid = if fg.is_null() {
+            0
+        } else {
+            GetWindowThreadProcessId(fg, std::ptr::null_mut())
+        };
+        let attached = tid != 0 && tid != cur && AttachThreadInput(cur, tid, 1) != 0;
+        for vk in [0x14i32, 0x90, 0x91] {
+            if let Some((slot, _down)) = toggle_slots(vk) {
+                slot.store(((GetKeyState(vk) & 1) != 0) as i8, Ordering::Relaxed);
+            }
+        }
+        if attached {
+            AttachThreadInput(cur, tid, 0);
+        }
+    }
+}
+
+/// 低级键盘钩子收到切换键事件时调用：在 up→down 跳变时翻转状态（忽略自动重复）
+pub fn lock_key_event(vk: i32, is_down: bool) {
+    let Some((slot, down)) = toggle_slots(vk) else {
+        return;
+    };
+    if is_down {
+        if !down.swap(true, Ordering::Relaxed) {
+            // 只读本地原子值（不触发系统查询），保证钩子回调里没有任何系统调用；
+            // 未初始化（-1）时按关闭处理，随后由 UI 线程每秒同步纠正
+            let on = slot.load(Ordering::Relaxed) > 0;
+            slot.store(!on as i8, Ordering::Relaxed);
+        }
+    } else {
+        down.store(false, Ordering::Relaxed);
+    }
 }
 
 /// 打开 URL（设置 / 统计页面）

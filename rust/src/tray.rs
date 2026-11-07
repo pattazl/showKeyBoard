@@ -18,7 +18,56 @@ const ID_SHOW: &str = "skb.show";
 const ID_RELOAD: &str = "skb.reload";
 const ID_EXIT: &str = "skb.exit";
 
-pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
+/// 气泡提示图标的 uID（与 tray-icon 自身的图标互不冲突）
+const BALLOON_UID: u32 = 0xB00C;
+/// 气泡保留时长（秒），到期后移除临时图标
+const BALLOON_SECS: u64 = 6;
+
+fn fill_wstr<const N: usize>(dst: &mut [u16; N], s: &str) {
+    let mut i = 0;
+    for u in s.encode_utf16() {
+        if i + 1 >= N {
+            break;
+        }
+        dst[i] = u;
+        i += 1;
+    }
+    dst[i] = 0;
+}
+
+/// 启动托盘气泡提示（needTraytip）：临时挂一个带 NIF_INFO 的托盘图标并显示气泡
+unsafe fn balloon_show(hwnd: isize, title: &str, text: &str) -> bool {
+    use windows_sys::Win32::UI::Shell::{
+        Shell_NotifyIconW, NIF_ICON, NIF_INFO, NIF_TIP, NIIF_INFO, NIM_ADD, NOTIFYICONDATAW,
+    };
+    use windows_sys::Win32::UI::WindowsAndMessaging::{LoadIconW, IDI_APPLICATION};
+
+    let mut nid: NOTIFYICONDATAW = std::mem::zeroed();
+    nid.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as u32;
+    nid.hWnd = hwnd as _;
+    nid.uID = BALLOON_UID;
+    nid.uFlags = NIF_INFO | NIF_ICON | NIF_TIP;
+    nid.hIcon = LoadIconW(std::ptr::null_mut(), IDI_APPLICATION);
+    fill_wstr(&mut nid.szTip, "ShowKeyBoard");
+    fill_wstr(&mut nid.szInfoTitle, title);
+    fill_wstr(&mut nid.szInfo, text);
+    nid.dwInfoFlags = NIIF_INFO;
+    Shell_NotifyIconW(NIM_ADD, &nid) != 0
+}
+
+/// 移除气泡用的临时托盘图标
+unsafe fn balloon_remove(hwnd: isize) {
+    use windows_sys::Win32::UI::Shell::{
+        Shell_NotifyIconW, NIM_DELETE, NOTIFYICONDATAW,
+    };
+    let mut nid: NOTIFYICONDATAW = std::mem::zeroed();
+    nid.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as u32;
+    nid.hWnd = hwnd as _;
+    nid.uID = BALLOON_UID;
+    Shell_NotifyIconW(NIM_DELETE, &nid);
+}
+
+pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
     std::thread::Builder::new()
         .name("tray".into())
         .spawn(move || unsafe {
@@ -84,7 +133,40 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
 
             // 消息泵 + 菜单事件
             let mut msg: windows_sys::Win32::UI::WindowsAndMessaging::MSG = std::mem::zeroed();
+            let mut last_gen = shared.show_key_generation.load(Ordering::Relaxed);
+
+            // needTraytip：启动时托盘气泡提示
+            let mut balloon_at: Option<std::time::Instant> = None;
+            if shared.cfg.read().unwrap().need_traytip {
+                let (ver, hotkey) = {
+                    let c = shared.cfg.read().unwrap();
+                    (crate::stats::env_full_version(), c.hotkey4_show.clone())
+                };
+                let text = if hotkey.is_empty() {
+                    format!("ShowKeyBoard v{} 已启动", ver)
+                } else {
+                    format!("ShowKeyBoard v{} 已启动，热键 {} 显示/隐藏", ver, hotkey)
+                };
+                if balloon_show(owner, "ShowKeyBoard", &text) {
+                    balloon_at = Some(std::time::Instant::now());
+                }
+            }
+
             loop {
+                // 气泡到期后移除临时托盘图标
+                if let Some(t) = balloon_at {
+                    if t.elapsed().as_secs() >= BALLOON_SECS {
+                        balloon_remove(owner);
+                        balloon_at = None;
+                    }
+                }
+                // hotkey4Show 从钩子线程切换 needShowKey 时，同步勾选态
+                let gen = shared.show_key_generation.load(Ordering::Relaxed);
+                if gen != last_gen {
+                    last_gen = gen;
+                    let checked = shared.cfg.read().unwrap().need_show_key;
+                    mi_show.set_checked(checked);
+                }
                 while windows_sys::Win32::UI::WindowsAndMessaging::PeekMessageW(
                     &mut msg, std::ptr::null_mut(), 0, 0,
                     windows_sys::Win32::UI::WindowsAndMessaging::PM_REMOVE,
