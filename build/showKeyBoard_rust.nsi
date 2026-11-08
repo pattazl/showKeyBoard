@@ -126,16 +126,11 @@ Section $(mainSect) mainSect
   SetOutPath "$INSTDIR"
   SetOverwrite on
     File "release\${ExeName}"
-    File "release\getKeyInput.exe"
-    File "release\fixStat修复统计数据.bat"
 
 ; 配置文件如果存在不能覆盖
   SetOverwrite off
     File "release\showKeyBoard.ini"
     File "release\KeyList.txt"
-  SetOutPath "$INSTDIR\httpdist"
-  SetOverwrite on
-    File "release\httpdist\package.json"
   SetOutPath "$INSTDIR\httpdist\dist"
     File "release\httpdist\dist\showkeyboard_server.exe"
     File "release\httpdist\dist\showKeyBoard.desc.ini"
@@ -210,8 +205,6 @@ Section Uninstall
     Delete "$INSTDIR\Website.url"
     Delete "$INSTDIR\uninst.exe"
     Delete "$INSTDIR\${ExeName}"
-    Delete "$INSTDIR\getKeyInput.exe"
-    Delete "$INSTDIR\fixStat修复统计数据.bat"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Uninstall.lnk"
     Delete "$SMPROGRAMS\$(KeyBoardPath)\Website.lnk"
     Delete "$DESKTOP\ShowKeyBoard.lnk"
@@ -225,7 +218,6 @@ Section Uninstall
     Delete "$INSTDIR\httpdist\dist\showKeyBoard.desc.ini"
     Delete "$INSTDIR\httpdist\dist\updateTime.txt"
     Delete "$INSTDIR\httpdist\dist\lastRecord.json"
-	Delete "$INSTDIR\httpdist\package.json"
 
     RMDir "$INSTDIR\httpdist\dist\"
     RMDir "$INSTDIR\httpdist\"
