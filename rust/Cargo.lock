@@ -4589,8 +4589,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
-name = "showkeyboard-client"
-version = "1.61.0"
+name = "showkeyboard_client"
+version = "2.0.0"
 dependencies = [
  "core-foundation 0.10.1",
  "core-graphics 0.24.0",
