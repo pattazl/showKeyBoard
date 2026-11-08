@@ -76,6 +76,10 @@ pub struct UiManager {
     last_app_check: Instant,
     /// 上次切换键状态同步时间（CapsLock/NumLock/ScrollLock）
     last_lock_sync: Instant,
+    /// WebSocket 推送状态：当前 guiInterval 窗口内累计的显示文本与起始时间
+    /// （对应 AHK ShowTxt 的 lastTextArr / lastTextTick）
+    ws_last_texts: Vec<String>,
+    ws_last_tick: Option<Instant>,
 }
 
 impl UiManager {
@@ -100,6 +104,8 @@ impl UiManager {
             last_app_path: String::new(),
             last_app_check: Instant::now() - Duration::from_secs(10),
             last_lock_sync: Instant::now() - Duration::from_secs(10),
+            ws_last_texts: Vec::new(),
+            ws_last_tick: None,
         }
     }
 
@@ -213,21 +219,55 @@ impl UiManager {
         lines * ((font_size as f32 * 1.5) as i32) + 10
     }
 
+    /// WebSocket 实时按键推送（对应 AHK ShowTxt 中的 handleWS.sendText(wsText)）：
+    /// 同一 guiInterval 窗口内的按键累计为一条文本；复用旧窗口时加 "0::" 前缀，
+    /// 前端据此更新已有浮窗而不是新建。发送走有界管道，绝不阻塞 UI 线程。
+    fn send_ws(&mut self, cfg: &Config, display: &str, now: Instant) {
+        let need_new = match self.ws_last_tick {
+            Some(t) => now.duration_since(t).as_millis() as u64 >= cfg.ui.gui_interval,
+            None => true,
+        };
+        if need_new {
+            self.ws_last_texts.clear();
+            self.ws_last_tick = Some(now);
+        }
+        self.ws_last_texts.push(display.to_string());
+        let new_text = Self::merged_text(cfg, &self.ws_last_texts);
+        let new_text = new_text.trim();
+        if new_text.is_empty() {
+            return;
+        }
+        // 未连接时直接丢弃（与 AHK handleWS=0 时不发送一致）
+        if !self.shared.ws_ready.load(Ordering::Relaxed) {
+            return;
+        }
+        let ws_text = if need_new {
+            new_text.to_string()
+        } else {
+            format!("0::{}", new_text)
+        };
+        let _ = self.shared.ws_tx.try_send(ws_text);
+    }
+
     /// ShowTxt 主流程
     fn show_txt(&mut self, token: &str) {
         if token.is_empty() {
             return;
         }
         let cfg = self.shared.cfg.read().unwrap().clone();
-        if cfg.ui.show_key_only_web {
-            return;
-        }
-        // skipShow 过滤
+        // skipShow 过滤（AHK 在 CallShow 中过滤，WebSocket 也不推送）
         if cfg.ui.skip_show.iter().any(|s| s == token) {
             return;
         }
         let display = self.keymap.convert(token);
         let now = Instant::now();
+
+        // 先推送到后端（showKeyOnlyWeb=1 时也要发送，AHK 中该判断在 sendText 之后）
+        self.send_ws(&cfg, &display, now);
+
+        if cfg.ui.show_key_only_web {
+            return;
+        }
 
         // 判断复用还是新建窗口
         let need_new = match self.overlays.last() {
@@ -384,6 +424,11 @@ impl UiManager {
             if crate::winutil::apply_overlay_styles(&title, ui.gui_trans) {
                 ov.styled = true;
             }
+            // show() 由 winit 异步执行，之后它会按自身 WindowFlags 整体重写 GWL_EXSTYLE，
+            // 把这里加的 WS_EX_NOACTIVATE / WS_EX_TRANSPARENT 抹掉。标记为未定型，
+            // 下一帧（20ms）立即补回；否则窗口会短暂变成可激活、挡住鼠标的普通窗口，
+            // 点一下就把焦点从当前程序抢走，表现为"影响输入"。
+            ov.styled = false;
         }
     }
 
@@ -682,6 +727,8 @@ impl UiManager {
         if crate::winutil::apply_overlay_styles(&title, click_through) {
             win.styled = true;
         }
+        // 同上：show() 后 winit 会重写 ex-style，下一帧补回 NOACTIVATE/点击穿透
+        win.styled = false;
     }
 
     /// activeAppShow：显示当前激活应用路径
@@ -768,6 +815,8 @@ impl UiManager {
         if crate::winutil::apply_overlay_styles(&title, true) {
             win.styled = true;
         }
+        // 同上：show() 后 winit 会重写 ex-style，下一帧补回 NOACTIVATE/点击穿透
+        win.styled = false;
     }
 
     /// 是否还有窗口尚未成功应用样式（窗口句柄由事件循环延迟创建）

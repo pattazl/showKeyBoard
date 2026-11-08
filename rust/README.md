@@ -13,7 +13,7 @@ showKeyBoard.ahk 的 Rust 全量重写。
 | 按键统计/分钟统计/App 维度/历史（AllKeyRecord、MinuteRecords） | `stats.rs` 逐条移植 |
 | showKeyBoard.ini / showKeyBoard.desc.ini（DescRead、GBK） | `config.rs`，含 KeyList.txt 映射 |
 | HTTP /version /data /sendPCInfo /exit，断线重连、拉起 node 服务 | `net.rs`（ureq） |
-| WebSocket ahkClient / IniMonitor 热重载 | `net.rs::start_ws`（tungstenite） |
+| WebSocket ahkClient / IniMonitor 热重载 / 实时按键文本推送（`sendText`，复用旧窗口时带 `0::` 前缀） | `net.rs::start_ws`（tungstenite）+ `ui.rs::send_ws` |
 | 浮窗：渐隐(guiFadeMs)、圆角(guiRadius)、自定义字体/背景/透明度、TL/TR/BL/BR、多屏、合并 ×N | `ui.rs` + `ui/app.slint`（Slint） |
 | Ctrl 键状态窗、activeAppShow 路径窗 | `ui.rs` |
 | 托盘菜单、hotkey4Show 热键、单实例、kb.pid、lastRecord.json、退出 /exit | `tray.rs` / `main.rs` |

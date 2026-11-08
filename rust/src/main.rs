@@ -62,7 +62,9 @@ fn main() {
 
     let cfg = config::Config::load();
     let (tx, rx) = crossbeam_channel::unbounded::<String>();
-    let shared = stats::Shared::new(cfg, tx);
+    // 实时按键文本管道（UI -> WebSocket 线程，有界：业务高峰时丢弃而不是拖慢 UI）
+    let (ws_tx, ws_rx) = crossbeam_channel::bounded::<String>(256);
+    let shared = stats::Shared::new(cfg, tx, ws_tx);
 
     // 键鼠钩子线程（合并 getKeyInput 功能）
     let hook_thread = input::start(shared.clone());
@@ -72,7 +74,7 @@ fn main() {
 
     // 网络线程
     let net_thread = net::start(shared.clone());
-    let ws_thread = net::start_ws(shared.clone());
+    let ws_thread = net::start_ws(shared.clone(), ws_rx);
 
     // 托盘
     let tray_thread = tray::start(shared.clone(), owner_hwnd);
@@ -98,6 +100,14 @@ fn main() {
     let _ = net_thread.join();
     let _ = ws_thread.join();
     let _ = tray_thread.join();
+
+    // 重启（托盘菜单）：释放单实例互斥后拉起新进程
+    if shared.restart_mode.load(Ordering::Relaxed) != 0 {
+        config::release_single_instance();
+        if let Ok(exe) = std::env::current_exe() {
+            let _ = std::process::Command::new(exe).spawn();
+        }
+    }
 }
 
 /// 对应 AHK ExitFunc：保存 needShowKey、写出 lastRecord.json、通知服务端退出
@@ -133,8 +143,10 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
         let _ = std::fs::write(last_path, body);
     }
 
-    // 3) 通知后台退出
-    net::send_exit(shared);
+    // 3) 通知后台退出：重启程序时保留后台服务；完全重启已由托盘菜单先行通知
+    if shared.restart_mode.load(Ordering::Relaxed) == 0 {
+        net::send_exit(shared);
+    }
 }
 
 /// 追加/更新 INI 中的键值（简单实现：重写文件）

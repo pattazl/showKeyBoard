@@ -243,8 +243,14 @@ pub struct Shared {
     pub monitors: RwLock<Vec<winutil::Rect>>,
     pub screen_bounds: Mutex<(i32, i32, i32, i32)>, // minLeft,minTop,maxRight,maxBottom
     pub ui_tx: crossbeam_channel::Sender<String>,
+    /// 实时按键文本 -> WebSocket 线程（对应 AHK handleWS.sendText）
+    pub ws_tx: crossbeam_channel::Sender<String>,
+    /// WebSocket 是否已连接（未连接时丢弃按键文本，不积压）
+    pub ws_ready: AtomicBool,
     pub server_state: AtomicI32, // -1 未连接 0 失败 1 成功
     pub exit: AtomicBool,
+    /// 重启模式：0 正常退出，1 重启程序（保留后台服务），2 完全重启（先退出后台服务）
+    pub restart_mode: AtomicI32,
     pub ws_reload: AtomicBool,   // 收到 IniMonitor
     pub pcinfo_dirty: AtomicI32, // SendPCInfo flag（0 不发，否则发送对应 flag）
     pub show_key_generation: AtomicU64,
@@ -253,7 +259,11 @@ pub struct Shared {
 }
 
 impl Shared {
-    pub fn new(cfg: Config, ui_tx: crossbeam_channel::Sender<String>) -> Arc<Shared> {
+    pub fn new(
+        cfg: Config,
+        ui_tx: crossbeam_channel::Sender<String>,
+        ws_tx: crossbeam_channel::Sender<String>,
+    ) -> Arc<Shared> {
         let full = env_full_version();
         let major = {
             let parts: Vec<&str> = full.split('.').collect();
@@ -269,8 +279,11 @@ impl Shared {
             monitors: RwLock::new(Vec::new()),
             screen_bounds: Mutex::new((0, 0, 0, 0)),
             ui_tx,
+            ws_tx,
+            ws_ready: AtomicBool::new(false),
             server_state: AtomicI32::new(-1),
             exit: AtomicBool::new(false),
+            restart_mode: AtomicI32::new(0),
             ws_reload: AtomicBool::new(false),
             pcinfo_dirty: AtomicI32::new(0),
             show_key_generation: AtomicU64::new(0),

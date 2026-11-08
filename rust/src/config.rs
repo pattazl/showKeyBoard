@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicIsize, Ordering};
 
 use crate::winutil;
 
@@ -436,6 +437,9 @@ pub struct SingleInstance {
     _handle: windows_sys::Win32::Foundation::HANDLE,
 }
 
+/// 保存互斥句柄，供重启前主动释放（新进程需要重新获取）
+static INSTANCE_HANDLE: AtomicIsize = AtomicIsize::new(0);
+
 impl SingleInstance {
     pub fn acquire(name: &str) -> Option<SingleInstance> {
         use windows_sys::Win32::System::Threading::CreateMutexW;
@@ -450,8 +454,17 @@ impl SingleInstance {
             if err == 183 {
                 return None;
             }
+            INSTANCE_HANDLE.store(h as isize, Ordering::Relaxed);
             Some(SingleInstance { _handle: h })
         }
+    }
+}
+
+/// 重启前释放单实例互斥，允许新进程立即启动（对应 AHK Reload）
+pub fn release_single_instance() {
+    let h = INSTANCE_HANDLE.swap(0, Ordering::Relaxed);
+    if h != 0 {
+        unsafe { windows_sys::Win32::Foundation::CloseHandle(h as _) };
     }
 }
 

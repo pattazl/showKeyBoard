@@ -17,7 +17,7 @@ use windows_sys::Win32::System::Threading::{
     AttachThreadInput, OpenProcess, QueryFullProcessImageNameW, GetCurrentThreadId,
     PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
 };
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, GetFocus, GetKeyState};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, GetFocus};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, FindWindowW, GetClassNameW, GetCursorPos,
     GetForegroundWindow, GetSystemMetrics, GetWindowTextW, GetWindowLongPtrW, GetWindowRect,
@@ -607,30 +607,18 @@ fn toggle_slots(vk: i32) -> Option<(&'static AtomicI8, &'static AtomicBool)> {
     }
 }
 
-/// 读取系统真实的 toggle 位。
-/// GetKeyState 的值随本线程消息队列更新，焦点不在本进程时可能滞后，
-/// 因此临时附加到前台线程的输入队列再读。
+/// 读取系统真实的 toggle 位（CapsLock / NumLock / ScrollLock）。
+/// GetAsyncKeyState 的 bit0 对切换键即为"当前是否开启"，是全局状态、实时生效。
+/// 不要用 AttachThreadInput 附加到前台线程去读 GetKeyState：附加/分离会共享输入队列，
+/// 频繁调用会干扰系统向真实前台程序派发键鼠消息（表现为输入迟滞、丢字）。
 fn system_toggle(vk: i32) -> bool {
-    unsafe {
-        let fg = GetForegroundWindow();
-        if !fg.is_null() {
-            let tid = GetWindowThreadProcessId(fg, std::ptr::null_mut());
-            let cur = GetCurrentThreadId();
-            if tid != 0 && tid != cur && AttachThreadInput(cur, tid, 1) != 0 {
-                let on = (GetKeyState(vk) & 1) != 0;
-                AttachThreadInput(cur, tid, 0);
-                return on;
-            }
-        }
-        (GetKeyState(vk) & 1) != 0
-    }
+    unsafe { (GetAsyncKeyState(vk) & 1) != 0 }
 }
 
 /// 切换键当前是否处于开启状态（CapsLock / NumLock / ScrollLock），可持续查询。
 ///
 /// 状态由键盘钩子的按下事件翻转（见 lock_key_event），并每秒从系统重新同步一次
-/// （见 sync_lock_states）。注意不能用 GetAsyncKeyState(vk) & 1 直接判断：
-/// 该位是"自上次查询以来是否按下过"，读一次即清零，会让状态只显示一帧。
+/// （见 sync_lock_states），兜底钩子事件丢失或通过其他途径切换的情况。
 pub fn key_toggled(vk: i32) -> bool {
     let Some((slot, _down)) = toggle_slots(vk) else {
         return false;
@@ -645,26 +633,10 @@ pub fn key_toggled(vk: i32) -> bool {
 }
 
 /// 从系统重新同步三个切换键的开启状态（应由 UI 线程每秒调用一次）。
-/// 本线程必须有活跃的消息循环，GetKeyState 的 toggle 位才与系统一致；
-/// 兜底钩子事件丢失 / 通过其他途径切换的情况。
 pub fn sync_lock_states() {
-    unsafe {
-        // 只附加一次前台线程，读完三个键再分离
-        let fg = GetForegroundWindow();
-        let cur = GetCurrentThreadId();
-        let tid = if fg.is_null() {
-            0
-        } else {
-            GetWindowThreadProcessId(fg, std::ptr::null_mut())
-        };
-        let attached = tid != 0 && tid != cur && AttachThreadInput(cur, tid, 1) != 0;
-        for vk in [0x14i32, 0x90, 0x91] {
-            if let Some((slot, _down)) = toggle_slots(vk) {
-                slot.store(((GetKeyState(vk) & 1) != 0) as i8, Ordering::Relaxed);
-            }
-        }
-        if attached {
-            AttachThreadInput(cur, tid, 0);
+    for vk in [0x14i32, 0x90, 0x91] {
+        if let Some((slot, _down)) = toggle_slots(vk) {
+            slot.store(system_toggle(vk) as i8, Ordering::Relaxed);
         }
     }
 }
