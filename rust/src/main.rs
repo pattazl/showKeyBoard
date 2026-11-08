@@ -159,17 +159,10 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
 
 /// 追加/更新 INI 中的键值（简单实现：重写文件）
 fn write_ini_value(path: &std::path::Path, section: &str, key: &str, value: &str) {
-    let mut content = match std::fs::read(path) {
-        Ok(bytes) => {
-            if let Ok(s) = String::from_utf8(bytes.clone()) {
-                s
-            } else {
-                let (cow, _, _) = encoding_rs::GBK.decode(&bytes);
-                cow.into_owned()
-            }
-        }
-        Err(_) => String::new(),
-    };
+    // 读入时兼容 ANSI/GBK 与 UTF-8（含 BOM），写回时统一转为 UTF-8
+    let mut content = std::fs::read(path)
+        .map(|b| config::decode_ini(&b))
+        .unwrap_or_default();
 
     let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
     let mut in_section = false;
@@ -195,7 +188,6 @@ fn write_ini_value(path: &std::path::Path, section: &str, key: &str, value: &str
         lines.push(format!("{}={}", key, value));
     }
     content = lines.join("\r\n");
-    // INI 以 ANSI(GBK) 保存（与 Node iniAnsiWrite 一致）
-    let (enc, _, _) = encoding_rs::GBK.encode(&content);
-    let _ = std::fs::write(path, enc);
+    // 统一以 UTF-8（无 BOM）保存：Node 端按 utf-8 解析，避免中文乱码
+    let _ = std::fs::write(path, content.as_bytes());
 }

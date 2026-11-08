@@ -1,5 +1,5 @@
 //! 配置读取：完全使用 showKeyBoard.ini（含 showKeyBoard.desc.ini 默认值机制）。
-//! INI 文件为 ANSI/GBK 编码（Node 端 iniAnsiWrite 写入），兼容 UTF-8。
+//! 读取兼容 ANSI/GBK 与 UTF-8（含 BOM）；写入统一保存为 UTF-8（无 BOM）。
 #![allow(dead_code)]
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)]
 use crate::winutil;
 
-fn decode_ini(bytes: &[u8]) -> String {
+pub(crate) fn decode_ini(bytes: &[u8]) -> String {
     // 优先 UTF-8（含 BOM），失败则按 GBK 解码
     if let Ok(s) = std::str::from_utf8(bytes) {
         return s.trim_start_matches('\u{feff}').to_string();

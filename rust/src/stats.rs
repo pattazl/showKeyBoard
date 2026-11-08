@@ -296,7 +296,7 @@ impl Shared {
 pub fn env_full_version() -> String {
     match std::env::var("FULL_VERSION") {
         Ok(v) if !v.is_empty() => v,
-        _ => format!("{} (dev)", env!("CARGO_PKG_VERSION")),
+        _ => format!("{}", env!("CARGO_PKG_VERSION")),
     }
 }
 

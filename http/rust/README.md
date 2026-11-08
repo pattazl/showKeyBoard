@@ -61,7 +61,8 @@ rust/
 ### 前置条件
 
 - Rust 1.70+ (通过 [rustup](https://rustup.rs/) 安装)
-- SQLite 开发库
+- SQLite 开发库（本项目使用 `rusqlite` 的 `bundled` 特性，实际无需系统 SQLite）
+- macOS 需安装 Xcode Command Line Tools（`xcode-select --install`），用于编译内置 SQLite
 
 ### 构建
 

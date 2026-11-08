@@ -19,10 +19,10 @@ unsafe extern "system" {
 
 /// 输出调试信息到调试器（DebugViewNt 等工具可查看），统一以 "AHK-" 开头
 #[cfg(windows)]
-fn debug_out(msg: &str) {
-    let text = format!("AHK-{}\0", msg);
-    let wide: Vec<u16> = text.encode_utf16().collect();
-    unsafe { OutputDebugStringW(wide.as_ptr()) }
+fn debug_out(_msg: &str) {
+    //let text = format!("AHK-{}\0", msg);
+    //let wide: Vec<u16> = text.encode_utf16().collect();
+    //unsafe { OutputDebugStringW(wide.as_ptr()) }
 }
 
 /// macOS 没有 DebugView，退化输出到 stderr（从 LaunchAgents 启动时会进系统日志）

@@ -871,8 +871,41 @@ impl UiManager {
         let scale = Self::scale_at_pos(ui.active_app_show_x, ui.active_app_show_y);
         let use_scale = if ui.gui_dpiscale { scale } else { 1.0 };
         win.comp.set_corner_radius(ui.ctrl_radius as f32 / use_scale);
-        let w = ui.ctrl_width.max(200);
-        let h = (ui.ctrl_text_size.max(12) as f32 * use_scale * 1.8).round() as i32;
+        // 宽度按内容自适应：单行实测文本宽度（物理像素）；macOS 无 GDI 测量，按字符宽度估算
+        let font_size = ui.ctrl_text_size.max(12);
+        let font_px = (font_size as f32 * use_scale).round().max(1.0) as i32;
+        let (_lines, _line_h, measured) =
+            crate::winutil::measure_text(&path, &font, font_px, false, 0);
+        let text_w = if measured > 0 {
+            measured
+        } else {
+            let units: f32 = path
+                .chars()
+                .map(|c| if (c as u32) > 0x2E7F { 1.0 } else { 0.55 })
+                .sum();
+            (units * font_px as f32).round() as i32
+        };
+        // 上限 = 所在显示器右边界 - 窗口 x - 余量；超宽路径由 Text 的 elide 截断
+        let max_w = {
+            let mons = MONITORS.with(|m| m.borrow().clone());
+            let mon = mons
+                .iter()
+                .copied()
+                .find(|r| {
+                    ui.active_app_show_x >= r.0
+                        && ui.active_app_show_x < r.2
+                        && ui.active_app_show_y >= r.1
+                        && ui.active_app_show_y < r.3
+                })
+                .or_else(|| mons.first().copied());
+            match mon {
+                Some((_ml, _mt, mr, _mb)) => (mr - ui.active_app_show_x - 16).max(200),
+                None => 1920,
+            }
+        };
+        // Text 左右共 8px 逻辑边距 + 少量余量；内容不足 200 时保持原有最小宽度
+        let w = (text_w + (12.0 * use_scale).round() as i32).clamp(200, max_w);
+        let h = (font_size as f32 * use_scale * 1.8).round() as i32;
         win.comp.set_o_width(w as f32 / use_scale);
         win.comp.set_o_height(h as f32 / use_scale);
         let px = (ui.active_app_show_x as f32 * scale).round() as i32;
