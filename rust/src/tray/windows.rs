@@ -344,16 +344,13 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                             let _ = slint::quit_event_loop();
                         }
                         ID_RESTART_ALL => {
-                            // 完全重启：通知后台服务退出需要 HTTP 请求，放后台线程执行
-                            let sh = shared.clone();
-                            std::thread::spawn(move || {
-                                crate::net::send_exit(&sh);
-                                // 留出后台服务退出/释放端口的时间（AHK 中为 Sleep(200)）
-                                std::thread::sleep(Duration::from_millis(600));
-                                sh.restart_mode.store(2, Ordering::Relaxed);
-                                sh.exit.store(true, Ordering::Relaxed);
-                                let _ = slint::quit_event_loop();
-                            });
+                            // 完全重启：先同步关闭后台服务（/exit 不生效则按 pid 强制结束并等待端口下线），
+                            // 再退出客户端；主线程 join 本托盘线程后才拉起新实例，
+                            // 新实例检测不到服务，会重新启动后端。
+                            shared.restart_mode.store(2, Ordering::Relaxed);
+                            crate::net::shutdown_server(&shared);
+                            shared.exit.store(true, Ordering::Relaxed);
+                            let _ = slint::quit_event_loop();
                         }
                         ID_SETTINGS => {
                             let url = format!("{}/Setting", shared.cfg.read().unwrap().server_url());

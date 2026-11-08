@@ -231,16 +231,12 @@ pub fn poll(shared: &Arc<Shared>) {
                     let _ = slint::quit_event_loop();
                 }
                 ID_RESTART_ALL => {
-                    // 完全重启：先通知后台服务退出（HTTP 请求放后台线程）
-                    let sh = shared.clone();
-                    std::thread::spawn(move || {
-                        crate::net::send_exit(&sh);
-                        // 留出后台服务退出/释放端口的时间（AHK 中为 Sleep(200)）
-                        std::thread::sleep(std::time::Duration::from_millis(600));
-                        sh.restart_mode.store(2, Ordering::Relaxed);
-                        sh.exit.store(true, Ordering::Relaxed);
-                        let _ = slint::quit_event_loop();
-                    });
+                    // 完全重启：先同步关闭后台服务（/exit 不生效则按 pid 强制结束并等待端口下线），
+                    // 再退出客户端；新实例检测不到服务，会重新启动后端。
+                    shared.restart_mode.store(2, Ordering::Relaxed);
+                    crate::net::shutdown_server(shared);
+                    shared.exit.store(true, Ordering::Relaxed);
+                    let _ = slint::quit_event_loop();
                 }
                 ID_SETTINGS => {
                     let url = format!("{}/Setting", shared.cfg.read().unwrap().server_url());

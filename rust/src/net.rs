@@ -495,6 +495,8 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                     // server_state 初始为 -1（从未启动过），首次 /version 失败时立即拉起服务，
                     // 之后再按 check_server_max 重试（对应 AHK serverState=-1 时 startServer）
                     let never_started = shared.server_state.load(Ordering::Relaxed) == -1;
+                    // 重启/完全重启过程中不要自动拉起后端（完全重启是先关服务再重启自己）
+                    let restarting = shared.restart_mode.load(Ordering::Relaxed) != 0;
                     if check_server(&shared).is_ok() {
                         push_status(&shared, STATUS_TEMP, "后台服务已连接");
                         send_pc_info(&shared, 0);
@@ -502,7 +504,7 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         started_server = true;
                     } else {
                         check_count += 1;
-                        if never_started && !started_server {
+                        if never_started && !started_server && !restarting {
                             started_server = true;
                             push_status(&shared, STATUS_STICKY, "正在启动后台服务…");
                             match start_node_server(&shared) {
@@ -663,5 +665,56 @@ pub fn send_exit(shared: &Arc<Shared>) {
     if is_server_ok(shared) {
         let url = format!("{}/exit", shared.cfg.read().unwrap().server_url());
         let _ = post_json(&url, "", 3000);
+    }
+}
+
+/// 后台服务是否仍在响应 /version（不修改 server_state）
+fn server_reachable(shared: &Arc<Shared>) -> bool {
+    let url = { format!("{}/version", shared.cfg.read().unwrap().server_url()) };
+    matches!(post_json(&url, "", 800), Ok(text) if text.contains("showKeyBoardServer Version:"))
+}
+
+/// 完全重启前关闭后台服务：
+/// 1) 先 POST /exit 让服务端落盘并自行退出；
+/// 2) 若 /exit 未生效（旧版服务/端口残留），按 kbserver.pid 强制结束；
+/// 3) 等待端口真正下线，保证新实例启动时检测不到服务，从而重新拉起后端。
+pub fn shutdown_server(shared: &Arc<Shared>) {
+    if is_server_ok(shared) || server_reachable(shared) {
+        let url = { format!("{}/exit", shared.cfg.read().unwrap().server_url()) };
+        let _ = post_json(&url, "", 1500);
+    }
+
+    let (http_path, exec) = {
+        let cfg = shared.cfg.read().unwrap();
+        (cfg.http_path.clone(), cfg.server_exec_name.clone())
+    };
+    let pid_file = http_path.join("kbserver.pid");
+    let exec_raw = if exec.trim().is_empty() { "node" } else { exec.trim() };
+    let exec_stem = std::path::Path::new(exec_raw)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if let Ok(s) = std::fs::read_to_string(&pid_file) {
+        if let Ok(pid) = s.trim().parse::<u32>() {
+            if pid > 0 && process_exists(pid) {
+                let image = process_image_name(pid).unwrap_or_default();
+                let stem = std::path::Path::new(&image)
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().to_lowercase())
+                    .unwrap_or_default();
+                // 防止 pid 被复用后误杀无关进程
+                if stem == exec_stem || stem.starts_with("node") || stem.contains("showkeyboard_server") {
+                    kill_process(pid);
+                }
+            }
+        }
+    }
+
+    // 最多等待约 2 秒，确保端口释放
+    for _ in 0..8 {
+        if !server_reachable(shared) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(250));
     }
 }
