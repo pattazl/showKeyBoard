@@ -150,13 +150,25 @@ async fn auto_share_task(state: AppState) {
     }
 }
 
+/// 把 ini 中可能来自 Windows 的反斜杠路径转换为当前平台分隔符
+#[cfg(windows)]
+fn portable_path(p: &str) -> String {
+    p.to_string()
+}
+
+#[cfg(not(windows))]
+fn portable_path(p: &str) -> String {
+    p.replace('\\', "/")
+}
+
 /// Node: path.resolve(basePath, xxx) —— 绝对路径直接用，否则基于 base_dir
 fn resolve_path(base: &str, p: &str) -> PathBuf {
-    let path = Path::new(p);
+    let p = portable_path(p);
+    let path = Path::new(&p);
     if path.is_absolute() {
         path.to_path_buf()
     } else {
-        Path::new(base).join(p)
+        Path::new(base).join(&p)
     }
 }
 
@@ -370,12 +382,22 @@ fn unzip_to_dbs(zip_path: &Path, dbs_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// 执行共享后的额外命令（Node: exec(command, { cwd: basePath })，Windows 下经 cmd /C）
+/// 执行共享后的额外命令（Node: exec(command, { cwd: basePath })）
+/// Windows 下经 cmd /C（CREATE_NO_WINDOW 避免弹窗）；macOS/Linux 下经 /bin/sh -c。
+#[cfg(windows)]
 fn spawn_command(command: &str, cwd: &Path) {
     use std::os::windows::process::CommandExt;
     let _ = std::process::Command::new("cmd")
         .args(["/C", command])
         .current_dir(cwd)
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .spawn();
+}
+
+#[cfg(not(windows))]
+fn spawn_command(command: &str, cwd: &Path) {
+    let _ = std::process::Command::new("/bin/sh")
+        .args(["-c", command])
+        .current_dir(cwd)
         .spawn();
 }

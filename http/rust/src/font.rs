@@ -7,7 +7,16 @@
 ///
 /// We use system commands to achieve similar results without heavy native deps.
 
+use std::sync::OnceLock;
+
 pub fn get_system_fonts() -> Vec<String> {
+    // 字体列表在进程生命周期内不会变化，缓存避免每次 /getPara 重复枚举
+    //（macOS 的 system_profiler 兜底路径较慢）
+    static CACHE: OnceLock<Vec<String>> = OnceLock::new();
+    CACHE.get_or_init(compute_system_fonts).clone()
+}
+
+fn compute_system_fonts() -> Vec<String> {
     let result = if cfg!(target_os = "windows") {
         get_fonts_windows()
     } else if cfg!(target_os = "macos") {
@@ -90,8 +99,17 @@ fn get_fonts_windows() -> Vec<String> {
     }
 }
 
-/// macOS: use system_profiler to enumerate fonts
+/// macOS: 优先使用 CoreText 枚举字体家族（等价 Node font-list 的 NSFontManager，
+/// 速度快且无需外部命令）；CoreText 返回空时回退到 system_profiler。
 fn get_fonts_macos() -> Vec<String> {
+    #[cfg(target_os = "macos")]
+    {
+        let fonts = get_fonts_macos_coretext();
+        if !fonts.is_empty() {
+            return fonts;
+        }
+    }
+
     match std::process::Command::new("sh")
         .args(["-c", "system_profiler SPFontsDataType 2>/dev/null | grep 'Family:' | sed 's/.*Family: //' | sort -u"])
         .output()
@@ -105,6 +123,76 @@ fn get_fonts_macos() -> Vec<String> {
         }
         _ => Vec::new(),
     }
+}
+
+/// CoreText / CoreFoundation FFI：枚举系统可用字体家族
+#[cfg(target_os = "macos")]
+fn get_fonts_macos_coretext() -> Vec<String> {
+    use std::ffi::c_void;
+
+    type CFArrayRef = *const c_void;
+    type CFStringRef = *const c_void;
+    // kCFStringEncodingUTF8
+    const UTF8_ENCODING: u32 = 0x0800_0100;
+
+    #[link(name = "CoreText", kind = "framework")]
+    extern "C" {
+        fn CTFontManagerCopyAvailableFontFamilyNames() -> CFArrayRef;
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFArrayGetCount(array: CFArrayRef) -> isize;
+        fn CFArrayGetValueAtIndex(array: CFArrayRef, index: isize) -> *const c_void;
+        fn CFStringGetLength(s: CFStringRef) -> isize;
+        fn CFStringGetMaximumSizeForEncoding(length: isize, encoding: u32) -> isize;
+        fn CFStringGetCString(
+            s: CFStringRef,
+            buffer: *mut u8,
+            buffer_size: isize,
+            encoding: u32,
+        ) -> u8;
+        fn CFRelease(cf: *const c_void);
+    }
+
+    let array = unsafe { CTFontManagerCopyAvailableFontFamilyNames() };
+    if array.is_null() {
+        return Vec::new();
+    }
+
+    let mut fonts = Vec::new();
+    unsafe {
+        let count = CFArrayGetCount(array);
+        for i in 0..count {
+            let s = CFArrayGetValueAtIndex(array, i) as CFStringRef;
+            if s.is_null() {
+                continue;
+            }
+            let len = CFStringGetLength(s);
+            if len <= 0 {
+                continue;
+            }
+            let cap = CFStringGetMaximumSizeForEncoding(len, UTF8_ENCODING) + 1;
+            if cap <= 0 {
+                continue;
+            }
+            let mut buf = vec![0u8; cap as usize];
+            if CFStringGetCString(s, buf.as_mut_ptr(), cap, UTF8_ENCODING) != 0 {
+                let name = String::from_utf8_lossy(&buf)
+                    .trim_end_matches('\0')
+                    .trim()
+                    .to_string();
+                if !name.is_empty() {
+                    fonts.push(name);
+                }
+            }
+        }
+        CFRelease(array as *const c_void);
+    }
+
+    fonts.sort();
+    fonts.dedup();
+    fonts
 }
 
 /// Linux: use fc-list

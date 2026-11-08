@@ -225,23 +225,21 @@ fn strip_ini_quotes(val: &str) -> String {
     val.to_string()
 }
 
-/// Read a file with encoding fallback: try UTF-8 first, then GBK.
-/// This matches Node.js behavior where user ini is ANSI/GBK (shared with AHK),
-/// while desc ini is UTF-8.
+/// Read a file with encoding fallback: try UTF-8 (含 BOM) first, then GBK.
+/// macOS/Linux 下的 ini 一般为 UTF-8，从 Windows 迁移过来的 ini 可能是
+/// ANSI/GBK（与 AHK 共享），因此保留 GBK 兜底解码。
 pub fn read_config_file(path: &Path) -> Result<String, String> {
     let bytes = std::fs::read(path)
         .map_err(|e| format!("Failed to read {:?}: {}", path, e))?;
-    
-    // Try UTF-8 first
-    if let Ok(s) = String::from_utf8(bytes.clone()) {
-        return Ok(s);
+
+    // Try UTF-8 first (strip BOM)
+    if let Ok(s) = std::str::from_utf8(&bytes) {
+        return Ok(s.trim_start_matches('\u{feff}').to_string());
     }
-    
-    // Fallback: try GBK/GB2312 decoding
-    // For full GBK support, we'd need the encoding_rs crate, but since
-    // the config values are mostly ASCII keys with ASCII/Chinese comment values,
-    // the UTF-8 parse should succeed for most cases.
-    Err(format!("File {:?} is not valid UTF-8. If it's GBK-encoded, please convert to UTF-8.", path))
+
+    // Fallback: GBK/GB2312 decoding
+    let (decoded, _, _) = encoding_rs::GBK.decode(&bytes);
+    Ok(decoded.into_owned())
 }
 
 impl Default for AppConfig {
