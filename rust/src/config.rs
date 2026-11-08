@@ -3,8 +3,12 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicIsize, Ordering};
+#[cfg(windows)]
+use std::sync::atomic::AtomicIsize;
+#[cfg(windows)]
+use std::sync::atomic::Ordering;
 
+#[cfg(windows)]
 use crate::winutil;
 
 fn decode_ini(bytes: &[u8]) -> String {
@@ -14,6 +18,23 @@ fn decode_ini(bytes: &[u8]) -> String {
     }
     let (cow, _, _) = encoding_rs::GBK.decode(bytes);
     cow.into_owned()
+}
+
+/// 把 ini 里的 httpDistPath 转成当前平台可用的路径。
+/// Windows：兼容 AHK 写法（`\httpdist\dist\` 视为相对工作目录）；
+/// macOS/Linux：反斜杠统一转成 `/`，且绝对路径保持绝对。
+#[cfg(windows)]
+fn resolve_http_path(work: &Path, spec: &str, first: bool) -> PathBuf {
+    if first {
+        work.join(spec.trim_start_matches(['\\', '/']).replace('/', "\\"))
+    } else {
+        work.join(spec.trim().replace('/', "\\"))
+    }
+}
+
+#[cfg(not(windows))]
+fn resolve_http_path(work: &Path, spec: &str, _first: bool) -> PathBuf {
+    work.join(spec.trim().replace('\\', "/"))
 }
 
 /// 极简 INI 解析（节 -> 键 -> 值），注释 ; 或 #
@@ -231,9 +252,9 @@ impl Config {
         let user_ini = Ini::load(&ini_path);
 
         let http_dist_path = Self::desc_read(&user_ini, &None, "common", "httpDistPath", "\\httpdist\\dist\\");
-        let mut http_path = work.join(http_dist_path.trim_start_matches(['\\', '/']).replace('/', "\\"));
+        let mut http_path = resolve_http_path(&work, &http_dist_path, true);
         if !http_path.exists() {
-            http_path = work.join(http_dist_path.trim().replace('/', "\\"));
+            http_path = resolve_http_path(&work, &http_dist_path, false);
         }
 
         let desc_path = {
@@ -334,7 +355,13 @@ impl Config {
             hide_in_win_pwd: Self::desc_read_bool(&user_ini, desc, "common", "hideInWinPwd", false),
             stat_proc_info: Self::desc_read_bool(&user_ini, desc, "common", "statProcInfo", true),
             default_lang: Self::desc_read(&user_ini, desc, "common", "defaultLang", "zh-CN"),
-            server_exec_name: Self::desc_read(&user_ini, desc, "common", "serverExecName", "node.exe"),
+            server_exec_name: Self::desc_read(
+                &user_ini,
+                desc,
+                "common",
+                "serverExecName",
+                if cfg!(windows) { "node.exe" } else { "node" },
+            ),
             pre_app_name_enable,
             pre_app_name_list,
             record_history_max: Self::desc_read_i32(&user_ini, desc, "common", "recordHistoryMax", 50).max(0) as usize,
@@ -433,13 +460,24 @@ impl KeyMapping {
 }
 
 /// 单实例互斥（对应 AHK #SingleInstance Ignore）
+/// - Windows：命名互斥体
+/// - macOS：锁文件 + pid 存活检测（崩溃残留会被自动清理）
 pub struct SingleInstance {
+    #[cfg(windows)]
     _handle: windows_sys::Win32::Foundation::HANDLE,
+    #[cfg(target_os = "macos")]
+    path: std::path::PathBuf,
 }
 
-/// 保存互斥句柄，供重启前主动释放（新进程需要重新获取）
+/// Windows 保存互斥句柄，供重启前主动释放（新进程需要重新获取）
+#[cfg(windows)]
 static INSTANCE_HANDLE: AtomicIsize = AtomicIsize::new(0);
 
+/// macOS 保存锁文件路径，供重启前主动释放
+#[cfg(target_os = "macos")]
+static INSTANCE_PATH: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
+
+#[cfg(windows)]
 impl SingleInstance {
     pub fn acquire(name: &str) -> Option<SingleInstance> {
         use windows_sys::Win32::System::Threading::CreateMutexW;
@@ -460,11 +498,54 @@ impl SingleInstance {
     }
 }
 
+#[cfg(target_os = "macos")]
+impl SingleInstance {
+    pub fn acquire(name: &str) -> Option<SingleInstance> {
+        use std::io::Write;
+        let path = std::env::temp_dir().join(format!("{}.lock", name));
+        for _ in 0..2 {
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(mut f) => {
+                    let _ = write!(f, "{}", std::process::id());
+                    *INSTANCE_PATH.lock().unwrap() = Some(path.clone());
+                    return Some(SingleInstance { path });
+                }
+                Err(_) => {
+                    // 锁文件已存在：检查记录的 pid 是否存活，崩溃残留则清理后重试
+                    let alive = std::fs::read_to_string(&path)
+                        .ok()
+                        .and_then(|s| s.trim().parse::<i32>().ok())
+                        .map(|pid| unsafe { libc::kill(pid, 0) } == 0)
+                        .unwrap_or(false);
+                    if alive {
+                        return None;
+                    }
+                    let _ = std::fs::remove_file(&path);
+                }
+            }
+        }
+        None
+    }
+}
+
 /// 重启前释放单实例互斥，允许新进程立即启动（对应 AHK Reload）
+#[cfg(windows)]
 pub fn release_single_instance() {
     let h = INSTANCE_HANDLE.swap(0, Ordering::Relaxed);
     if h != 0 {
         unsafe { windows_sys::Win32::Foundation::CloseHandle(h as _) };
+    }
+}
+
+/// 重启前释放单实例锁文件，允许新进程立即启动
+#[cfg(target_os = "macos")]
+pub fn release_single_instance() {
+    if let Some(p) = INSTANCE_PATH.lock().unwrap().take() {
+        let _ = std::fs::remove_file(p);
     }
 }
 

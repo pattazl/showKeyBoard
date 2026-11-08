@@ -6,12 +6,14 @@
 //! - HTTP + WebSocket 与后台通讯（/data /version /sendPCInfo /exit，IniMonitor 热重载）
 //! - Slint 浮窗 UI（渐隐、自定义字体背景、位置方向、多屏）
 //! - 托盘菜单、hotkey4Show 热键、单实例、kb.pid、lastRecord.json、自动版本号
-#![cfg(windows)]
+//!
+//! 跨平台：Windows（Win32 钩子 / XInput / Win32 托盘）与 macOS（CGEventTap / gilrs / NSStatusItem）。
 // 与 AHK 编译版一致：GUI 子系统，无控制台窗口（否则任务栏会出现控制台按钮）
-#![windows_subsystem = "windows"]
+#![cfg_attr(windows, windows_subsystem = "windows")]
 #![allow(dead_code)]
 
 mod config;
+mod icon;
 mod input;
 mod joy;
 mod net;
@@ -44,20 +46,24 @@ fn main() {
     // 在创建任何窗口之前指定 winit 窗口属性：popup 方式（带 owner + 不显示在任务栏），
     // 这样启动时预热的多个窗口不会在任务栏冒出多个按钮。
     // 该 owner 窗口同时用于托盘气泡提示（needTraytip）。
+    // macOS 没有 owner/taskbar 概念，窗口层级与鼠标穿透由 winutil 在运行时设置。
+    #[cfg(windows)]
     let owner_hwnd = winutil::owner_hwnd() as isize;
+    #[cfg(not(windows))]
+    let _owner_hwnd: isize = 0;
     {
         // 保留 SLINT_BACKEND=winit-software 的调试入口
         let name = match std::env::var("SLINT_BACKEND") {
             Ok(v) if v.contains("winit") => v,
             _ => "winit".to_string(),
         };
-        let _ = slint::BackendSelector::new()
-            .backend_name(name)
-            .with_winit_window_attributes_hook(move |attributes| {
-                use slint::winit_030::winit::platform::windows::WindowAttributesExtWindows;
-                attributes.with_skip_taskbar(true).with_owner_window(owner_hwnd)
-            })
-            .select();
+        let selector = slint::BackendSelector::new().backend_name(name);
+        #[cfg(windows)]
+        let selector = selector.with_winit_window_attributes_hook(move |attributes| {
+            use slint::winit_030::winit::platform::windows::WindowAttributesExtWindows;
+            attributes.with_skip_taskbar(true).with_owner_window(owner_hwnd)
+        });
+        let _ = selector.select();
     }
 
     let cfg = config::Config::load();
@@ -76,7 +82,8 @@ fn main() {
     let net_thread = net::start(shared.clone());
     let ws_thread = net::start_ws(shared.clone(), ws_rx);
 
-    // 托盘
+    // 托盘：Windows 用独立线程消息循环；macOS 由 ui 主线程惰性创建（NSStatusItem 要求主线程）
+    #[cfg(windows)]
     let tray_thread = tray::start(shared.clone(), owner_hwnd);
 
     // UI 主循环（阻塞）
@@ -99,6 +106,7 @@ fn main() {
     let _ = poll_thread.join();
     let _ = net_thread.join();
     let _ = ws_thread.join();
+    #[cfg(windows)]
     let _ = tray_thread.join();
 
     // 重启（托盘菜单）：释放单实例互斥后拉起新进程

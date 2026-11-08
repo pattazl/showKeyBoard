@@ -10,7 +10,7 @@ use tray_icon::{TrayIcon, TrayIconBuilder};
 use crate::stats::Shared;
 
 /// 编译期嵌入托盘图标（对应 AHK 的 res\keyboard.ico）
-const EMBEDDED_ICON: &[u8] = include_bytes!("../../res/keyboard.ico");
+const EMBEDDED_ICON: &[u8] = include_bytes!("../../../res/keyboard.ico");
 
 const ID_STARTUP: &str = "skb.startup";
 const ID_RESTART: &str = "skb.restart";
@@ -269,7 +269,7 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                     }
                 }
                 let bytes = bytes.unwrap_or_else(|| EMBEDDED_ICON.to_vec());
-                crate::winutil::ico_to_rgba(&bytes, 32)
+                crate::icon::ico_to_rgba(&bytes, 32)
                     .and_then(|(rgba, w, h)| tray_icon::Icon::from_rgba(rgba, w, h).ok())
             };
 
@@ -387,4 +387,7 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
         .expect("spawn tray thread")
 }
 
+/// Windows 托盘在独立线程运行自己的消息循环，无需外部轮询。
+/// 保留该函数是为了与 macOS 实现（必须在 UI 主线程惰性创建）保持同一接口。
+pub fn poll(_shared: &Arc<Shared>) {}
 

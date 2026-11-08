@@ -25,7 +25,6 @@ struct Overlay {
     h: i32,
     fading: bool,
     fade_start: Option<Instant>,
-    styled: bool,
     done: bool,
 }
 
@@ -33,9 +32,19 @@ struct CtrlWin {
     comp: CtrlOverlay,
     title: String,
     last_text: String,
-    styled: bool,
     /// 位置/尺寸是否已按物理像素成功应用（窗口刚创建时 winit 窗口尚未就绪，需要下一轮重试）
     positioned: bool,
+}
+
+/// 连接状态提示窗：复用按键浮窗组件与空闲窗口池，显示后台服务启动/连接过程与异常。
+/// 由 net 线程通过 UI 文本管道推送 `\u{1}`（常驻）/ `\u{2}`（短暂后渐隐）前缀的消息驱动。
+struct StatusWin {
+    comp: KeyOverlay,
+    title: String,
+    /// 自动渐隐时间点（None 表示常驻，直到下一条状态把它替换/自己结束）
+    hide_at: Option<Instant>,
+    /// 渐隐开始时间
+    fade_start: Option<Instant>,
 }
 
 /// 回收待复用的浮窗（窗口/GL 画布复用，避免每次新建造成内存膨胀）
@@ -63,6 +72,7 @@ pub struct UiManager {
     prewarm: Vec<IdleWin>,
     ctrl: Option<CtrlWin>,
     appwin: Option<CtrlWin>,
+    status: Option<StatusWin>,
     keymap: KeyMapping,
     generation: u64,
     next_id: usize,
@@ -95,6 +105,7 @@ impl UiManager {
             prewarm: Vec::new(),
             ctrl: None,
             appwin: None,
+            status: None,
             keymap,
             generation: 0,
             next_id: 0,
@@ -254,6 +265,15 @@ impl UiManager {
         if token.is_empty() {
             return;
         }
+        // net 线程推送的后台服务状态：\u{1} 常驻（连接中/异常），\u{2} 短暂显示后渐隐
+        if let Some(rest) = token.strip_prefix('\u{1}') {
+            self.show_status(rest, true);
+            return;
+        }
+        if let Some(rest) = token.strip_prefix('\u{2}') {
+            self.show_status(rest, false);
+            return;
+        }
         let cfg = self.shared.cfg.read().unwrap().clone();
         // skipShow 过滤（AHK 在 CallShow 中过滤，WebSocket 也不推送）
         if cfg.ui.skip_show.iter().any(|s| s == token) {
@@ -296,18 +316,18 @@ impl UiManager {
     fn create_overlay(&mut self, _cfg: &Config, texts: Vec<String>, tick: Instant) {
         // 窗口总数恒定：优先用空闲池，池空则回收最旧的叠层。
         // 这样运行期不再新建 HWND，既不涨内存，也不会在任务栏闪出按钮。
-        let (comp, title, reused) = if let Some(w) = self.idle.pop() {
-            (w.comp, w.title, true)
+        let (comp, title) = if let Some(w) = self.idle.pop() {
+            (w.comp, w.title)
         } else if !self.overlays.is_empty() {
             let old = self.overlays.remove(0);
-            (old.comp, old.title, true)
+            (old.comp, old.title)
         } else {
             let id = self.next_id;
             self.next_id += 1;
             let comp = KeyOverlay::new().expect("create KeyOverlay");
             let title = format!("SKBOverlay{}", id);
             comp.set_overlay_id(title.as_str().into());
-            (comp, title, false)
+            (comp, title)
         };
         comp.set_fade(1.0);
         self.overlays.push(Overlay {
@@ -321,7 +341,6 @@ impl UiManager {
             h: 0,
             fading: false,
             fade_start: None,
-            styled: reused,
             done: false,
         });
     }
@@ -331,19 +350,35 @@ impl UiManager {
         if len == 0 {
             return;
         }
-        let ui = &cfg.ui;
         let last_idx = len - 1;
-        let merged = {
-            let texts = &self.overlays[last_idx].texts;
-            let t = Self::merged_text(cfg, texts);
-            crate::winutil::strip_variation_selectors(t.trim())
-        };
+        let merged = Self::merged_text(cfg, &self.overlays[last_idx].texts);
+        let font = self.overlay_font(cfg, &merged);
+        let ov = &mut self.overlays[last_idx];
+        let (x, y, pw, ph) = Self::apply_overlay_layout(cfg, &ov.comp, &merged, &font);
+        ov.x = x;
+        ov.y = y;
+        ov.w = pw;
+        ov.h = ph;
+        let title = ov.title.clone();
+        crate::winutil::apply_overlay_styles(&ov.comp.window(), &title, cfg.ui.gui_trans);
+    }
 
-        // 字体：配置字体无法显示 🖰/🖱、⎇/⇧ 等符号时回退到 Segoe UI Symbol
-        let font = {
-            let base = self.ensure_font(&ui.gui_text_font.clone());
-            self.resolve_font(&base, &merged)
-        };
+    /// 浮窗字体：配置字体无法显示 🖰/🖱、⎇/⇧ 等符号时回退到 Segoe UI Symbol
+    fn overlay_font(&mut self, cfg: &Config, text: &str) -> String {
+        let base = self.ensure_font(&cfg.ui.gui_text_font.clone());
+        self.resolve_font(&base, text)
+    }
+
+    /// 给浮窗套用文本/颜色/尺寸并定位（按键浮窗与连接状态浮窗共用）
+    fn apply_overlay_layout(
+        cfg: &Config,
+        comp: &KeyOverlay,
+        text: &str,
+        font: &str,
+    ) -> (i32, i32, i32, i32) {
+        let ui = &cfg.ui;
+        let merged = crate::winutil::strip_variation_selectors(text.trim());
+
         let (br, bg_, bb) = ui.gui_bgcolor;
         let (tr, tg, tb) = ui.gui_text_color;
         let bg_alpha: u8 = if ui.gui_bg_trans { 0 } else { ui.gui_opacity as u8 };
@@ -355,11 +390,11 @@ impl UiManager {
         // DPI 缩放：配置值为物理像素，Slint 属性为逻辑像素，二者需统一换算
         let scale = {
             let mon_s = crate::winutil::scale_at(ml + (mr - ml) / 2, mt + (mb - mt) / 2);
-            let win_s = self.overlays[last_idx].comp.window().scale_factor();
+            let win_s = comp.window().scale_factor();
             if mon_s > 0.0 { mon_s } else if win_s > 0.0 { win_s } else { 1.0 }
         };
         let win_scale = {
-            let s = self.overlays[last_idx].comp.window().scale_factor();
+            let s = comp.window().scale_factor();
             if s > 0.0 { s } else { scale }
         };
         // guiDpiscale=true：配置宽高按物理像素固定；false：按逻辑像素（随系统 DPI 放大）
@@ -373,7 +408,7 @@ impl UiManager {
         } else {
             // GDI 精确测量文本换行后的真实高度
             let (lines, line_h, _) =
-                crate::winutil::measure_text(&merged, &font, font_px, ui.gui_text_bold, usable_w);
+                crate::winutil::measure_text(&merged, font, font_px, ui.gui_text_bold, usable_w);
             if lines > 0 {
                 lines * line_h + 10
             } else {
@@ -397,38 +432,97 @@ impl UiManager {
             _ => {}
         }
 
-        {
-            let ov = &mut self.overlays[last_idx];
-            ov.x = x;
-            ov.y = y;
-            ov.w = pw;
-            ov.h = ph;
-            let edge_color = Color::from_argb_u8(ui.gui_opacity as u8, br, bg_, bb);
-            ov.comp.set_label(merged.as_str().into());
-            ov.comp.set_bg_color(bg);
-            ov.comp.set_txt_color(tc);
-            ov.comp.set_edge_color(edge_color);
-            ov.comp.set_show_edge(ui.gui_edge);
-            ov.comp.set_font_name(font.as_str().into());
-            ov.comp.set_font_size(ui.gui_text_size);
-            ov.comp.set_font_weight(if ui.gui_text_bold { 700 } else { 400 });
-            ov.comp.set_corner_radius(ui.gui_radius as f32 / use_scale);
-            ov.comp.set_o_width(w as f32 / use_scale);
-            ov.comp.set_o_height(h as f32 / use_scale);
-            ov.comp.window().set_position(PhysicalPosition::new(x, y));
-            ov.comp
-                .window()
-                .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
-            ov.comp.show().ok();
-            let title = ov.title.clone();
-            if crate::winutil::apply_overlay_styles(&title, ui.gui_trans) {
-                ov.styled = true;
+        let edge_color = Color::from_argb_u8(ui.gui_opacity as u8, br, bg_, bb);
+        comp.set_label(merged.as_str().into());
+        comp.set_bg_color(bg);
+        comp.set_txt_color(tc);
+        comp.set_edge_color(edge_color);
+        comp.set_show_edge(ui.gui_edge);
+        comp.set_font_name(font.into());
+        comp.set_font_size(ui.gui_text_size);
+        comp.set_font_weight(if ui.gui_text_bold { 700 } else { 400 });
+        comp.set_corner_radius(ui.gui_radius as f32 / use_scale);
+        comp.set_o_width(w as f32 / use_scale);
+        comp.set_o_height(h as f32 / use_scale);
+        comp.window().set_position(PhysicalPosition::new(x, y));
+        comp.window()
+            .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
+        comp.show().ok();
+        (x, y, pw, ph)
+    }
+
+    /// 显示后台服务连接状态：复用空闲浮窗（不新增 HWND），sticky=true 时常驻到状态变化
+    fn show_status(&mut self, text: &str, sticky: bool) {
+        let cfg = self.shared.cfg.read().unwrap().clone();
+        if self.status.is_none() {
+            let (comp, title) = if let Some(w) = self.idle.pop() {
+                (w.comp, w.title)
+            } else {
+                let id = self.next_id;
+                self.next_id += 1;
+                let comp = KeyOverlay::new().expect("create StatusOverlay");
+                let title = format!("SKBOverlay{}", id);
+                comp.set_overlay_id(title.as_str().into());
+                (comp, title)
+            };
+            self.status = Some(StatusWin {
+                comp,
+                title,
+                hide_at: None,
+                fade_start: None,
+            });
+        }
+        let font = self.overlay_font(&cfg, text);
+        let win = self.status.as_mut().unwrap();
+        win.hide_at = if sticky {
+            None
+        } else {
+            Some(Instant::now() + Duration::from_millis(2000))
+        };
+        win.fade_start = None;
+        win.comp.set_fade(1.0);
+        let _ = Self::apply_overlay_layout(&cfg, &win.comp, text, &font);
+        crate::winutil::apply_overlay_styles(&win.comp.window(), &win.title, cfg.ui.gui_trans);
+    }
+
+    /// 状态浮窗生命周期：到点渐隐，结束后归还空闲窗口池
+    fn tick_status(&mut self, fade_ms: u64) {
+        let now = Instant::now();
+        let mut finished = false;
+        if let Some(s) = self.status.as_mut() {
+            if let Some(t) = s.hide_at {
+                if now >= t {
+                    s.hide_at = None;
+                    s.fade_start = Some(now);
+                }
             }
-            // show() 由 winit 异步执行，之后它会按自身 WindowFlags 整体重写 GWL_EXSTYLE，
-            // 把这里加的 WS_EX_NOACTIVATE / WS_EX_TRANSPARENT 抹掉。标记为未定型，
-            // 下一帧（20ms）立即补回；否则窗口会短暂变成可激活、挡住鼠标的普通窗口，
-            // 点一下就把焦点从当前程序抢走，表现为"影响输入"。
-            ov.styled = false;
+            if let Some(start) = s.fade_start {
+                let progress = if fade_ms == 0 {
+                    1.0
+                } else {
+                    now.duration_since(start).as_millis() as f32 / fade_ms as f32
+                };
+                if progress >= 1.0 {
+                    s.comp.set_fade(0.0);
+                    s.comp.set_label("".into());
+                    s.comp
+                        .window()
+                        .set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
+                    finished = true;
+                } else {
+                    s.comp.set_fade(1.0 - progress);
+                }
+            }
+        }
+        if finished {
+            if let Some(s) = self.status.take() {
+                if self.idle.len() < IDLE_KEEP {
+                    self.idle.push(IdleWin {
+                        comp: s.comp,
+                        title: s.title,
+                    });
+                }
+            }
         }
     }
 
@@ -546,7 +640,7 @@ impl UiManager {
         if !self.prewarm.is_empty() {
             let mut pending = Vec::new();
             for w in self.prewarm.drain(..) {
-                if crate::winutil::apply_overlay_styles(&w.title, click_through) {
+                if crate::winutil::apply_overlay_styles(&w.comp.window(), &w.title, click_through) {
                     w.comp.set_fade(0.0);
                     w.comp.window().set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
                     self.idle.push(w);
@@ -558,8 +652,8 @@ impl UiManager {
             self.prewarm = pending;
             return;
         }
-        // 2) 一次性把剩余窗口全部 show 出来
-        let total = self.idle.len() + self.overlays.len();
+        // 2) 一次性把剩余窗口全部 show 出来（状态浮窗占用的窗口也计入总数）
+        let total = self.idle.len() + self.overlays.len() + usize::from(self.status.is_some());
         if total < target {
             for _ in total..target {
                 let id = self.next_id;
@@ -658,7 +752,6 @@ impl UiManager {
                 comp,
                 title,
                 last_text: String::new(),
-                styled: false,
                 positioned: false,
             });
         }
@@ -724,11 +817,7 @@ impl UiManager {
             win.positioned = true;
         }
         let title = win.title.clone();
-        if crate::winutil::apply_overlay_styles(&title, click_through) {
-            win.styled = true;
-        }
-        // 同上：show() 后 winit 会重写 ex-style，下一帧补回 NOACTIVATE/点击穿透
-        win.styled = false;
+        crate::winutil::apply_overlay_styles(&win.comp.window(), &title, click_through);
     }
 
     /// activeAppShow：显示当前激活应用路径
@@ -763,7 +852,6 @@ impl UiManager {
                 comp,
                 title,
                 last_text: String::new(),
-                styled: false,
                 positioned: false,
             });
         }
@@ -812,41 +900,29 @@ impl UiManager {
             win.positioned = true;
         }
         let title = win.title.clone();
-        if crate::winutil::apply_overlay_styles(&title, true) {
-            win.styled = true;
-        }
-        // 同上：show() 后 winit 会重写 ex-style，下一帧补回 NOACTIVATE/点击穿透
-        win.styled = false;
+        crate::winutil::apply_overlay_styles(&win.comp.window(), &title, true);
     }
 
-    /// 是否还有窗口尚未成功应用样式（窗口句柄由事件循环延迟创建）
-    fn has_unstyled(&self) -> bool {
-        self.overlays.iter().any(|o| !o.styled)
-            || self.ctrl.as_ref().map(|c| !c.styled).unwrap_or(false)
-            || self.appwin.as_ref().map(|c| !c.styled).unwrap_or(false)
-    }
-
-    /// 复查窗口样式（点击穿透 / 工具窗口 / owner）。
-    /// apply_overlay_styles 内部先比较当前样式，已就位时直接返回，不会造成闪烁，
-    /// 因此可以周期性调用，防止 winit 在 show/属性变更时覆写 ex-style。
+    /// 复查窗口样式（不可激活 / 点击穿透 / 工具窗口 / owner）。
+    /// winit 在 show()、窗口属性变化时会按自身 WindowFlags 整体重写 GWL_EXSTYLE，
+    /// 把这里加的 WS_EX_NOACTIVATE / WS_EX_TRANSPARENT 抹掉，于是窗口会抢焦点、
+    /// 挡住鼠标点击（表现为"影响输入"）。因此每帧都复查一次：
+    /// apply_overlay_styles 内部先比较当前样式，已就位时直接返回，不会闪烁。
     fn apply_styles(&mut self) {
         let click_through = self.shared.cfg.read().unwrap().ui.gui_trans;
         for ov in self.overlays.iter_mut() {
-            if crate::winutil::apply_overlay_styles(&ov.title, click_through) {
-                ov.styled = true;
-            }
+            crate::winutil::apply_overlay_styles(&ov.comp.window(), &ov.title, click_through);
         }
         // 控制键窗常驻可见（只是移到屏幕外），文本为空时同样必须套样式，
         // 否则它会在任务栏留下一个按钮
         if let Some(c) = &mut self.ctrl {
-            if crate::winutil::apply_overlay_styles(&c.title, click_through) {
-                c.styled = true;
-            }
+            crate::winutil::apply_overlay_styles(&c.comp.window(), &c.title, click_through);
         }
         if let Some(c) = &mut self.appwin {
-            if crate::winutil::apply_overlay_styles(&c.title, true) {
-                c.styled = true;
-            }
+            crate::winutil::apply_overlay_styles(&c.comp.window(), &c.title, true);
+        }
+        if let Some(s) = &self.status {
+            crate::winutil::apply_overlay_styles(&s.comp.window(), &s.title, click_through);
         }
     }
 }
@@ -895,6 +971,9 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
                     c.comp.hide().ok();
                 }
                 manager.appwin = None;
+                if let Some(s) = manager.status.take() {
+                    s.comp.hide().ok();
+                }
             }
 
             // 消费显示队列（CallShow）
@@ -903,15 +982,18 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
             }
 
             manager.tick_overlays();
+            let fade_ms = shared_ref.cfg.read().unwrap().ui.gui_fade_ms;
+            manager.tick_status(fade_ms);
             if tick_count % 3 == 0 {
                 // ~60ms 刷新控制键状态（AHK 为 50ms）
                 manager.update_ctrl();
                 manager.update_app_path();
             }
-            // 新建窗口需要尽快补样式（句柄由事件循环延迟创建），之后就低频兜底复查
-            if manager.has_unstyled() || tick_count % 25 == 0 {
-                manager.apply_styles();
-            }
+            // winit 会在 show()/属性变更后重写 ex-style，逐帧复查（内部已就位即返回）
+            manager.apply_styles();
+            // macOS 托盘（NSStatusItem）必须在主线程、事件循环启动后创建并轮询菜单；
+            // Windows 为 no-op（托盘在自己线程的消息循环里）
+            crate::tray::poll(&shared_ref);
         },
     );
 

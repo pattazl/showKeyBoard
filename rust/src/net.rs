@@ -11,16 +11,34 @@ use crate::stats::Shared;
 
 const UA: &str = "ShowKeyBoardRust";
 
+#[cfg(windows)]
 #[link(name = "kernel32")]
 unsafe extern "system" {
     fn OutputDebugStringW(lp_output_string: *const u16);
 }
 
 /// 输出调试信息到调试器（DebugViewNt 等工具可查看），统一以 "AHK-" 开头
+#[cfg(windows)]
 fn debug_out(msg: &str) {
     let text = format!("AHK-{}\0", msg);
     let wide: Vec<u16> = text.encode_utf16().collect();
     unsafe { OutputDebugStringW(wide.as_ptr()) }
+}
+
+/// macOS 没有 DebugView，退化输出到 stderr（从 LaunchAgents 启动时会进系统日志）
+#[cfg(target_os = "macos")]
+fn debug_out(msg: &str) {
+    eprintln!("AHK-{}", msg);
+}
+
+/// 界面状态提示前缀：`\u{1}` 常驻（连接中/异常），`\u{2}` 短暂显示后自动渐隐。
+/// 由 UI 线程的浮窗（popup）显示，不使用系统对话框——避免抢焦点、影响输入。
+pub const STATUS_STICKY: char = '\u{1}';
+pub const STATUS_TEMP: char = '\u{2}';
+
+/// 通过 UI 文本管道推送状态文本（复用浮窗 popup 展示）
+fn push_status(shared: &Arc<Shared>, kind: char, text: impl AsRef<str>) {
+    let _ = shared.ui_tx.send(format!("{}{}", kind, text.as_ref()));
 }
 
 fn post_json(url: &str, body: &str, timeout: u64) -> Result<String, String> {
@@ -101,6 +119,7 @@ pub fn build_data_body(shared: &Arc<Shared>) -> Value {
 }
 
 // 进程信息查询（用于判断 kbserver.pid 记录的进程是否为我们自己的 node 服务）
+#[cfg(windows)]
 #[link(name = "ntdll")]
 unsafe extern "system" {
     fn NtQueryInformationProcess(
@@ -112,6 +131,7 @@ unsafe extern "system" {
     ) -> i32;
 }
 
+#[cfg(windows)]
 #[repr(C)]
 struct ProcessBasicInformation {
     _reserved1: *mut core::ffi::c_void,
@@ -121,6 +141,7 @@ struct ProcessBasicInformation {
     _reserved3: *mut core::ffi::c_void,
 }
 
+#[cfg(windows)]
 #[repr(C)]
 struct UnicodeString {
     length: u16,
@@ -129,6 +150,7 @@ struct UnicodeString {
 }
 
 /// 进程是否存在
+#[cfg(windows)]
 fn process_exists(pid: u32) -> bool {
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
@@ -141,6 +163,7 @@ fn process_exists(pid: u32) -> bool {
 }
 
 /// 进程镜像名（不含路径）
+#[cfg(windows)]
 fn process_image_name(pid: u32) -> Option<String> {
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
     use windows_sys::Win32::System::Threading::{
@@ -165,6 +188,7 @@ fn process_image_name(pid: u32) -> Option<String> {
 }
 
 /// 进程命令行（x64：PEB.ProcessParameters @ 0x20，CommandLine @ 0x88）
+#[cfg(windows)]
 fn process_command_line(pid: u32) -> Option<String> {
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
     use windows_sys::Win32::System::Diagnostics::Debug::ReadProcessMemory;
@@ -229,6 +253,7 @@ fn process_command_line(pid: u32) -> Option<String> {
     cmd
 }
 
+#[cfg(windows)]
 fn kill_process(pid: u32) {
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_TERMINATE, TerminateProcess};
@@ -239,21 +264,90 @@ fn kill_process(pid: u32) {
     }
 }
 
+// ---------- macOS 进程工具（libproc / libc，无外部命令依赖） ----------
+
+#[cfg(target_os = "macos")]
+unsafe extern "C" {
+    fn proc_pidpath(pid: i32, buffer: *mut core::ffi::c_void, buffersize: u32) -> i32;
+}
+
+#[cfg(target_os = "macos")]
+fn process_exists(pid: u32) -> bool {
+    unsafe { libc::kill(pid as i32, 0) == 0 }
+}
+
+#[cfg(target_os = "macos")]
+fn process_image_name(pid: u32) -> Option<String> {
+    let mut buf = [0u8; 4096];
+    let n = unsafe { proc_pidpath(pid as i32, buf.as_mut_ptr() as *mut _, buf.len() as u32) };
+    if n <= 0 {
+        return None;
+    }
+    let path = std::str::from_utf8(&buf[..n as usize]).ok()?;
+    std::path::Path::new(path)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn process_command_line(pid: u32) -> Option<String> {
+    // macOS 没有等价的可读 PEB，用 ps 读取完整命令行（仅启动服务时调用一次，开销可接受）
+    let out = std::process::Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "command="])
+        .output()
+        .ok()?;
+    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn kill_process(pid: u32) {
+    unsafe {
+        libc::kill(pid as i32, libc::SIGTERM);
+    }
+}
+
 /// 启动 Node 后台服务（对应 AHK startServer）：
 /// 启动前读取 kbserver.pid，若记录的进程仍在运行且确认为本服务，则先杀掉并清理 pid 文件，
 /// 避免重复启动。命令行读取走 NtQueryInformationProcess+ReadProcessMemory，无需外部进程。
-fn start_node_server(shared: &Arc<Shared>) {
+/// 失败时返回可直接展示给用户的原因（由调用方推到界面浮窗）。
+fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
+    #[cfg(windows)]
     use std::os::windows::process::CommandExt;
-    let (http_path, exec, debug) = {
+    let (http_path, exec, _debug) = {
         let cfg = shared.cfg.read().unwrap();
         (cfg.http_path.clone(), cfg.server_exec_name.clone(), cfg.show_http_debug)
     };
-    let script = http_path.join("server.js");
-    if !script.exists() {
-        return;
+    if !http_path.exists() {
+        return Err(format!("未找到后台服务目录 {}", http_path.display()));
     }
-    let exec_name = exec.trim_end_matches(".exe").to_string();
-    let exec = if exec_name.is_empty() { "node".to_string() } else { exec_name };
+    let script = http_path.join("server.js");
+    let exec_raw = exec.trim();
+    let default_exec = if cfg!(windows) { "node.exe" } else { "node" };
+    let exec_raw = if exec_raw.is_empty() { default_exec } else { exec_raw };
+
+    // 程序名解析：CreateProcess 解析 exe 时**不使用** Command 的 current_dir
+    // （那只设置子进程的工作目录），否则 showkeyboard_server.exe 这类放在 httpPath 下的
+    // 独立服务只会去客户端目录/PATH 里找，找不到就静默失败——node.exe 在 PATH 里所以正常。
+    let mut exec_path = std::path::PathBuf::from(exec_raw);
+    if !exec_path.is_absolute() && !exec_raw.contains(['\\', '/']) {
+        let local = http_path.join(exec_raw);
+        if local.exists() {
+            exec_path = local;
+        }
+    }
+    let exec_name = exec_path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| exec_raw.to_string());
+    let is_node = exec_name.to_lowercase().starts_with("node");
+    if is_node && !script.exists() {
+        return Err(format!("未找到后台服务脚本 {}", script.display()));
+    }
 
     let pid_file = http_path.join("kbserver.pid");
     if pid_file.exists() {
@@ -262,14 +356,19 @@ fn start_node_server(shared: &Arc<Shared>) {
                 if pid > 0 && process_exists(pid) {
                     let image = process_image_name(pid).unwrap_or_default();
                     let cmd = process_command_line(pid).unwrap_or_default();
-                    let is_node = image.eq_ignore_ascii_case(&format!("{}.exe", exec))
-                        || image.eq_ignore_ascii_case(&exec);
+                    // 按文件名（去扩展名）比较，node / node.exe / showkeyboard_server.exe 都适用
+                    let same_exe = std::path::Path::new(&image)
+                        .file_stem()
+                        .zip(std::path::Path::new(&exec_name).file_stem())
+                        .map(|(a, b)| a.to_string_lossy().eq_ignore_ascii_case(&b.to_string_lossy()))
+                        .unwrap_or(false);
                     let script_lc = script.to_string_lossy().to_lowercase();
                     let http_lc = http_path.to_string_lossy().to_lowercase();
                     let cmd_lc = cmd.to_lowercase();
-                    let is_ours =
-                        cmd_lc.contains(&script_lc) || cmd_lc.contains(&http_lc);
-                    if is_node && is_ours {
+                    let is_ours = cmd_lc.contains(&script_lc)
+                        || cmd_lc.contains(&http_lc)
+                        || cmd.is_empty();
+                    if same_exe && is_ours {
                         kill_process(pid);
                     }
                 }
@@ -278,33 +377,74 @@ fn start_node_server(shared: &Arc<Shared>) {
         let _ = std::fs::remove_file(&pid_file);
     }
 
-    let mut cmd = std::process::Command::new(&exec);
-    cmd.arg(&script)
-        .current_dir(&http_path)
-        .creation_flags(if debug { 0 } else { 0x08000000 });
+    let mut cmd = std::process::Command::new(&exec_path);
+    // 存在 server.js 时按 AHK 的方式作为参数传入；独立打包服务没有脚本文件也能启动
+    if script.exists() {
+        cmd.arg(&script);
+    }
+    cmd.current_dir(&http_path);
+    #[cfg(windows)]
+    cmd.creation_flags(if _debug { 0 } else { 0x08000000 });
     match cmd.spawn() {
         Ok(_) => {
             // 假设启动失败，等 /version 检测成功后才置 1（对应 AHK startServer 中 serverState := 0）
             shared.server_state.store(0, Ordering::Relaxed);
             std::thread::sleep(Duration::from_millis(1000)); // 启动服务需要等待
+            Ok(())
         }
-        Err(e) => debug_out(&format!("start node server failed: {}", e)),
+        Err(e) => {
+            debug_out(&format!("start node server failed: {}", e));
+            Err(format!("启动 {} 失败：{}", exec_name, e))
+        }
     }
 }
 
-/// /version 连接检查（对应 CheckServer / ServerCore）
-fn check_server(shared: &Arc<Shared>) -> bool {
+/// /version 连接检查（对应 CheckServer / ServerCore）。
+/// 失败时返回可直接展示给用户的原因，便于在界面浮窗反馈异常。
+fn check_server(shared: &Arc<Shared>) -> Result<(), String> {
     let url = { format!("{}/version", shared.cfg.read().unwrap().server_url()) };
     match post_json(&url, "", 3000) {
         Ok(text) if text.contains("showKeyBoardServer Version:") => {
             shared.server_state.store(1, Ordering::Relaxed);
-            true
+            Ok(())
         }
-        _ => {
+        Ok(body) => {
             shared.server_state.store(0, Ordering::Relaxed);
-            false
+            let brief: String = body.trim().chars().take(60).collect();
+            Err(format!(
+                "服务返回异常响应：{}",
+                if brief.is_empty() { "<空>" } else { &brief }
+            ))
+        }
+        Err(e) => {
+            shared.server_state.store(0, Ordering::Relaxed);
+            Err(format!("无法连接 {}：{}", url, e))
         }
     }
+}
+
+/// 拉起服务后立即重试连接（每 500ms 一次），期间在浮窗中显示进度；
+/// 失败返回最后一次错误原因。
+fn wait_server(shared: &Arc<Shared>, attempts: u32) -> Result<(), String> {
+    let mut last = String::new();
+    for i in 0..attempts {
+        if shared.exit.load(Ordering::Relaxed) {
+            return Err(last);
+        }
+        match check_server(shared) {
+            Ok(()) => return Ok(()),
+            Err(e) => last = e,
+        }
+        if i + 1 < attempts {
+            push_status(
+                shared,
+                STATUS_STICKY,
+                format!("正在连接后台服务…（第 {} 次）", i + 2),
+            );
+            std::thread::sleep(Duration::from_millis(500));
+        }
+    }
+    Err(last)
 }
 
 fn is_server_ok(shared: &Arc<Shared>) -> bool {
@@ -355,7 +495,8 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                     // server_state 初始为 -1（从未启动过），首次 /version 失败时立即拉起服务，
                     // 之后再按 check_server_max 重试（对应 AHK serverState=-1 时 startServer）
                     let never_started = shared.server_state.load(Ordering::Relaxed) == -1;
-                    if check_server(&shared) {
+                    if check_server(&shared).is_ok() {
+                        push_status(&shared, STATUS_TEMP, "后台服务已连接");
                         send_pc_info(&shared, 0);
                         check_count = 0;
                         started_server = true;
@@ -363,7 +504,30 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         check_count += 1;
                         if never_started && !started_server {
                             started_server = true;
-                            start_node_server(&shared);
+                            push_status(&shared, STATUS_STICKY, "正在启动后台服务…");
+                            match start_node_server(&shared) {
+                                Ok(()) => {
+                                    // 启动后立即重试连接，界面持续反馈进度/异常
+                                    push_status(&shared, STATUS_STICKY, "后台服务已启动，正在连接…");
+                                    match wait_server(&shared, 20) {
+                                        Ok(()) => {
+                                            push_status(&shared, STATUS_TEMP, "后台服务已连接");
+                                            send_pc_info(&shared, 0);
+                                            check_count = 0;
+                                        }
+                                        Err(e) => push_status(
+                                            &shared,
+                                            STATUS_STICKY,
+                                            format!("后台服务连接失败：{}", e),
+                                        ),
+                                    }
+                                }
+                                Err(e) => push_status(
+                                    &shared,
+                                    STATUS_STICKY,
+                                    format!("后台服务启动失败：{}", e),
+                                ),
+                            }
                         }
                         // 超过最大尝试次数后退避重试，不阻塞主循环
                         let max = shared.cfg.read().unwrap().check_server_max;
@@ -390,6 +554,7 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         let max_fail = shared.cfg.read().unwrap().max_count_of_connect_fail;
                         if fail_count >= max_fail {
                             shared.server_state.store(-1, Ordering::Relaxed);
+                            push_status(&shared, STATUS_STICKY, "后台服务连接中断，正在重连…");
                             check_count = 0;
                             started_server = false;
                         }

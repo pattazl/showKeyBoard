@@ -23,6 +23,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use crate::stats::Shared;
+use super::{add_modifier, in_skip, is_ctrl_vk, vk_name};
 
 const WH_KEYBOARD_LL: i32 = 13;
 const WH_MOUSE_LL: i32 = 14;
@@ -68,89 +69,6 @@ enum HookEvent {
 /// 钩子事件管道（有界，满了直接丢弃，绝不在钩子回调里阻塞）
 const EVENT_QUEUE_SIZE: usize = 2048;
 static EVENT_TX: std::sync::OnceLock<Sender<HookEvent>> = std::sync::OnceLock::new();
-
-/// VK -> AHK 按键名
-pub fn vk_name(vk: u32, extended: bool) -> String {
-    let name = match vk {
-        0x08 => "Backspace", 0x09 => "Tab", 0x0D => "Enter", 0x10 => "Shift",
-        0x11 => "Control", 0x12 => "Alt", 0x13 => "Pause", 0x14 => "CapsLock",
-        0x1B => "Esc", 0x20 => "Space", 0x21 => "PgUp", 0x22 => "PgDn",
-        0x23 => "End", 0x24 => "Home", 0x25 => "Left", 0x26 => "Up",
-        0x27 => "Right", 0x28 => "Down", 0x2C => "PrintScreen", 0x2D => "Insert",
-        0x2E => "Delete", 0x5B => "LWin", 0x5C => "RWin",
-        0x60 => "Numpad0", 0x61 => "Numpad1", 0x62 => "Numpad2", 0x63 => "Numpad3",
-        0x64 => "Numpad4", 0x65 => "Numpad5", 0x66 => "Numpad6", 0x67 => "Numpad7",
-        0x68 => "Numpad8", 0x69 => "Numpad9", 0x6A => "NumpadMult", 0x6B => "NumpadAdd",
-        0x6D => "NumpadSub", 0x6E => "NumpadDot", 0x6F => "NumpadDiv",
-        0x90 => "NumLock", 0x91 => "ScrollLock",
-        0xA0 => "LShift", 0xA1 => "RShift", 0xA2 => "LControl", 0xA3 => "RControl",
-        0xA4 => "LAlt", 0xA5 => "RAlt",
-        0xBA => ":", 0xBB => "=", 0xBC => ",", 0xBD => "-", 0xBE => ".", 0xBF => "/",
-        0xC0 => "`", 0xDB => "[", 0xDC => "\\", 0xDD => "]", 0xDE => "'",
-        v if (0x30..=0x39).contains(&v) => {
-            return char::from_u32(v).unwrap().to_string();
-        }
-        v if (0x41..=0x5A).contains(&v) => {
-            return char::from_u32(v).unwrap().to_string();
-        }
-        v if (0x70..=0x87).contains(&v) => {
-            return format!("F{}", v - 0x70 + 1);
-        }
-        _ => return format!("vk{:X}", vk),
-    };
-    // 修饰键与 Enter 的左右/扩展区分（与 getKeyInput 的 sc 处理等价）
-    if extended {
-        match vk {
-            0x0D => return "NumpadEnter".into(),
-            0x10 => return "RShift".into(),
-            0x11 => return "RControl".into(),
-            0x12 => return "RAlt".into(),
-            _ => {}
-        }
-    } else {
-        match vk {
-            0x10 => return "LShift".into(),
-            0x11 => return "LControl".into(),
-            0x12 => return "LAlt".into(),
-            _ => {}
-        }
-    }
-    name.to_string()
-}
-
-/// AddModifier：修饰键前缀（AHK 顺序：按名称排序）
-fn add_modifier() -> String {
-    const ORDER: [(i32, &str); 8] = [
-        (0xA4, "<!"), // LAlt
-        (0xA2, "<^"), // LControl
-        (0xA0, "<+"), // LShift
-        (0x5B, "<#"), // LWin
-        (0xA5, ">!"), // RAlt
-        (0xA3, ">^"), // RControl
-        (0xA1, ">+"), // RShift
-        (0x5C, ">#"), // RWin
-    ];
-    let mut s = String::new();
-    for (vk, sym) in ORDER {
-        if crate::winutil::key_down(vk) {
-            s.push_str(sym);
-        }
-    }
-    s
-}
-
-fn in_skip(set: &[String], name: &str) -> bool {
-    set.iter().any(|k| k == name)
-}
-
-fn is_ctrl_vk(vk: u32) -> bool {
-    matches!(vk,
-        0x10 | 0x11 | 0x12 | 0x14 |
-        0x5B | 0x5C |
-        0x90 | 0x91 |
-        0xA0 | 0xA1 | 0xA2 | 0xA3 | 0xA4 | 0xA5
-    )
-}
 
 unsafe extern "system" fn keyboard_proc(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if n_code >= 0 {

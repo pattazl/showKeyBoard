@@ -307,15 +307,10 @@ pub fn push_txt(shared: &Shared, txt: &str, is_mouse: bool) {
     // 1) monitorProc / activeWindowProc 过滤
     let mut active_window_proc_result = false;
     if !cfg.monitor_proc.is_empty() || !cfg.active_window_proc.is_empty() {
-        let hwnd = winutil::foreground_hwnd();
-        if hwnd == 0 {
+        let pid = winutil::foreground_pid();
+        if pid == 0 {
             return;
         }
-        let pid = unsafe {
-            let mut pid = 0u32;
-            windows_sys::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(hwnd as _, &mut pid);
-            pid
-        };
         let proc_path = winutil::process_path_by_pid(pid);
         let proc_name = std::path::Path::new(&proc_path)
             .file_name()
