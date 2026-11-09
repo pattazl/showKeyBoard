@@ -173,7 +173,13 @@ fn key_event(key: Key, down: bool) {
     // 先更新按下状态（add_modifier 依赖），再入队交给消费线程
     let was_down = crate::winutil::key_down(vk as i32);
     crate::winutil::set_key_down(vk, down);
-    crate::winutil::lock_key_event(vk as i32, down);
+    // 切换键（CapsLock/NumLock）：rdev 对按下与抬起都报 KeyPress，本地翻转不可靠，
+    // 直接读取系统权威状态（CGEventSourceFlagsState，可在任意线程调用）
+    if matches!(vk, 0x14 | 0x90 | 0x91) {
+        crate::winutil::sync_lock_states();
+    } else {
+        crate::winutil::lock_key_event(vk as i32, down);
+    }
     if let Some(tx) = EVENT_TX.get() {
         let _ = tx.try_send(Ev::Key {
             vk,

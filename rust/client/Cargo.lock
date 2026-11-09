@@ -4173,8 +4173,6 @@ dependencies = [
 [[package]]
 name = "rdev"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00552ca2dc2f93b84cd7b5581de49549411e4e41d89e1c691bcb93dc4be360c3"
 dependencies = [
  "cocoa",
  "core-foundation 0.7.0",

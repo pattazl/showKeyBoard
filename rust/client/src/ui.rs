@@ -14,6 +14,23 @@ slint::include_modules!();
 use crate::config::{Config, KeyMapping};
 use crate::stats::Shared;
 
+/// Windows 控制键/应用路径窗的坐标换算：原实现实测"传入物理值会被再除一次 scale"，
+/// 故预乘 scale 抵消（scale=1 的机器上二者等价）。
+/// macOS 实测为标准换算（CGWindowBounds points = 传入物理值 / scale），
+/// 直接传物理像素即可，不做预乘。
+fn to_winit_pos(x: i32, y: i32, scale: f32) -> (i32, i32) {
+    #[cfg(windows)]
+    {
+        let s = if scale > 0.0 { scale } else { 1.0 };
+        return ((x as f32 * s).round() as i32, (y as f32 * s).round() as i32);
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = scale;
+        return (x, y);
+    }
+}
+
 struct Overlay {
     comp: KeyOverlay,
     title: String,
@@ -394,8 +411,17 @@ impl UiManager {
             if mon_s > 0.0 { mon_s } else if win_s > 0.0 { win_s } else { 1.0 }
         };
         let win_scale = {
-            let s = comp.window().scale_factor();
-            if s > 0.0 { s } else { scale }
+            #[cfg(windows)]
+            {
+                let s = comp.window().scale_factor();
+                if s > 0.0 { s } else { scale }
+            }
+            #[cfg(not(windows))]
+            {
+                // macOS：复用的空闲窗口在屏外时 scale_factor 会退化为 1.0，
+                // 不能作为 DPI 依据，直接用显示器真实缩放
+                scale
+            }
         };
         // guiDpiscale=true：配置宽高按物理像素固定；false：按逻辑像素（随系统 DPI 放大）
         let use_scale = if ui.gui_dpiscale { win_scale } else { 1.0 };
@@ -444,10 +470,25 @@ impl UiManager {
         comp.set_corner_radius(ui.gui_radius as f32 / use_scale);
         comp.set_o_width(w as f32 / use_scale);
         comp.set_o_height(h as f32 / use_scale);
+        // Windows：保持原实现（Slint Physical 接口）
+        // macOS：Slint 的 set_size(Physical) 会先按窗口 scale_factor（屏外窗口退化为
+        // 1.0）转 Logical，再被 winit 按真实 scale 乘回去，导致尺寸翻倍；
+        // 因此 show 后再走 winit 物理像素接口一次性校正位置与尺寸（无歧义换算）
         comp.window().set_position(PhysicalPosition::new(x, y));
         comp.window()
             .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
         comp.show().ok();
+        #[cfg(not(windows))]
+        {
+            use slint::winit_030::WinitWindowAccessor;
+            comp.window().with_winit_window(|ww| {
+                use slint::winit_030::winit::dpi::{
+                    PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
+                };
+                ww.set_outer_position(WinitPos::new(x, y));
+                let _ = ww.request_inner_size(WinitSize::new(pw as u32, ph as u32));
+            });
+        }
         (x, y, pw, ph)
     }
 
@@ -702,14 +743,16 @@ impl UiManager {
                     crate::winutil::key_toggled(vk)
                 }
                 _ => {
+                    // macOS 侧钩子把左右控制键分别映射为 0xA2/0xA3 等（不产生 0x11），
+                    // 因此通用键名（Ctrl/Alt/Shift）需同时包含左右 VK，Windows 下同样有效
                     let vks: &[i32] = match key.as_str() {
-                        "Ctrl" | "Control" => &[0x11],
+                        "Ctrl" | "Control" => &[0x11, 0xA2, 0xA3],
                         "LCtrl" => &[0xA2, 0x11],
                         "RCtrl" => &[0xA3],
-                        "Alt" => &[0x12],
+                        "Alt" => &[0x12, 0xA4, 0xA5],
                         "LAlt" => &[0xA4, 0x12],
                         "RAlt" => &[0xA5],
-                        "Shift" => &[0x10],
+                        "Shift" => &[0x10, 0xA0, 0xA1],
                         "LShift" => &[0xA0, 0x10],
                         "RShift" => &[0xA1],
                         "LWin" => &[0x5B],
@@ -773,9 +816,8 @@ impl UiManager {
         win.comp.set_font_name(font.as_str().into());
         win.comp.set_font_size(ui.ctrl_text_size);
         win.comp.set_font_weight(if ui.ctrl_text_bold { 700 } else { 400 });
-        // 配置值即屏幕物理像素。实测本后端下窗口物理尺寸 == Slint 属性值，
-        // 而位置会再被 scale 除一次，因此位置需要预乘 scale 抵消。
-        // scale 必须取显示器 DPI：窗口刚创建/隐藏时 window().scale_factor() 会退化为 1.0。
+        // 配置值即屏幕物理像素。scale 必须取显示器 DPI：窗口刚创建/隐藏时
+        // window().scale_factor() 会退化为 1.0。
         let scale = Self::scale_at_pos(ui.ctrl_x, ui.ctrl_y);
         let use_scale = if ui.gui_dpiscale { scale } else { 1.0 };
         win.comp.set_corner_radius(ui.ctrl_radius as f32 / use_scale);
@@ -789,8 +831,7 @@ impl UiManager {
         win.comp.set_o_width(w as f32 / use_scale);
         win.comp.set_o_height(h as f32 / use_scale);
         // show 之前先落一次位置/尺寸，避免窗口首帧出现在 (0,0)
-        let px = (ui.ctrl_x as f32 * scale).round() as i32;
-        let py = (ui.ctrl_y as f32 * scale).round() as i32;
+        let (px, py) = to_winit_pos(ui.ctrl_x, ui.ctrl_y, scale);
         let phw = (w as f32 * scale).round() as u32;
         let phh = (h as f32 * scale).round() as u32;
         win.comp.window().set_position(PhysicalPosition::new(px, py));
@@ -908,8 +949,7 @@ impl UiManager {
         let h = (font_size as f32 * use_scale * 1.8).round() as i32;
         win.comp.set_o_width(w as f32 / use_scale);
         win.comp.set_o_height(h as f32 / use_scale);
-        let px = (ui.active_app_show_x as f32 * scale).round() as i32;
-        let py = (ui.active_app_show_y as f32 * scale).round() as i32;
+        let (px, py) = to_winit_pos(ui.active_app_show_x, ui.active_app_show_y, scale);
         let phw = (w as f32 * scale).round() as u32;
         let phh = (h as f32 * scale).round() as u32;
         win.comp.window().set_position(PhysicalPosition::new(px, py));

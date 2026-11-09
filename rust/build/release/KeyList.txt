@@ -36,4 +36,4 @@ WheelUp : ⇡
 WheelDown : ⇣
 MButton : 🖲️
 LButton : 🖱️
-RButton : 🖰
+RButton : 🖲️

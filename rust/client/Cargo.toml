@@ -49,8 +49,9 @@ windows-sys = { version = "0.59", features = [
 ] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-# macOS 输入捕获：CGEventTap（需在"辅助功能"里授权）
-rdev = "0.5"
+# macOS 输入捕获：CGEventTap（rdev 封装，需在"辅助功能"里授权）
+# 本地 vendor 补丁版：去掉 KeyPress 时 TIS 输入源转换（新版 macOS 主队列断言导致按键崩溃）
+rdev = { path = "vendor/rdev" }
 # macOS 手柄：IOKit HID（对应 Windows 的 XInput / winmm）
 gilrs = "0.11"
 core-foundation = "0.10"

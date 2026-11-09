@@ -59,33 +59,75 @@ const FLAG_NUMERIC_PAD: u64 = 0x0020_0000; // NumLock（外接键盘）
 
 // ---------------- 显示器 / 光标 ----------------
 
-/// 枚举全部显示器（CoreGraphics 全局坐标：主屏左上角为原点，y 向下）
+/// 显示器缩放系数（物理像素 / points）：Retina 屏为 2.0，普通屏 1.0。
+/// 注意 CGDisplay::pixels_wide() 在部分系统版本上返回的仍是 points 尺寸，
+/// 必须用 CGDisplayModeGetPixelWidth（真实帧缓冲像素）计算。
+fn display_scale(d: &CGDisplay) -> f64 {
+    let b = d.bounds();
+    if b.size.width > 0.0 {
+        if let Some(mode) = d.display_mode() {
+            let pw = mode.pixel_width() as f64;
+            if pw > 0.0 {
+                let s = pw / b.size.width;
+                if s > 0.0 {
+                    return s;
+                }
+            }
+        }
+    }
+    1.0
+}
+
+/// 枚举全部显示器（返回物理像素矩形，与 Windows GetMonitorInfo 一致；
+/// CoreGraphics bounds 为 points，需乘以各屏 Retina 缩放系数）
 pub fn monitors() -> Vec<Rect> {
     let mut list = Vec::new();
     if let Ok(ids) = CGDisplay::active_displays() {
         for id in ids {
-            let b = CGDisplay::new(id).bounds();
+            let d = CGDisplay::new(id);
+            let b = d.bounds();
             if b.size.width <= 0.0 || b.size.height <= 0.0 {
                 continue;
             }
+            let s = display_scale(&d);
             list.push((
-                b.origin.x as i32,
-                b.origin.y as i32,
-                (b.origin.x + b.size.width) as i32,
-                (b.origin.y + b.size.height) as i32,
+                (b.origin.x * s) as i32,
+                (b.origin.y * s) as i32,
+                ((b.origin.x + b.size.width) * s) as i32,
+                ((b.origin.y + b.size.height) * s) as i32,
             ));
         }
     }
     if list.is_empty() {
-        let b = CGDisplay::main().bounds();
+        let d = CGDisplay::main();
+        let b = d.bounds();
+        let s = display_scale(&d);
         list.push((
-            b.origin.x as i32,
-            b.origin.y as i32,
-            (b.origin.x + b.size.width) as i32,
-            (b.origin.y + b.size.height) as i32,
+            (b.origin.x * s) as i32,
+            (b.origin.y * s) as i32,
+            ((b.origin.x + b.size.width) * s) as i32,
+            ((b.origin.y + b.size.height) * s) as i32,
         ));
     }
     list
+}
+
+/// points 坐标所在显示器的缩放系数（找不到时取主屏）
+fn scale_at_point_pts(x: f64, y: f64) -> f64 {
+    if let Ok(ids) = CGDisplay::active_displays() {
+        for id in ids {
+            let d = CGDisplay::new(id);
+            let b = d.bounds();
+            if x >= b.origin.x
+                && x < b.origin.x + b.size.width
+                && y >= b.origin.y
+                && y < b.origin.y + b.size.height
+            {
+                return display_scale(&d);
+            }
+        }
+    }
+    display_scale(&CGDisplay::main())
 }
 
 pub fn virtual_screen() -> (i32, i32, i32, i32) {
@@ -106,7 +148,9 @@ pub fn cursor_pos() -> Option<(i32, i32)> {
         }
         let p = CGEventGetLocation(ev);
         CFRelease(ev);
-        Some((p.x as i32, p.y as i32))
+        // 返回物理像素坐标（与 monitors() 一致，供鼠标距离统计与 active_monitor 使用）
+        let s = scale_at_point_pts(p.x, p.y);
+        Some(((p.x * s) as i32, (p.y * s) as i32))
     }
 }
 
@@ -296,8 +340,24 @@ pub fn strip_variation_selectors(text: &str) -> String {
         .collect()
 }
 
-/// DPI 缩放：macOS 由 winit 报告窗口 scale_factor（Retina=2），这里返回 0 让调用方回退
-pub fn scale_at(_x: i32, _y: i32) -> f32 {
+/// 物理像素坐标所在显示器的 DPI 缩放（Retina=2.0；找不到所在屏返回 0 让调用方回退）
+pub fn scale_at(x: i32, y: i32) -> f32 {
+    if let Ok(ids) = CGDisplay::active_displays() {
+        for id in ids {
+            let d = CGDisplay::new(id);
+            let b = d.bounds();
+            let s = display_scale(&d);
+            let (l, t, r, bt) = (
+                b.origin.x * s,
+                b.origin.y * s,
+                (b.origin.x + b.size.width) * s,
+                (b.origin.y + b.size.height) * s,
+            );
+            if (x as f64) >= l && (x as f64) < r && (y as f64) >= t && (y as f64) < bt {
+                return s as f32;
+            }
+        }
+    }
     0.0
 }
 
