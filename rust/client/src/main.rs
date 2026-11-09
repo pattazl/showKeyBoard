@@ -82,6 +82,40 @@ fn main() {
     let net_thread = net::start(shared.clone());
     let ws_thread = net::start_ws(shared.clone(), ws_rx);
 
+    // 跨夜自动重启（对应 AHK 的 SetTimer(Reload, ShutDownLeft())）：
+    // 每天本地 0:00:05 触发一次“重启程序”，与托盘 ID_RESTART 行为一致（只重启客户端，后台服务不退出）。
+    // 这里只置标志位，由 UI 定时器在主线程退出事件循环，避免跨线程操作事件循环。
+    // 线程为游离线程（不 join）：正常退出时它可能还在 sleep，进程结束时随主线程一起结束。
+    let _midnight_thread = {
+        let shared = shared.clone();
+        std::thread::Builder::new()
+            .name("midnight-restart".into())
+            .spawn(move || {
+                let start_date = winutil::now_string(true)[..8].to_string();
+                loop {
+                    if shared.exit.load(Ordering::Relaxed) {
+                        return;
+                    }
+                    let now = winutil::now_string(false);
+                    let secs = if &now[..8] != start_date.as_str() {
+                        // 日期已变即已跨夜；等到 0:00:05 之后才重启（对应 AHK 的 +5 秒余量）
+                        if &now[8..] >= "000005" {
+                            shared.restart_mode.store(1, Ordering::Relaxed);
+                            shared.exit.store(true, Ordering::Relaxed);
+                            return;
+                        }
+                        1
+                    } else {
+                        // 分段睡眠（每段最多 60 秒），最后一段直接算到 0:00:05：
+                        // 既保证准点，也能在系统休眠/校时/夏令时后按本地时间重新判定
+                        winutil::secs_until_next_restart().min(60)
+                    };
+                    std::thread::sleep(std::time::Duration::from_secs(secs));
+                }
+            })
+            .ok()
+    };
+
     // 托盘：Windows 用独立线程消息循环；macOS 由 ui 主线程惰性创建（NSStatusItem 要求主线程）
     #[cfg(windows)]
     let tray_thread = tray::start(shared.clone(), owner_hwnd);

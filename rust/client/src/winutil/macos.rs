@@ -240,6 +240,19 @@ pub fn now_string(minutes_only: bool) -> String {
     }
 }
 
+/// 距离下一个本地 0:00:05 的秒数（对应 AHK ShutDownLeft：DateDiff(明天0点, 现在) + 5 秒余量）
+/// 注意：与 AHK 一致，无论当前几点都等到“下一个 0:00:05”，
+/// 这样重启后新实例不会立刻再次触发（否则 0:00:05 附近会陷入重启循环）。
+pub fn secs_until_next_restart() -> u64 {
+    unsafe {
+        let t = libc::time(std::ptr::null_mut());
+        let mut tm: libc::tm = std::mem::zeroed();
+        libc::localtime_r(&t, &mut tm);
+        let passed = (tm.tm_hour as u64) * 3600 + (tm.tm_min as u64) * 60 + tm.tm_sec as u64;
+        86400 - passed + 5
+    }
+}
+
 pub fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
