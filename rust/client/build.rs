@@ -12,33 +12,49 @@ use std::path::PathBuf;
 
 fn main() {
     slint_build::compile("ui/app.slint").expect("Slint compile failed");
-    embed_app_icon();
-    gen_version();
+    let ver = gen_version();
+    embed_windows_resources(&ver);
 }
 
-/// 把托盘图标（res/keyboard.ico）编译成 exe 资源图标。
-/// 不依赖 rc.exe/windres：直接生成 .res（RT_ICON + RT_GROUP_ICON）交给链接器。
-fn embed_app_icon() {
+/// 编译期版本信息（由 build_no.txt 维护当日构建序号）
+struct BuildVersion {
+    pkg: String,
+    full: String,
+    count: i64,
+}
+
+/// 把托盘图标（res/keyboard.ico）与版本信息写入 exe 资源。
+/// 不依赖 rc.exe/windres：直接生成 .res（RT_ICON + RT_GROUP_ICON + RT_VERSION）交给链接器。
+fn embed_windows_resources(ver: &BuildVersion) {
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_default());
     let ico_path = manifest_dir.join("../res/keyboard.ico");
     println!("cargo:rerun-if-changed={}", ico_path.display());
-    let Ok(ico) = fs::read(&ico_path) else {
-        return;
-    };
-    let Some(res) = build_res(&ico) else {
-        println!("cargo:warning=invalid icon: {}", ico_path.display());
-        return;
-    };
-    let out = PathBuf::from(env::var("OUT_DIR").unwrap_or_default()).join("app_icon.res");
-    if fs::write(&out, res).is_ok() {
-        println!("cargo:rustc-link-arg-bins={}", out.display());
+
+    // .res 文件头：32 字节空资源头
+    let mut out = vec![0u8; 32];
+    out[4..8].copy_from_slice(&32u32.to_le_bytes()); // HeaderSize
+    out[8..12].copy_from_slice(&[0xFF, 0xFF, 0, 0]); // Type = 0
+    out[12..16].copy_from_slice(&[0xFF, 0xFF, 0, 0]); // Name = 0
+
+    match fs::read(&ico_path).ok().and_then(|ico| build_res(&ico)) {
+        Some(records) => out.extend_from_slice(&records),
+        None => println!("cargo:warning=icon not embedded: {}", ico_path.display()),
+    }
+
+    push_res(&mut out, 16, 1, &build_version_info(ver));
+
+    let res_path = PathBuf::from(env::var("OUT_DIR").unwrap_or_default()).join("showkeyboard.res");
+    if fs::write(&res_path, &out).is_ok() {
+        println!("cargo:rustc-link-arg-bins={}", res_path.display());
+    } else {
+        println!("cargo:warning=failed to write {}", res_path.display());
     }
 }
 
-/// 由 .ico 生成 .res 内容：每个图像写一个 RT_ICON(3)，再写一个 RT_GROUP_ICON(14)
+/// 由 .ico 生成资源记录：每个图像写一个 RT_ICON(3)，再写一个 RT_GROUP_ICON(14)
 fn build_res(ico: &[u8]) -> Option<Vec<u8>> {
     if ico.len() < 6 || ico[0] != 0 || ico[1] != 0 || ico[2] != 1 || ico[3] != 0 {
         return None;
@@ -71,16 +87,119 @@ fn build_res(ico: &[u8]) -> Option<Vec<u8>> {
         grp.extend_from_slice(&((i + 1) as u16).to_le_bytes());
     }
 
-    // 文件头：rc.exe 生成的 .res 以一个 32 字节的空资源头起始
-    let mut out = vec![0u8; 32];
-    out[4..8].copy_from_slice(&32u32.to_le_bytes()); // HeaderSize
-    out[8..12].copy_from_slice(&[0xFF, 0xFF, 0, 0]); // Type = 0
-    out[12..16].copy_from_slice(&[0xFF, 0xFF, 0, 0]); // Name = 0
+    let mut out = Vec::new();
     for (i, (_, data)) in images.iter().enumerate() {
         push_res(&mut out, 3, (i + 1) as u16, data);
     }
     push_res(&mut out, 14, 1, &grp);
     Some(out)
+}
+
+/// 构造 RT_VERSION(16) 的 VS_VERSIONINFO 结构，写入文件属性里的版本信息。
+/// 结构：VS_VERSIONINFO -> VS_FIXEDFILEINFO + StringFileInfo -> StringTable -> 若干 String
+fn build_version_info(ver: &BuildVersion) -> Vec<u8> {
+    let parts: Vec<&str> = ver.pkg.split('.').collect();
+    let major = parts.first().and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
+    let minor = parts.get(1).and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
+    let patch = parts.get(2).and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
+    let build = ver.count.max(0).min(u16::MAX as i64) as u16;
+
+    let mut fixed = Vec::with_capacity(52);
+    fixed.extend_from_slice(&0xFEEF04BDu32.to_le_bytes()); // dwSignature
+    fixed.extend_from_slice(&0x0001_0000u32.to_le_bytes()); // dwStrucVersion
+    fixed.extend_from_slice(&((major as u32) << 16 | minor as u32).to_le_bytes());
+    fixed.extend_from_slice(&((patch as u32) << 16 | build as u32).to_le_bytes());
+    fixed.extend_from_slice(&((major as u32) << 16 | minor as u32).to_le_bytes());
+    fixed.extend_from_slice(&((patch as u32) << 16 | build as u32).to_le_bytes());
+    fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileFlagsMask
+    fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileFlags
+    fixed.extend_from_slice(&0x0004_0000u32.to_le_bytes()); // dwFileOS = VOS_NT_WINDOWS32
+    fixed.extend_from_slice(&0x0000_0001u32.to_le_bytes()); // dwFileType = VFT_APP
+    fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileSubtype
+    fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileDateMS
+    fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileDateLS
+
+    let company = "Austin.Young";
+    let product = "ShowKeyBoard";
+    let file_desc = "ShowKeyBoard Client";
+    let mut table = Vec::new();
+    table.extend_from_slice(&0u16.to_le_bytes()); // wLength（占位，稍后回填）
+    table.extend_from_slice(&0u16.to_le_bytes()); // wValueLength
+    table.extend_from_slice(&1u16.to_le_bytes()); // wType = 1 (text)
+    push_wstr(&mut table, "040904B0"); // 语言 0x0409、代码页 0x04B0(Unicode)
+    align4(&mut table);
+
+    let strings = [
+        ("CompanyName", company.to_string()),
+        ("FileDescription", file_desc.to_string()),
+        ("FileVersion", ver.full.clone()),
+        ("InternalName", "showkeyboard_client".to_string()),
+        ("OriginalFilename", "showkeyboard_client.exe".to_string()),
+        ("ProductName", product.to_string()),
+        ("ProductVersion", ver.full.clone()),
+    ];
+    for (key, value) in strings {
+        push_version_string(&mut table, key, &value);
+    }
+    set_length(&mut table);
+
+    let mut sfi = Vec::new();
+    sfi.extend_from_slice(&0u16.to_le_bytes()); // wLength（占位）
+    sfi.extend_from_slice(&0u16.to_le_bytes()); // wValueLength
+    sfi.extend_from_slice(&1u16.to_le_bytes()); // wType = 1
+    push_wstr(&mut sfi, "StringFileInfo");
+    sfi.extend_from_slice(&table);
+    set_length(&mut sfi);
+
+    let mut info = Vec::new();
+    info.extend_from_slice(&0u16.to_le_bytes()); // wLength（占位）
+    info.extend_from_slice(&(fixed.len() as u16).to_le_bytes()); // wValueLength
+    info.extend_from_slice(&0u16.to_le_bytes()); // wType = 0 (binary)
+    push_wstr(&mut info, "VS_VERSION_INFO");
+    align4(&mut info);
+    info.extend_from_slice(&fixed);
+    info.extend_from_slice(&sfi);
+    set_length(&mut info);
+    info
+}
+
+/// 补 0 使当前长度按 4 字节对齐（VS_VERSIONINFO 各子节点要求 DWORD 对齐）
+fn align4(buf: &mut Vec<u8>) {
+    while buf.len() % 4 != 0 {
+        buf.push(0);
+    }
+}
+
+/// 追加一个 UTF-16LE 字符串（含结尾 NUL）
+fn push_wstr(out: &mut Vec<u8>, s: &str) {
+    for c in s.encode_utf16() {
+        out.extend_from_slice(&c.to_le_bytes());
+    }
+    out.extend_from_slice(&0u16.to_le_bytes());
+}
+
+/// 追加一条 String 节点：wLength / wValueLength(字符数) / wType=1 / szKey / Value
+fn push_version_string(out: &mut Vec<u8>, key: &str, value: &str) {
+    let mut node = Vec::new();
+    node.extend_from_slice(&0u16.to_le_bytes()); // wLength（占位）
+    node.extend_from_slice(&(value.encode_utf16().count() as u16).to_le_bytes()); // wValueLength
+    node.extend_from_slice(&1u16.to_le_bytes()); // wType = 1
+    push_wstr(&mut node, key);
+    while node.len() % 4 != 0 {
+        node.push(0);
+    }
+    push_wstr(&mut node, value);
+    while node.len() % 4 != 0 {
+        node.push(0);
+    }
+    set_length(&mut node);
+    out.extend_from_slice(&node);
+}
+
+/// 回填节点头部的 wLength（字节数，含头部自身）
+fn set_length(node: &mut [u8]) {
+    let len = node.len() as u16;
+    node[0..2].copy_from_slice(&len.to_le_bytes());
 }
 
 /// 追加一条资源记录（type/name 均为序号，头部固定 32 字节，数据 4 字节对齐）
@@ -161,7 +280,7 @@ fn local_ymd() -> (i32, u32, u32) {
     (y as i32, m, d)
 }
 
-fn gen_version() {
+fn gen_version() -> BuildVersion {
     let profile = env::var("PROFILE").unwrap_or_default();
     let pkg_version = env::var("CARGO_PKG_VERSION").unwrap_or_default();
     let (y, m, d) = local_ymd();
@@ -215,4 +334,10 @@ fn gen_version() {
         "cargo:warning=showkeyboard_client version: {} (profile={})",
         full_version, profile
     );
+
+    BuildVersion {
+        pkg: pkg_version,
+        full: full_version,
+        count,
+    }
 }
