@@ -25,7 +25,7 @@ tungstenite = { version = "0.24", default-features = false, features = ["handsha
 encoding_rs = "0.8"
 regex = "1"
 crossbeam-channel = "0.5"
-tray-icon = "0.19"
+tray-icon = "0.24"
 
 [build-dependencies]
 slint-build = "1.8"

@@ -327,6 +327,53 @@ fn consume_events(shared: Arc<Shared>, rx: Receiver<Ev>) {
     }
 }
 
+/// 检查"辅助功能"授权（AXIsProcessTrustedWithOptions，不触发系统弹窗）
+#[cfg(target_os = "macos")]
+fn is_accessibility_trusted() -> bool {
+    use core_foundation::base::TCFType;
+    use core_foundation::boolean::CFBoolean;
+    use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
+    use core_foundation::string::CFString;
+
+    #[link(name = "ApplicationServices", kind = "framework")]
+    extern "C" {
+        fn AXIsProcessTrustedWithOptions(options: CFDictionaryRef) -> u8;
+    }
+
+    let key = CFString::new("AXTrustedCheckOptionPrompt");
+    let value = CFBoolean::false_value();
+    let dict = CFDictionary::from_CFType_pairs(&[(key, value)]);
+    unsafe { AXIsProcessTrustedWithOptions(dict.as_concrete_TypeRef()) != 0 }
+}
+
+/// 弹框提示授权，返回用户是否选择"去授权"（经 osascript，避免引入 AppKit 绑定依赖）
+#[cfg(target_os = "macos")]
+fn prompt_accessibility_dialog() -> bool {
+    let script = concat!(
+        r#"display dialog "#,
+        r#""ShowKeyBoard 需要监控键盘鼠标动作。"#,
+        r#"\n\n当前尚未获得"辅助功能"授权，"#,
+        r#"点击"去授权"打开设置页，添加并勾选本程序后，"#,
+        r#"键鼠捕获会自动开始。""#,
+        r#" with title "ShowKeyBoard 需要辅助功能权限""#,
+        r#" buttons {"稍后", "去授权"} default button "去授权" with icon caution"#
+    );
+    std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .map(|out| String::from_utf8_lossy(&out.stdout).contains("去授权"))
+        .unwrap_or(false)
+}
+
+/// 跳转到 系统设置 → 隐私与安全性 → 辅助功能
+#[cfg(target_os = "macos")]
+fn open_accessibility_settings() {
+    let _ = std::process::Command::new("open")
+        .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+        .spawn();
+}
+
 /// 启动输入捕获线程。rdev（CGEventTap）阻塞在自己的线程里，
 /// 返回的线程只等待退出标志，保证主线程 join 不会卡死。
 pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
@@ -346,13 +393,37 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
             std::thread::Builder::new()
                 .name("input-tap".into())
                 .spawn(move || {
-                    if let Err(e) = rdev::listen(on_event) {
-                        eprintln!("input: rdev listen failed: {:?}（请检查辅助功能授权）", e);
-                        // 复用界面浮窗提示，引导用户去授权（未授权时收不到任何键鼠事件）
-                        let _ = tap_shared.ui_tx.send(format!(
-                            "{}键盘鼠标捕获失败：请在 系统设置 → 隐私与安全性 → 辅助功能 中允许本程序",
-                            crate::net::STATUS_STICKY
-                        ));
+                    let mut hinted = false;
+                    loop {
+                        if is_accessibility_trusted() {
+                            match rdev::listen(on_event) {
+                                Ok(()) => break,
+                                Err(e) => {
+                                    eprintln!("input: rdev listen failed: {:?}", e);
+                                    std::thread::sleep(Duration::from_secs(5));
+                                }
+                            }
+                        } else {
+                            // 未授权：浮窗常驻提示 + 弹框引导，跳转设置页；授权后自动开始捕获
+                            if !hinted {
+                                hinted = true;
+                                let _ = tap_shared.ui_tx.send(format!(
+                                    "{}键盘鼠标捕获失败：请在 系统设置 → 隐私与安全性 → 辅助功能 中允许本程序",
+                                    crate::net::STATUS_STICKY
+                                ));
+                            }
+                            if prompt_accessibility_dialog() {
+                                open_accessibility_settings();
+                            }
+                            while !is_accessibility_trusted()
+                                && !tap_shared.exit.load(Ordering::Relaxed)
+                            {
+                                std::thread::sleep(Duration::from_millis(500));
+                            }
+                            if tap_shared.exit.load(Ordering::Relaxed) {
+                                break;
+                            }
+                        }
                     }
                 })
                 .expect("spawn rdev listen");
