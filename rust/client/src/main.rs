@@ -61,7 +61,12 @@ fn main() {
         #[cfg(windows)]
         let selector = selector.with_winit_window_attributes_hook(move |attributes| {
             use slint::winit_030::winit::platform::windows::WindowAttributesExtWindows;
-            attributes.with_skip_taskbar(true).with_owner_window(owner_hwnd)
+            // with_active(false)：首次 show() 走 ShowWindow(SW_SHOWNOACTIVATE)，
+            // 所有浮窗（含控制键状态窗）即使置顶也绝不抢占前台焦点。
+            attributes
+                .with_skip_taskbar(true)
+                .with_owner_window(owner_hwnd)
+                .with_active(false)
         });
         let _ = selector.select();
     }
