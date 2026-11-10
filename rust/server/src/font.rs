@@ -96,7 +96,7 @@ fn get_fonts_windows() -> Vec<String> {
 
 /// Windows 兜底：直接列 C:\Windows\Fonts 字体文件
 fn get_fonts_windows_fallback() -> Vec<String> {
-    if let Ok(entries) = std::fs::read_dir("C:\\Windows\\Fonts") {
+    if let Ok(entries) = std::fs::read_dir("%WINDIR%\\Fonts") {
                 let mut fonts = Vec::new();
                 for entry in entries.flatten() {
                     let name = entry.file_name().to_string_lossy().to_string();

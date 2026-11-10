@@ -65,9 +65,9 @@ async fn clean_task(state: AppState) {
 }
 
 async fn do_clean_data(state: &AppState) {
-    let (db_path, base_dir) = {
+    let db_path = {
         let sg = state.read().await;
-        (sg.db_path.clone(), sg.base_dir.clone())
+        sg.db_path.clone()
     };
     // Node: let before = dataSetting.minuteKeepDays ?? 7
     let keep_days: i64 = db::get_data_setting(&db_path)
@@ -83,7 +83,6 @@ async fn do_clean_data(state: &AppState) {
         .format("%Y-%m-%d")
         .to_string();
     let tz = tz_string();
-    let _ = &base_dir;
 
     let db_path_c = db_path.clone();
     let result = tokio::task::spawn_blocking(move || {
@@ -161,7 +160,7 @@ fn portable_path(p: &str) -> String {
     p.replace('\\', "/")
 }
 
-/// Node: path.resolve(basePath, xxx) —— 绝对路径直接用，否则基于 base_dir
+/// Node: path.resolve(basePath, xxx) —— 绝对路径直接用，否则基于用户数据目录
 fn resolve_path(base: &str, p: &str) -> PathBuf {
     let p = portable_path(p);
     let path = Path::new(&p);
@@ -172,10 +171,26 @@ fn resolve_path(base: &str, p: &str) -> PathBuf {
     }
 }
 
+/// path 是否位于 root 目录之内（Windows 下大小写不敏感；不存在的路径按字面比较）
+fn is_inside(path: &Path, root: &Path) -> bool {
+    let norm = |p: &Path| -> String {
+        let p = std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+        let s = p.to_string_lossy().replace('/', "\\");
+        if cfg!(windows) { s.to_lowercase() } else { s }
+    };
+    let p = norm(path);
+    let r = norm(root);
+    if p == r {
+        return true;
+    }
+    let prefix = if r.ends_with('\\') { r } else { format!("{}\\", r) };
+    p.starts_with(&prefix)
+}
+
 async fn auto_share_core(state: &AppState, cfg: &AppConfig, hour: f64) -> Result<(), String> {
-    let (base_dir, db_path) = {
+    let (data_dir, base_dir, db_path) = {
         let sg = state.read().await;
-        (sg.base_dir.clone(), sg.db_path.clone())
+        (sg.data_dir.clone(), sg.base_dir.clone(), sg.db_path.clone())
     };
 
     // shareDbName 为空时用主机名（与 get_para 的后处理一致）
@@ -192,8 +207,24 @@ async fn auto_share_core(state: &AppState, cfg: &AppConfig, hour: f64) -> Result
     let share_db_path = cfg.common.get("shareDbPath").cloned().unwrap_or_default();
     let share_db_exec = cfg.common.get("shareDbExec").cloned().unwrap_or_default();
 
-    // 递归创建共享目录
-    let share_file_dir = resolve_path(&base_dir, &share_db_path);
+    // 递归创建共享目录（相对路径基于用户数据目录，默认 share/）
+    let share_db_path = if share_db_path.trim().is_empty() {
+        "share".to_string()
+    } else {
+        share_db_path
+    };
+    let mut share_file_dir = resolve_path(&data_dir, &share_db_path);
+    // shareDbPath 不允许位于安装目录内：命中则回退到 <data_dir>/share
+    if is_inside(&share_file_dir, Path::new(&base_dir))
+        && !is_inside(Path::new(&data_dir), Path::new(&base_dir))
+    {
+        let fallback = Path::new(&data_dir).join("share");
+        info!(
+            "autoShare: shareDbPath {:?} 位于安装目录内，改用 {:?}",
+            share_file_dir, fallback
+        );
+        share_file_dir = fallback;
+    }
     std::fs::create_dir_all(&share_file_dir)
         .map_err(|e| format!("目录创建失败: {}", e))?;
     let share_file_name = share_file_dir.join(format!("{}.zip", share_db_name));
@@ -238,8 +269,8 @@ async fn auto_share_core(state: &AppState, cfg: &AppConfig, hour: f64) -> Result
         }
     }
 
-    // 解压共享文件到 dbs/ 目录
-    unzip_shared(&base_dir, &share_file_dir, &share_db_name).await
+    // 解压共享文件到 dbs/ 目录（用户数据目录下）
+    unzip_shared(&data_dir, &share_file_dir, &share_db_name).await
 }
 
 /// 压缩 records.db 到 zip（zip 内文件名为 entry_name，DEFLATE level 5）
@@ -261,11 +292,11 @@ fn zip_db_to(db_path: &str, entry_name: &str, zip_path: &str) -> Result<(), Stri
 /// Node: unzipShared —— 扫描共享目录全部 *.zip（跳过自己的），
 /// 与 dbs/ 目录下 <用户名>_<时间戳>.db 对比，较新则删除旧库并解压覆盖
 async fn unzip_shared(
-    base_dir: &str,
+    data_dir: &str,
     share_file_dir: &Path,
     own_name: &str,
 ) -> Result<(), String> {
-    let dbs_path = Path::new(base_dir).join("dbs/");
+    let dbs_path = Path::new(data_dir).join("dbs/");
     std::fs::create_dir_all(&dbs_path).map_err(|e| format!("目录创建失败: {}", e))?;
 
     // 共享目录中的 zip：key = 去掉 .zip 的文件名
@@ -407,17 +438,17 @@ fn spawn_command(command: &str, cwd: &Path) {
 /// 供 handlers::send_pc_info 在客户端启动时触发备份（Node.js: sendPCInfo flag==0 → autoBackup()）
 pub async fn auto_backup(state: AppState) {
     // 提前 clone 路径，避免在 spawn_blocking 中持有 RwLock
-    let (base_dir, db_path, user_ini_path, key_list_path) = {
+    let (data_dir, db_path, user_ini_path, key_list_path) = {
         let sg = state.read().await;
         (
-            sg.base_dir.clone(),
+            sg.data_dir.clone(),
             sg.db_path.clone(),
             sg.user_ini_path.clone(),
             sg.key_list_path.clone(),
         )
     };
     let result = tokio::task::spawn_blocking(move || {
-        backup_core(&base_dir, &db_path, &user_ini_path, &key_list_path)
+        backup_core(&data_dir, &db_path, &user_ini_path, &key_list_path)
     })
     .await;
     match result {
@@ -429,12 +460,12 @@ pub async fn auto_backup(state: AppState) {
 
 /// 同步备份核心（Node.js common.js autoBackup）：
 /// 1. 从 dataSetting.autoBackupDays 读取保留天数，默认 3
-/// 2. 创建 <base_dir>/backup/ 目录
+/// 2. 创建 <data_dir>/backup/ 目录
 /// 3. 清理 backup/ 下早于 (now - days) 的 skb_*.zip 文件
 /// 4. 取最新备份文件名，若 (now - 3min) 晚于最新备份 → 生成新的 skb_YYYY-MM-DD-HH-mm-ss.zip
 /// 5. zip 内容：showKeyBoard.ini + keyList.txt + records.db
 fn backup_core(
-    base_dir: &str,
+    data_dir: &str,
     db_path: &str,
     user_ini_path: &str,
     key_list_path: &str,
@@ -452,7 +483,7 @@ fn backup_core(
     let now = Local::now();
     let current_file = format!("skb_{}.zip", now.format(fmt_full)); // skb_YYYY-MM-DD-HH-mm-ss.zip
 
-    let backup_dir = Path::new(&base_dir).join("backup");
+    let backup_dir = Path::new(&data_dir).join("backup");
     std::fs::create_dir_all(&backup_dir)
         .map_err(|e| format!("backup目录创建失败: {}", e))?;
 

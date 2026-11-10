@@ -23,6 +23,8 @@ pub struct SharedState {
     pub config: config::AppConfig,
     pub db_path: String,
     pub base_dir: String,
+    /// 用户数据目录（%USERPROFILE%\Documents\ShowKeyBoard），存放 dbs/ backup/ share/ uploads/ updateTime.txt
+    pub data_dir: String,
     pub desc_ini_path: String,
     pub user_ini_path: String,
     pub key_list_path: String,
@@ -58,10 +60,21 @@ async fn main() {
         .unwrap()
         .to_path_buf();
     let cwd = std::env::current_dir().unwrap_or_else(|_| exe_dir.clone());
-    // base_dir = exe_dir/../.. — used for dbs/ directory resolution (matching Node.js basePath)
+    // base_dir = exe_dir/../..（安装根目录）：仅用于旧数据迁移、数据库回退查找、shareDbExec 的 cwd
     let base_dir = exe_dir.parent().and_then(|p| p.parent())
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| cwd.clone());
+
+    // 用户数据目录：dbs / backup / share / uploads / updateTime.txt 均存放于此，不再写入安装目录
+    let data_dir = data_dir_root(&exe_dir);
+    if let Err(e) = std::fs::create_dir_all(&data_dir) {
+        println!("Warning: failed to create data dir {:?}: {}", data_dir, e);
+    }
+    println!("Data dir: {:?}", data_dir);
+    // 旧版本数据（安装目录下的 dbs/backup/share）首次运行时自动迁移
+    migrate_legacy_dirs(&base_dir, &data_dir);
+    // uploads 旧位置在服务进程工作目录（安装目录 httpdist/dist）
+    migrate_dir_if_absent(&exe_dir.join("uploads"), &data_dir.join("uploads"));
 
     // desc.ini is always relative to the exe directory (bundled with binary)
     let desc_path = exe_dir.join("showKeyBoard.desc.ini");
@@ -74,12 +87,12 @@ async fn main() {
     // Load configuration: desc.ini first, then user.ini overrides
     let mut config = config::AppConfig::load_with_override(&desc_path, &user_ini_path);
 
-    // Database: prefer cwd → parent2 → exe_dir (avoid empty db in target/debug/)
-    // Node.js: dbsPath = basePath/dbs/, so also check dbs/ subdirectory
+    // Database: prefer user data dir → cwd → parent2 → exe_dir (avoid empty db in target/debug/)
+    // 外部数据库目录 dbs/ 现在位于用户数据目录下
     let db_filename = config.db_path.trim_start_matches("./");
     let db_path = {
-        // Order matters: cwd first (cargo run from rust/), then base_dir, then exe_dir fallback
         let candidates: Vec<std::path::PathBuf> = vec![
+            data_dir.join("dbs").join(db_filename),
             cwd.join(db_filename),
             cwd.join("dbs").join(db_filename),
         ].into_iter().chain(
@@ -197,6 +210,7 @@ async fn main() {
         config,
         db_path,
         base_dir: base_dir.to_string_lossy().to_string(),
+        data_dir: data_dir.to_string_lossy().to_string(),
         desc_ini_path: desc_path.to_string_lossy().to_string(),
         user_ini_path: user_ini_path.to_string_lossy().to_string(),
         key_list_path,
@@ -261,4 +275,63 @@ async fn main() {
         .with_graceful_shutdown(async move { shutdown_notify.notified().await })
         .await
         .expect("Server error");
+}
+
+/// 用户数据根目录：`%USERPROFILE%\Documents\ShowKeyBoard`
+/// （macOS/Linux 为 `$HOME/Documents/ShowKeyBoard`；无法确定时退回 exe 所在目录）
+fn data_dir_root(fallback: &std::path::Path) -> std::path::PathBuf {
+    let home = if cfg!(windows) {
+        std::env::var_os("USERPROFILE")
+    } else {
+        std::env::var_os("HOME")
+    };
+    match home {
+        Some(h) => std::path::PathBuf::from(h)
+            .join("Documents")
+            .join("ShowKeyBoard"),
+        None => fallback.join("ShowKeyBoard"),
+    }
+}
+
+/// 首次运行时把旧版本留在程序目录下的 dbs/backup/share 迁移到用户数据目录。
+/// 仅当目标目录尚不存在时迁移（复制，不删除旧文件），避免每次启动重复回填已删除的数据。
+fn migrate_legacy_dirs(legacy_root: &std::path::Path, data_root: &std::path::Path) {
+    for sub in ["dbs", "backup", "share"] {
+        migrate_dir_if_absent(&legacy_root.join(sub), &data_root.join(sub));
+    }
+}
+
+/// 目标目录不存在时递归复制整个目录
+fn migrate_dir_if_absent(src: &std::path::Path, dst: &std::path::Path) {
+    if !src.is_dir() || dst.exists() {
+        return;
+    }
+    println!("Migrating {:?} -> {:?}", src, dst);
+    copy_dir_missing(src, dst);
+}
+
+/// 递归复制目录，已存在的目标文件不覆盖
+fn copy_dir_missing(src: &std::path::Path, dst: &std::path::Path) {
+    if let Err(e) = std::fs::create_dir_all(dst) {
+        println!("Warning: failed to create {:?}: {}", dst, e);
+        return;
+    }
+    let entries = match std::fs::read_dir(src) {
+        Ok(e) => e,
+        Err(e) => {
+            println!("Warning: failed to read {:?}: {}", src, e);
+            return;
+        }
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let target = dst.join(entry.file_name());
+        if path.is_dir() {
+            copy_dir_missing(&path, &target);
+        } else if path.is_file() && !target.exists() {
+            if let Err(e) = std::fs::copy(&path, &target) {
+                println!("Warning: failed to copy {:?}: {}", path, e);
+            }
+        }
+    }
 }

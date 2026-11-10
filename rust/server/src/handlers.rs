@@ -370,11 +370,11 @@ async fn insert_miniute_fun(state: &AppState, db_path: &str, records: &mut serde
 /// 3. insertData(records) → events table
 async fn insert_data_fun(state: &AppState, db_path: &str, records: &mut serde_json::Value) {
     if let Some(update_time) = records.get("updateTime").and_then(|v| v.as_str()).map(String::from) {
-        let base_dir = {
+        let data_dir = {
             let sg = state.read().await;
-            sg.base_dir.clone()
+            sg.data_dir.clone()
         };
-        let _ = std::fs::write(std::path::Path::new(&base_dir).join("updateTime.txt"), &update_time);
+        let _ = std::fs::write(std::path::Path::new(&data_dir).join("updateTime.txt"), &update_time);
         if let Some(obj) = records.as_object_mut() {
             obj.remove("updateTime");
         }
@@ -508,10 +508,10 @@ pub async fn history_data(
     // Resolve DB path (Node.js getDbObj)
     let state_guard = state.read().await;
     let default_db_path = state_guard.db_path.clone();
-    let base_dir = state_guard.base_dir.clone();
+    let data_dir = state_guard.data_dir.clone();
     drop(state_guard);
 
-    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &data_dir);
 
     // Node.js: if (null == db) return []
     if db_path.is_empty() {
@@ -546,13 +546,13 @@ pub async fn minute_data(
     let is_app = req.is_app.unwrap_or(false);
     info!("POST /minuteData - freqType: {}, isApp: {}, db: {:?}", freq_type, is_app, req.db);
 
-    // Resolve database path: if req.db is provided, look in <base_dir>/dbs/<db>.db
+    // Resolve database path: if req.db is provided, look in <data_dir>/dbs/<db>.db
     let state_guard = state.read().await;
     let default_db_path = state_guard.db_path.clone();
-    let base_dir = state_guard.base_dir.clone();
+    let data_dir = state_guard.data_dir.clone();
     drop(state_guard);
 
-    let db_path = resolve_minute_db(&req.db, &default_db_path, &base_dir);
+    let db_path = resolve_minute_db(&req.db, &default_db_path, &data_dir);
 
     // Node.js: if (null == db) return []
     if db_path.is_empty() {
@@ -575,7 +575,8 @@ pub async fn minute_data(
 }
 
 /// Resolve database path for minute_data matching Node.js getDbObj().
-fn resolve_minute_db(db_name: &Option<String>, default_db: &str, base_dir: &str) -> String {
+/// 外部数据库位于用户数据目录下的 dbs/（%USERPROFILE%\Documents\ShowKeyBoard\dbs）
+fn resolve_minute_db(db_name: &Option<String>, default_db: &str, data_dir: &str) -> String {
     let dbn = match db_name {
         Some(name) => name.trim().to_string(),
         None => String::new(),
@@ -587,7 +588,7 @@ fn resolve_minute_db(db_name: &Option<String>, default_db: &str, base_dir: &str)
     }
 
     // Node.js: dbpath = path.join(dbsPath, newDbName + '.db')
-    let dbpath = std::path::Path::new(base_dir).join("dbs").join(format!("{}.db", dbn));
+    let dbpath = std::path::Path::new(data_dir).join("dbs").join(format!("{}.db", dbn));
     if dbpath.exists() {
         info!("minute_data: using external db: {}", dbpath.display());
         dbpath.to_string_lossy().to_string()
@@ -655,7 +656,7 @@ pub async fn get_history_date(
 
     let state_guard = state.read().await;
     let default_db_path = state_guard.db_path.clone();
-    let base_dir = state_guard.base_dir.clone();
+    let data_dir = state_guard.data_dir.clone();
     drop(state_guard);
 
     // Node.js: req.body?.db — optional db name, look in dbs/<name>.db if provided
@@ -665,7 +666,7 @@ pub async fn get_history_date(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &data_dir);
 
     // Node.js: if (null == db) return []
     if db_path.is_empty() {
@@ -706,10 +707,10 @@ pub async fn stat_data(
 
     let state_guard = state.read().await;
     let default_db_path = state_guard.db_path.clone();
-    let base_dir = state_guard.base_dir.clone();
+    let data_dir = state_guard.data_dir.clone();
     drop(state_guard);
 
-    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &data_dir);
     if db_path.is_empty() {
         return Json(serde_json::json!([]));
     }
@@ -902,9 +903,14 @@ pub async fn zip_upload(
 ) -> impl IntoResponse {
     info!("POST /zipUpload");
 
-    let (user_ini_path, key_list_path, db_path) = {
+    let (user_ini_path, key_list_path, db_path, data_dir) = {
         let sg = state.read().await;
-        (sg.user_ini_path.clone(), sg.key_list_path.clone(), sg.db_path.clone())
+        (
+            sg.user_ini_path.clone(),
+            sg.key_list_path.clone(),
+            sg.db_path.clone(),
+            sg.data_dir.clone(),
+        )
     };
 
     let mut ori_name = String::new();
@@ -912,12 +918,13 @@ pub async fn zip_upload(
     let mut msg: Vec<String> = vec!["Upload Success".to_string()];
 
     // Node.js multer storage: uploads/<timestamp><ext>, single file field
+    // uploads 目录位于用户数据目录下
+    let uploads_dir = std::path::Path::new(&data_dir).join("uploads");
     if let Some(field) = multipart.next_field().await.ok().flatten() {
         ori_name = field.file_name().map(String::from).unwrap_or_default();
         match field.bytes().await {
             Ok(data) => {
-                let uploads_dir = std::path::Path::new("uploads");
-                let _ = std::fs::create_dir_all(uploads_dir);
+                let _ = std::fs::create_dir_all(&uploads_dir);
 
                 let ext = std::path::Path::new(&ori_name)
                     .extension()
@@ -938,7 +945,7 @@ pub async fn zip_upload(
     }
 
     // Node.js: clearUpload(hash) — clean old uploads first
-    clear_uploads(std::path::Path::new("uploads"));
+    clear_uploads(&uploads_dir);
 
     // Node.js configHash: entry name -> target file path
     let code = if !saved_path.is_empty() {
@@ -985,17 +992,17 @@ pub async fn version(
     }))
 }
 
-/// Matches Node.js getDbsFun: scan <base_dir>/dbs/ for .db files, return names without extension.
+/// Matches Node.js getDbsFun: scan <data_dir>/dbs/ for .db files, return names without extension.
 pub async fn get_dbs(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     info!("POST /getDbs");
 
     let state_guard = state.read().await;
-    let base_dir = state_guard.base_dir.clone();
+    let data_dir = state_guard.data_dir.clone();
     drop(state_guard);
 
-    let dbs_dir = std::path::Path::new(&base_dir).join("dbs");
+    let dbs_dir = std::path::Path::new(&data_dir).join("dbs");
 
     match std::fs::read_dir(&dbs_dir) {
         Ok(entries) => {
@@ -1068,13 +1075,13 @@ pub async fn get_app_minute(
     info!("POST /getAppMinute - begin: {:?}, end: {:?}, isTotal: {}, db: {:?}",
         begin, end, is_total, db_name);
 
-    let (default_db_path, base_dir) = {
+    let (default_db_path, data_dir) = {
         let sg = state.read().await;
-        (sg.db_path.clone(), sg.base_dir.clone())
+        (sg.db_path.clone(), sg.data_dir.clone())
     };
 
     // Node.js getDbObj: invalid/unknown db name → null → return []
-    let db_path = resolve_minute_db(&db_name, &default_db_path, &base_dir);
+    let db_path = resolve_minute_db(&db_name, &default_db_path, &data_dir);
     if db_path.is_empty() {
         return Json(serde_json::json!([]));
     }

@@ -199,7 +199,12 @@ Section Uninstall
 	Delete "$INSTDIR\showKeyBoard.ini"
     Delete "$INSTDIR\KeyList.txt"
     Delete "$INSTDIR\httpdist\dist\records.db"
-    RMDir /r "$INSTDIR\backup\*"
+    ; Legacy external dirs (older versions kept them in the install dir)
+    RMDir /r "$INSTDIR\backup"
+    RMDir /r "$INSTDIR\dbs"
+    RMDir /r "$INSTDIR\share"
+    ; User data dir: %USERPROFILE%\Documents\ShowKeyBoard (dbs / backup / share)
+    RMDir /r "$PROFILE\Documents\ShowKeyBoard"
     
 	keepConf:
     Delete "$INSTDIR\Website.url"
