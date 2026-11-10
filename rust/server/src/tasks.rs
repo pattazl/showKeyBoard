@@ -401,3 +401,191 @@ fn spawn_command(command: &str, cwd: &Path) {
         .current_dir(cwd)
         .spawn();
 }
+
+// ============== 4. autoBackup（Node.js common.js autoBackup） ==============
+
+/// 供 handlers::send_pc_info 在客户端启动时触发备份（Node.js: sendPCInfo flag==0 → autoBackup()）
+pub async fn auto_backup(state: AppState) {
+    // 提前 clone 路径，避免在 spawn_blocking 中持有 RwLock
+    let (base_dir, db_path, user_ini_path, key_list_path) = {
+        let sg = state.read().await;
+        (
+            sg.base_dir.clone(),
+            sg.db_path.clone(),
+            sg.user_ini_path.clone(),
+            sg.key_list_path.clone(),
+        )
+    };
+    let result = tokio::task::spawn_blocking(move || {
+        backup_core(&base_dir, &db_path, &user_ini_path, &key_list_path)
+    })
+    .await;
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => warn!("autoBackup error: {}", e),
+        Err(e) => warn!("autoBackup join error: {}", e),
+    }
+}
+
+/// 同步备份核心（Node.js common.js autoBackup）：
+/// 1. 从 dataSetting.autoBackupDays 读取保留天数，默认 3
+/// 2. 创建 <base_dir>/backup/ 目录
+/// 3. 清理 backup/ 下早于 (now - days) 的 skb_*.zip 文件
+/// 4. 取最新备份文件名，若 (now - 3min) 晚于最新备份 → 生成新的 skb_YYYY-MM-DD-HH-mm-ss.zip
+/// 5. zip 内容：showKeyBoard.ini + keyList.txt + records.db
+fn backup_core(
+    base_dir: &str,
+    db_path: &str,
+    user_ini_path: &str,
+    key_list_path: &str,
+) -> Result<(), String> {
+
+    // 1. 读取保留天数（Node: parseInt(dataSetting.autoBackupDays ?? 3, 10)）
+    let days: i64 = db::get_data_setting(&db_path)
+        .ok()
+        .and_then(|m| m.get("autoBackupDays").cloned())
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(3);
+
+    // 日期格式化
+    let fmt_full = "%Y-%m-%d-%H-%M-%S";
+    let now = Local::now();
+    let current_file = format!("skb_{}.zip", now.format(fmt_full)); // skb_YYYY-MM-DD-HH-mm-ss.zip
+
+    let backup_dir = Path::new(&base_dir).join("backup");
+    std::fs::create_dir_all(&backup_dir)
+        .map_err(|e| format!("backup目录创建失败: {}", e))?;
+
+    if days <= 0 {
+        return Ok(()); // 不保留任何备份，无需后续操作
+    }
+
+    // 早于 (now - days) 的阈值文件名（按字符串比较）
+    let before_str = format!(
+        "skb_{}.zip",
+        (now - ChronoDuration::days(days)).format(fmt_full)
+    );
+    // 3 分钟前的时间点，用于防重复备份
+    let min_backup = format!(
+        "skb_{}.zip",
+        (now - ChronoDuration::minutes(3)).format(fmt_full)
+    );
+
+    // 2. 遍历 backup 目录
+    let mut max_file = String::new();
+    let entries = std::fs::read_dir(&backup_dir)
+        .map_err(|e| format!("backup目录读取失败: {}", e))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let name = path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        // 正则匹配：skb_YYYY-MM-DD-HH-mm-ss.zip
+        if !is_backup_filename(&name) {
+            continue;
+        }
+
+        // 清理过期文件（Node: file < beforeStr → unlink）
+        if name < before_str {
+            match std::fs::remove_file(&path) {
+                Ok(_) => info!("autoBackup: 删除过期文件 {}", name),
+                Err(e) => warn!("autoBackup: 删除文件 {} 失败: {}", name, e),
+            }
+            continue;
+        }
+
+        // 取最新备份文件（Node: file < currentFile 前提下取 max）
+        if name.as_str() < current_file.as_str() && name.as_str() > max_file.as_str() {
+            max_file = name;
+        }
+    }
+
+    // 3. 只有 minBackUp > maxFile（即距上次备份超过 3 分钟）才生成新备份
+    if min_backup.as_str() > max_file.as_str() {
+        let zip_path = backup_dir.join(&current_file);
+        match zip_backup_files(&user_ini_path, &key_list_path, &db_path, &zip_path) {
+            Ok(_) => info!("autoBackup: 成功生成 {:?}", zip_path),
+            Err(e) => warn!("autoBackup: 生成 {} 失败: {}", current_file, e),
+        }
+    } else {
+        info!(
+            "autoBackup: 距上次备份 {} 小于 3 分钟，跳过",
+            max_file
+        );
+    }
+
+    Ok(())
+}
+
+/// 判断文件名是否符合 skb_YYYY-MM-DD-HH-mm-ss.zip 格式
+fn is_backup_filename(name: &str) -> bool {
+    // "skb_" + 19 chars "YYYY-MM-DD-HH-mm-ss" + ".zip"
+    // total length 4 + 19 + 4 = 27
+    if name.len() != 27 {
+        return false;
+    }
+    let bytes = name.as_bytes();
+    if &name[0..4] != "skb_" || &name[23..] != ".zip" {
+        return false;
+    }
+    // 检查中间部分 "YYYY-MM-DD-HH-mm-ss"
+    // 索引：4-12 "YYYY-MM-DD"，13-18 "HH-mm-ss"
+    // 分隔符：'-' 位置 8、11、14、17、20
+    for &pos in &[8usize, 11, 14, 17, 20] {
+        if bytes[pos] != b'-' {
+            return false;
+        }
+    }
+    // 数字检查
+    for &pos in &[4usize, 5, 6, 7, 9, 10, 12, 13, 15, 16, 18, 19] {
+        if !bytes[pos].is_ascii_digit() {
+            return false;
+        }
+    }
+    true
+}
+
+/// 将 showKeyBoard.ini + keyList.txt + records.db 压缩写入 zip_path
+/// 对应 Node.js zipCore(cbFun, false)
+fn zip_backup_files(
+    ini_path: &str,
+    key_path: &str,
+    db_path: &str,
+    zip_path: &Path,
+) -> Result<(), String> {
+    use std::io::Write;
+
+    let file = std::fs::File::create(zip_path).map_err(|e| e.to_string())?;
+    let mut zipw = zip::ZipWriter::new(file);
+    let opts = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .compression_level(Some(5)); // Node.js JSZip level 5
+
+    let files: Vec<&str> = vec![ini_path, key_path, db_path];
+    for path in files {
+        let p = Path::new(path);
+        let name = p.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        if name.is_empty() {
+            continue;
+        }
+        match std::fs::read(p) {
+            Ok(data) => {
+                zipw.start_file(&name, opts)
+                    .and_then(|_| zipw.write_all(&data).map_err(zip::result::ZipError::Io))
+                    .map_err(|e| format!("压缩 {} 失败: {}", name, e))?;
+            }
+            Err(e) => warn!("autoBackup: 跳过缺失文件 {}: {}", path, e),
+        }
+    }
+    zipw.finish().map_err(|e| e.to_string())?;
+    Ok(())
+}

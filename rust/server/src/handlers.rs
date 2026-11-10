@@ -10,6 +10,7 @@ use crate::websocket::{AHK_CLIENT_FLAG, WEB_CLIENT_FLAG};
 use crate::models::*;
 use crate::db;
 use crate::config::AppConfig;
+use crate::tasks;
 
 async fn get_db_path(state: &AppState) -> String {
     state.read().await.db_path.clone()
@@ -458,6 +459,9 @@ pub async fn send_pc_info(
 ) -> impl IntoResponse {
     info!("POST /sendPCInfo");
     
+    // 先把 flag 取出来（Node.js: let flag = data.flag ?? 0; delete data.flag;）
+    let flag = req.get("flag").and_then(|v| v.as_i64()).unwrap_or(0);
+
     // Store infoPC in state (minus flag field, matching Node.js behavior)
     let mut state_guard = state.write().await;
     let mut info = req.clone();
@@ -467,7 +471,12 @@ pub async fn send_pc_info(
     info!("infoPC: {:?}", info);
     state_guard.info_pc = info;
     drop(state_guard);
-    
+
+    // 客户端首次启动通知服务器（flag == 0）时触发 autoBackup（Node.js common.js: if (flag == 0) autoBackup();）
+    if flag == 0 {
+        tasks::auto_backup(state.clone()).await;
+    }
+
     Json(serde_json::json!({
         "code": 200
     }))
