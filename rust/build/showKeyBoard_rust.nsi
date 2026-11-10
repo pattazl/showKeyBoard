@@ -1,7 +1,7 @@
-; è¯¥è„šæœ¬ä½¿ç”¨ HM VNISEdit è„šæœ¬ç¼–è¾‘å™¨å‘å¯¼äº§ç”Ÿ
+; ¸Ã½Å±¾Ê¹ÓÃ HM VNISEdit ½Å±¾±à¼­Æ÷Ïòµ¼²úÉú
 
 
-; å®‰è£…ç¨‹åºåˆå§‹å®šä¹‰å¸¸é‡
+; °²×°³ÌĞò³õÊ¼¶¨Òå³£Á¿
 !define PRODUCT_NAME $(ToolLang)
 !define PRODUCT_VERSION "v2.0"
 !define /date DATESTR "%y%m%d"
@@ -15,48 +15,48 @@
 
 SetCompressor lzma
 
-; ------ MUI ç°ä»£ç•Œé¢å®šä¹‰ (1.67 ç‰ˆæœ¬ä»¥ä¸Šå…¼å®¹) ------
+; ------ MUI ÏÖ´ú½çÃæ¶¨Òå (1.67 °æ±¾ÒÔÉÏ¼æÈİ) ------
 !include "MUI.nsh"
 ;!include "FileFunc.nsh"
 ;!insertmacro GetTime
 ;!insertmacro un.GetTime
 !include "FileFunc.nsh"
 !insertmacro GetTime
-; MUI é¢„å®šä¹‰å¸¸é‡
+; MUI Ô¤¶¨Òå³£Á¿
 !define MUI_ABORTWARNING
 ;!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
 !define MUI_ICON "..\res\keyboard.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
-; è¯­è¨€é€‰æ‹©çª—å£å¸¸é‡è®¾ç½®
+; ÓïÑÔÑ¡Ôñ´°¿Ú³£Á¿ÉèÖÃ
 !define MUI_LANGDLL_REGISTRY_ROOT "${PRODUCT_UNINST_ROOT_KEY}"
 !define MUI_LANGDLL_REGISTRY_KEY "${PRODUCT_UNINST_KEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "NSIS:Language"
 
-; æ¬¢è¿é¡µé¢
+; »¶Ó­Ò³Ãæ
 !insertmacro MUI_PAGE_WELCOME
-; è®¸å¯åè®®é¡µé¢
+; Ğí¿ÉĞ­ÒéÒ³Ãæ
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
-; ç»„ä»¶é€‰æ‹©é¡µé¢
+; ×é¼şÑ¡ÔñÒ³Ãæ
 !insertmacro MUI_PAGE_COMPONENTS
-; å®‰è£…ç›®å½•é€‰æ‹©é¡µé¢
+; °²×°Ä¿Â¼Ñ¡ÔñÒ³Ãæ
 !insertmacro MUI_PAGE_DIRECTORY
-; å®‰è£…è¿‡ç¨‹é¡µé¢
+; °²×°¹ı³ÌÒ³Ãæ
 !insertmacro MUI_PAGE_INSTFILES
-; å®‰è£…å®Œæˆé¡µé¢
+; °²×°Íê³ÉÒ³Ãæ
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${ExeName}"
 !insertmacro MUI_PAGE_FINISH
 
-; å®‰è£…å¸è½½è¿‡ç¨‹é¡µé¢
+; °²×°Ğ¶ÔØ¹ı³ÌÒ³Ãæ
 !insertmacro MUI_UNPAGE_INSTFILES
 
-; å®‰è£…ç•Œé¢åŒ…å«çš„è¯­è¨€è®¾ç½®
+; °²×°½çÃæ°üº¬µÄÓïÑÔÉèÖÃ
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "SimpChinese"
 
-; å®‰è£…é¢„é‡Šæ”¾æ–‡ä»¶
+; °²×°Ô¤ÊÍ·ÅÎÄ¼ş
 !insertmacro MUI_RESERVEFILE_LANGDLL
 !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
-; ------ MUI ç°ä»£ç•Œé¢å®šä¹‰ç»“æŸ ------
+; ------ MUI ÏÖ´ú½çÃæ¶¨Òå½áÊø ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "publish\ShowKeyBoard_Setup_${PRODUCT_VERSION}_${DATESTR}.exe"
@@ -65,50 +65,64 @@ InstallDirRegKey HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
 ShowInstDetails show
 ShowUnInstDetails show
 
-; äº§å“åæ˜¯ä½œä¸ºå®‰è£…å¸è½½çš„ä¾æ®ï¼ŒåŒæ—¶ä¼šè®°å½•è¯­è¨€é€‰æ‹©æ¡†
-LangString ToolLang ${LANG_SIMPCHINESE} "é”®ç›˜é¼ æ ‡è¡Œä¸ºåˆ†æå·¥å…·"  
+; ²úÆ·ÃûÊÇ×÷Îª°²×°Ğ¶ÔØµÄÒÀ¾İ£¬Í¬Ê±»á¼ÇÂ¼ÓïÑÔÑ¡Ôñ¿ò
+LangString ToolLang ${LANG_SIMPCHINESE} "¼üÅÌÊó±êĞĞÎª·ÖÎö¹¤¾ß"  
 LangString ToolLang ${LANG_ENGLISH} "ShowKeyBoard Statistic"
 
-LangString UNINSTALL_SUCC ${LANG_SIMPCHINESE} "å·²æˆåŠŸåœ°ä»ä½ çš„è®¡ç®—æœºç§»é™¤ã€‚"
+LangString UNINSTALL_SUCC ${LANG_SIMPCHINESE} "ÒÑ³É¹¦µØ´ÓÄãµÄ¼ÆËã»úÒÆ³ı¡£"
 LangString UNINSTALL_SUCC ${LANG_ENGLISH} "Uninstall success."
 
-LangString KeyBoardPath ${LANG_SIMPCHINESE} "é”®ç›˜é¼ æ ‡"
+LangString KeyBoardPath ${LANG_SIMPCHINESE} "¼üÅÌÊó±ê"
 LangString KeyBoardPath ${LANG_ENGLISH} "KeyboardMouse"
 
 LangString delConfig ${LANG_ENGLISH} "Delete last config"
-LangString delConfig ${LANG_SIMPCHINESE} "åˆ é™¤æ—§é…ç½®"
+LangString delConfig ${LANG_SIMPCHINESE} "É¾³ı¾ÉÅäÖÃ"
 
 LangString delConfigDesc ${LANG_ENGLISH} "Config include the parameters of client and Server"
-LangString delConfigDesc ${LANG_SIMPCHINESE} "é…ç½®æ–‡ä»¶åŒ…å«å®¢æˆ·ç«¯å’ŒæœåŠ¡ç«¯å¯åŠ¨çš„ç›¸å…³ä¿¡æ¯"
+LangString delConfigDesc ${LANG_SIMPCHINESE} "ÅäÖÃÎÄ¼ş°üº¬¿Í»§¶ËºÍ·şÎñ¶ËÆô¶¯µÄÏà¹ØĞÅÏ¢"
 
 LangString delRecord ${LANG_ENGLISH} "Delete last record"
-LangString delRecord ${LANG_SIMPCHINESE} "åˆ é™¤æ—§ç»Ÿè®¡"
+LangString delRecord ${LANG_SIMPCHINESE} "É¾³ı¾ÉÍ³¼Æ"
 LangString delRecordDesc ${LANG_ENGLISH} "Records for statistic of mouse, keystroke,keymap,Apps"
-LangString delRecordDesc ${LANG_SIMPCHINESE} "ç»Ÿè®¡è®°å½•åŒ…å«é”®ç›˜ã€é¼ æ ‡ã€åº”ç”¨çš„ç›¸å…³ä¿¡æ¯"
+LangString delRecordDesc ${LANG_SIMPCHINESE} "Í³¼Æ¼ÇÂ¼°üº¬¼üÅÌ¡¢Êó±ê¡¢Ó¦ÓÃµÄÏà¹ØĞÅÏ¢"
 
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
-LangString unRegMsg ${LANG_SIMPCHINESE} "æ˜¯å¦ä¿ç•™é…ç½®å’Œè®°å½•ï¼Ÿ$\r$\n$\r$\nç¡®å®šä¿ç•™ï¼Ÿï¼ˆå•å‡»â€œYESâ€ä¿ç•™ï¼Œå•å‡»â€œNOâ€æ¸…é™¤ï¼Œå»ºè®®ä¿ç•™ï¼‰"
+LangString unRegMsg ${LANG_SIMPCHINESE} "ÊÇ·ñ±£ÁôÅäÖÃºÍ¼ÇÂ¼£¿$\r$\n$\r$\nÈ·¶¨±£Áô£¿£¨µ¥»÷¡°YES¡±±£Áô£¬µ¥»÷¡°NO¡±Çå³ı£¬½¨Òé±£Áô£©"
 
-LangString mainSect ${LANG_SIMPCHINESE} "æ ¸å¿ƒæ¨¡å—"
+LangString mainSect ${LANG_SIMPCHINESE} "ºËĞÄÄ£¿é"
 LangString mainSect ${LANG_ENGLISH} "Main"
-LangString mainSectDesc ${LANG_SIMPCHINESE} "æ ¸å¿ƒæ¨¡å—ï¼Œå¿…é¡»å®‰è£…"
+LangString mainSectDesc ${LANG_SIMPCHINESE} "ºËĞÄÄ£¿é£¬±ØĞë°²×°"
 LangString mainSectDesc ${LANG_ENGLISH} "Must be installed"
 
-LangString deskSect ${LANG_SIMPCHINESE} "æ¡Œé¢å¿«æ·æ–¹å¼"
+LangString deskSect ${LANG_SIMPCHINESE} "×ÀÃæ¿ì½İ·½Ê½"
 LangString deskSect ${LANG_ENGLISH} "Desk shortcut"
-LangString deskSectDesc ${LANG_SIMPCHINESE} "åˆ›å»ºæ¡Œé¢å¿«æ·æ–¹å¼"
+LangString deskSectDesc ${LANG_SIMPCHINESE} "´´½¨×ÀÃæ¿ì½İ·½Ê½"
 LangString deskSectDesc ${LANG_ENGLISH} "Create desk shortcut"
 
-LangString menuSect ${LANG_SIMPCHINESE} "èœå•å¿«æ·æ–¹å¼"
+LangString menuSect ${LANG_SIMPCHINESE} "²Ëµ¥¿ì½İ·½Ê½"
 LangString menuSect ${LANG_ENGLISH} "Menu shortcut"
-LangString menuSectDesc ${LANG_SIMPCHINESE} "åˆ›å»ºèœå•å¿«æ·æ–¹å¼"
+LangString menuSectDesc ${LANG_SIMPCHINESE} "´´½¨²Ëµ¥¿ì½İ·½Ê½"
 LangString menuSectDesc ${LANG_ENGLISH} "Create shortcut in windows menu"
 
-LangString Prepare ${LANG_SIMPCHINESE} "å‡†å¤‡"
+LangString Prepare ${LANG_SIMPCHINESE} "×¼±¸"
 LangString Prepare ${LANG_ENGLISH} "Prepare"
 
 Section $(Prepare) Prepare
   SectionIn RO
+
+  ; ¾É°æ±¾ÅäÖÃÎ»ÓÚ°²×°Ä¿Â¼£¬Ç¨ÒÆµ½ÓÃ»§Êı¾İÄ¿Â¼£¨Ä¿±êÒÑ´æÔÚÔòÌø¹ı£©
+  CreateDirectory "$PROFILE\Documents\ShowKeyBoard"
+  IfFileExists "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini" migIniDone
+  IfFileExists "$INSTDIR\showKeyBoard.ini" 0 migIniDone
+    CopyFiles /SILENT "$INSTDIR\showKeyBoard.ini" "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini"
+  migIniDone:
+  IfFileExists "$PROFILE\Documents\ShowKeyBoard\KeyList.txt" migKeyDone
+  IfFileExists "$INSTDIR\KeyList.txt" 0 migKeyDone
+    CopyFiles /SILENT "$INSTDIR\KeyList.txt" "$PROFILE\Documents\ShowKeyBoard\KeyList.txt"
+  migKeyDone:
+  ; Ç¨ÒÆºóÇå³ı°²×°Ä¿Â¼ÖĞµÄ¾ÉÅäÖÃÎÄ¼ş
+  Delete "$INSTDIR\showKeyBoard.ini"
+  Delete "$INSTDIR\KeyList.txt"
 SectionEnd
 Section /o $(delConfig) delConfig
   ;MessageBox MB_OK "$INSTDIR\showKeyBoard.ini"
@@ -123,13 +137,13 @@ Section /o $(delRecord) delRecord
 SectionEnd
 
 Section $(mainSect) mainSect
-  SectionIn RO ; å°† section è®¾ç½®ä¸ºåªè¯»ï¼Œä»¥ç¦æ­¢ç”¨æˆ·é€‰æ‹©æˆ–å–æ¶ˆé€‰æ‹©
+  SectionIn RO ; ½« section ÉèÖÃÎªÖ»¶Á£¬ÒÔ½ûÖ¹ÓÃ»§Ñ¡Ôñ»òÈ¡ÏûÑ¡Ôñ
 
   SetOutPath "$INSTDIR"
   SetOverwrite on
     File "release\${ExeName}"
 
-; é…ç½®æ–‡ä»¶å¦‚æœå­˜åœ¨ä¸èƒ½è¦†ç›–ï¼›showKeyBoard.ini / KeyList.txt ä½äºç”¨æˆ·æ•°æ®ç›®å½•
+; ÅäÖÃÎÄ¼şÈç¹û´æÔÚ²»ÄÜ¸²¸Ç£»showKeyBoard.ini / KeyList.txt Î»ÓÚÓÃ»§Êı¾İÄ¿Â¼
   SetOutPath "$PROFILE\Documents\ShowKeyBoard"
   SetOverwrite off
     File "release\showKeyBoard.ini"
@@ -193,7 +207,7 @@ SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 /******************************
- *  ä»¥ä¸‹æ˜¯å®‰è£…ç¨‹åºçš„å¸è½½éƒ¨åˆ†  *
+ *  ÒÔÏÂÊÇ°²×°³ÌĞòµÄĞ¶ÔØ²¿·Ö  *
  ******************************/
 Section Uninstall
     Call un.Detect   
@@ -238,7 +252,7 @@ SectionEnd
 
 Var isRunning
 Function Detect
-  StrCpy $isRunning "å®‰è£…ç¨‹åºæ£€æµ‹åˆ° ${PRODUCT_NAME} æ­£åœ¨è¿è¡Œã€‚$\r$\n$\r$\nç‚¹å‡» â€œç¡®å®šâ€ é‡è¯•ï¼Œ$\r$\nç‚¹å‡» â€œå–æ¶ˆâ€ é€€å‡ºå½“å‰ç¨‹åºã€‚"
+  StrCpy $isRunning "°²×°³ÌĞò¼ì²âµ½ ${PRODUCT_NAME} ÕıÔÚÔËĞĞ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌĞò¡£"
   ${If} $LANGUAGE == "1033"
       StrCpy $isRunning "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
   ${EndIf}
@@ -253,9 +267,9 @@ Function Detect
   Quit  ; Quit Abort
   no_run:
 FunctionEnd
-; å¸è½½å’Œå®‰è£…å‡½æ•°æ— æ³•å¤ç”¨
+; Ğ¶ÔØºÍ°²×°º¯ÊıÎŞ·¨¸´ÓÃ
 Function un.Detect
-  StrCpy $isRunning "å®‰è£…ç¨‹åºæ£€æµ‹åˆ° ${PRODUCT_NAME} æ­£åœ¨è¿è¡Œã€‚$\r$\n$\r$\nç‚¹å‡» â€œç¡®å®šâ€ é‡è¯•ï¼Œ$\r$\nç‚¹å‡» â€œå–æ¶ˆâ€ é€€å‡ºå½“å‰ç¨‹åºã€‚"
+  StrCpy $isRunning "°²×°³ÌĞò¼ì²âµ½ ${PRODUCT_NAME} ÕıÔÚÔËĞĞ¡£$\r$\n$\r$\nµã»÷ ¡°È·¶¨¡± ÖØÊÔ£¬$\r$\nµã»÷ ¡°È¡Ïû¡± ÍË³öµ±Ç°³ÌĞò¡£"
   ${If} $LANGUAGE == "1033"
       StrCpy $isRunning "Detect ${PRODUCT_NAME} is running$\r$\n$\r$\n click $\"YES$\" for retry, click $\"NO$\" abort install/uninstall"
   ${EndIf}
@@ -270,11 +284,11 @@ Function un.Detect
   Quit  ; Quit Abort
   no_run:
 FunctionEnd
-#-- æ ¹æ® NSIS è„šæœ¬ç¼–è¾‘è§„åˆ™ï¼Œæ‰€æœ‰ Function åŒºæ®µå¿…é¡»æ”¾ç½®åœ¨ Section åŒºæ®µä¹‹åç¼–å†™ï¼Œä»¥é¿å…å®‰è£…ç¨‹åºå‡ºç°æœªå¯é¢„çŸ¥çš„é—®é¢˜ã€‚--#
+#-- ¸ù¾İ NSIS ½Å±¾±à¼­¹æÔò£¬ËùÓĞ Function Çø¶Î±ØĞë·ÅÖÃÔÚ Section Çø¶ÎÖ®ºó±àĞ´£¬ÒÔ±ÜÃâ°²×°³ÌĞò³öÏÖÎ´¿ÉÔ¤ÖªµÄÎÊÌâ¡£--#
 Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
   ReadRegStr $0 HKLM "${PRODUCT_DIR_REGKEY}" ""
-  ; å¦‚æœæ‰¾åˆ°å®‰è£…ç›®å½•ï¼Œåˆ™è®¾ç½®ä¸ºé»˜è®¤å®‰è£…ç›®å½•
+  ; Èç¹ûÕÒµ½°²×°Ä¿Â¼£¬ÔòÉèÖÃÎªÄ¬ÈÏ°²×°Ä¿Â¼
   ${If} $0 != ""
     ${GetParent} $0 $R0
     StrCpy $INSTDIR $R0
@@ -284,15 +298,15 @@ FunctionEnd
 
 Var UNINSTALL_CONFIRM
 Function un.onInit
-; $LANGUAGE  ä»é…ç½®æ–‡ä»¶ä¸­è¯»å–è¯­è¨€
-  StrCpy $UNINSTALL_CONFIRM " ä½ ç¡®å®šè¦å¸è½½ "
+; $LANGUAGE  ´ÓÅäÖÃÎÄ¼şÖĞ¶ÁÈ¡ÓïÑÔ
+  StrCpy $UNINSTALL_CONFIRM " ÄãÈ·¶¨ÒªĞ¶ÔØ "
   ReadINIStr $0 "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini" "common" "defaultLang"
-  ${If} $0 == "en-US" ; è‹±æ–‡
+  ${If} $0 == "en-US" ; Ó¢ÎÄ
     StrCpy $LANGUAGE "1033"
     StrCpy $UNINSTALL_CONFIRM "Are you sure uninstall !"
   ${EndIf}
   ;!insertmacro MUI_UNGETLANGUAGE
-  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "$UNINSTALL_CONFIRM $(^Name) ï¼Ÿ" IDYES +2
+  MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "$UNINSTALL_CONFIRM $(^Name) £¿" IDYES +2
   Abort
 FunctionEnd
 
