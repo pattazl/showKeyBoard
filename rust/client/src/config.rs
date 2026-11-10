@@ -182,6 +182,8 @@ pub struct Config {
     pub ini_path: PathBuf,
     pub desc_path: Option<PathBuf>, // showKeyBoard.desc.ini
     pub http_path: PathBuf,         // node 脚本所在目录
+    /// 用户数据目录（%USERPROFILE%\Documents\ShowKeyBoard），与服务端一致
+    pub data_dir: PathBuf,
     pub need_record_key: bool,
 
     // common
@@ -343,6 +345,7 @@ impl Config {
             ini_path,
             desc_path: None, // desc 已解析为 Ini，外部无需保存
             http_path,
+            data_dir: data_dir(),
             need_record_key,
             joy_method,
             need_traytip: Self::desc_read_bool(&user_ini, desc, "common", "needTraytip", true),
@@ -555,6 +558,25 @@ pub fn release_single_instance() {
     if let Some(p) = INSTANCE_PATH.lock().unwrap().take() {
         let _ = std::fs::remove_file(p);
     }
+}
+
+/// 用户数据目录（与服务端一致）：Windows 为 %USERPROFILE%\Documents\ShowKeyBoard
+pub fn data_dir() -> PathBuf {
+    let home = if cfg!(windows) {
+        std::env::var_os("USERPROFILE")
+    } else {
+        std::env::var_os("HOME")
+    };
+    let dir = match home {
+        Some(h) => PathBuf::from(h).join("Documents").join("ShowKeyBoard"),
+        None => std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("ShowKeyBoard"),
+    };
+    let _ = std::fs::create_dir_all(&dir);
+    dir
 }
 
 /// 写 PID 文件（kb.pid），getKeyInput 兼容保留

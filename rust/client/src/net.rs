@@ -318,9 +318,14 @@ fn kill_process(pid: u32) {
 fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
     #[cfg(windows)]
     use std::os::windows::process::CommandExt;
-    let (http_path, exec, _debug) = {
+    let (http_path, data_dir, exec, _debug) = {
         let cfg = shared.cfg.read().unwrap();
-        (cfg.http_path.clone(), cfg.server_exec_name.clone(), cfg.show_http_debug)
+        (
+            cfg.http_path.clone(),
+            cfg.data_dir.clone(),
+            cfg.server_exec_name.clone(),
+            cfg.show_http_debug,
+        )
     };
     if !http_path.exists() {
         return Err(format!("未找到后台服务目录 {}", http_path.display()));
@@ -356,7 +361,7 @@ fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
         return Err(format!("未找到后台服务脚本 {}", script.display()));
     }
 
-    let pid_file = http_path.join("kbserver.pid");
+    let pid_file = data_dir.join("kbserver.pid");
     if pid_file.exists() {
         if let Ok(s) = std::fs::read_to_string(&pid_file) {
             if let Ok(pid) = s.trim().parse::<u32>() {
@@ -700,11 +705,11 @@ pub fn shutdown_server(shared: &Arc<Shared>) {
         let _ = post_json(&url, "", 1500);
     }
 
-    let (http_path, exec) = {
+    let (data_dir, exec) = {
         let cfg = shared.cfg.read().unwrap();
-        (cfg.http_path.clone(), cfg.server_exec_name.clone())
+        (cfg.data_dir.clone(), cfg.server_exec_name.clone())
     };
-    let pid_file = http_path.join("kbserver.pid");
+    let pid_file = data_dir.join("kbserver.pid");
     let exec_raw = if exec.trim().is_empty() { "node" } else { exec.trim() };
     let exec_stem = std::path::Path::new(exec_raw)
         .file_stem()

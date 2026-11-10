@@ -45,9 +45,7 @@ fn main() {
         // 已有实例运行，直接退出
         return;
     }
-    config::write_pid_file(
-        &std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
-    );
+    config::write_pid_file(&config::data_dir());
 
     // 在创建任何窗口之前指定 winit 窗口属性：popup 方式（带 owner + 不显示在任务栏），
     // 这样启动时预热的多个窗口不会在任务栏冒出多个按钮。
@@ -182,7 +180,7 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
     }
 
     // 2) 若存在 kbserver.pid，写出 lastRecord.json（后端重启后优先载入）
-    let pid_path = cfg.http_path.join("kbserver.pid");
+    let pid_path = cfg.data_dir.join("kbserver.pid");
     if pid_path.exists() {
         // 最后一条分钟数据转差值并标注 LastFlag（与 AHK 一致）
         {
@@ -198,7 +196,7 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
             }
         }
         let body = net::build_data_body(shared).to_string();
-        let last_path = cfg.http_path.join("lastRecord.json");
+        let last_path = cfg.data_dir.join("lastRecord.json");
         let _ = std::fs::write(last_path, body);
     }
 
