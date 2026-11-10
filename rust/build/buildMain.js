@@ -1,13 +1,26 @@
-// 根据 rust/client/Cargo.toml 的主版本号更新 .nsi，编译 release 产物并打包安装包与便携版
-// 此文件从 rust 目录运行 npm run build 调用
-// npm run pack 传入 --pack：跳过 cargo 编译与产物替换，直接用 build/release 现有文件打包
+// 根据 rust/client/Cargo.toml 的主版本号更新 .nsi，编译 release 产物并打包安装包与便携版（Windows）
+// macOS 平台：将 build/release 目录打包为 DMG（入口程序 showkeyboard_client，图标 res/keyboard.ico）
+// 此文件从 rust 目录运行 npm run build / npm run pack 调用：
+//   npm run build            编译模式：先 cargo build --release 并替换产物，再打包
+//   npm run pack  (--pack)   打包模式：跳过 cargo 编译，直接用 build/release 现有文件打包
+// 平台自动识别：darwin -> DMG 打包；win32/其它 -> 原有 NSIS 安装包 + 7z 便携版流程
 const { NSIS, ZIP7 } = require('./buildMain.config.js');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
-const iconv = require('iconv-lite');
-// 主程序
-(() => {
+const { execSync, execFileSync } = require('child_process');
+// iconv-lite 仅 Windows 的 GBK .nsi 版本替换需要，惰性加载（macOS 打包无需安装）
+
+// 平台分发
+if (process.platform === 'darwin') {
+    packMacDmg();
+} else {
+    packWindows();
+}
+
+// =====================================================================
+// Windows：NSIS 安装包 + 7z 便携版（原逻辑，未改动）
+// =====================================================================
+function packWindows() {
     // 是否跳过 cargo 编译（npm run pack）
     const skipCargo = process.argv.includes('--pack')
     // 定义文件路径
@@ -69,7 +82,169 @@ const iconv = require('iconv-lite');
         fs.unlinkSync(archive)
     }
     myExec(`"${ZIP7}" a -t7z -mx=9 "${archive}" .`, '7z', false, releaseDir)
-})();
+}
+
+// =====================================================================
+// macOS：release 目录 -> ShowKeyBoard.app -> DMG
+// =====================================================================
+function packMacDmg() {
+    const skipCargo = process.argv.includes('--pack')
+    const clientDir = path.resolve(__dirname, '../client');
+    const serverDir = path.resolve(__dirname, '../server');
+    const cargoToml = path.join(clientDir, 'Cargo.toml');
+    const releaseDir = path.resolve(__dirname, 'release');
+    const distDir = path.join(releaseDir, 'httpdist', 'dist');
+    const publishDir = path.resolve(__dirname, 'publish');
+    const iconIco = path.resolve(__dirname, '../res/keyboard.ico');
+    const appName = 'ShowKeyBoard';
+
+    console.log(skipCargo ? '打包模式：跳过 cargo 编译' : '编译模式：编译 release 产物后打包')
+    const version = getVersion(cargoToml)
+    if (!version) return
+
+    ensureDir(publishDir)
+
+    // 1.（可选）编译 release 产物并替换到 release 目录
+    if (!skipCargo) {
+        if (!myExec('cargo build --release', 'client release', false, clientDir)) return
+        if (!myExec('cargo build --release', 'server release', false, serverDir)) return
+        if (!copyFile(path.join(clientDir, 'target', 'release', 'showkeyboard_client'),
+            path.join(releaseDir, 'showkeyboard_client'))) return
+        if (!copyFile(path.join(serverDir, 'target', 'release', 'showkeyboard_server'),
+            path.join(distDir, 'showkeyboard_server'))) return
+    }
+
+    if (!fs.existsSync(path.join(releaseDir, 'showkeyboard_client'))) {
+        console.log('入口程序不存在:', path.join(releaseDir, 'showkeyboard_client'));
+        return
+    }
+    if (!fs.existsSync(iconIco)) {
+        console.log('图标不存在:', iconIco);
+        return
+    }
+
+    // 2. 临时目录
+    const tmpRoot = fs.mkdtempSync(path.join(require('os').tmpdir(), 'skb_dmg.'));
+    const stageDir = path.join(tmpRoot, 'stage');
+    const appDir = path.join(stageDir, `${appName}.app`);
+    const macosDir = path.join(appDir, 'Contents', 'MacOS');
+    const resDir = path.join(appDir, 'Contents', 'Resources');
+    fs.mkdirSync(macosDir, { recursive: true });
+    fs.mkdirSync(resDir, { recursive: true });
+
+    try {
+        // 3. 复制 release 全部内容到 bundle 内（客户端以 exe 所在目录为工作目录，
+        //    httpdist/ini 等相对路径照常工作）
+        console.log('复制 release 目录到 app bundle');
+        fs.cpSync(releaseDir, macosDir, { recursive: true });
+        // 运行期文件不带入安装包
+        for (const f of ['kb.pid', 'pidFile']) {
+            fs.rmSync(path.join(macosDir, f), { force: true });
+        }
+        chmodX(path.join(macosDir, 'showkeyboard_client'));
+        const serverBin = path.join(macosDir, 'httpdist', 'dist', 'showkeyboard_server');
+        if (fs.existsSync(serverBin)) chmodX(serverBin);
+
+        // 4. 图标：ico -> png -> iconset(10 档尺寸) -> icns
+        console.log('转换图标:', iconIco);
+        const icns = path.join(resDir, 'AppIcon.icns');
+        if (!convertIcns(iconIco, icns, tmpRoot)) return;
+
+        // 5. Info.plist（LSUIElement：不在 Dock 显示图标，与客户端 Accessory 策略一致）
+        fs.writeFileSync(path.join(appDir, 'Contents', 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>${appName}</string>
+    <key>CFBundleDisplayName</key><string>${appName}</string>
+    <key>CFBundleIdentifier</key><string>com.pattazl.showkeyboard</string>
+    <key>CFBundleVersion</key><string>${version}</string>
+    <key>CFBundleShortVersionString</key><string>${version}</string>
+    <key>CFBundleExecutable</key><string>showkeyboard_client</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>LSMinimumSystemVersion</key><string>11.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>LSUIElement</key><true/>
+</dict>
+</plist>
+`);
+
+        // 6. ad-hoc 签名（本机运行免网闸；不做公证）
+        if (!run('codesign', ['--force', '--deep', '--sign', '-', appDir], null, 'codesign 签名')) {
+            console.log('!!! codesign 失败（可忽略，未签名也可本机运行）');
+        }
+
+        // 7. DMG：stage 目录 + Applications 快捷方式（拖拽安装）
+        fs.symlinkSync('/Applications', path.join(stageDir, 'Applications'));
+        const dmgName = `${appName}_macos_v${version}_${getDateStr()}.dmg`;
+        const dmgPath = path.join(publishDir, dmgName);
+        fs.rmSync(dmgPath, { force: true });
+        if (!run('hdiutil', [
+            'create',
+            '-volname', `${appName} v${version}`,
+            '-srcfolder', stageDir,
+            '-fs', 'HFS+',
+            '-format', 'UDZO',
+            '-ov',
+            dmgPath,
+        ], null, 'hdiutil 打包 DMG')) return;
+
+        const sizeKb = Math.round(fs.statSync(dmgPath).size / 1024);
+        console.log('');
+        console.log('打包完成:');
+        console.log(`  版本: v${version}`);
+        console.log(`  产物: ${dmgPath}`);
+        console.log(`  大小: ${sizeKb >= 1024 ? (sizeKb / 1024).toFixed(1) + 'M' : sizeKb + 'K'}`);
+    } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+    }
+}
+
+// ico -> icns：sips 转 png，再按 macOS 图标规范生成 10 档尺寸，iconutil 合成 icns
+function convertIcns(icoPath, outIcns, tmpDir) {
+    const basePng = path.join(tmpDir, 'icon_base.png');
+    if (!run('sips', ['-s', 'format', 'png', icoPath, '--out', basePng], null, 'sips ico->png')) return false;
+    const iconset = path.join(tmpDir, 'AppIcon.iconset');
+    fs.mkdirSync(iconset, { recursive: true });
+    // [尺寸, 文件名]（@2x 为 Retina 高清档）
+    const sizes = [
+        [16, 'icon_16x16.png'], [32, 'icon_16x16@2x.png'],
+        [32, 'icon_32x32.png'], [64, 'icon_32x32@2x.png'],
+        [128, 'icon_128x128.png'], [256, 'icon_128x128@2x.png'],
+        [256, 'icon_256x256.png'], [512, 'icon_256x256@2x.png'],
+        [512, 'icon_512x512.png'], [1024, 'icon_512x512@2x.png'],
+    ];
+    for (const [size, name] of sizes) {
+        if (!run('sips', ['-z', String(size), String(size), basePng, '--out', path.join(iconset, name)], null, `sips ${size}px`)) {
+            return false;
+        }
+    }
+    return run('iconutil', ['-c', 'icns', iconset, '-o', outIcns], null, 'iconutil icns');
+}
+
+// 可执行权限
+function chmodX(file) {
+    try {
+        fs.chmodSync(file, 0o755);
+    } catch (e) {
+        console.log('chmod 失败:', file, e.message);
+    }
+}
+
+// 同步执行外部命令（参数数组形式，避免引号转义问题）
+function run(cmd, args, cwd, info) {
+    try {
+        execFileSync(cmd, args, { cwd: cwd || undefined, stdio: ['ignore', 'pipe', 'pipe'] });
+        if (info) console.log(`${info} 成功`);
+        return true;
+    } catch (e) {
+        console.error(`${info || cmd} 失败: ${e.message}`);
+        if (e.stderr) console.error(e.stderr.toString());
+        return false;
+    }
+}
 
 // 编译调用
 function myExec(command, info, detail, cwd) {
@@ -141,6 +316,7 @@ function getVersion(tomlFile) {
 function replaceVer(filePath, isGbk, ver, RegExps) {
     let res = true
     try {
+        const iconv = isGbk ? require('iconv-lite') : null
         // 以二进制模式同步读取文件
         res = filePath.every(file => {
             if (!fs.existsSync(file)) {
@@ -167,7 +343,7 @@ function replaceVer(filePath, isGbk, ver, RegExps) {
             // 写入原文件
             if (isGbk) {
                 const encodedData = iconv.encode(newContent, 'gbk');
-                // 将二进制数据写入文件
+                // 二进制写入原文件
                 fs.writeFileSync(file, encodedData);
             } else {
                 fs.writeFileSync(file, newContent);
@@ -178,4 +354,5 @@ function replaceVer(filePath, isGbk, ver, RegExps) {
         console.error('读取或写入文件时版本时出错:', err);
     }
     return res;
+
 }

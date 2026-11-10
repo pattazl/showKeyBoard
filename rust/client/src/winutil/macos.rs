@@ -297,6 +297,61 @@ pub fn secs_until_next_restart() -> u64 {
     }
 }
 
+/// 启动即把应用切换为 Accessory（NSApplicationActivationPolicyAccessory）：
+/// 不在 Dock/任务栏显示程序图标（对应 Windows GUI 子系统无任务栏按钮的行为）。
+/// 必须在创建任何窗口前调用；NSStatusItem 托盘图标不受激活策略影响。
+/// 说明：提前调用 sharedApplication 创建的 NSApplication 会被后续 winit 复用，
+/// 这是菜单栏应用的标准做法。
+pub fn set_dock_hidden() {
+    use std::os::raw::c_void;
+
+    // objc_msgSend 是 variadic 转发函数（C: id objc_msgSend(id, SEL, ...)），
+    // 按调用点的实际参数类型分别声明签名是标准做法（等价 objc crate 的 msg_send!），
+    // 因此这里有意重复声明同一符号，豁免 clashing_extern_declarations 检查
+    #[allow(clashing_extern_declarations)]
+    extern "C" {
+        fn objc_getClass(name: *const std::os::raw::c_char) -> *mut c_void;
+        fn sel_registerName(name: *const std::os::raw::c_char) -> *const c_void;
+        #[link_name = "objc_msgSend"]
+        fn msg_send_shared(cls: *mut c_void, sel: *const c_void) -> *mut c_void;
+        #[link_name = "objc_msgSend"]
+        fn msg_send_set_policy(app: *mut c_void, sel: *const c_void, policy: i64);
+    }
+
+    unsafe {
+        let cls = objc_getClass(b"NSApplication\0".as_ptr().cast());
+        if cls.is_null() {
+            return;
+        }
+        let app = msg_send_shared(cls, sel_registerName(b"sharedApplication\0".as_ptr().cast()));
+        if app.is_null() {
+            return;
+        }
+        // NSApplicationActivationPolicyRegular = 0, Accessory = 1, Prohibited = 2
+        msg_send_set_policy(
+            app,
+            sel_registerName(b"setActivationPolicy:\0".as_ptr().cast()),
+            1,
+        );
+    }
+}
+
+/// 关闭标准输出/错误（重定向到 /dev/null）：GUI 应用无控制台，
+/// 与 Windows 的 windows_subsystem="windows" 对齐。
+/// showHttpDebug 开启时调用方不应调用本函数，保留输出便于排查。
+pub fn silence_stdio() {
+    unsafe {
+        let fd = libc::open(b"/dev/null\0".as_ptr().cast(), libc::O_RDWR);
+        if fd >= 0 {
+            libc::dup2(fd, 1);
+            libc::dup2(fd, 2);
+            if fd > 2 {
+                libc::close(fd);
+            }
+        }
+    }
+}
+
 pub fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

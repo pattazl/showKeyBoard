@@ -1032,6 +1032,12 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
         Duration::from_millis(20),
         move || {
             tick_count += 1;
+            // macOS：winit 在事件循环启动时会把激活策略重置为 Regular（Dock 出现图标），
+            // 前 3 秒内持续纠正为 Accessory（20ms/次，代价可忽略）
+            #[cfg(target_os = "macos")]
+            if tick_count <= 150 {
+                crate::winutil::set_dock_hidden();
+            }
             let shared_ref = shared.clone();
             if shared_ref.exit.load(Ordering::Relaxed) {
                 slint::quit_event_loop().ok();
