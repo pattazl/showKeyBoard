@@ -258,7 +258,15 @@ impl Config {
             .unwrap_or_else(|| PathBuf::from("."));
         // 与 AHK 一致：以工作目录为基准；启动器已保证工作目录 = exe 目录
         let work = std::env::current_dir().unwrap_or(exe_dir);
-        let ini_path = work.join("showKeyBoard.ini");
+        let dir = data_dir();
+        // 用户配置位于用户数据目录（与服务端一致）；首次运行迁移安装目录中的旧配置
+        let ini_path = dir.join("showKeyBoard.ini");
+        if !ini_path.exists() {
+            let legacy = work.join("showKeyBoard.ini");
+            if legacy.exists() {
+                let _ = std::fs::copy(&legacy, &ini_path);
+            }
+        }
         let user_ini = Ini::load(&ini_path);
 
         let http_dist_path = Self::desc_read(&user_ini, &None, "common", "httpDistPath", "\\httpdist\\dist\\");
@@ -345,7 +353,7 @@ impl Config {
             ini_path,
             desc_path: None, // desc 已解析为 Ini，外部无需保存
             http_path,
-            data_dir: data_dir(),
+            data_dir: dir,
             need_record_key,
             joy_method,
             need_traytip: Self::desc_read_bool(&user_ini, desc, "common", "needTraytip", true),

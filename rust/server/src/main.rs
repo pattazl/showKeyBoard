@@ -78,8 +78,17 @@ async fn main() {
 
     // desc.ini is always relative to the exe directory (bundled with binary)
     let desc_path = exe_dir.join("showKeyBoard.desc.ini");
-    // User config: smart path search (exe_dir → cwd → exe_dir/../..)
-    let user_ini_path = config::find_config_file(&exe_dir, &cwd, "showKeyBoard.ini");
+    // 用户配置 showKeyBoard.ini 位于用户数据目录；首次运行时从安装目录迁移旧配置
+    let user_ini_path = data_dir.join("showKeyBoard.ini");
+    if !user_ini_path.exists() {
+        let legacy = config::find_config_file(&exe_dir, &cwd, "showKeyBoard.ini");
+        if legacy.exists() && legacy != user_ini_path {
+            match std::fs::copy(&legacy, &user_ini_path) {
+                Ok(_) => println!("Migrated config {:?} -> {:?}", legacy, user_ini_path),
+                Err(e) => println!("Warning: failed to migrate config: {}", e),
+            }
+        }
+    }
 
     println!("Desc config: {:?}", desc_path);
     println!("User config: {:?}", user_ini_path);
@@ -181,8 +190,15 @@ async fn main() {
     }
     
     // Read keyList.txt path (same directory as user ini)
-    let key_list_path = config::find_config_file(&exe_dir, &cwd, "keyList.txt")
-        .to_string_lossy().to_string();
+    // keyList.txt 位于用户数据目录；首次运行时从安装目录迁移旧文件
+    let key_list_path = data_dir.join("keyList.txt");
+    if !key_list_path.exists() {
+        let legacy = config::find_config_file(&exe_dir, &cwd, "keyList.txt");
+        if legacy.exists() && legacy != key_list_path {
+            let _ = std::fs::copy(&legacy, &key_list_path);
+        }
+    }
+    let key_list_path = key_list_path.to_string_lossy().to_string();
     
     // Get local network IPs (uses final port after retry)
     let network_ip: Vec<String> = match local_ip_address::list_afinet_netifas() {
