@@ -110,6 +110,16 @@ LangString Prepare ${LANG_ENGLISH} "Prepare"
 Section $(Prepare) Prepare
   SectionIn RO
 
+  ; 停止残留的服务端进程，否则无法覆盖 showkeyboard_server.exe
+  nsProcess::_FindProcess "showkeyboard_server.exe"
+  Pop $R0
+  ${If} $R0 == 0
+    DetailPrint "Stopping showkeyboard_server.exe ..."
+    nsProcess::_KillProcess "showkeyboard_server.exe"
+    Pop $R0
+    Sleep 500
+  ${EndIf}
+
   ; 旧版本配置位于安装目录，迁移到用户数据目录（目标已存在则跳过）
   CreateDirectory "$PROFILE\Documents\ShowKeyBoard"
   IfFileExists "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini" migIniDone
@@ -148,6 +158,7 @@ Section $(mainSect) mainSect
   SetOverwrite off
     File "release\showKeyBoard.ini"
     File "release\KeyList.txt"
+  SetOverwrite on
   SetOutPath "$INSTDIR\httpdist\dist"
     File "release\httpdist\dist\showkeyboard_server.exe"
     File "release\httpdist\dist\showKeyBoard.desc.ini"
@@ -284,6 +295,16 @@ Function un.Detect
   Quit  ; Quit Abort
   no_run:
 FunctionEnd
+Function un.KillServer
+  nsProcess::_FindProcess "showkeyboard_server.exe"
+  Pop $R0
+  ${If} $R0 == 0
+    nsProcess::_KillProcess "showkeyboard_server.exe"
+    Pop $R0
+    Sleep 500
+  ${EndIf}
+FunctionEnd
+
 #-- 根据 NSIS 脚本编辑规则，所有 Function 区段必须放置在 Section 区段之后编写，以避免安装程序出现未可预知的问题。--#
 Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
@@ -306,6 +327,7 @@ Function un.onInit
     StrCpy $UNINSTALL_CONFIRM "Are you sure uninstall !"
   ${EndIf}
   ;!insertmacro MUI_UNGETLANGUAGE
+  Call un.KillServer
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "$UNINSTALL_CONFIRM $(^Name) ？" IDYES +2
   Abort
 FunctionEnd
