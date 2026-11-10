@@ -269,6 +269,19 @@ impl Config {
         }
         let user_ini = Ini::load(&ini_path);
 
+        // KeyList.txt 同样位于用户数据目录；首次运行从安装目录迁移旧文件
+        // （macOS 区分大小写，统一使用 KeyList.txt）
+        let key_list_path = dir.join("KeyList.txt");
+        if !key_list_path.exists() {
+            for name in ["KeyList.txt", "keyList.txt"] {
+                let legacy = work.join(name);
+                if legacy.exists() {
+                    let _ = std::fs::copy(&legacy, &key_list_path);
+                    break;
+                }
+            }
+        }
+
         let http_dist_path = Self::desc_read(&user_ini, &None, "common", "httpDistPath", "\\httpdist\\dist\\");
         let mut http_path = resolve_http_path(&work, &http_dist_path, true);
         if !http_path.exists() {
@@ -442,8 +455,18 @@ pub struct KeyMapping {
 }
 
 impl KeyMapping {
-    pub fn load(work_dir: &Path) -> KeyMapping {
-        let file = work_dir.join("KeyList.txt");
+    /// 优先从用户数据目录读取 KeyList.txt，未找到时回退到当前工作目录（安装目录）
+    pub fn load(dir: &Path) -> KeyMapping {
+        let file = {
+            let p = dir.join("KeyList.txt");
+            if p.exists() {
+                p
+            } else {
+                std::env::current_dir()
+                    .unwrap_or_else(|_| PathBuf::from("."))
+                    .join("KeyList.txt")
+            }
+        };
         let mut map = Vec::new();
         if let Ok(bytes) = std::fs::read(&file) {
             let text = String::from_utf8_lossy(&bytes);

@@ -112,9 +112,7 @@ pub struct UiManager {
 
 impl UiManager {
     fn new(shared: Arc<Shared>, rx: Receiver<String>) -> UiManager {
-        let keymap = KeyMapping::load(
-            &std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
-        );
+        let keymap = KeyMapping::load(&shared.cfg.read().unwrap().data_dir);
         UiManager {
             shared,
             rx,

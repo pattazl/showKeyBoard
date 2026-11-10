@@ -948,10 +948,12 @@ pub async fn zip_upload(
     clear_uploads(&uploads_dir);
 
     // Node.js configHash: entry name -> target file path
+    // keyList.txt 在 macOS（区分大小写）下实际文件名为 KeyList.txt，两种写法都接受
     let code = if !saved_path.is_empty() {
         let mapping = std::collections::HashMap::from([
             ("showKeyBoard.ini".to_string(), user_ini_path),
-            ("keyList.txt".to_string(), key_list_path),
+            ("keyList.txt".to_string(), key_list_path.clone()),
+            ("KeyList.txt".to_string(), key_list_path),
             ("records.db".to_string(), db_path),
         ]);
         match unzip_apply(&saved_path, &mapping, &mut msg) {

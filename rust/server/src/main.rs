@@ -72,7 +72,11 @@ async fn main() {
     }
     println!("Data dir: {:?}", data_dir);
     // 旧版本数据（安装目录下的 dbs/backup/share）首次运行时自动迁移
-    migrate_legacy_dirs(&base_dir, &data_dir);
+    // macOS：release 内容被复制到 .app/Contents/MacOS，旧数据可能在该目录（exe_dir）；
+    // Windows：旧数据可能在安装根目录（base_dir）或服务目录（exe_dir）
+    for legacy_root in [&base_dir, &exe_dir] {
+        migrate_legacy_dirs(legacy_root, &data_dir);
+    }
     // uploads 旧位置在服务进程工作目录（安装目录 httpdist/dist）
     migrate_dir_if_absent(&exe_dir.join("uploads"), &data_dir.join("uploads"));
 
@@ -99,7 +103,25 @@ async fn main() {
     // Database: prefer user data dir → cwd → parent2 → exe_dir (avoid empty db in target/debug/)
     // 外部数据库目录 dbs/ 现在位于用户数据目录下
     let db_filename = config.db_path.trim_start_matches("./");
-    let db_path = {
+    // macOS：数据库固定在用户目录 dbs/（安装包内自带的初始库仅作迁移源）
+    // Windows：保持原有查找顺序（安装包内 records.db 可继续使用）
+    let db_path = if cfg!(target_os = "macos") {
+        let dbs_dir = data_dir.join("dbs");
+        let _ = std::fs::create_dir_all(&dbs_dir);
+        let target = dbs_dir.join(db_filename);
+        if !target.exists() {
+            for legacy in [exe_dir.join(db_filename), cwd.join(db_filename)] {
+                if legacy.exists() && legacy != target {
+                    match std::fs::copy(&legacy, &target) {
+                        Ok(_) => println!("Migrated db {:?} -> {:?}", legacy, target),
+                        Err(e) => println!("Warning: failed to migrate db: {}", e),
+                    }
+                    break;
+                }
+            }
+        }
+        target.to_string_lossy().to_string()
+    } else {
         let candidates: Vec<std::path::PathBuf> = vec![
             data_dir.join("dbs").join(db_filename),
             cwd.join(db_filename),
@@ -189,16 +211,29 @@ async fn main() {
         }
     }
     
-    // Read keyList.txt path (same directory as user ini)
-    // keyList.txt 位于用户数据目录；首次运行时从安装目录迁移旧文件
-    let key_list_path = data_dir.join("keyList.txt");
+    // Read KeyList.txt path (same directory as user ini)
+    // KeyList.txt 位于用户数据目录；首次运行时从安装目录迁移旧文件
+    // 注意：macOS 文件系统区分大小写，文件名统一用 KeyList.txt（安装包内同名）
+    let key_list_path = data_dir.join("KeyList.txt");
     if !key_list_path.exists() {
-        let legacy = config::find_config_file(&exe_dir, &cwd, "keyList.txt");
-        if legacy.exists() && legacy != key_list_path {
-            let _ = std::fs::copy(&legacy, &key_list_path);
+        for name in ["KeyList.txt", "keyList.txt"] {
+            let legacy = config::find_config_file(&exe_dir, &cwd, name);
+            if legacy.exists() && legacy != key_list_path {
+                if std::fs::copy(&legacy, &key_list_path).is_ok() {
+                    println!("Migrated {:?} -> {:?}", legacy, key_list_path);
+                    break;
+                }
+            }
         }
     }
     let key_list_path = key_list_path.to_string_lossy().to_string();
+
+    // 写入服务 PID（kbserver.pid）：客户端退出时据此写 lastRecord.json，
+    // 下次启动也会按该文件清理残留服务进程
+    let pid_file = data_dir.join("kbserver.pid");
+    if let Err(e) = std::fs::write(&pid_file, std::process::id().to_string()) {
+        println!("Warning: failed to write {:?}: {}", pid_file, e);
+    }
     
     // Get local network IPs (uses final port after retry)
     let network_ip: Vec<String> = match local_ip_address::list_afinet_netifas() {
@@ -291,6 +326,9 @@ async fn main() {
         .with_graceful_shutdown(async move { shutdown_notify.notified().await })
         .await
         .expect("Server error");
+
+    // 正常退出时清理 pid 文件（异常退出由客户端按 pid 存活检测清理）
+    let _ = std::fs::remove_file(&pid_file);
 }
 
 /// 用户数据根目录：`%USERPROFILE%\Documents\ShowKeyBoard`

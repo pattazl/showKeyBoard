@@ -143,9 +143,13 @@ function packMacDmg() {
         //    httpdist/ini 等相对路径照常工作）
         console.log('复制 release 目录到 app bundle');
         fs.cpSync(releaseDir, macosDir, { recursive: true });
-        // 运行期文件不带入安装包
-        for (const f of ['kb.pid', 'pidFile']) {
+        // 运行期/用户数据文件不带入安装包：首次运行由客户端/服务端迁移到
+        // ~/Documents/ShowKeyBoard（showKeyBoard.ini / KeyList.txt 保留在包内作为初始模板）
+        for (const f of ['kb.pid', 'kbserver.pid', 'lastRecord.json', 'updateTime.txt']) {
             fs.rmSync(path.join(macosDir, f), { force: true });
+        }
+        for (const d of ['dbs', 'backup', 'share', 'uploads', 'httpdist/dist/dbs', 'httpdist/dist/uploads']) {
+            fs.rmSync(path.join(macosDir, d), { recursive: true, force: true });
         }
         chmodX(path.join(macosDir, 'showkeyboard_client'));
         const serverBin = path.join(macosDir, 'httpdist', 'dist', 'showkeyboard_server');
