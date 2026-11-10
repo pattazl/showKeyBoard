@@ -27,25 +27,48 @@
 
 ## 使用方法
 
-第一次安装或没有 node10 以上环境，安装
+第一次安装，安装
 
 `ShowKeyBoard_Setup_版本_日期.exe`
 
 直接解压可用如下版本，但是此版本升级时需要手工备份还原数据
 
-`ShowKeyBoard_portable_版本_日期.exe`
-
-如果有 node10 及以上环境或已经安装过一次，安装
-
-`ShowKeyBoard_Setup_版本_日期(node).exe` 或 `ShowKeyBoard_Setup_版本_日期.node.exe` 
+`ShowKeyBoard_portable_版本_日期.7z`
 
 安装时根据提示进行选择，如是否保留配置，是否创建快捷方式等，一般使用默认配置即可
 
 **注意**：
+
 1. 由于使用了系统钩子，可能部分电脑上会误报病毒，需要信任。
 2. 部分系统上可能需要使用管理员方式运行，否则不能监听到按键
-3. 有些公司可能安装了加密软件，将对配置文件进行加密，将导致参数全部失效，此时可以修改安装目录下的 `./httpdist/dist/node.exe` 重命名为  `./httpdist/dist/chrome.exe`(策略允许) ,修改安装目录的 showKeyBoard.ini 文件，增加参数` serverExecName=./httpdist/dist/chrome.exe`
 4. 如果系统时间不正确，比如某一天的时间变成了N年后，可能导致之后的应用时长数据丢失，请运行安装目录的 fixStat修复统计数据.bat
+
+### NodeJs版本
+
+> 此版本以 1.xx开头，在 1.61版本后以Rust版本为主
+
+1. 如果有 node10 及以上环境或已经安装过一次，安装 `ShowKeyBoard_Setup_版本_日期(node).exe` 或 `ShowKeyBoard_Setup_版本_日期.node.exe` 
+
+2. 有些公司可能安装了加密软件，将对配置文件进行加密，将导致参数全部失效，此时可以修改安装目录下的 `./httpdist/dist/node.exe` 重命名为  `./httpdist/dist/chrome.exe`(策略允许) ,修改安装目录的 showKeyBoard.ini 文件，增加参数` serverExecName=./httpdist/dist/chrome.exe`
+
+### Rust版本
+
+> 此版本以 2.xx开头
+
+#### Windows系统
+
+直接运行showkeyboard_client.exe 会自动调用 服务端为 showkeyboard_server.exe
+
+#### MacOS系统
+
+1. 直接拖动安装
+2. 系统设置里面放行
+   1. 弹出提示点「完成」
+   2. 打开：系统设置 → 隐私与安全性，往下滚动
+   3. 在 “安全性” 区块，会出现一行：**已阻止使用 ShowKeyBoard，因为来自身份不明的开发者**
+   4. 点右边的「仍要打开」，输入开机密码确认
+3. 由于程序需要读取鼠标和键盘事件，需要在 系统设置 -> 隐私与安全 -> 辅助功能 -> 勾选 ShowKeyBoard.app
+4. 如果升级，那么需要先在  系统设置 -> 隐私与安全 -> 辅助功能 -> 删掉 ShowKeyBoard.app，然后重启程序后再允许
 
 ### 同步说明
 

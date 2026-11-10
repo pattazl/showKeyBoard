@@ -685,7 +685,7 @@ function getDiffHash(hash/*out */, hash1, hash2, named, contentText) {
   let newArr = []
   if (typeof hash1 == 'string') {
     if (hash1 != hash2) {
-      hash[named] = { 'old': hash1, 'new': hash2 }
+      hash[named] = { 'old': hash2, 'new': hash1 }
     }
   } else {
     for (let k in hash1) {

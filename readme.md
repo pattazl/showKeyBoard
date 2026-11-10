@@ -28,17 +28,13 @@
 
 ## How to use
 
-Install for the first time, or do not have node10 or above environment, install
+Install for the first time, install
 
 `ShowKeyBoard_Setup_(version)_(date).exe`
 
 Unzip version as below,  please note that manual backup and restore of data is required when update
 
-`ShowKeyBoard_portable_(version)_(date).exe`
-
-If you have node10 or above environment, or have installed it once, install
-
-`ShowKeyBoard_Setup_(version)_(date)(node).exe` or `ShowKeyBoard_Setup_(version)_(date).node.exe`
+`ShowKeyBoard_portable_(version)_(date).7z
 
 Follow the prompts to select during installation, such as whether to keep the configuration, whether to create a shortcut, etc. The default configuration can be used in general
 
@@ -46,10 +42,35 @@ Follow the prompts to select during installation, such as whether to keep the co
 
 1. Due to the use of system hooks, some computers may report viruses by mistake and need to be trusted.
 2. On some systems, you may need to run in administrator mode, otherwise showKeyBoard will not be able to listen to the keys
-3. Some companies may have installed encryption software, which will encrypt the configuration files, causing all parameters to become invalid. In this case, you can rename `./httpdist/dist/node.exe` in the installation directory to `./httpdist/dist/chrome.exe`, and modify the `showKeyBoard.ini` file in the installation directory by adding the parameter `serverExecName=./httpdist/dist/chrome.exe`.
 4. If the system time is incorrect, for example, the time of a certain day changes to N years later, it may lead to the loss of application usage duration data. Please run the `fixStat修复统计数据.bat` file in the installation directory. 
 
+### NodeJs version
+>This version starts with 1.xx, and after 1.61, it is dominated by Rust
+
+1. If you have node10 or above environment, or have installed it once, install
+
+   `ShowKeyBoard_Setup_(version)_(date)(node).exe` or `ShowKeyBoard_Setup_(version)_(date).node.exe`
+
+2. Some companies may have installed encryption software, which will encrypt the configuration files, causing all parameters to become invalid. In this case, you can rename `./httpdist/dist/node.exe` in the installation directory to `./httpdist/dist/chrome.exe`, and modify the `showKeyBoard.ini` file in the installation directory by adding the parameter `serverExecName=./httpdist/dist/chrome.exe`.
+
+### Rust version
+
+>This version starts with 2.xx
+#### Windows system
+Running showkeyboard_client.exe directly will automatically call the server showkeyboard_server.exe
+
+#### MacOS system
+1. Direct drag installation
+2. Release in system settings
+1. The prompt "Finish" pops up
+2. Open: System Settings → Privacy and Security, scroll down
+3. In the "Security" block, a line will appear: * * ShowKeyBoard has been blocked because it is from an unidentified developer**
+4. Click "Still Open" on the right and enter the power on password to confirm
+3. Since the program needs to read mouse and keyboard events, it needs to check ShowKeyBoard.app in System Settings ->Privacy and Security ->Auxiliary Functions ->
+4. If you want to upgrade, you need to first delete ShowKeyBoard.app in System Settings ->Privacy and Security ->Auxiliary Functions ->Restart the program and then allow
+
 ### Synchronization
+
 Here is an example of FreeFileSync synchronization FTP
 
 1. First set the directory where shared files are saved. The default directory is share in the installation directory
