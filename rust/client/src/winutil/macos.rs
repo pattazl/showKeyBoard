@@ -352,6 +352,52 @@ pub fn silence_stdio() {
     }
 }
 
+/// showHttpDebug=true 时调用：确保调试输出可见。
+/// - 从终端启动（stdout 是 tty）：直接输出到当前终端，无需额外窗口
+/// - 从 Finder/Launchpad/DMG 启动（无控制台）：stdout/stderr 重定向到数据目录
+///   debug.log，再用 Terminal 打开 tail -f 实时查看（子进程服务日志也会写入该文件）
+pub fn show_debug_console(log_path: &std::path::Path) {
+    if unsafe { libc::isatty(1) } == 1 {
+        println!("==== ShowKeyBoard debug: {}", now_string(false));
+        return;
+    }
+    if let Some(dir) = log_path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let Ok(cpath) = std::ffi::CString::new(log_path.to_string_lossy().as_bytes()) else {
+        return;
+    };
+    unsafe {
+        let fd = libc::open(
+            cpath.as_ptr(),
+            libc::O_WRONLY | libc::O_CREAT | libc::O_APPEND,
+            0o644 as libc::c_uint,
+        );
+        if fd >= 0 {
+            libc::dup2(fd, 1);
+            libc::dup2(fd, 2);
+            if fd > 2 {
+                libc::close(fd);
+            }
+        }
+    }
+    println!("==== ShowKeyBoard debug: {} ====", now_string(false));
+
+    // 生成一次性 .command 脚本，让 Terminal 执行 tail -f 显示日志（避免 osascript 自动化授权）
+    let script = std::env::temp_dir().join("showkeyboard_debug.command");
+    let log = log_path.to_string_lossy().replace('\'', "'\\''");
+    let content = format!("#!/bin/bash\nexec tail -n 200 -F '{}'\n", log);
+    if std::fs::write(&script, content).is_ok() {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755));
+        let _ = std::process::Command::new("open")
+            .arg("-a")
+            .arg("Terminal")
+            .arg(&script)
+            .spawn();
+    }
+}
+
 pub fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

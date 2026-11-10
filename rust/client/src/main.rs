@@ -77,9 +77,11 @@ fn main() {
 
     let cfg = config::Config::load();
     // macOS：默认无控制台输出（GUI 应用，与 Windows 子系统对齐）；
-    // showHttpDebug 开启时保留输出便于排查
+    // showHttpDebug 开启时把输出写入数据目录 debug.log 并打开 Terminal 实时查看
     #[cfg(target_os = "macos")]
-    if !cfg.show_http_debug {
+    if cfg.show_http_debug {
+        winutil::show_debug_console(&cfg.data_dir.join("debug.log"));
+    } else {
         winutil::silence_stdio();
     }
     let (tx, rx) = crossbeam_channel::unbounded::<String>();

@@ -25,10 +25,12 @@ fn debug_out(_msg: &str) {
     //unsafe { OutputDebugStringW(wide.as_ptr()) }
 }
 
-/// macOS 没有 DebugView，退化输出到 stderr（从 LaunchAgents 启动时会进系统日志）
+/// macOS 没有 DebugView：输出到 stderr（showHttpDebug 开启时已重定向到
+/// ~/Documents/ShowKeyBoard/debug.log 并由 Terminal tail -f 展示；
+/// 关闭时 stderr 已被 silence_stdio 丢弃）
 #[cfg(target_os = "macos")]
-fn debug_out(_msg: &str) {
-    // eprintln!("AHK-{}", msg);
+fn debug_out(msg: &str) {
+    eprintln!("AHK-{}", msg);
 }
 
 /// 界面状态提示前缀：`\u{1}` 常驻（连接中/异常），`\u{2}` 短暂显示后自动渐隐。
