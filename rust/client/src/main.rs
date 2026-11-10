@@ -34,6 +34,12 @@ fn main() {
         let _ = std::env::set_current_dir(dir);
     }
 
+    // macOS：切为 Accessory（菜单栏应用），Dock/任务栏不显示程序图标，
+    // 与 Windows 侧 windows_subsystem="windows"（GUI 子系统，无任务栏按钮）对齐；
+    // NSStatusItem 托盘与全局 CGEventTap 不受影响
+    #[cfg(target_os = "macos")]
+    winutil::set_dock_hidden();
+
     // 单实例（#SingleInstance Ignore）
     if config::SingleInstance::acquire("ShowKeyBoardRustSingleInstance").is_none() {
         // 已有实例运行，直接退出
@@ -67,6 +73,12 @@ fn main() {
     }
 
     let cfg = config::Config::load();
+    // macOS：默认无控制台输出（GUI 应用，与 Windows 子系统对齐）；
+    // showHttpDebug 开启时保留输出便于排查
+    #[cfg(target_os = "macos")]
+    if !cfg.show_http_debug {
+        winutil::silence_stdio();
+    }
     let (tx, rx) = crossbeam_channel::unbounded::<String>();
     // 实时按键文本管道（UI -> WebSocket 线程，有界：业务高峰时丢弃而不是拖慢 UI）
     let (ws_tx, ws_rx) = crossbeam_channel::bounded::<String>(256);

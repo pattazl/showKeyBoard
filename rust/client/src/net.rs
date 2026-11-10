@@ -27,8 +27,8 @@ fn debug_out(_msg: &str) {
 
 /// macOS 没有 DebugView，退化输出到 stderr（从 LaunchAgents 启动时会进系统日志）
 #[cfg(target_os = "macos")]
-fn debug_out(msg: &str) {
-    eprintln!("AHK-{}", msg);
+fn debug_out(_msg: &str) {
+    // eprintln!("AHK-{}", msg);
 }
 
 /// 界面状态提示前缀：`\u{1}` 常驻（连接中/异常），`\u{2}` 短暂显示后自动渐隐。
@@ -392,6 +392,15 @@ fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
     cmd.current_dir(&http_path);
     #[cfg(windows)]
     cmd.creation_flags(if _debug { 0 } else { 0x08000000 });
+    // macOS：未开调试开关时后台服务不继承控制台输出（等价"无控制台窗口"）；
+    // 开启时继承，日志与客户端共用启动它的终端
+    #[cfg(target_os = "macos")]
+    if !_debug {
+        use std::process::Stdio;
+        cmd.stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+    }
     match cmd.spawn() {
         Ok(_) => {
             // 假设启动失败，等 /version 检测成功后才置 1（对应 AHK startServer 中 serverState := 0）

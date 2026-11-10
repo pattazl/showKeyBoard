@@ -245,6 +245,23 @@ const WHEEL_MIN_DELTA: i64 = 10;
 /// 惯性阶段事件直接丢弃。
 const WHEEL_THROTTLE: Duration = Duration::from_millis(250);
 
+/// 真鼠标滚轮节流窗口：一格一条消息优先跟手，120ms 内同方向合并，
+/// 防止高速拨动时刷屏（约 8 次/秒）
+const WHEEL_NOTCH_THROTTLE: Duration = Duration::from_millis(120);
+
+/// 真鼠标滚轮显示入口：每格立即显示（不设死区——单格增量本身很小，
+/// 走累计会导致"滚了却没有消息"）；仅同方向 120ms 内合并
+fn wheel_notch(shared: &Arc<Shared>, name: &str, last: &mut Option<(String, Instant)>) {
+    let now = Instant::now();
+    if let Some((last_name, t)) = last {
+        if last_name == name && now.duration_since(*t) < WHEEL_NOTCH_THROTTLE {
+            return;
+        }
+    }
+    *last = Some((name.to_string(), now));
+    handle_mouse(shared, name);
+}
+
 /// 滚动累计到点后的显示判定：按累计增量的主导方向显示一条消息。
 /// 触控板 60~120Hz 连发小步长事件，且斜划/抖动时 dx 与 dy 同时有值、
 /// 符号在正负间摆动（否则会出现大量 WheelUp/WheelLeft 混刷），
@@ -322,9 +339,11 @@ fn check_hotkey(shared: &Arc<Shared>, vk: u32) -> bool {
 
 /// 消费线程：按键命名、过滤、显示与统计都在这里完成
 fn consume_events(shared: Arc<Shared>, rx: Receiver<Ev>) {
-    // 滚轮节流状态：自上次显示以来累计的 (dx, dy) 与上次显示时间
+    // 滚轮节流状态：自上次显示以来累计的 (dx, dy) 与上次显示时间（触控板）
     let mut wheel_acc: (i64, i64) = (0, 0);
     let mut last_wheel: Option<Instant> = None;
+    // 真鼠标滚轮：最近一次显示的方向与时间（一格一条消息）
+    let mut last_notch: Option<(String, Instant)> = None;
     loop {
         if shared.exit.load(Ordering::Relaxed) {
             break;
@@ -353,9 +372,9 @@ fn consume_events(shared: Arc<Shared>, rx: Receiver<Ev>) {
                     // 触控板惯性滚动：松手后系统仍以 60~120Hz 灌入约 1 秒小事件，
                     // 完全丢弃（松手前最后一次主动滚动已显示过），并清空累计值
                     wheel_acc = (0, 0);
-                } else {
-                    // 触摸阶段与来源不明事件：累计增量，节流窗口到点且累计量
-                    // 超过死区时，按主导方向只显示一条消息
+                } else if kind == 1 {
+                    // 触控板触摸阶段：累计增量，节流窗口到点且累计量
+                    // 超过死区时，按主导方向只显示一条消息（防正负抖动刷屏）
                     wheel_acc.0 += dx;
                     wheel_acc.1 += dy;
                     let due = last_wheel
@@ -363,6 +382,19 @@ fn consume_events(shared: Arc<Shared>, rx: Receiver<Ev>) {
                     if due && wheel_flush(&shared, wheel_acc) {
                         wheel_acc = (0, 0);
                         last_wheel = Some(Instant::now());
+                    }
+                } else {
+                    // 真鼠标滚轮（及不报 phase 的来源）：一格一条消息立即显示，
+                    // 不走死区累计——单格增量小，累计会导致"滚了却无消息"
+                    if dy > 0 {
+                        wheel_notch(&shared, "WheelUp", &mut last_notch);
+                    } else if dy < 0 {
+                        wheel_notch(&shared, "WheelDown", &mut last_notch);
+                    }
+                    if dx > 0 {
+                        wheel_notch(&shared, "WheelRight", &mut last_notch);
+                    } else if dx < 0 {
+                        wheel_notch(&shared, "WheelLeft", &mut last_notch);
                     }
                 }
             }
