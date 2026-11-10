@@ -65,20 +65,38 @@ fn get_fonts_windows() -> Vec<String> {
         }
     "#;
     
-    match std::process::Command::new("powershell")
-        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
-        .output()
+    // PowerShell 字体枚举是内部实现，任何情况下都不能弹窗：
+    // 不带 CREATE_NO_WINDOW 时会在桌面上闪出控制台窗口（与 showHttpDebug 无关，
+    // showHttpDebug 只控制 showkeyboard_server 自身窗口由客户端 spawn 时决定）
+    #[cfg(windows)]
     {
-        Ok(output) if output.status.success() => {
-            String::from_utf8_lossy(&output.stdout)
-                .lines()
-                .map(|l| l.trim().to_string())
-                .filter(|l| !l.is_empty())
-                .collect()
-        }
-        _ => {
-            // Last resort: list .ttf/.otf files in C:\Windows\Fonts
-            if let Ok(entries) = std::fs::read_dir("C:\\Windows\\Fonts") {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        return match std::process::Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            Ok(output) if output.status.success() => {
+                String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .map(|l| l.trim().to_string())
+                    .filter(|l| !l.is_empty())
+                    .collect()
+            }
+            _ => get_fonts_windows_fallback(),
+        };
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = script;
+        get_fonts_windows_fallback()
+    }
+}
+
+/// Windows 兜底：直接列 C:\Windows\Fonts 字体文件
+fn get_fonts_windows_fallback() -> Vec<String> {
+    if let Ok(entries) = std::fs::read_dir("C:\\Windows\\Fonts") {
                 let mut fonts = Vec::new();
                 for entry in entries.flatten() {
                     let name = entry.file_name().to_string_lossy().to_string();
@@ -95,8 +113,6 @@ fn get_fonts_windows() -> Vec<String> {
                 return fonts;
             }
             Vec::new()
-        }
-    }
 }
 
 /// macOS: 优先使用 CoreText 枚举字体家族（等价 Node font-list 的 NSFontManager，

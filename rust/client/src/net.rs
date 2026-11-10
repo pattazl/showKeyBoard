@@ -340,6 +340,13 @@ fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
             exec_path = local;
         }
     }
+    debug_out(&format!(
+        "start server: http_path={} exec_raw={} resolved={} exists={}",
+        http_path.display(),
+        exec_raw,
+        exec_path.display(),
+        exec_path.exists()
+    ));
     let exec_name = exec_path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())

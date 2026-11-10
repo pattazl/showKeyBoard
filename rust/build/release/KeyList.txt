@@ -11,7 +11,7 @@ Enter : ↩
 Left : ⬅
 Up : ⬆︎
 Down : ⬇
-Right : ➞
+Right : ➡
 LControl : ^
 RControl : ^
 LWin : ⊞
@@ -34,6 +34,8 @@ Alt : ⎇
 Shift : ⇧
 WheelUp : ⇡
 WheelDown : ⇣
+WheelLeft : ⇠
+WheelRight : ⇢
 MButton : 🖲️
 LButton : 🖱️
 RButton : 🖲️

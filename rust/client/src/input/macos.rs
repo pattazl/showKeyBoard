@@ -7,11 +7,11 @@
 #![allow(dead_code)]
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{bounded, Receiver, RecvTimeoutError, Sender};
 
-use rdev::{Button, EventType, Key};
+use super::rdev::{listen, Button, Event, EventType, Key};
 
 use crate::stats::Shared;
 use super::{add_modifier, in_skip, is_ctrl_vk, vk_name};
@@ -26,7 +26,7 @@ static EVENT_TX: OnceLock<Sender<Ev>> = OnceLock::new();
 enum Ev {
     Key { vk: u32, extended: bool, down: bool, first: bool },
     Button { name: &'static str, down: bool },
-    Wheel { dx: i64, dy: i64 },
+    Wheel { dx: i64, dy: i64, kind: i32 },
 }
 
 /// rdev Key -> (VK, extended)。extended 仅用于区分主键盘 Enter 与小键盘 Enter
@@ -153,7 +153,7 @@ fn button_name(btn: Button) -> Option<&'static str> {
 }
 
 /// rdev 回调：只更新按键状态并投递事件，保持 CGEventTap 快速返回
-fn on_event(event: rdev::Event) {
+fn on_event(event: Event) {
     match event.event_type {
         EventType::KeyPress(key) => key_event(key, true),
         EventType::KeyRelease(key) => key_event(key, false),
@@ -161,7 +161,11 @@ fn on_event(event: rdev::Event) {
         EventType::ButtonRelease(btn) => button_event(btn, false),
         EventType::Wheel { delta_x, delta_y } => {
             if let Some(tx) = EVENT_TX.get() {
-                let _ = tx.try_send(Ev::Wheel { dx: delta_x, dy: delta_y });
+                let _ = tx.try_send(Ev::Wheel {
+                    dx: delta_x,
+                    dy: delta_y,
+                    kind: super::rdev::last_scroll_kind(),
+                });
             }
         }
         _ => {}
@@ -233,6 +237,32 @@ fn handle_mouse(shared: &Arc<Shared>, name: &str) {
     crate::stats::push_txt(shared, &full_key, true);
 }
 
+/// 滚动显示最小累计增量：触控板单事件增量小且 dx/dy 带正负抖动，
+/// 低于该值的累计量视为噪声/微动，不显示
+const WHEEL_MIN_DELTA: i64 = 10;
+
+/// 滚动显示节流窗口：窗口内最多显示一条滚轮消息（约 4 次/秒）。
+/// 惯性阶段事件直接丢弃。
+const WHEEL_THROTTLE: Duration = Duration::from_millis(250);
+
+/// 滚动累计到点后的显示判定：按累计增量的主导方向显示一条消息。
+/// 触控板 60~120Hz 连发小步长事件，且斜划/抖动时 dx 与 dy 同时有值、
+/// 符号在正负间摆动（否则会出现大量 WheelUp/WheelLeft 混刷），
+/// 必须累计增量 + 时间窗合并。返回是否已显示（调用方据此复位累计值）。
+fn wheel_flush(shared: &Arc<Shared>, acc: (i64, i64)) -> bool {
+    if acc.1.abs() >= WHEEL_MIN_DELTA {
+        let name = if acc.1 > 0 { "WheelUp" } else { "WheelDown" };
+        handle_mouse(shared, name);
+        return true;
+    }
+    if acc.0.abs() >= WHEEL_MIN_DELTA {
+        let name = if acc.0 > 0 { "WheelRight" } else { "WheelLeft" };
+        handle_mouse(shared, name);
+        return true;
+    }
+    false
+}
+
 /// 热键字符 -> VK
 fn char_to_vk(c: char) -> Option<u32> {
     let u = c.to_ascii_uppercase();
@@ -292,6 +322,9 @@ fn check_hotkey(shared: &Arc<Shared>, vk: u32) -> bool {
 
 /// 消费线程：按键命名、过滤、显示与统计都在这里完成
 fn consume_events(shared: Arc<Shared>, rx: Receiver<Ev>) {
+    // 滚轮节流状态：自上次显示以来累计的 (dx, dy) 与上次显示时间
+    let mut wheel_acc: (i64, i64) = (0, 0);
+    let mut last_wheel: Option<Instant> = None;
     loop {
         if shared.exit.load(Ordering::Relaxed) {
             break;
@@ -315,16 +348,22 @@ fn consume_events(shared: Arc<Shared>, rx: Receiver<Ev>) {
                     REPEAT_RECORD.store(0, Ordering::Relaxed);
                 }
             }
-            Ok(Ev::Wheel { dx, dy }) => {
-                if dy > 0 {
-                    handle_mouse(&shared, "WheelUp");
-                } else if dy < 0 {
-                    handle_mouse(&shared, "WheelDown");
-                }
-                if dx > 0 {
-                    handle_mouse(&shared, "WheelRight");
-                } else if dx < 0 {
-                    handle_mouse(&shared, "WheelLeft");
+            Ok(Ev::Wheel { dx, dy, kind }) => {
+                if kind == 2 {
+                    // 触控板惯性滚动：松手后系统仍以 60~120Hz 灌入约 1 秒小事件，
+                    // 完全丢弃（松手前最后一次主动滚动已显示过），并清空累计值
+                    wheel_acc = (0, 0);
+                } else {
+                    // 触摸阶段与来源不明事件：累计增量，节流窗口到点且累计量
+                    // 超过死区时，按主导方向只显示一条消息
+                    wheel_acc.0 += dx;
+                    wheel_acc.1 += dy;
+                    let due = last_wheel
+                        .map_or(true, |t| Instant::now().duration_since(t) >= WHEEL_THROTTLE);
+                    if due && wheel_flush(&shared, wheel_acc) {
+                        wheel_acc = (0, 0);
+                        last_wheel = Some(Instant::now());
+                    }
                 }
             }
             Err(RecvTimeoutError::Timeout) => continue,
@@ -402,7 +441,7 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                     let mut hinted = false;
                     loop {
                         if is_accessibility_trusted() {
-                            match rdev::listen(on_event) {
+                            match listen(on_event) {
                                 Ok(()) => break,
                                 Err(e) => {
                                     eprintln!("input: rdev listen failed: {:?}", e);

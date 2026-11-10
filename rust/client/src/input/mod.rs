@@ -16,6 +16,10 @@ mod macos;
 #[cfg(target_os = "macos")]
 pub use macos::*;
 
+// macOS 全局键鼠监听：精简版 rdev（源码内联在本目录，见 rdev.rs 头注释）
+#[cfg(target_os = "macos")]
+pub(crate) mod rdev;
+
 /// VK -> AHK 按键名（macOS 侧先把 rdev Key 映射为 VK 再共用此函数）
 pub(crate) fn vk_name(vk: u32, extended: bool) -> String {
     let name = match vk {

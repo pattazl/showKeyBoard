@@ -311,11 +311,57 @@ pub fn add_font_resource(_path: &std::path::Path) -> bool {
     false
 }
 
-/// 系统是否有该字体族：交给 Slint/CoreText 自行回退，这里只排除 Windows 专有字体
+/// 系统是否有指定字体族：用 CoreText 创建 CTFont 并回读 family 名比较。
+/// 注意 CTFontCreateWithName 对任意名字都返回一个回退字体（如系统默认字体），
+/// 因此必须比较回读的 family 名，不能只看调用是否成功。
 pub fn font_family_exists(name: &str) -> bool {
-    !name.is_empty()
-        && !name.eq_ignore_ascii_case("Segoe UI Symbol")
-        && !name.eq_ignore_ascii_case("Tahoma")
+    if name.is_empty() {
+        return false;
+    }
+    #[link(name = "CoreText", kind = "framework")]
+    extern "C" {
+        fn CTFontCreateWithNameAndOptions(
+            name: *const std::os::raw::c_void,
+            size: f64,
+            matrix: *const std::os::raw::c_void,
+            options: u32,
+        ) -> *mut std::os::raw::c_void;
+        fn CTFontCopyFamilyName(font: *const std::os::raw::c_void)
+            -> *const std::os::raw::c_void;
+    }
+    use core_foundation::base::TCFType;
+    use core_foundation::string::CFString;
+    let want = CFString::new(name);
+    unsafe {
+        let font = CTFontCreateWithNameAndOptions(
+            want.as_concrete_TypeRef() as *const _,
+            12.0,
+            std::ptr::null(),
+            0,
+        );
+        if font.is_null() {
+            return false;
+        }
+        let family = CTFontCopyFamilyName(font);
+        if family.is_null() {
+            return false;
+        }
+        let got = CFString::wrap_under_create_rule(family as *const _).to_string();
+        got.eq_ignore_ascii_case(name)
+    }
+}
+
+/// macOS 符号字体：keyList 里的 ⇡ ⇣ ⎇ ⊞ ␣ 等字形在 Verdana/Tahoma 等
+/// 西文字体中缺失，Slint 的 femtovg 渲染无法按字形回退，直接显示会缺字。
+/// 需要整体切换到系统符号字体（对应 Windows 侧的 Segoe UI Symbol）。
+pub fn symbol_font_family() -> Option<&'static str> {
+    use std::sync::OnceLock;
+    static CACHED: OnceLock<Option<&'static str>> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        ["Apple Symbols", "Arial Unicode MS", "Menlo"]
+            .into_iter()
+            .find(|f| font_family_exists(f))
+    })
 }
 
 /// 文本是否包含需要 SMP 字体回退的符号（🖰 🖱 ⎇ ⇧ 等）

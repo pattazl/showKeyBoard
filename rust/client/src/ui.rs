@@ -97,7 +97,8 @@ pub struct UiManager {
     fonts_loaded: HashSet<String>,
     /// 系统已存在 / 已确认不存在的字体族名缓存
     fonts_confirmed: HashSet<String>,
-    /// 是否安装了 "Segoe UI Symbol"（用于 SMP 符号字形回退）
+    /// 是否安装了 "Segoe UI Symbol"（用于 SMP 符号字形回退，仅 Windows）
+    #[cfg_attr(not(windows), allow(dead_code))]
     symbol_font_ok: Option<bool>,
     last_app_path: String,
     last_app_check: Instant,
@@ -213,18 +214,29 @@ impl UiManager {
     }
 
     /// 字体回退：Slint 只支持单一字体族（SansSerif/SystemUi 均不含 🖰 🖱 🖲 等 SMP 符号），
-    /// 因此文本含这类符号时改用 Segoe UI Symbol（与 AHK Edit 的字体链接效果一致）
+    /// 因此文本含这类符号时切换到平台符号字体
+    /// （Windows: Segoe UI Symbol；macOS: Apple Symbols 等，与 AHK Edit 的字体链接效果一致）
     fn resolve_font(&mut self, family: &str, text: &str) -> String {
         if !crate::winutil::needs_symbol_font(text) {
             return family.to_string();
         }
-        let ok = *self
-            .symbol_font_ok
-            .get_or_insert_with(|| crate::winutil::font_family_exists("Segoe UI Symbol"));
-        if ok {
-            "Segoe UI Symbol".to_string()
-        } else {
-            family.to_string()
+        #[cfg(windows)]
+        {
+            let ok = *self
+                .symbol_font_ok
+                .get_or_insert_with(|| crate::winutil::font_family_exists("Segoe UI Symbol"));
+            if ok {
+                "Segoe UI Symbol".to_string()
+            } else {
+                family.to_string()
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            // macOS：缓存由 winutil::symbol_font_family 内部 OnceLock 处理
+            crate::winutil::symbol_font_family()
+                .unwrap_or(family)
+                .to_string()
         }
     }
 

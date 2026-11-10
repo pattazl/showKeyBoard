@@ -33,8 +33,16 @@ fn resolve_http_path(work: &Path, spec: &str, first: bool) -> PathBuf {
 }
 
 #[cfg(not(windows))]
-fn resolve_http_path(work: &Path, spec: &str, _first: bool) -> PathBuf {
-    work.join(spec.trim().replace('\\', "/"))
+fn resolve_http_path(work: &Path, spec: &str, first: bool) -> PathBuf {
+    let spec = spec.trim().replace('\\', "/");
+    if first {
+        // 与 Windows 分支语义一致：相对写法（\httpdist\dist\）需去掉开头分隔符，
+        // 否则 PathBuf::join 遇到 "/httpdist/dist/" 会整体替换为根目录下的绝对路径
+        work.join(spec.trim_start_matches('/'))
+    } else {
+        // 第二次尝试允许绝对路径（PathBuf::join 对绝对路径整体替换，符合预期）
+        work.join(spec)
+    }
 }
 
 /// 极简 INI 解析（节 -> 键 -> 值），注释 ; 或 #
