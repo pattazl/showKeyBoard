@@ -3,6 +3,7 @@
 // 此文件从 rust 目录运行 npm run build / npm run pack 调用：
 //   npm run build            编译模式：先 cargo build --release 并替换产物，再打包
 //   npm run pack  (--pack)   打包模式：跳过 cargo 编译，直接用 build/release 现有文件打包
+// macOS 打包前会先用 build/releaseMac 中的同名文件替换 build/release 下的对应文件，打包结束后再换回原文件
 // 平台自动识别：darwin -> DMG 打包；win32/其它 -> 原有 NSIS 安装包 + 7z 便携版流程
 const { NSIS, ZIP7 } = require('./buildMain.config.js');
 const fs = require('fs');
@@ -123,7 +124,12 @@ function packMacDmg() {
         return
     }
 
-    // 2. 临时目录
+    // 2. 用 build/releaseMac 中的 macOS 专用配置替换 release 下的对应文件
+    //    restoreMacOverrides：打包结束后把 release 中原文件换回来
+    const restoreMacOverrides = applyMacOverrides(releaseDir)
+    if (!restoreMacOverrides) return
+
+    // 3. 临时目录
     const tmpRoot = fs.mkdtempSync(path.join(require('os').tmpdir(), 'skb_dmg.'));
     const stageDir = path.join(tmpRoot, 'stage');
     const appDir = path.join(stageDir, `${appName}.app`);
@@ -133,7 +139,7 @@ function packMacDmg() {
     fs.mkdirSync(resDir, { recursive: true });
 
     try {
-        // 3. 复制 release 全部内容到 bundle 内（客户端以 exe 所在目录为工作目录，
+        // 4. 复制 release 全部内容到 bundle 内（客户端以 exe 所在目录为工作目录，
         //    httpdist/ini 等相对路径照常工作）
         console.log('复制 release 目录到 app bundle');
         fs.cpSync(releaseDir, macosDir, { recursive: true });
@@ -145,12 +151,12 @@ function packMacDmg() {
         const serverBin = path.join(macosDir, 'httpdist', 'dist', 'showkeyboard_server');
         if (fs.existsSync(serverBin)) chmodX(serverBin);
 
-        // 4. 图标：ico -> png -> iconset(10 档尺寸) -> icns
+        // 5. 图标：ico -> png -> iconset(10 档尺寸) -> icns
         console.log('转换图标:', iconIco);
         const icns = path.join(resDir, 'AppIcon.icns');
         if (!convertIcns(iconIco, icns, tmpRoot)) return;
 
-        // 5. Info.plist（LSUIElement：不在 Dock 显示图标，与客户端 Accessory 策略一致）
+        // 6. Info.plist（LSUIElement：不在 Dock 显示图标，与客户端 Accessory 策略一致）
         fs.writeFileSync(path.join(appDir, 'Contents', 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -171,12 +177,12 @@ function packMacDmg() {
 </plist>
 `);
 
-        // 6. ad-hoc 签名（本机运行免网闸；不做公证）
+        // 7. ad-hoc 签名（本机运行免网闸；不做公证）
         if (!run('codesign', ['--force', '--deep', '--sign', '-', appDir], null, 'codesign 签名')) {
             console.log('!!! codesign 失败（可忽略，未签名也可本机运行）');
         }
 
-        // 7. DMG：stage 目录 + Applications 快捷方式（拖拽安装）
+        // 8. DMG：stage 目录 + Applications 快捷方式（拖拽安装）
         fs.symlinkSync('/Applications', path.join(stageDir, 'Applications'));
         const dmgName = `${appName}_macos_v${version}_${getDateStr()}.dmg`;
         const dmgPath = path.join(publishDir, dmgName);
@@ -199,6 +205,8 @@ function packMacDmg() {
         console.log(`  大小: ${sizeKb >= 1024 ? (sizeKb / 1024).toFixed(1) + 'M' : sizeKb + 'K'}`);
     } finally {
         fs.rmSync(tmpRoot, { recursive: true, force: true });
+        // 打包结束（含异常/提前返回）后恢复 release 中原有文件
+        restoreMacOverrides();
     }
 }
 
@@ -282,6 +290,56 @@ function copyFile(src, dst) {
     fs.copyFileSync(src, dst);
     console.log('替换文件:', dst);
     return true
+}
+
+// macOS 专用配置：把 build/releaseMac 下的文件按文件名替换 release 中对应文件
+// 返回恢复函数（打包结束后调用，把 release 原文件换回来）；返回 false 表示替换失败
+function applyMacOverrides(releaseDir) {
+    const macDir = path.resolve(__dirname, 'releaseMac');
+    if (!fs.existsSync(macDir)) {
+        console.log('macOS 配置目录不存在，跳过:', macDir);
+        return () => { };
+    }
+    // 备份原文件内容，用于打包后恢复
+    const backups = [];
+    const restore = () => {
+        for (const { file, data } of backups) {
+            fs.writeFileSync(file, data);
+            console.log('恢复原配置文件:', file);
+        }
+        backups.length = 0;
+    };
+    const names = fs.readdirSync(macDir, { withFileTypes: true })
+        .filter(d => d.isFile() && !d.name.startsWith('.'))
+        .map(d => d.name);
+    for (const name of names) {
+        const src = path.join(macDir, name);
+        const targets = findFilesByName(releaseDir, name);
+        if (!targets.length) {
+            console.log('release 中未找到对应的文件:', name);
+            restore();
+            return false;
+        }
+        for (const dst of targets) {
+            backups.push({ file: dst, data: fs.readFileSync(dst) });
+            fs.copyFileSync(src, dst);
+            console.log('替换 macOS 配置文件:', dst);
+        }
+    }
+    return restore;
+}
+
+// 递归查找目录下指定文件名的所有文件
+function findFilesByName(dir, name, result = []) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            findFilesByName(p, name, result);
+        } else if (entry.name === name) {
+            result.push(p);
+        }
+    }
+    return result;
 }
 
 // 当前日期，格式 YYMMDD，例如 261109
