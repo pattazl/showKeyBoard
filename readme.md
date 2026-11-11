@@ -66,8 +66,8 @@ Running showkeyboard_client.exe directly will automatically call the server show
 2. Open: System Settings → Privacy and Security, scroll down
 3. In the "Security" block, a line will appear: * * ShowKeyBoard has been blocked because it is from an unidentified developer**
 4. Click "Still Open" on the right and enter the power on password to confirm
-3. Since the program needs to read mouse and keyboard events, it needs to check ShowKeyBoard.app in System Settings ->Privacy and Security ->Auxiliary Functions ->
-4. If you want to upgrade, you need to first delete ShowKeyBoard.app in System Settings ->Privacy and Security ->Auxiliary Functions ->Restart the program and then allow
+3. Since the program needs to read mouse and keyboard events, it needs to check ShowKeyBoard.app in `System Settings ->Privacy and Security ->Auxiliary Functions or Device Control and Data Access `   
+4. If you want to upgrade, you need to first delete ShowKeyBoard.app in `System Settings ->Privacy and Security ->Auxiliary Functions  or Device Control and Data Access `->` Restart the program and then allow
 
 ### Synchronization
 

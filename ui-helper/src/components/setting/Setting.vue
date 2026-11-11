@@ -771,12 +771,10 @@ export default defineComponent({
       if (sinfo == null) {
         sinfo = [{ Left: 0, Top: 0, Right: 400, Bottom: 300 }]  // 默认值
       }
-      // 只需要添加一次
-      if (sinfo[0] != contentText.value.intro183) {
-        sinfo.unshift(contentText.value.intro183);
-      }
-      screenInfo.value = sinfo
-      screenNum.value = toVSelectList([...Array(sinfo.length).keys()])
+      // 不能直接 unshift 修改 infoPC.screen，否则会污染 store 中的共享数据，
+      // 导致 Today 等页面计算屏幕像素对角线时取到字符串而得到 0
+      screenInfo.value = [contentText.value.intro183, ...sinfo]
+      screenNum.value = toVSelectList([...Array(screenInfo.value.length).keys()])
       //console.log('data.config', data.config)
       allFontRef.value = toVSelectList(data.fonts.map(x => x.replace(/"/g, '')))
       keyMappingRef.value = toKVList(data.keyList)

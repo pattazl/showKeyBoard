@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
         emptyOutDir : true,  // 清空目标文件
-        outDir: '../build/release/httpdist/dist/ui' // 设置输出目录为 ui
+        outDir: '../rust/build/release/httpdist/dist/ui' // 设置输出目录为 ui
     },
     plugins: [
       vue(),
