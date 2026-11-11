@@ -11,6 +11,32 @@ const path = require('path');
 const { execSync, execFileSync } = require('child_process');
 // iconv-lite 仅 Windows 的 GBK .nsi 版本替换需要，惰性加载（macOS 打包无需安装）
 
+// ========== 计时工具 ==========
+const _globalStart = Date.now();
+function ts() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function fmtMs(ms) {
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    if (m < 60) return `${m}m ${String(rs).padStart(2, '0')}s`;
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return `${h}h ${String(rm).padStart(2, '0')}m ${String(rs).padStart(2, '0')}s`;
+}
+// 进程退出时打印总耗时（跨 try/finally 保证一定输出）
+process.on('exit', () => {
+    const total = Date.now() - _globalStart;
+    console.log('');
+    console.log(`========== 全部完成  开始 ${tsStart}  结束 ${ts()}  总耗时 ${fmtMs(total)} ==========`);
+});
+const tsStart = ts();
+console.log(`========== 开始构建  ${tsStart}  ==========`);
+
 // 平台分发
 if (process.platform === 'darwin') {
     packMacDmg();
@@ -247,12 +273,15 @@ function chmodX(file) {
 
 // 同步执行外部命令（参数数组形式，避免引号转义问题）
 function run(cmd, args, cwd, info) {
+    const stepStart = Date.now();
+    const label = info || cmd;
+    console.log(`[${ts()}] ▶ ${label}`);
     try {
         execFileSync(cmd, args, { cwd: cwd || undefined, stdio: ['ignore', 'pipe', 'pipe'] });
-        if (info) console.log(`${info} 成功`);
+        console.log(`[${ts()}] ✔ ${label} 完成 (${fmtMs(Date.now() - stepStart)})`);
         return true;
     } catch (e) {
-        console.error(`${info || cmd} 失败: ${e.message}`);
+        console.error(`[${ts()}] ✘ ${label} 失败 (${fmtMs(Date.now() - stepStart)}): ${e.message}`);
         if (e.stderr) console.error(e.stderr.toString());
         return false;
     }
@@ -260,15 +289,17 @@ function run(cmd, args, cwd, info) {
 
 // 编译调用
 function myExec(command, info, detail, cwd) {
+    const stepStart = Date.now();
+    const label = info || command;
+    console.log(`[${ts()}] ▶ ${label}`);
     try {
-        // 同步执行命令
         const output = execSync(command, cwd ? { cwd } : undefined);
-        console.log(`编译 ${info} 成功`);
+        console.log(`[${ts()}] ✔ ${label} 完成 (${fmtMs(Date.now() - stepStart)})`);
         if (detail) {
             console.log(`输出信息: ${output?.toString()}`);
         }
     } catch (error) {
-        console.error(`编译 ${info} 出错: ${error.message}`);
+        console.error(`[${ts()}] ✘ ${label} 出错 (${fmtMs(Date.now() - stepStart)}): ${error.message}`);
         console.error(`命令执行过程中出现错误: ${error.stderr?.toString()}`);
         return false
     }

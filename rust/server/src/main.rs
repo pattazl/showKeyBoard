@@ -15,7 +15,7 @@ use tower_http::services::ServeDir;
 use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast, Notify};
 use std::net::SocketAddr;
-use log::info;
+use log::{info, warn};
 
 pub type AppState = Arc<RwLock<SharedState>>;
 
@@ -105,24 +105,47 @@ async fn main() {
     // Load configuration: desc.ini first, then user.ini overrides
     let mut config = config::AppConfig::load_with_override(&desc_path, &user_ini_path);
 
-    // Database：主库 records.db 始终位于安装目录 / 进程工作目录（与 Windows 一致）；
-    //            用户目录 dbs/ 只存放其他设备/共享数据库，不参与主库查找。
+    // Database：主库 records.db 位于用户数据目录（与 dbs/backup/share/uploads 同级）；
+    // 首次运行时从安装目录 httpdist/dist 迁移旧 records.db。
     let db_filename = config.db_path.trim_start_matches("./");
-    let candidates: Vec<std::path::PathBuf> = vec![
-        cwd.join(db_filename),
-        base_dir.join(db_filename),
-        exe_dir.join(db_filename),
-    ];
-    let found = candidates.iter().find(|p| p.exists()).cloned();
-    let db_path = match found {
-        Some(path) => {
-            info!("Database found at: {}", path.display());
-            path.to_string_lossy().to_string()
-        }
-        None => {
-            let fallback = cwd.join(db_filename);
-            info!("Database not found, creating at: {}", fallback.display());
-            fallback.to_string_lossy().to_string()
+    let db_path = {
+        let user_db = data_dir.join(db_filename);
+        if user_db.exists() {
+            // 用户目录已有 records.db（之前运行过），直接用
+            info!("Database found at: {}", user_db.display());
+            user_db.to_string_lossy().to_string()
+        } else {
+            // 用户目录没有 → 从安装目录复制旧 records.db（首次运行 / 升级迁移）
+            let candidates: Vec<std::path::PathBuf> = vec![
+                cwd.join(db_filename),
+                base_dir.join(db_filename),
+                exe_dir.join(db_filename),
+            ];
+            if let Some(legacy) = candidates.iter().find(|p| p.exists()) {
+                match std::fs::copy(legacy, &user_db) {
+                    Ok(_) => {
+                        info!(
+                            "Migrated records.db {} -> {}",
+                            legacy.display(),
+                            user_db.display()
+                        );
+                        user_db.to_string_lossy().to_string()
+                    }
+                    Err(e) => {
+                        warn!(
+                            "Failed to migrate records.db from {}: {}",
+                            legacy.display(),
+                            e
+                        );
+                        // 复制失败就退回到安装目录那个（兼容权限问题）
+                        legacy.to_string_lossy().to_string()
+                    }
+                }
+            } else {
+                // 两处都没有 → 用户目录创建新库
+                info!("records.db not found anywhere, creating at: {}", user_db.display());
+                user_db.to_string_lossy().to_string()
+            }
         }
     };
 
