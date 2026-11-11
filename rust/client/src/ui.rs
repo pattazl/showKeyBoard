@@ -413,57 +413,40 @@ impl UiManager {
         let tc = Color::from_argb_u8(ui.gui_opacity as u8, tr, tg, tb);
 
         let (ml, mt, mr, mb) = Self::mon_rect(cfg);
-        let w = ui.gui_width;
-        // DPI 缩放：配置值为物理像素，Slint 属性为逻辑像素，二者需统一换算
-        let scale = {
-            let mon_s = crate::winutil::scale_at(ml + (mr - ml) / 2, mt + (mb - mt) / 2);
-            let win_s = comp.window().scale_factor();
-            if mon_s > 0.0 { mon_s } else if win_s > 0.0 { win_s } else { 1.0 }
-        };
-        let win_scale = {
-            #[cfg(windows)]
-            {
-                let s = comp.window().scale_factor();
-                if s > 0.0 { s } else { scale }
-            }
-            #[cfg(not(windows))]
-            {
-                // macOS：复用的空闲窗口在屏外时 scale_factor 会退化为 1.0，
-                // 不能作为 DPI 依据，直接用显示器真实缩放
-                scale
-            }
-        };
+        // DPI 缩放一律以“目标显示器”为准：窗口可能还停在另一块不同缩放的屏幕上，
+        // 用窗口当前的 scale_factor 会把尺寸算错（高 DPI 下层层叠加后互相重叠）
+        let scale = Self::scale_at_pos(ml + (mr - ml) / 2, mt + (mb - mt) / 2);
         // guiDpiscale=true：配置宽高按物理像素固定；false：按逻辑像素（随系统 DPI 放大）
-        let use_scale = if ui.gui_dpiscale { win_scale } else { 1.0 };
-        let measure_scale = if ui.gui_dpiscale { scale } else { 1.0 };
-        let font_px = ((ui.gui_text_size as f32) * measure_scale).round().max(1.0) as i32;
+        let size_k = if ui.gui_dpiscale { 1.0 } else { scale };
+        // Slint 的 font-size 是逻辑像素，GDI 测量需要物理像素
+        let font_px = ((ui.gui_text_size as f32) * scale).round().max(1.0) as i32;
+        let pw = ((ui.gui_width as f32) * size_k).round().max(1.0) as i32;
         // Text 左右各 4px 逻辑边距
-        let usable_w = (w as f32 - 8.0 * measure_scale).round().max(40.0) as i32;
-        let h = if ui.gui_height > 0 {
-            ui.gui_height
+        let usable_w = (pw as f32 - 8.0 * scale).round().max(40.0) as i32;
+        let ph = if ui.gui_height > 0 {
+            ((ui.gui_height as f32) * size_k).round() as i32
         } else {
-            // GDI 精确测量文本换行后的真实高度
+            // GDI 精确测量文本换行后的真实高度（物理像素）
             let (lines, line_h, _) =
                 crate::winutil::measure_text(&merged, font, font_px, ui.gui_text_bold, usable_w);
             if lines > 0 {
-                lines * line_h + 10
+                lines * line_h + (10.0 * scale).round() as i32
             } else {
-                Self::estimate_height(&merged, w, ui.gui_text_size)
+                Self::estimate_height(&merged, pw, font_px)
             }
         };
-        // 窗口实际渲染出的物理尺寸：排布必须用它，否则高 DPI 下窗口比计算出的大而互相重叠
-        let pw = ((w as f32 / use_scale) * win_scale).round() as i32;
-        let ph = ((h as f32 / use_scale) * win_scale).round() as i32;
 
-        // 位置
-        let mut x = ui.gui_pos_offset_x + ml;
-        let mut y = ui.gui_pos_offset_y + mt;
+        // 位置：偏移量与宽高使用同一单位约定（guiDpiscale=1 为物理像素，0 为逻辑像素）
+        let ox = ((ui.gui_pos_offset_x as f32) * size_k).round() as i32;
+        let oy = ((ui.gui_pos_offset_y as f32) * size_k).round() as i32;
+        let mut x = ml + ox;
+        let mut y = mt + oy;
         match ui.gui_pos.as_str() {
-            "TR" => x += mr - ml - pw,
-            "BL" => y += mb - mt - ph,
+            "TR" => x = mr + ox - pw,
+            "BL" => y = mb + oy - ph,
             "BR" => {
-                x += mr - ml - pw;
-                y += mb - mt - ph;
+                x = mr + ox - pw;
+                y = mb + oy - ph;
             }
             _ => {}
         }
@@ -477,9 +460,14 @@ impl UiManager {
         comp.set_font_name(font.into());
         comp.set_font_size(ui.gui_text_size);
         comp.set_font_weight(if ui.gui_text_bold { 700 } else { 400 });
-        comp.set_corner_radius(ui.gui_radius as f32 / use_scale);
-        comp.set_o_width(w as f32 / use_scale);
-        comp.set_o_height(h as f32 / use_scale);
+        comp.set_corner_radius(if ui.gui_dpiscale {
+            ui.gui_radius as f32 / scale
+        } else {
+            ui.gui_radius as f32
+        });
+        // Slint 尺寸属性是逻辑像素：物理尺寸 / 显示器缩放
+        comp.set_o_width(pw as f32 / scale);
+        comp.set_o_height(ph as f32 / scale);
         // Windows：保持原实现（Slint Physical 接口）
         // macOS：Slint 的 set_size(Physical) 会先按窗口 scale_factor（屏外窗口退化为
         // 1.0）转 Logical，再被 winit 按真实 scale 乘回去，导致尺寸翻倍；
@@ -589,6 +577,10 @@ impl UiManager {
             let o = &self.overlays[last];
             (o.x, o.y, o.w, o.h)
         };
+        // 间距与宽高同一单位：guiDpiscale=1 为物理像素，0 为逻辑像素
+        let margin = ((ui.gui_margin as f32)
+            * if ui.gui_dpiscale { 1.0 } else { Self::scale_at_pos(px, py) })
+        .round() as i32;
         for i in (0..last).rev() {
             let (gx, gy, ow, oh) = {
                 let o = &self.overlays[i];
@@ -597,13 +589,13 @@ impl UiManager {
             let (mut nx, mut ny) = (gx, gy);
             if ui.gui_pos_xy == "Y" {
                 match ui.gui_pos.chars().next().unwrap_or('B') {
-                    'T' => ny = py + ph + ui.gui_margin,   // 从上往下排
-                    _ => ny = py - oh - ui.gui_margin,     // 从下往上排
+                    'T' => ny = py + ph + margin,   // 从上往下排
+                    _ => ny = py - oh - margin,     // 从下往上排
                 }
             } else {
                 match ui.gui_pos.chars().nth(1).unwrap_or('R') {
-                    'L' => nx = px + pw + ui.gui_margin,   // 从左往右
-                    _ => nx = px - ow - ui.gui_margin,     // 从右往左
+                    'L' => nx = px + pw + margin,   // 从左往右
+                    _ => nx = px - ow - margin,     // 从右往左
                 }
             }
             {
