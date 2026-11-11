@@ -59,8 +59,13 @@ async fn main() {
         .parent()
         .unwrap()
         .to_path_buf();
-    let cwd = std::env::current_dir().unwrap_or_else(|_| exe_dir.clone());
-    // base_dir = exe_dir/../..（安装根目录）：仅用于旧数据迁移、数据库回退查找、shareDbExec 的 cwd
+    // 关键：把进程 cwd 切到 exe 所在目录。
+    // macOS 从 .app 启动时 cwd 通常是 "/" 或 home 目录，不是 .app/Contents/MacOS；
+    // Windows 从托盘/服务启动时 cwd 也可能是 System32。
+    // records.db、UI 资源、shareDbExec 子进程、以及所有相对路径逻辑都依赖正确的 cwd。
+    let _ = std::env::set_current_dir(&exe_dir);
+    let cwd = exe_dir.clone();
+    // base_dir = exe_dir/../..（安装根目录）：仅用于旧数据迁移
     let base_dir = exe_dir.parent().and_then(|p| p.parent())
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| cwd.clone());
@@ -100,52 +105,24 @@ async fn main() {
     // Load configuration: desc.ini first, then user.ini overrides
     let mut config = config::AppConfig::load_with_override(&desc_path, &user_ini_path);
 
-    // Database: prefer user data dir → cwd → parent2 → exe_dir (avoid empty db in target/debug/)
-    // 外部数据库目录 dbs/ 现在位于用户数据目录下
+    // Database：主库 records.db 始终位于安装目录 / 进程工作目录（与 Windows 一致）；
+    //            用户目录 dbs/ 只存放其他设备/共享数据库，不参与主库查找。
     let db_filename = config.db_path.trim_start_matches("./");
-    // macOS：数据库固定在用户目录 dbs/（安装包内自带的初始库仅作迁移源）
-    // Windows：保持原有查找顺序（安装包内 records.db 可继续使用）
-    let db_path = if cfg!(target_os = "macos") {
-        let dbs_dir = data_dir.join("dbs");
-        let _ = std::fs::create_dir_all(&dbs_dir);
-        let target = dbs_dir.join(db_filename);
-        if !target.exists() {
-            for legacy in [exe_dir.join(db_filename), cwd.join(db_filename)] {
-                if legacy.exists() && legacy != target {
-                    match std::fs::copy(&legacy, &target) {
-                        Ok(_) => println!("Migrated db {:?} -> {:?}", legacy, target),
-                        Err(e) => println!("Warning: failed to migrate db: {}", e),
-                    }
-                    break;
-                }
-            }
+    let candidates: Vec<std::path::PathBuf> = vec![
+        cwd.join(db_filename),
+        base_dir.join(db_filename),
+        exe_dir.join(db_filename),
+    ];
+    let found = candidates.iter().find(|p| p.exists()).cloned();
+    let db_path = match found {
+        Some(path) => {
+            info!("Database found at: {}", path.display());
+            path.to_string_lossy().to_string()
         }
-        target.to_string_lossy().to_string()
-    } else {
-        let candidates: Vec<std::path::PathBuf> = vec![
-            data_dir.join("dbs").join(db_filename),
-            cwd.join(db_filename),
-            cwd.join("dbs").join(db_filename),
-        ].into_iter().chain(
-            [base_dir.join(db_filename), base_dir.join("dbs").join(db_filename)].into_iter()
-        ).chain(
-            vec![
-                exe_dir.join(db_filename),
-                exe_dir.join("dbs").join(db_filename),
-            ]
-        ).collect();
-        
-        let found = candidates.iter().find(|p| p.exists()).cloned();
-        match found {
-            Some(path) => {
-                info!("Database found at: {}", path.display());
-                path.to_string_lossy().to_string()
-            }
-            None => {
-                let fallback = cwd.join(db_filename);
-                info!("Database not found, creating at: {}", fallback.display());
-                fallback.to_string_lossy().to_string()
-            }
+        None => {
+            let fallback = cwd.join(db_filename);
+            info!("Database not found, creating at: {}", fallback.display());
+            fallback.to_string_lossy().to_string()
         }
     };
 
