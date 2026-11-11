@@ -55,6 +55,20 @@
 
 > 此版本以 2.xx开头
 
+用户资料全部迁移到，其中 用户目录windows = %USERPROFILE%\Documents\ [文档] ， MacOs= ~/Documents [文稿]
+
+用户目录\ShowKeyBoard\
+├── records.db          ←  主统计库
+├── showKeyBoard.ini  ←  主配置文件
+├── KeyList.txt   ←  按键显示匹配清单
+├── kbserver.pid ←  进程ID，用于异常断电的数据保留
+├── lastRecord.json ←  上次的临时数据，用于异常断电的数据保留
+├── updateTime.txt  ←  上次更新时间，用于异常断电的数据保留
+├── dbs\                ← 共享/其他设备库
+├── backup\    ← 本地资料备份库，重启会自动备份，定时清理
+├── share\  ← 其他终端的备份库，会自动转换到dbs中供访问
+└── uploads\    ← 用户上传的目录
+
 #### Windows系统
 
 直接运行showkeyboard_client.exe 会自动调用 服务端为 showkeyboard_server.exe

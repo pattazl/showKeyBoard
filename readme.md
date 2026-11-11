@@ -56,7 +56,21 @@ Follow the prompts to select during installation, such as whether to keep the co
 ### Rust version
 
 >This version starts with 2.xx
+All user data has been migrated to the following locations: For Windows, the user directory is %USERPROFILE%\Documents\ [Documents]; for MacOS, it is ~/Documents [Documents]
+User directory\ShowKeyBoard\
+├─ records.db ← Main statistical database
+├─ showKeyBoard.ini ← Main configuration file
+├─ KeyList.txt ← Key display and matching list
+├─ kbserver.pid ← Process ID, used for data retention in case of abnormal power loss
+├─ lastRecord.json ← Last temporary data, used for data retention in case of abnormal power loss
+├─ updateTime.txt ← Last updated time, used for data retention in case of abnormal power loss
+├─ dbs\ ← Shared/Other Device Libraries
+├─ backup\ ← Local data backup repository; automatic backup upon restart, scheduled cleanup
+├─ share\ ← Backup repository of other terminals, which will be automatically converted to dbs for access
+└── uploads\ ← directory for user uploads
+
 #### Windows system
+
 Running showkeyboard_client.exe directly will automatically call the server showkeyboard_server.exe
 
 #### MacOS system
