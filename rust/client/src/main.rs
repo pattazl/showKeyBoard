@@ -178,7 +178,7 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
     let file_val = ini.get("common", "needShowKey").map(|s| s.to_string());
     let current = if cfg.need_show_key { "1" } else { "0" };
     if file_val.as_deref() != Some(current) {
-        write_ini_value(&cfg.ini_path, "common", "needShowKey", current);
+        config::write_ini_value(&cfg.ini_path, "common", "needShowKey", current);
     }
 
     // 2) 若存在 kbserver.pid，写出 lastRecord.json（后端重启后优先载入）
@@ -206,39 +206,4 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
     if shared.restart_mode.load(Ordering::Relaxed) == 0 {
         net::send_exit(shared);
     }
-}
-
-/// 追加/更新 INI 中的键值（简单实现：重写文件）
-fn write_ini_value(path: &std::path::Path, section: &str, key: &str, value: &str) {
-    // 读入时兼容 ANSI/GBK 与 UTF-8（含 BOM），写回时统一转为 UTF-8
-    let mut content = std::fs::read(path)
-        .map(|b| config::decode_ini(&b))
-        .unwrap_or_default();
-
-    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    let mut in_section = false;
-    let mut replaced = false;
-    for line in lines.iter_mut() {
-        let t = line.trim();
-        if t.starts_with('[') && t.ends_with(']') {
-            in_section = t[1..t.len() - 1].trim().eq_ignore_ascii_case(section);
-            continue;
-        }
-        if in_section && t.starts_with(key) && t[key.len()..].trim_start().starts_with('=') {
-            *line = format!("{}={}", key, value);
-            replaced = true;
-        }
-    }
-    if !replaced {
-        if !lines.iter().any(|l| {
-            let t = l.trim();
-            t.starts_with('[') && t.ends_with(']') && t[1..t.len() - 1].trim().eq_ignore_ascii_case(section)
-        }) {
-            lines.push(format!("[{}]", section));
-        }
-        lines.push(format!("{}={}", key, value));
-    }
-    content = lines.join("\r\n");
-    // 统一以 UTF-8（无 BOM）保存：Node 端按 utf-8 解析，避免中文乱码
-    let _ = std::fs::write(path, content.as_bytes());
 }

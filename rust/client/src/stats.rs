@@ -86,16 +86,14 @@ impl Stats {
             return path;
         }
         if cfg.pre_app_name_enable {
-            for (k, v) in &cfg.pre_app_name_list {
-                if let Some(pat) = k.strip_prefix("Reg:") {
-                    if let Ok(re) = regex::Regex::new(pat) {
-                        if re.is_match(&path) {
-                            path = v.clone();
-                            break;
-                        }
+            for rule in &cfg.pre_app_name_list {
+                if let Some(re) = &rule.regex {
+                    if re.is_match(&path) {
+                        path = rule.replacement.clone();
+                        break;
                     }
-                } else if k == &path {
-                    path = v.clone();
+                } else if rule.pattern == path {
+                    path = rule.replacement.clone();
                     break;
                 }
             }
@@ -294,57 +292,87 @@ impl Shared {
 }
 
 pub fn env_full_version() -> String {
-    match std::env::var("FULL_VERSION") {
-        Ok(v) if !v.is_empty() => v,
-        _ => format!("{}", env!("CARGO_PKG_VERSION")),
-    }
+    // FULL_VERSION 由 build.rs 通过 cargo:rustc-env 在编译期注入，
+    // 必须用 env! 宏（而非 std::env::var 运行时查进程环境）读取。
+    // option_env! 在变量未设置时返回 None，直接 rustc 编译时才会触发。
+    option_env!("FULL_VERSION")
+        .filter(|v| !v.is_empty())
+        .map(|v| v.to_string())
+        .unwrap_or_else(|| format!("{}", env!("CARGO_PKG_VERSION")))
 }
 
 /// PushTxt 的完整移植：显示过滤 + 记录
+///
+/// 锁顺序约定：stats 锁必须先于 cfg 读锁获取（与 build_data_body 一致），
+/// 避免 push_txt(cfg→stats) 与 build_data_body(stats→cfg) 形成 AB-BA 死锁。
+/// 因此这里不再 clone 整个 Config（每次按键 ~50 次堆分配会导致 Windows 分配器
+/// 碎片化、常驻内存持续膨胀），而是分阶段读取。
 pub fn push_txt(shared: &Shared, txt: &str, is_mouse: bool) {
-    let cfg = shared.cfg.read().unwrap().clone();
-
-    // 1) monitorProc / activeWindowProc 过滤
-    let mut active_window_proc_result = false;
-    if !cfg.monitor_proc.is_empty() || !cfg.active_window_proc.is_empty() {
-        let pid = winutil::foreground_pid();
-        if pid == 0 {
-            return;
-        }
-        let proc_path = winutil::process_path_by_pid(pid);
-        let proc_name = std::path::Path::new(&proc_path)
-            .file_name()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_default();
-        if let Ok(re) = regex::Regex::new(&cfg.active_window_proc) {
-            if !cfg.active_window_proc.is_empty() && re.is_match(&proc_name) {
-                active_window_proc_result = true;
+    // 阶段 1：显示过滤 + UI 推送（仅需 cfg 读锁，不碰 stats）
+    let (should_show, mask_txt) = {
+        let cfg = shared.cfg.read().unwrap();
+        let is_mouse_show = !is_mouse || (cfg.show_mouse_event >> 1 & 1) == 1;
+        if !cfg.need_show_key || !is_mouse_show {
+            (false, String::new())
+        } else {
+            let mut active_window_proc_result = false;
+            if !cfg.monitor_proc.is_empty() || !cfg.active_window_proc.is_empty() {
+                let pid = winutil::foreground_pid();
+                if pid == 0 {
+                    (false, String::new())
+                } else {
+                    let proc_path = winutil::process_path_by_pid(pid);
+                    let proc_name = std::path::Path::new(&proc_path)
+                        .file_name()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    if let Some(re) = &cfg.active_window_proc_re {
+                        if !cfg.active_window_proc.is_empty() && re.is_match(&proc_name) {
+                            active_window_proc_result = true;
+                        }
+                    }
+                    if let Some(re) = &cfg.monitor_proc_re {
+                        if !cfg.monitor_proc.is_empty() && !re.is_match(&proc_name) {
+                            (false, String::new())
+                        } else {
+                            let mut mask_txt = txt.to_string();
+                            if cfg.hide_in_win_pwd && !is_mouse && winutil::focus_is_password() {
+                                mask_txt = "*".to_string();
+                            }
+                            let show = cfg.active_window_proc.is_empty() || active_window_proc_result;
+                            (show, mask_txt)
+                        }
+                    } else {
+                        let mut mask_txt = txt.to_string();
+                        if cfg.hide_in_win_pwd && !is_mouse && winutil::focus_is_password() {
+                            mask_txt = "*".to_string();
+                        }
+                        let show = cfg.active_window_proc.is_empty() || active_window_proc_result;
+                        (show, mask_txt)
+                    }
+                }
+            } else {
+                let mut mask_txt = txt.to_string();
+                if cfg.hide_in_win_pwd && !is_mouse && winutil::focus_is_password() {
+                    mask_txt = "*".to_string();
+                }
+                (true, mask_txt)
             }
         }
-        if let Ok(re) = regex::Regex::new(&cfg.monitor_proc) {
-            if !cfg.monitor_proc.is_empty() && !re.is_match(&proc_name) {
-                return; // 不在监控进程清单内
-            }
-        }
+    };
+    if should_show {
+        let _ = shared.ui_tx.send(mask_txt);
     }
 
-    let is_mouse_show = !is_mouse || (cfg.show_mouse_event >> 1 & 1) == 1;
-    let is_mouse_record = !is_mouse || (cfg.show_mouse_event & 1) == 1;
-
-    // 2) 界面显示
-    if cfg.need_show_key && is_mouse_show {
-        let mut mask_txt = txt.to_string();
-        if cfg.hide_in_win_pwd && !is_mouse && winutil::focus_is_password() {
-            mask_txt = "*".to_string();
-        }
-        if cfg.active_window_proc.is_empty() || active_window_proc_result {
-            let _ = shared.ui_tx.send(mask_txt);
-        }
-    }
-
-    // 3) 记录统计
-    if cfg.need_record_key && is_mouse_record {
+    // 阶段 2：记录统计（先 stats 锁，再 cfg 读锁 —— 与 build_data_body 一致）
+    let need_record = {
+        let cfg = shared.cfg.read().unwrap();
+        let is_mouse_record = !is_mouse || (cfg.show_mouse_event & 1) == 1;
+        cfg.need_record_key && is_mouse_record
+    };
+    if need_record {
         let mut stats = shared.stats.lock().unwrap();
+        let cfg = shared.cfg.read().unwrap();
         stats.record_key(&cfg, txt, is_mouse);
     }
 }

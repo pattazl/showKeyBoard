@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 #[cfg(windows)]
 use std::sync::atomic::AtomicIsize;
 #[cfg(windows)]
@@ -11,6 +12,15 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)]
 use crate::winutil;
 
+/// preAppNameList 的单条替换规则：pattern 为 "Reg:..." 时预编译正则，
+/// 避免每次按键都重新编译（热路径上的正则编译会造成大量堆分配与内存碎片）。
+#[derive(Clone, Debug)]
+pub struct PreAppRule {
+    pub pattern: String,
+    pub replacement: String,
+    pub regex: Option<Arc<regex::Regex>>,
+}
+
 pub(crate) fn decode_ini(bytes: &[u8]) -> String {
     // 优先 UTF-8（含 BOM），失败则按 GBK 解码
     if let Ok(s) = std::str::from_utf8(bytes) {
@@ -18,6 +28,40 @@ pub(crate) fn decode_ini(bytes: &[u8]) -> String {
     }
     let (cow, _, _) = encoding_rs::GBK.decode(bytes);
     cow.into_owned()
+}
+
+/// 追加/更新 INI 中的键值（重写整个文件）。
+/// 读入时兼容 ANSI/GBK 与 UTF-8（含 BOM），写回时统一为 UTF-8（无 BOM）。
+pub(crate) fn write_ini_value(path: &std::path::Path, section: &str, key: &str, value: &str) {
+    let mut content = std::fs::read(path)
+        .map(|b| decode_ini(&b))
+        .unwrap_or_default();
+
+    let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+    let mut in_section = false;
+    let mut replaced = false;
+    for line in lines.iter_mut() {
+        let t = line.trim();
+        if t.starts_with('[') && t.ends_with(']') {
+            in_section = t[1..t.len() - 1].trim().eq_ignore_ascii_case(section);
+            continue;
+        }
+        if in_section && t.starts_with(key) && t[key.len()..].trim_start().starts_with('=') {
+            *line = format!("{}={}", key, value);
+            replaced = true;
+        }
+    }
+    if !replaced {
+        if !lines.iter().any(|l| {
+            let t = l.trim();
+            t.starts_with('[') && t.ends_with(']') && t[1..t.len() - 1].trim().eq_ignore_ascii_case(section)
+        }) {
+            lines.push(format!("[{}]", section));
+        }
+        lines.push(format!("{}={}", key, value));
+    }
+    content = lines.join("\r\n");
+    let _ = std::fs::write(path, content.as_bytes());
 }
 
 /// 把 ini 里的 httpDistPath 转成当前平台可用的路径。
@@ -208,7 +252,9 @@ pub struct Config {
     pub default_lang: String,
     pub server_exec_name: String,
     pub pre_app_name_enable: bool,
-    pub pre_app_name_list: Vec<(String, String)>, // 替换规则
+    pub pre_app_name_list: Vec<PreAppRule>, // 替换规则（含预编译正则）
+    pub active_window_proc_re: Option<Arc<regex::Regex>>,
+    pub monitor_proc_re: Option<Arc<regex::Regex>>,
     pub record_history_max: usize,
     pub check_server_max: i32,
     pub max_count_of_connect_fail: i32,
@@ -310,11 +356,32 @@ impl Config {
             if let Ok(serde_json::Value::Object(obj)) = serde_json::from_str::<serde_json::Value>(&raw) {
                 for (k, v) in obj {
                     if let Some(s) = v.as_str() {
-                        pre_app_name_list.push((k, s.to_string()));
+                        let regex = k.strip_prefix("Reg:").and_then(|pat| {
+                            regex::Regex::new(pat).ok().map(Arc::new)
+                        });
+                        pre_app_name_list.push(PreAppRule {
+                            pattern: k,
+                            replacement: s.to_string(),
+                            regex,
+                        });
                     }
                 }
             }
         }
+
+        let active_window_proc = Self::desc_read(&user_ini, desc, "common", "activeWindowProc", "");
+        let monitor_proc = Self::desc_read(&user_ini, desc, "common", "monitorProc", "");
+        // 正则只在加载/热重载时编译一次，热路径直接复用（Arc 共享，clone 廉价）
+        let active_window_proc_re = if active_window_proc.is_empty() {
+            None
+        } else {
+            regex::Regex::new(&active_window_proc).ok().map(Arc::new)
+        };
+        let monitor_proc_re = if monitor_proc.is_empty() {
+            None
+        } else {
+            regex::Regex::new(&monitor_proc).ok().map(Arc::new)
+        };
 
         let show_mouse_event = Self::desc_read_i32(&user_ini, desc, "common", "showMouseEvent", 1);
         let ui = UiParams {
@@ -378,8 +445,10 @@ impl Config {
             need_show_key: Self::desc_read_bool(&user_ini, desc, "common", "needShowKey", true),
             hotkey4_show: Self::desc_read(&user_ini, desc, "common", "hotkey4Show", "^!+s"),
             server_port,
-            active_window_proc: Self::desc_read(&user_ini, desc, "common", "activeWindowProc", ""),
-            monitor_proc: Self::desc_read(&user_ini, desc, "common", "monitorProc", ""),
+            active_window_proc,
+            monitor_proc,
+            active_window_proc_re,
+            monitor_proc_re,
             max_keypress_count: Self::desc_read_i32(&user_ini, desc, "common", "maxKeypressCount", 10),
             max_ctrlpress_count: Self::desc_read_i32(&user_ini, desc, "common", "maxCtrlpressCount", 1),
             auto_save_2db: Self::desc_read_i32(&user_ini, desc, "common", "autoSave2Db", 180),

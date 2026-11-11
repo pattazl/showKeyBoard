@@ -75,9 +75,6 @@ unsafe extern "system" fn keyboard_proc(n_code: i32, w_param: WPARAM, l_param: L
         let info = unsafe { &*(l_param as *const KBDLLHOOKSTRUCT) };
         let msg = w_param as usize;
         let is_down = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
-        // 切换键（CapsLock/NumLock/ScrollLock）状态跟踪：供 ctrlState 持续显示。
-        // 放在 injected 过滤之前，软件方式切换的状态也能同步（仅原子操作）。
-        crate::winutil::lock_key_event(info.vkCode as i32, is_down);
         // 按下/抬起都交给消费线程：计数与复位必须保持同一顺序，钩子回调立即返回
         if let Some(tx) = EVENT_TX.get() {
             let _ = tx.try_send(HookEvent::Key {
@@ -264,8 +261,9 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
             let max_kp = cfg.max_keypress_count;
             let max_cp = cfg.max_ctrlpress_count;
             drop(cfg);
-            // 注意：切换键（CapsLock/NumLock/ScrollLock）的开启状态由钩子事件翻转，
-            // 并由 UI 线程每秒从系统同步一次（UI 线程有活跃的消息循环，读到的 toggle 位才最新）。
+            // 注意：切换键（CapsLock/NumLock/ScrollLock）的开启状态由 UI 线程在
+            // ctrlState 刷新时直接查询系统 toggle 位（winutil::key_toggled），
+            // 钩子不参与状态跟踪，避免 UIPI 拦截与竞态导致的显示错误。
             let consumer_shared = shared.clone();
             let ctx = HookCtx {
                 shared: Box::leak(Box::new(shared)),
@@ -326,11 +324,19 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         break;
                     }
                     if msg.message == WM_HOTKEY as u32 && msg.wParam == HOTKEY_ID as usize {
-                        // 切换 needShowKey
+                        // 切换 needShowKey，并立即写回 ini（与 Web 设置界面双向同步）
                         let ctx = CTX.get().unwrap();
-                        let mut cfg = ctx.shared.cfg.write().unwrap();
-                        cfg.need_show_key = !cfg.need_show_key;
-                        drop(cfg);
+                        let (new_state, ini_path) = {
+                            let mut cfg = ctx.shared.cfg.write().unwrap();
+                            cfg.need_show_key = !cfg.need_show_key;
+                            (cfg.need_show_key, cfg.ini_path.clone())
+                        };
+                        crate::config::write_ini_value(
+                            &ini_path,
+                            "common",
+                            "needShowKey",
+                            if new_state { "1" } else { "0" },
+                        );
                         ctx.shared.show_key_generation.fetch_add(1, Ordering::Relaxed);
                     }
                     TranslateMessage(&msg);

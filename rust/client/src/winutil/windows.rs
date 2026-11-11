@@ -1,7 +1,6 @@
 //! Win32 工具函数：显示器、前台进程、密码框检测、锁屏检测、窗口样式等。
 #![allow(dead_code)]
 use std::mem;
-use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
 use std::time::{Duration, Instant};
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, RECT, SYSTEMTIME};
@@ -17,7 +16,7 @@ use windows_sys::Win32::System::Threading::{
     AttachThreadInput, OpenProcess, QueryFullProcessImageNameW, GetCurrentThreadId,
     PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
 };
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, GetFocus};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, GetFocus, GetKeyState};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, FindWindowW, GetClassNameW, GetCursorPos,
     GetForegroundWindow, GetSystemMetrics, GetWindowTextW, GetWindowLongPtrW, GetWindowRect,
@@ -167,8 +166,23 @@ pub fn process_exists_by_name(name: &str) -> bool {
 
 
 /// 系统是否锁定（存在 LogonUI.exe 进程）
+///
+/// 带 500ms TTL 缓存：锁屏状态不会在毫秒级变化，而每次按键都调用
+/// process_exists_by_name 会 CreateToolhelp32Snapshot 枚举全部进程，
+/// 频繁调用既浪费 CPU 也会加剧堆分配压力。
 pub fn system_locked() -> bool {
-    process_exists_by_name("LogonUI.exe")
+    use std::sync::Mutex;
+    static LOCKED: Mutex<Option<(bool, Instant)>> = Mutex::new(None);
+    const TTL: Duration = Duration::from_millis(500);
+    let mut g = LOCKED.lock().unwrap();
+    if let Some((v, at)) = *g {
+        if at.elapsed() < TTL {
+            return v;
+        }
+    }
+    let v = process_exists_by_name("LogonUI.exe");
+    *g = Some((v, Instant::now()));
+    v
 }
 
 /// 本地时间格式化 yyyyMMddHHmm(ss)
@@ -560,73 +574,24 @@ pub fn add_font_resource(path: &std::path::Path) -> bool {
     unsafe { AddFontResourceW(w.as_ptr()) > 0 }
 }
 
-/// 切换键本地状态：-1 未初始化，0 关闭，1 开启
-static CAPS_TOGGLE: AtomicI8 = AtomicI8::new(-1);
-static NUM_TOGGLE: AtomicI8 = AtomicI8::new(-1);
-static SCROLL_TOGGLE: AtomicI8 = AtomicI8::new(-1);
-/// 切换键物理按下状态（用于过滤自动重复，只在 up→down 跳变时翻转）
-static CAPS_DOWN: AtomicBool = AtomicBool::new(false);
-static NUM_DOWN: AtomicBool = AtomicBool::new(false);
-static SCROLL_DOWN: AtomicBool = AtomicBool::new(false);
-
-fn toggle_slots(vk: i32) -> Option<(&'static AtomicI8, &'static AtomicBool)> {
-    match vk {
-        0x14 => Some((&CAPS_TOGGLE, &CAPS_DOWN)),     // CapsLock
-        0x90 => Some((&NUM_TOGGLE, &NUM_DOWN)),       // NumLock
-        0x91 => Some((&SCROLL_TOGGLE, &SCROLL_DOWN)), // ScrollLock
-        _ => None,
-    }
-}
-
 /// 读取系统真实的 toggle 位（CapsLock / NumLock / ScrollLock）。
-/// GetAsyncKeyState 的 bit0 对切换键即为"当前是否开启"，是全局状态、实时生效。
-/// 不要用 AttachThreadInput 附加到前台线程去读 GetKeyState：附加/分离会共享输入队列，
+///
+/// 必须用 GetKeyState 而非 GetAsyncKeyState：
+/// - GetKeyState 的 bit0 对这三个切换键是**全局 toggle 状态**（实测在无消息泵的
+///   进程里也能正确读取），与 AHK 的 GetKeyState(keyName,"T") 语义一致。
+/// - GetAsyncKeyState 的 bit0 是"自上次调用以来是否被按下"的瞬时标志，
+///   并不意味着按键处于开启状态，用它判断 toggle 会永远读到 false。
+///
+/// 注意：不要用 AttachThreadInput 附加到前台线程——附加/分离会共享输入队列，
 /// 频繁调用会干扰系统向真实前台程序派发键鼠消息（表现为输入迟滞、丢字）。
 fn system_toggle(vk: i32) -> bool {
-    unsafe { (GetAsyncKeyState(vk) & 1) != 0 }
+    unsafe { (GetKeyState(vk) & 1) != 0 }
 }
 
-/// 切换键当前是否处于开启状态（CapsLock / NumLock / ScrollLock），可持续查询。
-///
-/// 状态由键盘钩子的按下事件翻转（见 lock_key_event），并每秒从系统重新同步一次
-/// （见 sync_lock_states），兜底钩子事件丢失或通过其他途径切换的情况。
+/// 切换键（CapsLock/NumLock/ScrollLock）当前是否开启。
+/// 直接读取全局 toggle 位，每次查询约 1µs，可在 UI 线程高频轮询。
 pub fn key_toggled(vk: i32) -> bool {
-    let Some((slot, _down)) = toggle_slots(vk) else {
-        return false;
-    };
-    let v = slot.load(Ordering::Relaxed);
-    if v >= 0 {
-        return v != 0;
-    }
-    let on = system_toggle(vk);
-    slot.store(on as i8, Ordering::Relaxed);
-    on
-}
-
-/// 从系统重新同步三个切换键的开启状态（应由 UI 线程每秒调用一次）。
-pub fn sync_lock_states() {
-    for vk in [0x14i32, 0x90, 0x91] {
-        if let Some((slot, _down)) = toggle_slots(vk) {
-            slot.store(system_toggle(vk) as i8, Ordering::Relaxed);
-        }
-    }
-}
-
-/// 低级键盘钩子收到切换键事件时调用：在 up→down 跳变时翻转状态（忽略自动重复）
-pub fn lock_key_event(vk: i32, is_down: bool) {
-    let Some((slot, down)) = toggle_slots(vk) else {
-        return;
-    };
-    if is_down {
-        if !down.swap(true, Ordering::Relaxed) {
-            // 只读本地原子值（不触发系统查询），保证钩子回调里没有任何系统调用；
-            // 未初始化（-1）时按关闭处理，随后由 UI 线程每秒同步纠正
-            let on = slot.load(Ordering::Relaxed) > 0;
-            slot.store(!on as i8, Ordering::Relaxed);
-        }
-    } else {
-        down.store(false, Ordering::Relaxed);
-    }
+    system_toggle(vk)
 }
 
 /// 打开 URL（设置 / 统计页面）

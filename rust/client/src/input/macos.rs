@@ -330,9 +330,18 @@ fn check_hotkey(shared: &Arc<Shared>, vk: u32) -> bool {
     {
         return false;
     }
-    let mut cfg = shared.cfg.write().unwrap();
-    cfg.need_show_key = !cfg.need_show_key;
-    drop(cfg);
+    // 切换 needShowKey，并立即写回 ini（与 Web 设置界面双向同步）
+    let (new_state, ini_path) = {
+        let mut cfg = shared.cfg.write().unwrap();
+        cfg.need_show_key = !cfg.need_show_key;
+        (cfg.need_show_key, cfg.ini_path.clone())
+    };
+    crate::config::write_ini_value(
+        &ini_path,
+        "common",
+        "needShowKey",
+        if new_state { "1" } else { "0" },
+    );
     shared.show_key_generation.fetch_add(1, Ordering::Relaxed);
     true
 }

@@ -595,11 +595,9 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
 /// 配置热重载（IniMonitor(1)）：重新读取 ini，并同步钩子参数
 fn reload_config(shared: &Arc<Shared>) {
     let mut cfg = shared.cfg.write().unwrap();
-    let new_cfg = crate::config::Config::load();
-    // needShowKey 的运行时开关不丢失
-    let need_show = cfg.need_show_key;
-    let mut new_cfg = new_cfg;
-    new_cfg.need_show_key = need_show;
+    let mut new_cfg = crate::config::Config::load();
+    // needShowKey 以 ini 为准：热键/托盘切换已即时写回 ini，因此这里无需保留内存旧值，
+    // 否则 Web 设置界面修改 needShowKey 后不会生效（表现为两端不同步）。
     new_cfg.generation = cfg.generation + 1;
     *cfg = new_cfg;
     drop(cfg);

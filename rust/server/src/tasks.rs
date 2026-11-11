@@ -289,8 +289,73 @@ fn zip_db_to(db_path: &str, entry_name: &str, zip_path: &str) -> Result<(), Stri
     Ok(())
 }
 
+/// 从 db 文件名（形如 `<设备名>_1731111404.db`）提取 `(设备名, unix秒时间戳)`。
+/// 设备名本身可含 `_`（如 `DESKTOP-ABC_1731111404.db`），所以从右往左找**最后一个** `_`。
+/// 时间戳部分必须能 parse 为 i64，否则视为格式不对返回 None。
+fn parse_db_filename(name: &str) -> Option<(String, i64)> {
+    let stem = name.rsplit_once('.').map(|(s, _)| s).unwrap_or(name);
+    let (device, ts_str) = stem.rsplit_once('_')?;
+    let ts = ts_str.parse::<i64>().ok()?;
+    if device.is_empty() {
+        return None;
+    }
+    Some((device.to_string(), ts))
+}
+
+/// 打开 zip 包，提取内部 db 文件名。
+/// 成功返回 `(完整文件名, 设备名, unix时间戳)`；失败或无 db 条目返回 Err。
+fn peek_zip_db_entry(zip_path: &Path) -> Result<(String, String, i64), String> {
+    let f = std::fs::File::open(zip_path).map_err(|e| e.to_string())?;
+    let mut archive = zip::ZipArchive::new(f).map_err(|e| e.to_string())?;
+    for i in 0..archive.len() {
+        let file = archive.by_index(i).map_err(|e| e.to_string())?;
+        if file.is_dir() {
+            continue;
+        }
+        let name = file.name().to_string();
+        if name.to_lowercase().ends_with(".db") {
+            match parse_db_filename(&name) {
+                Some((device, ts)) => return Ok((name, device, ts)),
+                None => return Err(format!("内部 db 文件名格式不对: {}", name)),
+            }
+        }
+    }
+    Err("zip 内未找到 .db 文件".into())
+}
+
+/// 扫描 dbs 目录，返回 `设备名 -> (完整文件名, unix时间戳)` 映射。
+fn collect_dbs_info(dbs_path: &Path) -> std::collections::HashMap<String, (String, i64)> {
+    let mut info = std::collections::HashMap::new();
+    let entries = match std::fs::read_dir(dbs_path) {
+        Ok(e) => e,
+        Err(_) => return info,
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.to_lowercase().ends_with(".db") {
+            continue;
+        }
+        if let Some((device, ts)) = parse_db_filename(&name) {
+            // 同设备名有多份时保留时间戳较大的（新的）
+            info.entry(device)
+                .and_modify(|existing| {
+                    if ts > existing.1 {
+                        *existing = (name.clone(), ts);
+                    }
+                })
+                .or_insert((name, ts));
+        }
+    }
+    info
+}
+
 /// Node: unzipShared —— 扫描共享目录全部 *.zip（跳过自己的），
-/// 与 dbs/ 目录下 <用户名>_<时间戳>.db 对比，较新则删除旧库并解压覆盖
+/// 打开 zip 看内部 db 文件名的时间戳，与 dbs/ 目录下同设备名的 db 比较，
+/// 较新则删除旧库并解压覆盖，较旧则跳过。
 async fn unzip_shared(
     data_dir: &str,
     share_file_dir: &Path,
@@ -299,102 +364,92 @@ async fn unzip_shared(
     let dbs_path = Path::new(data_dir).join("dbs/");
     std::fs::create_dir_all(&dbs_path).map_err(|e| format!("目录创建失败: {}", e))?;
 
-    // 共享目录中的 zip：key = 去掉 .zip 的文件名
-    let zip_info = collect_files(share_file_dir, "zip", |name| {
-        name.rsplit_once('.').map(|x| x.0.to_string()).unwrap_or_else(|| name.to_string())
-    });
-    // dbs 目录中的 db：key = 文件名按 '_' 去掉最后一段
-    let db_info = collect_files(&dbs_path, "db", |name| {
-        name.split('_')
-            .next_back()
-            .map(|_| {
-                let parts: Vec<&str> = name.split('_').collect();
-                parts[..parts.len() - 1].join("_")
-            })
-            .unwrap_or_else(|| name.to_string())
-    });
+    // dbs 目录现有 db 信息：设备名 -> (完整文件名, unix时间戳)
+    let dbs_info = collect_dbs_info(&dbs_path);
 
-    for (file_id, zinfo) in &zip_info {
-        // 需要不是自己的文件
-        if file_id == own_name {
+    // share 目录所有 *.zip
+    let zip_paths: Vec<PathBuf> = std::fs::read_dir(share_file_dir)
+        .map_err(|e| format!("目录读取失败: {}", e))?
+        .flatten()
+        .filter_map(|e| {
+            let p = e.path();
+            if p.is_file() && p.to_string_lossy().to_lowercase().ends_with(".zip") {
+                Some(p)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    for zip_path in zip_paths {
+        // 跳过自己机器的 zip（<shareDbName>.zip）
+        let zip_stem = zip_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+        if zip_stem == own_name {
             continue;
         }
-        // zip 修改时间减去 1 分钟（Node: newTime = ctime - 60*1000）
-        let zip_mtime = zinfo.mtime_secs.saturating_sub(60);
-        let need_unzip = match db_info.get(file_id) {
-            None => true, // 新文件需要解压
-            Some(dinfo) => {
-                // dbs 中的旧文件名末段是解压/备份时间戳（秒）
-                let dbs_ts = dinfo
-                    .name
-                    .split('_')
-                    .next_back()
-                    .and_then(|s| s.parse::<i64>().ok())
-                    .unwrap_or(0);
-                if zip_mtime > dbs_ts {
-                    // 文件更新需要删除原先的 db 文件
-                    info!("delete shared db: {:?}", dinfo.path);
-                    let _ = std::fs::remove_file(&dinfo.path);
+
+        // 打开 zip 看内部 db 文件名（主线程 peek，zip::ZipArchive 打开很快）
+        let (entry_name, device, entry_ts) = match peek_zip_db_entry(&zip_path) {
+            Ok(info) => info,
+            Err(e) => {
+                warn!("unzip_shared: 无法解析 {:?}: {}", zip_path, e);
+                continue;
+            }
+        };
+
+        // 和 dbs 里同设备名的现有 db 比较时间戳
+        let should_extract = match dbs_info.get(&device) {
+            Some((existing_name, existing_ts)) => {
+                if entry_ts > *existing_ts {
+                    info!(
+                        "unzip_shared: {} 比 dbs 里的 {} 新 ({} > {})，覆盖",
+                        entry_name, existing_name, entry_ts, existing_ts
+                    );
                     true
                 } else {
+                    info!(
+                        "unzip_shared: {} 不比 dbs 里的 {} 新 ({} <= {})，跳过",
+                        entry_name, existing_name, entry_ts, existing_ts
+                    );
                     false
                 }
             }
+            None => {
+                info!(
+                    "unzip_shared: dbs 里没有设备 {}，解压 {}",
+                    device, entry_name
+                );
+                true
+            }
         };
-        if need_unzip {
-            info!("unzip: {:?}", zinfo.path);
-            let zip_file = zinfo.path.clone();
-            let dbs_dir = dbs_path.clone();
-            tokio::task::spawn_blocking(move || unzip_to_dbs(&zip_file, &dbs_dir))
-                .await
-                .map_err(|e| e.to_string())??;
+
+        if !should_extract {
+            continue;
         }
+
+        // 删掉 dbs 里同设备名的旧 db（如果存在）
+        let old_db = dbs_info.get(&device).map(|(n, _)| dbs_path.join(n));
+        let zip_file = zip_path.clone();
+        let dbs_dir = dbs_path.clone();
+        tokio::task::spawn_blocking(move || {
+            if let Some(old) = old_db {
+                if old.exists() {
+                    let _ = std::fs::remove_file(&old);
+                }
+            }
+            unzip_to_dbs(&zip_file, &dbs_dir)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
     }
     Ok(())
 }
 
-struct FileInfo {
-    name: String,
-    path: PathBuf,
-    mtime_secs: i64,
-}
-
-/// Node getFilesInfo：收集目录下指定扩展名的文件信息
-fn collect_files<F: Fn(&str) -> String>(
-    directory: &Path,
-    ext: &str,
-    key_fun: F,
-) -> std::collections::HashMap<String, FileInfo> {
-    let mut files_info = std::collections::HashMap::new();
-    let entries = match std::fs::read_dir(directory) {
-        Ok(e) => e,
-        Err(_) => return files_info,
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
-        let name = entry.file_name().to_string_lossy().to_string();
-        if !name.to_lowercase().ends_with(&format!(".{}", ext)) {
-            continue;
-        }
-        let mtime_secs = entry
-            .metadata()
-            .ok()
-            .and_then(|m| m.modified().ok())
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or(0);
-        files_info.insert(
-            key_fun(&name),
-            FileInfo { name, path, mtime_secs },
-        );
-    }
-    files_info
-}
-
-/// 解压 zip 内全部文件到 dbs 目录（对应 Node unZipCore + fun(filename)）
+/// 解压 zip 内全部文件到 dbs 目录（对应 Node unZipCore + fun(filename)）。
+/// 调用方已在入口侧按时间戳比较、删旧文件，这里无条件写入覆盖。
 fn unzip_to_dbs(zip_path: &Path, dbs_dir: &Path) -> Result<(), String> {
     use std::io::Read;
     let f = std::fs::File::open(zip_path).map_err(|e| e.to_string())?;
@@ -405,10 +460,11 @@ fn unzip_to_dbs(zip_path: &Path, dbs_dir: &Path) -> Result<(), String> {
             continue;
         }
         let name = file.name().to_string();
+        let dest = dbs_dir.join(&name);
         let mut data = Vec::new();
         file.read_to_end(&mut data).map_err(|e| e.to_string())?;
-        let dest = dbs_dir.join(name);
-        std::fs::write(dest, &data).map_err(|e| e.to_string())?;
+        std::fs::write(&dest, &data).map_err(|e| e.to_string())?;
+        info!("unzip_to_dbs: 写入 {:?}", dest);
     }
     Ok(())
 }

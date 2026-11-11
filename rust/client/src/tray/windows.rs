@@ -18,6 +18,7 @@ const ID_RESTART_ALL: &str = "skb.restart_all";
 const ID_SETTINGS: &str = "skb.settings";
 const ID_STAT: &str = "skb.stat";
 const ID_SHOW: &str = "skb.show";
+const ID_VERSION: &str = "skb.version";
 const ID_EXIT: &str = "skb.exit";
 
 /// 气泡提示图标的 uID（与 tray-icon 自身的图标互不冲突）
@@ -361,12 +362,19 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                             crate::winutil::open_url(&url);
                         }
                         ID_SHOW => {
-                            let mut cfg = shared.cfg.write().unwrap();
-                            cfg.need_show_key = !cfg.need_show_key;
-                            let new_state = cfg.need_show_key;
-                            drop(cfg);
+                            // 切换 needShowKey，并立即写回 ini（与 Web 设置界面双向同步）
+                            let (new_state, ini_path) = {
+                                let mut cfg = shared.cfg.write().unwrap();
+                                cfg.need_show_key = !cfg.need_show_key;
+                                (cfg.need_show_key, cfg.ini_path.clone())
+                            };
+                            crate::config::write_ini_value(
+                                &ini_path,
+                                "common",
+                                "needShowKey",
+                                if new_state { "1" } else { "0" },
+                            );
                             shared.show_key_generation.fetch_add(1, Ordering::Relaxed);
-                            let _ = new_state;
                         }
                         ID_EXIT => {
                             shared.exit.store(true, Ordering::Relaxed);

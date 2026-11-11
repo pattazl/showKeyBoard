@@ -14,23 +14,6 @@ slint::include_modules!();
 use crate::config::{Config, KeyMapping};
 use crate::stats::Shared;
 
-/// Windows 控制键/应用路径窗的坐标换算：原实现实测"传入物理值会被再除一次 scale"，
-/// 故预乘 scale 抵消（scale=1 的机器上二者等价）。
-/// macOS 实测为标准换算（CGWindowBounds points = 传入物理值 / scale），
-/// 直接传物理像素即可，不做预乘。
-fn to_winit_pos(x: i32, y: i32, scale: f32) -> (i32, i32) {
-    #[cfg(windows)]
-    {
-        let s = if scale > 0.0 { scale } else { 1.0 };
-        return ((x as f32 * s).round() as i32, (y as f32 * s).round() as i32);
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = scale;
-        return (x, y);
-    }
-}
-
 struct Overlay {
     comp: KeyOverlay,
     title: String,
@@ -102,8 +85,6 @@ pub struct UiManager {
     symbol_font_ok: Option<bool>,
     last_app_path: String,
     last_app_check: Instant,
-    /// 上次切换键状态同步时间（CapsLock/NumLock/ScrollLock）
-    last_lock_sync: Instant,
     /// WebSocket 推送状态：当前 guiInterval 窗口内累计的显示文本与起始时间
     /// （对应 AHK ShowTxt 的 lastTextArr / lastTextTick）
     ws_last_texts: Vec<String>,
@@ -130,7 +111,6 @@ impl UiManager {
             symbol_font_ok: None,
             last_app_path: String::new(),
             last_app_check: Instant::now() - Duration::from_secs(10),
-            last_lock_sync: Instant::now() - Duration::from_secs(10),
             ws_last_texts: Vec::new(),
             ws_last_tick: None,
         }
@@ -301,6 +281,10 @@ impl UiManager {
             self.show_status(rest, false);
             return;
         }
+        // show_txt 调用频率低于 push_txt（仅需显示的按键才走到这里），
+        // 且后续 create_overlay/update_last_overlay/relayout 均为 &mut self，
+        // 无法在持 cfg 读锁的同时调用，故此处 clone Config。
+        // 真正的热路径 push_txt（每次按键）已去除 clone。
         let cfg = self.shared.cfg.read().unwrap().clone();
         // skipShow 过滤（AHK 在 CallShow 中过滤，WebSocket 也不推送）
         if cfg.ui.skip_show.iter().any(|s| s == token) {
@@ -492,6 +476,8 @@ impl UiManager {
 
     /// 显示后台服务连接状态：复用空闲浮窗（不新增 HWND），sticky=true 时常驻到状态变化
     fn show_status(&mut self, text: &str, sticky: bool) {
+        // 非热路径（仅连接状态变化时调用），clone Config 以满足
+        // overlay_font/apply_overlay_layout 的 &Config 签名。
         let cfg = self.shared.cfg.read().unwrap().clone();
         if self.status.is_none() {
             let (comp, title) = if let Some(w) = self.idle.pop() {
@@ -613,20 +599,25 @@ impl UiManager {
 
     /// FadeUI / CloseSelf：生命周期与渐隐
     fn tick_overlays(&mut self) {
-        let cfg = self.shared.cfg.read().unwrap().clone();
-        let ui = &cfg.ui;
+        // 每 20ms 调用一次：只提取需要的原始值，不持有 cfg 读锁，
+        // 也不 clone 整个 Config（避免持续堆分配碎片）。
+        let (gui_life, gui_fade_ms, gui_trans, target) = {
+            let cfg = self.shared.cfg.read().unwrap();
+            let ui = &cfg.ui;
+            (ui.gui_life, ui.gui_fade_ms, ui.gui_trans, Self::pool_target(ui))
+        };
         let now = Instant::now();
         for ov in self.overlays.iter_mut() {
             if !ov.fading {
-                if now.duration_since(ov.tick).as_millis() as u64 > ui.gui_life {
+                if now.duration_since(ov.tick).as_millis() as u64 > gui_life {
                     ov.fading = true;
                     ov.fade_start = Some(now);
                 }
             } else if let Some(start) = ov.fade_start {
-                let progress = if ui.gui_fade_ms == 0 {
+                let progress = if gui_fade_ms == 0 {
                     1.0
                 } else {
-                    now.duration_since(start).as_millis() as f32 / ui.gui_fade_ms as f32
+                    now.duration_since(start).as_millis() as f32 / gui_fade_ms as f32
                 };
                 if progress >= 1.0 {
                     // 不 hide（hide/show 会让 winit 重写扩展样式并在任务栏闪出按钮），
@@ -659,8 +650,7 @@ impl UiManager {
                 }
             }
         }
-        let target = Self::pool_target(ui);
-        self.prewarm_step(ui.gui_trans, target);
+        self.prewarm_step(gui_trans, target);
     }
 
     /// 窗口池大小：按 guiLife/guiInterval 的并发量估算（2~8），
@@ -717,21 +707,17 @@ impl UiManager {
 
     /// ShowCtrlState：控制键状态窗
     fn update_ctrl(&mut self) {
-        let cfg = self.shared.cfg.read().unwrap().clone();
-        let ui = &cfg.ui;
+        // 每 ~60ms 调用一次：只 clone UiParams（远小于整个 Config），
+        // 避免持 cfg 读锁时调用 &mut self 方法的借用冲突。
+        let ui = self.shared.cfg.read().unwrap().ui.clone();
         if !ui.ctrl_state {
             if let Some(c) = &self.ctrl {
                 c.comp.hide().ok();
             }
             return;
         }
-        // 切换键（CapsLock/NumLock/ScrollLock）状态每秒从系统同步一次。
-        // 放在 UI 线程：本线程有正在运行的消息循环，读到的 toggle 位才是最新的；
-        // 输入钩子线程里读到的可能是启动时残留的旧值。
-        if self.last_lock_sync.elapsed() >= Duration::from_secs(1) {
-            self.last_lock_sync = Instant::now();
-            crate::winutil::sync_lock_states();
-        }
+        // 切换键（CapsLock/NumLock/ScrollLock）状态直接查询系统 toggle 位，
+        // 与 AHK 的 GetKeyState(keyName,"T") 每 50ms 轮询语义一致，实时且无竞态。
         // 计算按下的控制键
         let mut txt = String::new();
         for key in &ui.ctrl_list {
@@ -818,55 +804,53 @@ impl UiManager {
         win.comp.set_font_name(font.as_str().into());
         win.comp.set_font_size(ui.ctrl_text_size);
         win.comp.set_font_weight(if ui.ctrl_text_bold { 700 } else { 400 });
-        // 配置值即屏幕物理像素。scale 必须取显示器 DPI：窗口刚创建/隐藏时
-        // window().scale_factor() 会退化为 1.0。
+        // 控制键状态窗：配置里 ctrl_X/ctrl_Y 是屏幕物理像素（与 activeAppShow 一致）。
+        // AHK 的 Gui +DPIScale 只影响 Gui 内部控件坐标，外部屏幕坐标永远是物理像素。
+        // 尺寸上，Gui 内部控件坐标会自动按 DPI 缩放 → 配置尺寸是**逻辑像素**，
+        // 因此物理尺寸 = 配置 × scale；Slint 逻辑属性 = 物理尺寸 / scale。
         let scale = Self::scale_at_pos(ui.ctrl_x, ui.ctrl_y);
-        let use_scale = if ui.gui_dpiscale { scale } else { 1.0 };
-        win.comp.set_corner_radius(ui.ctrl_radius as f32 / use_scale);
-        let w = ui.ctrl_width;
-        let h = if ui.ctrl_height != 0 {
-            ui.ctrl_height
+        let w_phys = (ui.ctrl_width as f32 * scale).round().max(1.0) as i32;
+        let h_phys = if ui.ctrl_height != 0 {
+            (ui.ctrl_height as f32 * scale).round().max(1.0) as i32
         } else {
-            (ui.ctrl_text_size as f32 * use_scale * 1.8).round() as i32
+            (ui.ctrl_text_size as f32 * scale * 1.8).round().max(1.0) as i32
         };
-        // o_width/o_height 是 Slint 逻辑值，需除以 scale 才能填满目标物理尺寸
-        win.comp.set_o_width(w as f32 / use_scale);
-        win.comp.set_o_height(h as f32 / use_scale);
-        // show 之前先落一次位置/尺寸，避免窗口首帧出现在 (0,0)
-        let (px, py) = to_winit_pos(ui.ctrl_x, ui.ctrl_y, scale);
-        let phw = (w as f32 * scale).round() as u32;
-        let phh = (h as f32 * scale).round() as u32;
+        win.comp.set_corner_radius(ui.ctrl_radius as f32 / scale);
+        win.comp.set_o_width(w_phys as f32 / scale);
+        win.comp.set_o_height(h_phys as f32 / scale);
+        // 位置直接用配置物理像素（与 activeAppShow 统一）
+        let px = ui.ctrl_x;
+        let py = ui.ctrl_y;
         win.comp.window().set_position(PhysicalPosition::new(px, py));
         win.comp
             .window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(phw, phh)));
+            .set_size(WindowSize::Physical(PhysicalSize::new(
+                w_phys as u32,
+                h_phys as u32,
+            )));
         win.comp.show().ok();
-        // 位置/尺寸走 winit 物理像素接口并预乘 scale：
-        // 本后端下 winit 实际换算用的是 1.0 倍率，而 scale_factor() 报的是显示器 DPI，
-        // 直接传物理值会被再除一次 scale，导致窗口缩小、位置偏移。
-        let mut winit_scale = 0.0f32;
+        // Windows：Slint 的 Physical 接口即真实物理像素（与浮窗一致）。
+        // macOS：屏外窗口 scale_factor 会退化为 1.0，需再用 winit 物理接口校正一次。
+        #[cfg(not(windows))]
         {
             use slint::winit_030::WinitWindowAccessor;
             win.comp.window().with_winit_window(|ww| {
                 use slint::winit_030::winit::dpi::{
                     PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
                 };
-                winit_scale = ww.scale_factor() as f32;
                 ww.set_outer_position(WinitPos::new(px, py));
-                let _ = ww.request_inner_size(WinitSize::new(phw, phh));
+                let _ = ww.request_inner_size(WinitSize::new(w_phys as u32, h_phys as u32));
             });
         }
-        if winit_scale > 0.0 {
-            win.positioned = true;
-        }
+        win.positioned = true;
         let title = win.title.clone();
         crate::winutil::apply_overlay_styles(&win.comp.window(), &title, click_through);
     }
 
     /// activeAppShow：显示当前激活应用路径
     fn update_app_path(&mut self) {
-        let cfg = self.shared.cfg.read().unwrap().clone();
-        let ui = &cfg.ui;
+        // 每 500ms 调用一次：只 clone UiParams
+        let ui = self.shared.cfg.read().unwrap().ui.clone();
         if !ui.active_app_show {
             if let Some(c) = &mut self.appwin {
                 c.comp.hide().ok();
@@ -911,12 +895,12 @@ impl UiManager {
         win.comp.set_font_name(font.as_str().into());
         win.comp.set_font_size(ui.ctrl_text_size.max(12));
         win.comp.set_font_weight(400);
+        // AHK 的 activeAppShow 用 ToolTip 显示：坐标与尺寸都是**物理像素**，不随 DPI 缩放。
         let scale = Self::scale_at_pos(ui.active_app_show_x, ui.active_app_show_y);
-        let use_scale = if ui.gui_dpiscale { scale } else { 1.0 };
-        win.comp.set_corner_radius(ui.ctrl_radius as f32 / use_scale);
+        win.comp.set_corner_radius(ui.ctrl_radius as f32 / scale);
         // 宽度按内容自适应：单行实测文本宽度（物理像素）；macOS 无 GDI 测量，按字符宽度估算
         let font_size = ui.ctrl_text_size.max(12);
-        let font_px = (font_size as f32 * use_scale).round().max(1.0) as i32;
+        let font_px = (font_size as f32 * scale).round().max(1.0) as i32;
         let (_lines, _line_h, measured) =
             crate::winutil::measure_text(&path, &font, font_px, false, 0);
         let text_w = if measured > 0 {
@@ -946,34 +930,35 @@ impl UiManager {
                 None => 1920,
             }
         };
-        // Text 左右共 8px 逻辑边距 + 少量余量；内容不足 200 时保持原有最小宽度
-        let w = (text_w + (12.0 * use_scale).round() as i32).clamp(200, max_w);
-        let h = (font_size as f32 * use_scale * 1.8).round() as i32;
-        win.comp.set_o_width(w as f32 / use_scale);
-        win.comp.set_o_height(h as f32 / use_scale);
-        let (px, py) = to_winit_pos(ui.active_app_show_x, ui.active_app_show_y, scale);
-        let phw = (w as f32 * scale).round() as u32;
-        let phh = (h as f32 * scale).round() as u32;
+        // Text 左右共 12px 物理边距；内容不足 200 时保持最小宽度
+        let w_phys = (text_w + (12.0 * scale).round() as i32).clamp(200, max_w);
+        let h_phys = (font_size as f32 * scale * 1.8).round().max(1.0) as i32;
+        win.comp.set_o_width(w_phys as f32 / scale);
+        win.comp.set_o_height(h_phys as f32 / scale);
+        let px = ui.active_app_show_x;
+        let py = ui.active_app_show_y;
         win.comp.window().set_position(PhysicalPosition::new(px, py));
         win.comp
             .window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(phw, phh)));
+            .set_size(WindowSize::Physical(PhysicalSize::new(
+                w_phys as u32,
+                h_phys as u32,
+            )));
         win.comp.show().ok();
-        let mut winit_scale = 0.0f32;
+        // Windows：Slint 的 Physical 接口即真实物理像素（与浮窗一致）。
+        // macOS：屏外窗口 scale_factor 会退化为 1.0，需再用 winit 物理接口校正一次。
+        #[cfg(not(windows))]
         {
             use slint::winit_030::WinitWindowAccessor;
             win.comp.window().with_winit_window(|ww| {
                 use slint::winit_030::winit::dpi::{
                     PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
                 };
-                winit_scale = ww.scale_factor() as f32;
                 ww.set_outer_position(WinitPos::new(px, py));
-                let _ = ww.request_inner_size(WinitSize::new(phw, phh));
+                let _ = ww.request_inner_size(WinitSize::new(w_phys as u32, h_phys as u32));
             });
         }
-        if winit_scale > 0.0 {
-            win.positioned = true;
-        }
+        win.positioned = true;
         let title = win.title.clone();
         crate::winutil::apply_overlay_styles(&win.comp.window(), &title, true);
     }

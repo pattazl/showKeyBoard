@@ -269,10 +269,12 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                 }
 
                 // 分钟数据定时刷新（GetMinuteDataTimer，1 秒）
+                // 锁顺序：stats 先于 cfg（与 build_data_body / push_txt 一致），
+                // 且不再 clone Config（避免每秒 ~50 次堆分配造成内存碎片）。
                 if record_minute && last_minute_tick.elapsed().as_millis() >= 1000 {
                     last_minute_tick = std::time::Instant::now();
-                    let cfg = shared.cfg.read().unwrap().clone();
                     let mut stats = shared.stats.lock().unwrap();
+                    let cfg = shared.cfg.read().unwrap();
                     stats.minute_data(&cfg, false, false);
                 }
 
