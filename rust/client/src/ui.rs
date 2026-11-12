@@ -54,9 +54,9 @@ struct IdleWin {
 }
 
 /// 浮窗窗口池上限（启动时预热并永久复用）。
-/// 总窗口数 = 池窗口 + 控制键窗 + 应用路径窗 ≤ 10（用户要求上限）。
+/// 池窗口（含状态浮窗）最多 16 个；另加控制键窗 + 应用路径窗，总窗口数 ≤ 16+2。
 /// 运行期不再新建 HWND —— 窗口数恒定，内存不随按键增长，也不会出现任务栏按钮。
-const PREWARM_WINDOWS: usize = 8;
+const PREWARM_WINDOWS: usize = 16;
 /// 空闲池上限（与窗口总数一致）
 const IDLE_KEEP: usize = PREWARM_WINDOWS;
 /// 空闲时把窗口挪到这个屏幕外坐标（不 hide，避免 winit 重写扩展样式）
@@ -653,7 +653,7 @@ impl UiManager {
         self.prewarm_step(gui_trans, target);
     }
 
-    /// 窗口池大小：按 guiLife/guiInterval 的并发量估算（2~8），
+    /// 窗口池大小：按 guiLife/guiInterval 的并发量估算（2~16），
     /// 既不会因为窗口太少而提前挤掉旧浮窗，也不会白白占内存
     fn pool_target(ui: &crate::config::UiParams) -> usize {
         let interval = ui.gui_interval.max(100);

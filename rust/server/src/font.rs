@@ -49,49 +49,101 @@ fn compute_system_fonts() -> Vec<String> {
     result
 }
 
-/// Windows: enumerate fonts via PowerShell + System.Drawing
+/// Windows: enumerate fonts via GDI EnumFontFamiliesExW (native, no external deps)
+/// 回调里直接读 ENUMLOGFONTEXW.elfFullName，和 macOS CoreText 保持一致的原生 FFI 范式。
+#[cfg(windows)]
 fn get_fonts_windows() -> Vec<String> {
-    // Use Add-Type to load System.Drawing, then enumerate installed fonts
-    let script = r#"
-        Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
-        if ($?) {
-            (New-Object System.Drawing.Text.InstalledFontCollection).Families | ForEach-Object { $_.Name }
-        } else {
-            # Fallback: list from registry
-            Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts' | 
-            Get-Member -MemberType NoteProperty | 
-            ForEach-Object { $_.Name } | 
-            Where-Object { $_ -notmatch '\(.*\)' }
+    use std::ffi::c_void;
+
+    // --- GDI 结构定义 ---
+    // ENUMLOGFONTEXW 字段布局：LOGFONTW (92B) + elfFullName (128B) + elfStyle (64B) + elfScript (64B)
+    #[repr(C)]
+    struct ENUMLOGFONTEXW {
+        _elf_logfont: [u8; 92],
+        elf_full_name: [u16; 64],
+        _elf_style: [u16; 32],
+        _elf_script: [u16; 32],
+    }
+    // NEWTEXTMETRICEXW 只作为回调签名占位，不解引用
+    #[repr(C)]
+    struct NEWTEXTMETRICEXW;
+
+    // --- extern 声明 ---
+    type FONTENUMPROC = unsafe extern "system" fn(
+        *const ENUMLOGFONTEXW,
+        *const NEWTEXTMETRICEXW,
+        u32,
+        *mut c_void,
+    ) -> i32;
+
+    #[link(name = "gdi32")]
+    extern "system" {
+        // EnumFontFamiliesExW: lpLogfont=null 枚举全系统、dwFlags 必须为 0（MSDN: reserved）
+        fn EnumFontFamiliesExW(
+            hdc: *mut c_void,
+            lp_logfont: *const c_void,
+            lp_proc: FONTENUMPROC,
+            l_param: *mut c_void,
+            dw_flags: u32,
+        ) -> i32;
+    }
+    #[link(name = "user32")]
+    extern "system" {
+        fn GetDC(hwnd: *mut c_void) -> *mut c_void;
+        fn ReleaseDC(hwnd: *mut c_void, hdc: *mut c_void) -> i32;
+    }
+
+    // --- 回调：把 elf_full_name 写入外部 Vec<String> ---
+    unsafe extern "system" fn enum_proc(
+        lp_elf: *const ENUMLOGFONTEXW,
+        _lp_ntm: *const NEWTEXTMETRICEXW,
+        _font_type: u32,
+        l_param: *mut c_void,
+    ) -> i32 {
+        if lp_elf.is_null() {
+            return 1;
         }
-    "#;
-    
-    // PowerShell 字体枚举是内部实现，任何情况下都不能弹窗：
-    // 不带 CREATE_NO_WINDOW 时会在桌面上闪出控制台窗口（与 showHttpDebug 无关，
-    // showHttpDebug 只控制 showkeyboard_server 自身窗口由客户端 spawn 时决定）
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        return match std::process::Command::new("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output()
-        {
-            Ok(output) if output.status.success() => {
-                String::from_utf8_lossy(&output.stdout)
-                    .lines()
-                    .map(|l| l.trim().to_string())
-                    .filter(|l| !l.is_empty())
-                    .collect()
-            }
-            _ => get_fonts_windows_fallback(),
-        };
+        let elf = &*lp_elf;
+        // elf_full_name 是 UTF-16 宽字符数组，后面用 '\0' 填充
+        let slice: &[u16] = &elf.elf_full_name;
+        let end = slice.iter().position(|&c| c == 0).unwrap_or(slice.len());
+        let name = String::from_utf16_lossy(&slice[..end]);
+        let trimmed = name.trim();
+        if !trimmed.is_empty() {
+            let out: &mut Vec<String> = &mut *(l_param as *mut Vec<String>);
+            out.push(trimmed.to_string());
+        }
+        1 // 继续枚举
     }
-    #[cfg(not(windows))]
-    {
-        let _ = script;
-        get_fonts_windows_fallback()
+
+    unsafe {
+        let hdc = GetDC(std::ptr::null_mut());
+        if hdc.is_null() {
+            return get_fonts_windows_fallback();
+        }
+        let mut fonts: Vec<String> = Vec::with_capacity(256);
+        // lpLogfont=null 枚举整个系统字体家族，dwFlags=0（MSDN: reserved）
+        let ok = EnumFontFamiliesExW(
+            hdc,
+            std::ptr::null(),
+            enum_proc,
+            &mut fonts as *mut Vec<String> as *mut c_void,
+            0,
+        );
+        ReleaseDC(std::ptr::null_mut(), hdc);
+        if ok == 0 || fonts.is_empty() {
+            return get_fonts_windows_fallback();
+        }
+        fonts.sort();
+        fonts.dedup();
+        fonts
     }
+}
+
+/// 非 Windows 平台的 stub：永远走兜底（项目只在 Windows 上真正用到）
+#[cfg(not(windows))]
+fn get_fonts_windows() -> Vec<String> {
+    get_fonts_windows_fallback()
 }
 
 /// Windows 兜底：直接列 C:\Windows\Fonts 字体文件

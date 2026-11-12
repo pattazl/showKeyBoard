@@ -22,8 +22,8 @@
 
 ## 系统要求
 
-1. Windows 64 位系统，推荐 Windows10 或 Windows11
-2. 有现代浏览器（Edge/Chrome/FireFox 等）
+1. Windows 64 位系统，推荐 Windows10 或 Windows11 或 MacOS 12 Monterey（x86_64 /aarch64）及以上
+2. 有现代浏览器（Edge/Chrome/FireFox/Safari 等）
 
 ## 使用方法
 
@@ -88,7 +88,7 @@
 
 此处以 FreeFileSync 同步FTP举例
 
-1. 首先设定共享文件的保存目录，默认为安装目录下的 **share**
+1. 首先设定共享文件的保存目录，默认为用户目录下的 **share**
 2. 在 FreeFileSync 中配置本地share 和 FTP服务器双向同步，将同步文件生成为 ffs_batch文件，比如 Keyboard.ffs_batch
 3. 设定"**生成共享文件间隔小时数**" ,表示每隔多久将本地的记录打包
 4. 设置打包完成后自动执行的命令，如果安装了 FreeFileSync ,则可以直接执行 ffs_batch文件，比如命令可配置为上面的 Keyboard.ffs_batch
@@ -133,6 +133,8 @@
 
 HTTP 端负责写配置文件，接收 HTML 前端数据
 
+nodejs旧版本架构：
+
 ```mermaid
 graph LR
 Client -->|Post/Launch|NodeServer ---|WebSocket/Post/Get|Web
@@ -144,17 +146,30 @@ Client -->|Launch|HookKey
 
 ```
 
+rust新版本架构
+
+```mermaid
+graph LR
+Client -->|Post/Launch|Server ---|WebSocket/Post/Get|Web
+Server ---|WebSocket|Client
+Server ---|R/W|ConfigFile
+ConfigFile -->|Reload|Client
+```
+
+
+
 ## 编译说明
 
 1. `http` 里面的是服务器端代码，使用 `npm run build` 打包，生成 `httpdist` 目录
 2. `ui-helper` 是客户端配置页面 `npm run build` 生成 `dist` 目录，发布时候要放到 `httpdist/dist/ui` 目录中
 3. 根目录是 AutoHotkey v2.1alpha.18 脚本，需要用 AutoHotkey 工具对 `showKeyBoard.ahk` 打包为 exe，对应的 exe 文件需要放到和 `httpdist` 同级目录
+4. 2.0版本开始将Autohotkey和nodejs改为 rust+slint实现
 
 ## 目录说明
 
-1. 根目录下的 `KeyList.txt` 键盘映射关系，`showKeyBoard.ini` 是客户端配置信息
-2. 目录 `httpdist/dist/records.db` 文件保存按键的统计信息和统计的相关配置信息
-3. 文件 `httpdist/dist/node.exe` 用于启动后端 `http/websocket` 服务
+1. 根目录下的 `KeyList.txt` 键盘映射关系，`showKeyBoard.ini` 是客户端配置信息，此文件已经迁移到用户目录
+2. 目录 `httpdist/dist/records.db` 文件保存按键的统计信息和统计的相关配置信息，此文件已经迁移到用户目录
+3. 文件 `httpdist/dist/showkeyboard_server.exe` 用于启动后端 `http/websocket` 服务
 
 ## 二次开发
 

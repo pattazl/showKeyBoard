@@ -23,8 +23,8 @@
 
 ## System Requirements
 
-1. Windows 64-bit system, Windows10 or Windows11 is recommended
-2. Have a modern browser (Edge/Chrome/FireFox, etc.)
+1. Windows 64-bit system, Windows10 , Windows11 or MacOS 12 Monterey（x86_64 /aarch64）及以上 is recommended
+2. Have a modern browser (Edge/Chrome/FireFox/Safari, etc.)
 
 ## How to use
 
@@ -87,7 +87,7 @@ Running showkeyboard_client.exe directly will automatically call the server show
 
 Here is an example of FreeFileSync synchronization FTP
 
-1. First set the directory where shared files are saved. The default directory is share in the installation directory
+1. First set the directory where shared files are saved. The default directory is share in the user directory
 2. Configure synchronization between local share and FTP server in FreeFileSync, and generate the synchronization file as ffs_batch file, such as Keyboard.ffs_batch
 3. Set the **Interval hours for generating shared files** to indicate how often local records are packaged
 4. Set the command to be automatically executed after packaging. If FreeFileSync is installed, you can directly execute the ffs_batch file. For example, the command can be configured as Keyboard.ffs_batch above
@@ -135,6 +135,8 @@ The client includes a low-level hook process, which is used to decouple the proc
 
 The HTTP side writes the configuration file and receives the HTML front-end data
 
+Nodejs Version
+
 ```mermaid
 graph LR
 Client -->|Post/Launch|NodeServer ---|WebSocket/Post/Get|Web
@@ -145,17 +147,29 @@ HookKey -->|SendMessage|Client
 Client -->|Launch|HookKey
 ```
 
+Rust Version
+
+
+```mermaid
+graph LR
+Client -->|Post/Launch|Server ---|WebSocket/Post/Get|Web
+Server ---|WebSocket|Client
+Server ---|R/W|ConfigFile
+ConfigFile -->|Reload|Client
+```
+
 ## Compile Instructions
 
 1. `http` is the server-side code, use `npm run build` to package and generate the `httpdist` directory
 2. `ui-helper` is the client configuration page `npm run build` to generate the `dist` directory, which needs to be placed in the `httpdist/dist/ui` directory when publishing
 3. The root directory is the AutoHotkey  v2.1alpha.18 script, which needs to be packaged into exe with the AutoHotkey tool for `showKeyBoard.ahk`, and the corresponding exe file needs to be placed in the same level directory as `httpdist`
+4.  Starting from version 2.0, Autohotkey and nodejs have been replaced with rust+slint implementation
 
 ## Directory Description
 
-1. `KeyList.txt` in the root directory saves key characters directory. `showKeyBoard.ini` saves the client configuration 
-2. `httpdist/dist/records.db` saves the statistical information of the keys and the related configuration information of the statistics
-3. `httpdist/dist/node.exe` is used to start the backend `http/websocket` service
+1. `KeyList.txt` in the root directory saves key characters directory. `showKeyBoard.ini` saves the client configuration , move to user directory 
+2. `httpdist/dist/records.db` saves the statistical information of the keys and the related configuration information of the statistics, move to user directory 
+3. `showkeyboard_server.exe` is used to start the backend `http/websocket` service
 
 ## Secondary Development
 
