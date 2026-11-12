@@ -564,27 +564,22 @@ fn system_toggle(vk: i32) -> bool {
 }
 
 pub fn key_toggled(vk: i32) -> bool {
-    let Some((slot, _down)) = toggle_slots(vk) else {
+    // macOS：每次都从 CGEventSourceFlagsState 读系统权威状态。
+    // 之前用原子缓存但 CGEventTap 回调里读太早（事件还没分发）导致缓存污染，
+    // 改成每次直读，UI 层每帧 ~60ms 调一次，开销可忽略（一次 syscall）。
+    if toggle_slots(vk).is_none() {
         return false;
-    };
-    let v = slot.load(Ordering::Relaxed);
-    if v >= 0 {
-        return v != 0;
     }
-    let on = system_toggle(vk);
-    slot.store(on as i8, Ordering::Relaxed);
-    on
+    system_toggle(vk)
 }
 
 pub fn sync_lock_states() {
-    for vk in [0x14i32, 0x90, 0x91] {
-        if let Some((slot, _down)) = toggle_slots(vk) {
-            slot.store(system_toggle(vk) as i8, Ordering::Relaxed);
-        }
-    }
+    // macOS CapsLock/NumLock 已改为 key_toggled 直接读 CGEventSourceFlagsState，
+    // 不再需要在这里做缓存同步。保留空函数供跨平台统一接口。
 }
 
-/// 键盘事件到达时调用：在 up→down 跳变时翻转状态（忽略自动重复）
+/// 键盘事件到达时调用：仅对非切换键维护按下/抬起状态（Shift/Ctrl/Alt/Cmd 等）。
+/// 切换键（CapsLock/NumLock）不走这里 — key_toggled 每帧直读系统权威状态。
 pub fn lock_key_event(vk: i32, is_down: bool) {
     let Some((slot, down)) = toggle_slots(vk) else {
         return;

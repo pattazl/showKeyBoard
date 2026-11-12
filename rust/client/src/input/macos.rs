@@ -136,6 +136,10 @@ fn key_to_vk(key: Key) -> Option<(u32, bool)> {
         Key::Kp8 => (0x68, false),
         Key::Kp9 => (0x69, false),
         Key::KpDelete => (0x6E, false),
+        // macOS rdev 对 NumLock/ScrollLock 没有显式映射，会落成 Key::Unknown(keycode)。
+        // kVK_NumLock = 71, kVK_ScrollLock = 107
+        Key::Unknown(71) => (0x90, false),
+        Key::Unknown(107) => (0x91, false),
         _ => return None,
     };
     Some(pair)
@@ -177,10 +181,15 @@ fn key_event(key: Key, down: bool) {
     // 先更新按下状态（add_modifier 依赖），再入队交给消费线程
     let was_down = crate::winutil::key_down(vk as i32);
     crate::winutil::set_key_down(vk, down);
-    // 切换键（CapsLock/NumLock）：rdev 对按下与抬起都报 KeyPress，本地翻转不可靠，
-    // 直接读取系统权威状态（CGEventSourceFlagsState，可在任意线程调用）
+    // macOS CapsLock 等切换键的状态同步：
+    // 不能在 rdev 的 CGEventTap 回调内直接读取 CGEventSourceFlagsState，
+    // 因为 listen-only 模式下回调先于系统事件分发触发，此时 toggle 位还未切换。
+    // 改用延迟异步方式：让 UI 定时轮询 key_toggled（始终读系统权威状态），
+    // 这里只需要保证 set_key_down 记录了 KeyPress/KeyRelease 的到达。
+    // （NUM/ScrollLock 同理。）
     if matches!(vk, 0x14 | 0x90 | 0x91) {
-        crate::winutil::sync_lock_states();
+        // 不调用 sync_lock_states() — 时机太早，读不到新状态
+        // UI 层 key_toggled() 定时轮询 CGEventSourceFlagsState 会自然追上
     } else {
         crate::winutil::lock_key_event(vk as i32, down);
     }
