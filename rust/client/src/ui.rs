@@ -89,6 +89,8 @@ pub struct UiManager {
     /// （对应 AHK ShowTxt 的 lastTextArr / lastTextTick）
     ws_last_texts: Vec<String>,
     ws_last_tick: Option<Instant>,
+    /// 上次刷新显示器列表的时间（每 5 秒检查一次布局变化）
+    last_monitor_check: Instant,
 }
 
 impl UiManager {
@@ -113,6 +115,7 @@ impl UiManager {
             last_app_check: Instant::now() - Duration::from_secs(10),
             ws_last_texts: Vec::new(),
             ws_last_tick: None,
+            last_monitor_check: Instant::now(),
         }
     }
 
@@ -149,7 +152,12 @@ impl UiManager {
         if monitors.is_empty() {
             return (0, 0, 1920, 1080);
         }
-        let num = cfg.ui.gui_monitor_num;
+        // 布局变化（热插拔/分辨率/扩展模式）时强制落到默认显示器（monitors[0]），
+        // 避免按 guiMonitorNum 取到已消失的屏幕坐标导致浮窗飞出可视区；
+        // 恢复到启动时的布局后，继续按原 guiMonitorNum 配置显示。
+        let layout_changed =
+            MONITORS_SNAPSHOT.with(|s| *s.borrow() != monitors);
+        let num = if layout_changed { 1 } else { cfg.ui.gui_monitor_num };
         let idx = if num == 0 {
             crate::winutil::active_monitor(&monitors)
         } else if (num as usize) > monitors.len() || num < 0 {
@@ -650,6 +658,22 @@ impl UiManager {
                 }
             }
         }
+        // 每 5 秒刷新显示器列表；布局变化（热插拔/分辨率/扩展模式）时重建所有浮窗，
+        // 避免窗口停留在已消失的屏幕坐标上不可见。ctrl/appwin 由 update_* 自动重定位。
+        if now.duration_since(self.last_monitor_check) >= Duration::from_secs(5) {
+            self.last_monitor_check = now;
+            let new_mons = crate::winutil::monitors();
+            let changed = MONITORS.with(|m| *m.borrow() != new_mons);
+            if changed {
+                MONITORS.with(|m| *m.borrow_mut() = new_mons);
+                for ov in self.overlays.iter_mut() {
+                    ov.comp.hide().ok();
+                }
+                self.overlays.clear();
+                self.idle.clear();
+                self.prewarm.clear();
+            }
+        }
         self.prewarm_step(gui_trans, target);
     }
 
@@ -988,15 +1012,20 @@ impl UiManager {
 }
 
 thread_local! {
+    /// 当前显示器列表（每 2 秒刷新一次，跟随热插拔/分辨率变化）
     static MONITORS: std::cell::RefCell<Vec<crate::winutil::Rect>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+    /// 启动时的显示器快照（不变），用于判断布局是否"恢复"回启动时的状态
+    static MONITORS_SNAPSHOT: std::cell::RefCell<Vec<crate::winutil::Rect>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// 在 Slint 事件循环中运行 UI（阻塞，直到退出）
 pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
-    // 预加载显示器信息
+    // 预加载显示器信息，并保存启动快照（用于判断布局是否恢复）
     let mons = crate::winutil::monitors();
-    MONITORS.with(|m| *m.borrow_mut() = mons);
+    MONITORS.with(|m| *m.borrow_mut() = mons.clone());
+    MONITORS_SNAPSHOT.with(|m| *m.borrow_mut() = mons);
 
     let mut manager = UiManager::new(shared.clone(), rx);
 
