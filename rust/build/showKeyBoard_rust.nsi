@@ -86,6 +86,9 @@ LangString delRecord ${LANG_SIMPCHINESE} "删除旧统计"
 LangString delRecordDesc ${LANG_ENGLISH} "Records for statistic of mouse, keystroke,keymap,Apps"
 LangString delRecordDesc ${LANG_SIMPCHINESE} "统计记录包含键盘、鼠标、应用的相关信息"
 
+LangString oldExeFound ${LANG_ENGLISH} "Old AHK version showkeyboard.exe found in the install directory.$\r$\n$\r$\nDelete it?"
+LangString oldExeFound ${LANG_SIMPCHINESE} "检测到安装目录中存在旧版 showkeyboard.exe（AHK 版本）。$\r$\n$\r$\n是否删除？"
+
 LangString unRegMsg ${LANG_ENGLISH} "Whether reserved relative config or records?$\r$\n$\r$\n"
 LangString unRegMsg ${LANG_SIMPCHINESE} "是否保留配置和记录？$\r$\n$\r$\n确定保留？（单击“YES”保留，单击“NO”清除，建议保留）"
 
@@ -120,6 +123,22 @@ Section $(Prepare) Prepare
     Sleep 500
   ${EndIf}
 
+  ; 检测旧版 AHK 客户端 showkeyboard.exe（不区分大小写，含 showKeyBoard.exe）：提示是否删除
+  IfFileExists "$INSTDIR\showkeyboard.exe" 0 noOldExe
+    MessageBox MB_YESNO|MB_ICONQUESTION $(oldExeFound) IDYES delOldExe IDNO noOldExe
+    delOldExe:
+    ; 旧版进程若在运行会导致删除失败，先尝试结束
+    nsProcess::_FindProcess "showkeyboard.exe"
+    Pop $R0
+    ${If} $R0 == 0
+      nsProcess::_KillProcess "showkeyboard.exe"
+      Pop $R0
+      Sleep 300
+    ${EndIf}
+    Delete "$INSTDIR\showkeyboard.exe"
+    DetailPrint "Old showkeyboard.exe removed"
+  noOldExe:
+
   ; 旧版本配置位于安装目录，迁移到用户数据目录（目标已存在则跳过）
   CreateDirectory "$PROFILE\Documents\ShowKeyBoard"
   IfFileExists "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini" migIniDone
@@ -133,6 +152,14 @@ Section $(Prepare) Prepare
   ; 迁移后清除安装目录中的旧配置文件
   Delete "$INSTDIR\showKeyBoard.ini"
   Delete "$INSTDIR\KeyList.txt"
+
+  ; 兼容旧配置：后端已从 node server.js 改为独立进程 showkeyboard_server.exe，
+  ; 旧 ini 中 serverExecName=node.exe 会导致客户端启动错误的服务端
+  ReadINIStr $0 "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini" "common" "serverExecName"
+  ${If} $0 == "node.exe"
+    DetailPrint "Fixing serverExecName: node.exe -> showkeyboard_server.exe"
+    WriteINIStr "$PROFILE\Documents\ShowKeyBoard\showKeyBoard.ini" "common" "serverExecName" "showkeyboard_server.exe"
+  ${EndIf}
 SectionEnd
 Section /o $(delConfig) delConfig
   ;MessageBox MB_OK "$INSTDIR\showKeyBoard.ini"
