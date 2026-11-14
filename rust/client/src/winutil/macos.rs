@@ -6,6 +6,8 @@ use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
 use std::time::{Duration, Instant};
 
 use core_graphics::display::CGDisplay;
+use cocoa::base::{id, nil};
+use objc::{class, msg_send, sel, sel_impl};
 
 pub type Rect = (i32, i32, i32, i32); // left, top, right, bottom
 
@@ -42,7 +44,12 @@ extern "C" {
     fn CGSessionCopyCurrentDictionary() -> CFDictionaryRef;
     fn CGEventSourceFlagsState(state: i32) -> u64;
     static kCGWindowOwnerPID: CFStringRef;
+    static kCGWindowLayer: CFStringRef;
 }
+
+// NSWorkspace / NSRunningApplication（读取前台应用）
+#[link(name = "AppKit", kind = "framework")]
+extern "C" {}
 
 extern "C" {
     fn proc_pidpath(pid: i32, buffer: *mut c_void, buffersize: u32) -> i32;
@@ -160,7 +167,26 @@ pub fn foreground_hwnd() -> isize {
 }
 
 /// 前台窗口所属进程 ID（0 表示无前台窗口）
+///
+/// 必须用 NSWorkspace.frontmostApplication：CGWindowListCopyWindowInfo 返回的
+/// 第一个窗口在现代 macOS 上永远是控制中心（ControlCenter）的状态栏图层窗口
+/// （layer=25，如 Wi-Fi / 电池 / 输入法图标），因此旧实现会把前台应用误判为
+/// ControlCenter，连带 monitorProc 过滤与按应用统计一起出错。
 pub fn foreground_pid() -> u32 {
+    unsafe {
+        let ws: id = msg_send![class!(NSWorkspace), sharedWorkspace];
+        if ws != nil {
+            let app: id = msg_send![ws, frontmostApplication];
+            if app != nil {
+                let pid: i32 = msg_send![app, processIdentifier];
+                if pid > 0 {
+                    return pid as u32;
+                }
+            }
+        }
+    }
+    // 回退（NSWorkspace 不可用时）：取最前的普通应用窗口（layer=0），
+    // 跳过控制中心 / 菜单栏等覆盖层窗口
     unsafe {
         let arr = CGWindowListCopyWindowInfo(
             WINDOW_LIST_ON_SCREEN_ONLY | WINDOW_LIST_EXCLUDE_DESKTOP,
@@ -170,21 +196,37 @@ pub fn foreground_pid() -> u32 {
             return 0;
         }
         let mut pid = 0u32;
-        if CFArrayGetCount(arr) > 0 {
-            let dict = CFArrayGetValueAtIndex(arr, 0);
-            if !dict.is_null() {
-                let val = CFDictionaryGetValue(dict, kCGWindowOwnerPID);
-                if !val.is_null() {
-                    let mut n: i64 = 0;
-                    if CFNumberGetValue(val, CF_NUMBER_SINT64, &mut n as *mut i64 as *mut c_void) != 0
-                    {
-                        pid = n as u32;
-                    }
-                }
+        for i in 0..CFArrayGetCount(arr) {
+            let dict = CFArrayGetValueAtIndex(arr, i);
+            if dict.is_null() {
+                continue;
+            }
+            let layer = cf_number_i64(dict, kCGWindowLayer);
+            if layer != 0 {
+                continue;
+            }
+            let n = cf_number_i64(dict, kCGWindowOwnerPID);
+            if n > 0 {
+                pid = n as u32;
+                break;
             }
         }
         CFRelease(arr);
         pid
+    }
+}
+
+/// 从窗口信息字典取整数属性
+unsafe fn cf_number_i64(dict: CFDictionaryRef, key: CFStringRef) -> i64 {
+    let val = CFDictionaryGetValue(dict, key);
+    if val.is_null() {
+        return 0;
+    }
+    let mut n: i64 = 0;
+    if CFNumberGetValue(val, CF_NUMBER_SINT64, &mut n as *mut i64 as *mut c_void) != 0 {
+        n
+    } else {
+        0
     }
 }
 

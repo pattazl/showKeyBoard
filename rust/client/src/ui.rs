@@ -467,8 +467,11 @@ impl UiManager {
                 use slint::winit_030::winit::dpi::{
                     PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
                 };
-                ww.set_outer_position(WinitPos::new(x, y));
+                // 顺序很重要：winit 的 set_outer_position 用窗口**当前** frame 高度
+                // 换算 AppKit 的左下原点坐标。若先定位再改尺寸，换算用的是旧高度，
+                // 顶部边缘会偏移（尺寸差）。先定尺寸，再定位。
                 let _ = ww.request_inner_size(WinitSize::new(pw as u32, ph as u32));
+                ww.set_outer_position(WinitPos::new(x, y));
             });
         }
         (x, y, pw, ph)
@@ -838,8 +841,11 @@ impl UiManager {
                 use slint::winit_030::winit::dpi::{
                     PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
                 };
-                ww.set_outer_position(WinitPos::new(px, py));
+                // 顺序很重要：winit 的 set_outer_position 用窗口**当前** frame 高度
+                // 换算 AppKit 的左下原点坐标。若先定位再改尺寸，换算用的是旧高度，
+                // 顶部边缘会偏移（尺寸差）。先定尺寸，再定位。
                 let _ = ww.request_inner_size(WinitSize::new(w_phys as u32, h_phys as u32));
+                ww.set_outer_position(WinitPos::new(px, py));
             });
         }
         win.positioned = true;
@@ -862,15 +868,10 @@ impl UiManager {
         }
         self.last_app_check = Instant::now();
         let path = crate::winutil::foreground_proc_path();
-        let already = self
-            .appwin
-            .as_ref()
-            .map(|c| c.last_text == path && c.positioned)
-            .unwrap_or(false);
-        if already {
-            return;
-        }
         self.last_app_path = path.clone();
+        // 注意：不要因为文本未变就跳过定位。窗口刚创建时 frame 尺寸还是默认值，
+        // macOS 下首帧定位会按旧高度做坐标翻转（顶部偏移）；每 500ms 重新应用一次
+        // 位置/尺寸即可收敛（与 ctrl 窗一致，开销可忽略）。
         if self.appwin.is_none() {
             let comp = CtrlOverlay::new().expect("create AppPathOverlay");
             let title = "SKBAppPath".to_string();
@@ -954,8 +955,11 @@ impl UiManager {
                 use slint::winit_030::winit::dpi::{
                     PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
                 };
-                ww.set_outer_position(WinitPos::new(px, py));
+                // 顺序很重要：winit 的 set_outer_position 用窗口**当前** frame 高度
+                // 换算 AppKit 的左下原点坐标。若先定位再改尺寸，换算用的是旧高度，
+                // 顶部边缘会偏移（尺寸差）。先定尺寸，再定位。
                 let _ = ww.request_inner_size(WinitSize::new(w_phys as u32, h_phys as u32));
+                ww.set_outer_position(WinitPos::new(px, py));
             });
         }
         win.positioned = true;

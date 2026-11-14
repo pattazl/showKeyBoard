@@ -4525,6 +4525,7 @@ dependencies = [
  "gilrs",
  "libc",
  "libloading 0.8.9",
+ "objc",
  "regex",
  "serde",
  "serde_json",

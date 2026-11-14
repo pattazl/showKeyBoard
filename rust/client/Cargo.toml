@@ -52,6 +52,8 @@ windows-sys = { version = "0.59", features = [
 # macOS 输入捕获：CGEventTap（精简版 rdev 已内联到 src/input/rdev/，需在"辅助功能"里授权）
 # cocoa 仅用于 listen 的 NSAutoreleasePool / nil（原 rdev 同款依赖）
 cocoa = "0.22"
+# 读取 NSWorkspace.frontmostApplication（前台应用 PID）
+objc = "0.2"
 # macOS 手柄：IOKit HID（对应 Windows 的 XInput / winmm）
 gilrs = "0.11"
 core-foundation = "0.10"
@@ -61,3 +63,9 @@ libc = "0.2"
 [profile.release]
 lto = true
 strip = true
+
+[lints.rust]
+# objc 0.2 的 msg_send!/class! 宏内部使用 #[cfg(feature = "cargo-clippy")]，
+# 新版 rustc 的 unexpected_cfgs 会在本 crate 展开宏时报 warning。
+# 声明该 cfg 取值后即可消除（不影响其它 lint）。
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }
