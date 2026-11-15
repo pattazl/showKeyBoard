@@ -140,15 +140,7 @@ export default {
 	intro116:`Top N 按键统计`,
 	intro117:'日期格式不合规',
 	intro118:'在数据趋势中按键统计前N个',
-	intro119:`
-	声明 : 本工具不联网，只保存统计信息，不记录具体内容，不会收集任何数据到服务器上
-
-	功能 : 实时显示按键情况，统计历史按键
-	数据 : 统计数据只保存在本地的 httpdist\\dist\\records.db 文件中，此文件为sqlite3格式
-	代码 : 全部开源 https://github.com/pattazl/showKeyBoard 
-	架构 : 按键监控采用autohotkey + windows API, 设置和统计界面显示用html , node做websocket/http 服务通讯
-	说明 : 绝大部分参数均可通过界面修改，如果要自定义托盘图标请在执行目录下保存同名的.ico文件，比如 ShowKeyBoard.ico
-	`,
+	intro119:`<div style="line-height:1.7;font-size:14px;color:#333;"><p style="margin:0 0 12px;"><strong>声明：</strong>本工具不联网，只保存统计信息，不记录具体内容，不会收集任何数据到服务器上。</p><p style="margin:0 0 12px;"><strong>功能：</strong>实时显示按键情况，统计历史按键。</p><p style="margin:0 0 6px;"><strong>数据：</strong>统计数据从 2.0 开始只保存在本地的用户文档目录 \\ShowKeyBoard 下，其中各个文件说明清单如下：</p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%;margin:0 0 12px;"><thead><tr style="background:#f5f5f5;"><th style="text-align:left;">文件/目录</th><th style="text-align:left;">说明</th></tr></thead><tbody><tr><td>records.db</td><td>sqlite3 格式，存放用户使用数据</td></tr><tr><td>showKeyBoard.ini</td><td>存放使用配置</td></tr><tr><td>KeyList.txt</td><td>按键转换清单</td></tr><tr><td>backup</td><td>保存最近几天的备份</td></tr><tr><td>share</td><td>共享的其他终端的压缩数据</td></tr><tr><td>dbs</td><td>共享的其他终端的解压后数据</td></tr></tbody></table><p style="margin:0 0 12px;"><strong>代码：</strong>全部开源 <a href="https://github.com/pattazl/showKeyBoard" target="_blank" rel="noopener">https://github.com/pattazl/showKeyBoard</a> 或 <a href="https://gitee.com/pattazl/showKeyBoard" target="_blank" rel="noopener">https://gitee.com/pattazl/showKeyBoard</a></p><p style="margin:0 0 6px;"><strong>架构：</strong></p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%;margin:0 0 12px;"><thead><tr style="background:#f5f5f5;"><th style="text-align:left;">版本</th><th style="text-align:left;">按键监控</th><th style="text-align:left;">后端服务</th><th style="text-align:left;">设置和统计界面</th></tr></thead><tbody><tr><td>1.x</td><td> autohotkey + windows API</td><td>node.js 做 websocket/http 服务通讯</td><td>html（vue + naiveUI）</td></tr><tr><td>2.x</td><td> rust + slint</td><td>rust 做 websocket/http 服务通讯</td><td>html（vue + naiveUI）</td></tr></tbody></table><p style="margin:0;"><strong>说明：</strong>绝大部分参数均可通过界面修改。如果要自定义托盘图标，请在执行目录下保存同名的 .ico 文件，比如 ShowKeyBoard.ico。</p></div>`,
 	intro120:'选择要删除的当天时间',
 	intro121:'选择要删除的历史日期',
 	intro122:'确定删除:',
@@ -419,15 +411,7 @@ export default {
 	intro116: `Top N of keyboard keypress`,
 	intro117:'The format of date is invalid',
 	intro118:'Top N in keyboard statistic',
-	intro119:`
-	Declaration: This tool is offline, save statistical information only, and will not collect any data on the server
-
-	Functionality: Real-time display of key press information and tracking of historical key presses.
-	Data: The statistic data is saved in a local file named "records.db" located in the "httpdist\\dist" directory. This file is in SQLite3 format.
-	Code: The entire codebase is open source and available at https://github.com/pattazl/showKeyBoard.
-	Architecture: Key monitoring is done using autohotkey + Windows API. The settings and statistics interface is displayed using HTML, and communication between the interface and server is WebSocket and HTTP services by Node.js.
-	Description: Most parameters can be modified via the interface. If you want to customize the tray icon, please save an ICO file with the same name in the execution directory (e.g., ShowKeyBoard.ico).
-	`,
+	intro119:`<div style="line-height:1.7;font-size:14px;color:#333;"><p style="margin:0 0 12px;"><strong>Statement:</strong> This tool does not connect to the Internet. It only stores statistics and does not record specific content. No data is collected to any server.</p><p style="margin:0 0 12px;"><strong>Features:</strong> Displays key presses in real time and keeps historical key statistics.</p><p style="margin:0 0 6px;"><strong>Data:</strong> Starting from version 2.0, statistics are stored only locally in the user's Documents directory \\ShowKeyBoard. The files and directories are described below:</p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%;margin:0 0 12px;"><thead><tr style="background:#f5f5f5;"><th style="text-align:left;">File/Directory</th><th style="text-align:left;">Description</th></tr></thead><tbody><tr><td>records.db</td><td>SQLite3 format, stores user usage data</td></tr><tr><td>showKeyBoard.ini</td><td>Stores usage configuration</td></tr><tr><td>KeyList.txt</td><td>Key mapping list</td></tr><tr><td>backup</td><td>Stores backups from the last few days</td></tr><tr><td>share</td><td>Compressed data shared from other terminals</td></tr><tr><td>dbs</td><td>Decompressed data from other terminals</td></tr></tbody></table><p style="margin:0 0 12px;"><strong>Code:</strong> Fully open source at <a href="https://github.com/pattazl/showKeyBoard" target="_blank" rel="noopener">https://github.com/pattazl/showKeyBoard</a> or <a href="https://gitee.com/pattazl/showKeyBoard" target="_blank" rel="noopener">https://gitee.com/pattazl/showKeyBoard</a></p><p style="margin:0 0 6px;"><strong>Architecture:</strong></p><table border="1" cellspacing="0" cellpadding="8" style="border-collapse:collapse;width:100%;margin:0 0 12px;"><thead><tr style="background:#f5f5f5;"><th style="text-align:left;">Version</th><th style="text-align:left;">Key Monitoring</th><th style="text-align:left;">Backend Service</th><th style="text-align:left;">Settings &amp; Statistics UI</th></tr></thead><tbody><tr><td>1.x</td><td>AutoHotkey + Windows API</td><td> WebSocket and HTTP services by Node.js</td><td>HTML (Vue + NaiveUI)</td></tr><tr><td>2.x</td><td>Rust + Slint</td><td> WebSocket and HTTP services by Rust</td><td>HTML (Vue + NaiveUI)</td></tr></tbody></table><p style="margin:0;"><strong>Notes:</strong> Most parameters can be modified through the UI. To customize the tray icon, save an .ico file with the same name in the execution directory, for example ShowKeyBoard.ico.</p></div>`,
 	intro120:"Please select start time of today",
 	intro121:'Please select the day of history',
 	intro122:'Are you sure delete:',

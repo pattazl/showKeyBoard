@@ -1,8 +1,7 @@
 <template>
 	<div>
 		<n-space vertical>
-			<n-card style="white-space: pre-line;">
-				{{ contentText.intro119 }}
+			<n-card v-html="contentText.intro119" style="white-space: pre-line;">
 			</n-card>
 		</n-space>
 	</div>
