@@ -21,6 +21,7 @@ export component KeyOverlay inherits Window {
     no-frame: true;
     always-on-top: true;
     background: transparent;
+    // 固定尺寸窗口：尺寸完全由 Rust 设置（见 client/src/ui.rs）。
     width: o-width;
     height: o-height;
 
@@ -71,6 +72,7 @@ export component CtrlOverlay inherits Window {
     no-frame: true;
     always-on-top: true;
     background: transparent;
+    // 固定尺寸窗口：尺寸完全由 Rust 设置（见 client/src/ui.rs）。
     width: o-width;
     height: o-height;
 

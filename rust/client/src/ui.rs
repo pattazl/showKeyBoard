@@ -34,6 +34,9 @@ struct CtrlWin {
     last_text: String,
     /// 位置/尺寸是否已按物理像素成功应用（窗口刚创建时 winit 窗口尚未就绪，需要下一轮重试）
     positioned: bool,
+    /// 已生效的目标 frame（物理像素）：macOS 上重复提交会在 AppKit 里触发
+    /// styleMask 重算并让窗口瞬时偏移，所以目标不变时不再重复设置
+    applied: Option<(i32, i32, u32, u32)>,
 }
 
 /// 连接状态提示窗：复用按键浮窗组件与空闲窗口池，显示后台服务启动/连接过程与异常。
@@ -738,8 +741,9 @@ impl UiManager {
         // 避免持 cfg 读锁时调用 &mut self 方法的借用冲突。
         let ui = self.shared.cfg.read().unwrap().ui.clone();
         if !ui.ctrl_state {
-            if let Some(c) = &self.ctrl {
+            if let Some(c) = &mut self.ctrl {
                 c.comp.hide().ok();
+                c.applied = None;
             }
             return;
         }
@@ -799,6 +803,8 @@ impl UiManager {
             if let Some(c) = &mut self.ctrl {
                 c.last_text.clear();
                 c.comp.hide().ok();
+                // 清掉已应用的位置：下次显示同一组按键时仍需重新 show/定位
+                c.applied = None;
             }
             return;
         }
@@ -811,6 +817,7 @@ impl UiManager {
                 title,
                 last_text: String::new(),
                 positioned: false,
+                applied: None,
             });
         }
         let font = {
@@ -848,33 +855,88 @@ impl UiManager {
         // 位置直接用配置物理像素（与 activeAppShow 统一）
         let px = ui.ctrl_x;
         let py = ui.ctrl_y;
-        win.comp.window().set_position(PhysicalPosition::new(px, py));
-        win.comp
-            .window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(
-                w_phys as u32,
-                h_phys as u32,
-            )));
-        win.comp.show().ok();
-        // Windows：Slint 的 Physical 接口即真实物理像素（与浮窗一致）。
-        // macOS：屏外窗口 scale_factor 会退化为 1.0，需再用 winit 物理接口校正一次。
+        #[cfg(windows)]
+        {
+            win.comp.window().set_position(PhysicalPosition::new(px, py));
+            win.comp
+                .window()
+                .set_size(WindowSize::Physical(PhysicalSize::new(
+                    w_phys as u32,
+                    h_phys as u32,
+                )));
+            win.comp.show().ok();
+            win.positioned = true;
+        }
+        // macOS：目标 frame 未变化时不再重复提交（重复提交会触发 AppKit 重算 styleMask，
+        // 表现为窗口瞬时下移）。屏外窗口 scale_factor 会退化为 1.0，定位走原生 AppKit。
         #[cfg(not(windows))]
         {
-            use slint::winit_030::WinitWindowAccessor;
-            win.comp.window().with_winit_window(|ww| {
-                use slint::winit_030::winit::dpi::{
-                    PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
-                };
-                // 顺序很重要：winit 的 set_outer_position 用窗口**当前** frame 高度
-                // 换算 AppKit 的左下原点坐标。若先定位再改尺寸，换算用的是旧高度，
-                // 顶部边缘会偏移（尺寸差）。先定尺寸，再定位。
-                let _ = ww.request_inner_size(WinitSize::new(w_phys as u32, h_phys as u32));
-                ww.set_outer_position(WinitPos::new(px, py));
-            });
+            let target = (px, py, w_phys as u32, h_phys as u32);
+            if win.applied != Some(target) {
+                win.comp
+                    .window()
+                    .set_size(WindowSize::Physical(PhysicalSize::new(
+                        w_phys as u32,
+                        h_phys as u32,
+                    )));
+                win.comp.show().ok();
+                win.positioned = Self::fix_macos_overlay_frame(
+                    &win.comp.window(),
+                    px,
+                    py,
+                    w_phys as u32,
+                    h_phys as u32,
+                    scale,
+                );
+                if win.positioned {
+                    win.applied = Some(target);
+                } else {
+                    // 窗口句柄还没创建（winit 在事件循环里延迟创建）：先隐藏，
+                    // 否则会以系统默认位置（屏幕居中）闪一帧，表现为“先偏下再跳上去”。
+                    // 下一次 tick 窗口已就绪，定位成功后再显示。
+                    win.comp.hide().ok();
+                }
+            }
         }
-        win.positioned = true;
         let title = win.title.clone();
         crate::winutil::apply_overlay_styles(&win.comp.window(), &title, click_through);
+    }
+
+    /// macOS：修正浮窗 frame，返回是否真正应用成功（窗口句柄未就绪时返回 false 由调用方重试）。
+    ///
+    /// 定位前先 `set_decorations(false)`，并给窗口类装上 styleMask 守卫
+    /// （见 `winutil::install_borderless_mask_guard`）。
+    /// 否则 winit 每次处理 `Resized` 都会临时把窗口改成带标题栏，
+    /// AppKit 重算 frame 后内容整体下移一个标题栏高度，表现为“先偏下再跳回”。
+    #[cfg(not(windows))]
+    fn fix_macos_overlay_frame(
+        window: &slint::Window,
+        x: i32,
+        y: i32,
+        w: u32,
+        h: u32,
+        scale: f32,
+    ) -> bool {
+        use slint::winit_030::WinitWindowAccessor;
+        window
+            .with_winit_window(|ww| {
+                use slint::winit_030::winit::raw_window_handle::{
+                    HasWindowHandle, RawWindowHandle,
+                };
+                let Ok(handle) = ww.window_handle() else {
+                    return false;
+                };
+                let RawWindowHandle::AppKit(appkit) = handle.as_raw() else {
+                    return false;
+                };
+                let view = appkit.ns_view.as_ptr();
+                crate::winutil::install_borderless_mask_guard(view);
+                ww.set_decorations(false);
+                // 尺寸与位置一次提交，避免中间态被 AppKit 重算
+                crate::winutil::set_window_frame_physical(view, x, y, w, h, scale as f64);
+                true
+            })
+            .unwrap_or(false)
     }
 
     /// activeAppShow：显示当前激活应用路径
@@ -884,10 +946,13 @@ impl UiManager {
         if !ui.active_app_show {
             if let Some(c) = &mut self.appwin {
                 c.comp.hide().ok();
+                c.applied = None;
             }
             return;
         }
-        if self.last_app_check.elapsed() < Duration::from_millis(500) {
+        // 窗口尚未完成首次定位时不做 500ms 节流，保证下一 tick 立刻重试
+        let need_pos = self.appwin.as_ref().is_some_and(|w| !w.positioned);
+        if !need_pos && self.last_app_check.elapsed() < Duration::from_millis(500) {
             return;
         }
         self.last_app_check = Instant::now();
@@ -905,6 +970,7 @@ impl UiManager {
                 title,
                 last_text: String::new(),
                 positioned: false,
+                applied: None,
             });
         }
         let font = self.ensure_font(&ui.ctrl_text_font.clone());
@@ -962,33 +1028,56 @@ impl UiManager {
         win.comp.set_o_height(h_phys as f32 / scale);
         let px = ui.active_app_show_x;
         let py = ui.active_app_show_y;
-        win.comp.window().set_position(PhysicalPosition::new(px, py));
-        win.comp
-            .window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(
-                w_phys as u32,
-                h_phys as u32,
-            )));
-        win.comp.show().ok();
-        // Windows：Slint 的 Physical 接口即真实物理像素（与浮窗一致）。
-        // macOS：屏外窗口 scale_factor 会退化为 1.0，需再用 winit 物理接口校正一次。
+        #[cfg(windows)]
+        {
+            win.comp.window().set_position(PhysicalPosition::new(px, py));
+            win.comp
+                .window()
+                .set_size(WindowSize::Physical(PhysicalSize::new(
+                    w_phys as u32,
+                    h_phys as u32,
+                )));
+            win.comp.show().ok();
+            win.positioned = true;
+        }
+        // macOS：目标 frame 未变化时不再重复提交（重复提交会触发 AppKit 重算 styleMask，
+        // 表现为窗口瞬时下移）。屏外窗口 scale_factor 会退化为 1.0，定位走原生 AppKit。
         #[cfg(not(windows))]
         {
-            use slint::winit_030::WinitWindowAccessor;
-            win.comp.window().with_winit_window(|ww| {
-                use slint::winit_030::winit::dpi::{
-                    PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
-                };
-                // 顺序很重要：winit 的 set_outer_position 用窗口**当前** frame 高度
-                // 换算 AppKit 的左下原点坐标。若先定位再改尺寸，换算用的是旧高度，
-                // 顶部边缘会偏移（尺寸差）。先定尺寸，再定位。
-                let _ = ww.request_inner_size(WinitSize::new(w_phys as u32, h_phys as u32));
-                ww.set_outer_position(WinitPos::new(px, py));
-            });
+            let target = (px, py, w_phys as u32, h_phys as u32);
+            if win.applied != Some(target) {
+                win.comp
+                    .window()
+                    .set_size(WindowSize::Physical(PhysicalSize::new(
+                        w_phys as u32,
+                        h_phys as u32,
+                    )));
+                win.comp.show().ok();
+                win.positioned = Self::fix_macos_overlay_frame(
+                    &win.comp.window(),
+                    px,
+                    py,
+                    w_phys as u32,
+                    h_phys as u32,
+                    scale,
+                );
+                if win.positioned {
+                    win.applied = Some(target);
+                } else {
+                    // 窗口句柄尚未创建：先隐藏，避免以系统默认位置闪一帧
+                    win.comp.hide().ok();
+                }
+            }
         }
-        win.positioned = true;
         let title = win.title.clone();
         crate::winutil::apply_overlay_styles(&win.comp.window(), &title, true);
+    }
+
+    /// 两个浮窗首次显示时窗口句柄可能尚未创建（定位失败会先隐藏），
+    /// 此时需要每 tick 重试，而不是等 60ms 的常规刷新周期。
+    fn needs_pos_retry(&self) -> bool {
+        self.ctrl.as_ref().is_some_and(|w| !w.positioned)
+            || self.appwin.as_ref().is_some_and(|w| !w.positioned)
     }
 
     /// 复查窗口样式（不可激活 / 点击穿透 / 工具窗口 / owner）。
@@ -1083,8 +1172,8 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
             manager.tick_overlays();
             let fade_ms = shared_ref.cfg.read().unwrap().ui.gui_fade_ms;
             manager.tick_status(fade_ms);
-            if tick_count % 3 == 0 {
-                // ~60ms 刷新控制键状态（AHK 为 50ms）
+            if tick_count % 3 == 0 || manager.needs_pos_retry() {
+                // ~60ms 刷新控制键状态（AHK 为 50ms）；首次定位未成功时每 tick 重试
                 manager.update_ctrl();
                 manager.update_app_path();
             }
