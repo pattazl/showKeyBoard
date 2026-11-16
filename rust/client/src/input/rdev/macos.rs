@@ -57,6 +57,9 @@ pub const kCGEventMaskForAllEvents: u64 = (1 << CGEventType::LeftMouseDown as u6
     + (1 << CGEventType::LeftMouseUp as u64)
     + (1 << CGEventType::RightMouseDown as u64)
     + (1 << CGEventType::RightMouseUp as u64)
+    // 中键 / 侧键（XButton1、XButton2）走 OtherMouse，原 rdev 未订阅
+    + (1 << CGEventType::OtherMouseDown as u64)
+    + (1 << CGEventType::OtherMouseUp as u64)
     + (1 << CGEventType::MouseMoved as u64)
     + (1 << CGEventType::LeftMouseDragged as u64)
     + (1 << CGEventType::RightMouseDragged as u64)
@@ -124,6 +127,20 @@ unsafe fn convert(_type: CGEventType, cg_event: &CGEvent) -> Option<Event> {
         CGEventType::LeftMouseUp => Some(EventType::ButtonRelease(Button::Left)),
         CGEventType::RightMouseDown => Some(EventType::ButtonPress(Button::Right)),
         CGEventType::RightMouseUp => Some(EventType::ButtonRelease(Button::Right)),
+        // 中键 = buttonNumber 2，侧键 XButton1/XButton2 = 3/4
+        CGEventType::OtherMouseDown | CGEventType::OtherMouseUp => {
+            let n = cg_event
+                .get_integer_value_field(EventField::MOUSE_EVENT_BUTTON_NUMBER);
+            let button = match n {
+                2 => Button::Middle,
+                other => Button::Unknown(other.clamp(0, u8::MAX as i64) as u8),
+            };
+            Some(if matches!(_type, CGEventType::OtherMouseDown) {
+                EventType::ButtonPress(button)
+            } else {
+                EventType::ButtonRelease(button)
+            })
+        }
         CGEventType::MouseMoved => {
             let point = cg_event.location();
             Some(EventType::MouseMove {
