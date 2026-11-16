@@ -182,7 +182,10 @@ pub fn find_config_file(exe_dir: &Path, cwd: &Path, filename: &str) -> PathBuf {
 /// This round-trips with `strip_ini_quotes` on the read side.
 fn escape_ini_value(val: &str) -> String {
     if val.contains('\n') || val.contains('\r') || val.contains('"')
-        || val.contains('#') || val.contains(';') {
+        || val.contains('#') || val.contains(';')
+        // 前后带空白（如 txtSplit = 空格）必须加引号：读回时会先 trim，裸值会被吃掉
+        || val.trim() != val
+    {
         serde_json::to_string(val).unwrap_or_else(|_| val.to_string())
     } else {
         val.to_string()
