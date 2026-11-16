@@ -378,11 +378,54 @@ pub fn set_dock_hidden() {
     }
 }
 
+/// 取包含指定点（points，Quartz 顶部原点）的屏幕；找不到返回 nil。
+unsafe fn screen_containing(x_pt: f64, y_pt: f64, screen_h: f64) -> id {
+    let screens: id = msg_send![class!(NSScreen), screens];
+    if screens == nil {
+        return nil;
+    }
+    let count: usize = msg_send![screens, count];
+    for i in 0..count {
+        let s: id = msg_send![screens, objectAtIndex: i];
+        let f: cocoa::foundation::NSRect = msg_send![s, frame];
+        let top = screen_h - (f.origin.y + f.size.height);
+        if x_pt >= f.origin.x
+            && x_pt < f.origin.x + f.size.width
+            && y_pt >= top
+            && y_pt < top + f.size.height
+        {
+            return s;
+        }
+    }
+    nil
+}
+
+/// 目标点（物理像素）所在屏幕的可视区域顶部偏移（物理像素，Quartz 顶部原点）。
+/// 用于把浮窗 Y 统一成「菜单栏下方偏移」语义。
+pub fn screen_visible_top_physical(probe_x: i32, probe_y: i32, scale: f64) -> i32 {
+    if scale <= 0.0 {
+        return 0;
+    }
+    let screen_h = CGDisplay::main().bounds().size.height;
+    unsafe {
+        let s = screen_containing(probe_x as f64 / scale, probe_y as f64 / scale, screen_h);
+        if s == nil {
+            return 0;
+        }
+        let vis: cocoa::foundation::NSRect = msg_send![s, visibleFrame];
+        let vis_top = screen_h - (vis.origin.y + vis.size.height);
+        (vis_top * scale).round() as i32
+    }
+}
+
 /// 用 Quartz 顶部原点物理像素直接设置浮窗 frame（macOS 专用）。
 ///
 /// 一次 `setFrame:display:` 同时提交位置与尺寸；origin 只按「目标高度」换算，
 /// 不使用窗口当前 frame 高度（winit 的 set_outer_position 会用当前高度做 Y 翻转，
-/// 尺寸变化时顶部会偏移）。位置同时用 `NSScreen.visibleFrame` 夹紧到可视区域。
+/// 尺寸变化时顶部会偏移）。
+/// `y_from_visible_top = true` 时 y 表示「菜单栏下方可视区域顶部」的偏移
+/// （ctrlY / activeAppShowY 的统一语义；Windows 屏幕顶部没有菜单栏，等价于绝对坐标）。
+/// x 始终为屏幕左侧绝对坐标（ctrlX / activeAppShowX）。
 pub fn set_window_frame_physical(
     ns_view: *mut c_void,
     x: i32,
@@ -390,6 +433,8 @@ pub fn set_window_frame_physical(
     w: u32,
     h: u32,
     scale: f64,
+    y_from_visible_top: bool,
+    monitor: Option<(i32, i32, i32, i32)>,
 ) {
     if ns_view.is_null() || scale <= 0.0 {
         return;
@@ -398,14 +443,28 @@ pub fn set_window_frame_physical(
     let h_pt = (h as f64 / scale).round();
     let mut x_pt = (x as f64 / scale).round();
     let mut y_top_pt = (y as f64 / scale).round();
+    // 选屏用的参考点：浮窗用目标显示器中心（顶部锚定时 y 可能为负，不能拿它选屏）
+    let (probe_x_pt, probe_y_pt) = match monitor {
+        Some((ml, mt, mr, mb)) => (
+            (((ml as i64 + mr as i64) / 2) as f64 / scale).round(),
+            (((mt as i64 + mb as i64) / 2) as f64 / scale).round(),
+        ),
+        None => (x_pt, y_top_pt),
+    };
     // AppKit 全局坐标以主屏左下角为原点；CGDisplayBounds 单位为 points
     let screen_h = CGDisplay::main().bounds().size.height;
     unsafe {
-        let screen: id = msg_send![class!(NSScreen), mainScreen];
+        let mut screen = screen_containing(probe_x_pt, probe_y_pt, screen_h);
+        if screen == nil {
+            screen = msg_send![class!(NSScreen), mainScreen];
+        }
         if screen != nil {
             let vis: cocoa::foundation::NSRect = msg_send![screen, visibleFrame];
             let vis_top = screen_h - (vis.origin.y + vis.size.height);
             let vis_bottom = screen_h - vis.origin.y;
+            if y_from_visible_top {
+                y_top_pt += vis_top;
+            }
             if y_top_pt < vis_top {
                 y_top_pt = vis_top;
             }

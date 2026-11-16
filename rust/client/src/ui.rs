@@ -463,29 +463,67 @@ impl UiManager {
         // Slint 尺寸属性是逻辑像素：物理尺寸 / 显示器缩放
         comp.set_o_width(pw as f32 / scale);
         comp.set_o_height(ph as f32 / scale);
+        // macOS：顶部锚定（TL/TR）时 Y 与 ctrlY 一致，从菜单栏下方的可视区顶部算偏移。
+        // 这里直接换算成绝对物理坐标，后续窗口依次排布（relayout）才能从正确位置开始。
+        #[cfg(not(windows))]
+        if !matches!(ui.gui_pos.as_str(), "BL" | "BR") {
+            y += crate::winutil::screen_visible_top_physical(
+                ml + (mr - ml) / 2,
+                mt + (mb - mt) / 2,
+                scale as f64,
+            );
+        }
         // Windows：保持原实现（Slint Physical 接口）
         // macOS：Slint 的 set_size(Physical) 会先按窗口 scale_factor（屏外窗口退化为
         // 1.0）转 Logical，再被 winit 按真实 scale 乘回去，导致尺寸翻倍；
-        // 因此 show 后再走 winit 物理像素接口一次性校正位置与尺寸（无歧义换算）
+        // 因此 show 后再走原生 AppKit 一次性校正位置与尺寸（无歧义换算）
         comp.window().set_position(PhysicalPosition::new(x, y));
         comp.window()
             .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
         comp.show().ok();
         #[cfg(not(windows))]
-        {
-            use slint::winit_030::WinitWindowAccessor;
-            comp.window().with_winit_window(|ww| {
-                use slint::winit_030::winit::dpi::{
-                    PhysicalPosition as WinitPos, PhysicalSize as WinitSize,
-                };
-                // 顺序很重要：winit 的 set_outer_position 用窗口**当前** frame 高度
-                // 换算 AppKit 的左下原点坐标。若先定位再改尺寸，换算用的是旧高度，
-                // 顶部边缘会偏移（尺寸差）。先定尺寸，再定位。
-                let _ = ww.request_inner_size(WinitSize::new(pw as u32, ph as u32));
-                ww.set_outer_position(WinitPos::new(x, y));
-            });
-        }
+        Self::set_native_frame(comp, x, y, pw, ph, scale, Some((ml, mt, mr, mb)));
         (x, y, pw, ph)
+    }
+
+    /// macOS：用原生 AppKit 设置浮窗 frame（物理像素，绝对坐标）。
+    /// 不用 winit 的 set_outer_position：它按窗口当前 frame 高度换算 Y，
+    /// 且会被 AppKit 的 visibleFrame 夹紧，尺寸/位置变化时顶部会偏移。
+    #[cfg(not(windows))]
+    fn set_native_frame(
+        comp: &KeyOverlay,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        scale: f32,
+        monitor: Option<(i32, i32, i32, i32)>,
+    ) {
+        use slint::winit_030::WinitWindowAccessor;
+        comp.window().with_winit_window(|ww| {
+            use slint::winit_030::winit::raw_window_handle::{
+                HasWindowHandle, RawWindowHandle,
+            };
+            let Ok(handle) = ww.window_handle() else {
+                return;
+            };
+            let RawWindowHandle::AppKit(appkit) = handle.as_raw() else {
+                return;
+            };
+            let view = appkit.ns_view.as_ptr();
+            crate::winutil::install_borderless_mask_guard(view);
+            ww.set_decorations(false);
+            crate::winutil::set_window_frame_physical(
+                view,
+                x,
+                y,
+                w as u32,
+                h as u32,
+                scale as f64,
+                false,
+                monitor,
+            );
+        });
     }
 
     /// 显示后台服务连接状态：复用空闲浮窗（不新增 HWND），sticky=true 时常驻到状态变化
@@ -602,7 +640,14 @@ impl UiManager {
                 let o = &mut self.overlays[i];
                 o.x = nx;
                 o.y = ny;
+                #[cfg(windows)]
                 o.comp.window().set_position(PhysicalPosition::new(nx, ny));
+                // macOS：绝对坐标 + 原生 setFrame，避免 winit 按当前高度换算导致顶部偏移
+                #[cfg(not(windows))]
+                {
+                    let scale = Self::scale_at_pos(nx, ny);
+                    Self::set_native_frame(&o.comp, nx, ny, ow, oh, scale, None);
+                }
             }
             px = nx;
             pw = ow;
@@ -887,6 +932,8 @@ impl UiManager {
                     w_phys as u32,
                     h_phys as u32,
                     scale,
+                    // Ctrl 状态窗：ctrlY 从菜单栏下方的可视区域顶部算偏移
+                    true,
                 );
                 if win.positioned {
                     win.applied = Some(target);
@@ -916,6 +963,7 @@ impl UiManager {
         w: u32,
         h: u32,
         scale: f32,
+        y_from_visible_top: bool,
     ) -> bool {
         use slint::winit_030::WinitWindowAccessor;
         window
@@ -933,7 +981,16 @@ impl UiManager {
                 crate::winutil::install_borderless_mask_guard(view);
                 ww.set_decorations(false);
                 // 尺寸与位置一次提交，避免中间态被 AppKit 重算
-                crate::winutil::set_window_frame_physical(view, x, y, w, h, scale as f64);
+                crate::winutil::set_window_frame_physical(
+                    view,
+                    x,
+                    y,
+                    w,
+                    h,
+                    scale as f64,
+                    y_from_visible_top,
+                    None,
+                );
                 true
             })
             .unwrap_or(false)
@@ -1060,6 +1117,8 @@ impl UiManager {
                     w_phys as u32,
                     h_phys as u32,
                     scale,
+                    // 应用路径窗：与 Ctrl 状态窗一致，X 绝对、Y 从菜单栏下方算偏移
+                    true,
                 );
                 if win.positioned {
                     win.applied = Some(target);
