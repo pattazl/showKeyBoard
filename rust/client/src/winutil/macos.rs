@@ -732,15 +732,70 @@ pub fn scale_at(x: i32, y: i32) -> f32 {
     0.0
 }
 
-/// macOS 不走 GDI 测量，返回 (0,0,0) 让调用方使用估算高度
+extern "C" {
+    static NSFontAttributeName: *const c_void;
+}
+
+/// CoreText 单行文本测量：返回 (行数, 行高, 宽度)，单位为物理像素。
+/// `font_px` 已是物理像素；文本宽度随字号线性变化，因此直接把物理像素当字号传给 NSFont。
 pub fn measure_text(
-    _text: &str,
-    _family: &str,
-    _font_px: i32,
-    _bold: bool,
+    text: &str,
+    family: &str,
+    font_px: i32,
+    bold: bool,
     _max_width: i32,
 ) -> (i32, i32, i32) {
-    (0, 0, 0)
+    if text.is_empty() || font_px <= 0 {
+        return (0, 0, 0);
+    }
+    unsafe {
+        let _pool = cocoa::foundation::NSAutoreleasePool::new(nil);
+        let size = font_px as f64;
+        let mut font: id = nil;
+        if !family.is_empty() {
+            if let Ok(cfam) = std::ffi::CString::new(family) {
+                let ns_fam: id = msg_send![class!(NSString), alloc];
+                let ns_fam: id = msg_send![ns_fam, initWithUTF8String: cfam.as_ptr()];
+                if ns_fam != nil {
+                    font = msg_send![class!(NSFont), fontWithName: ns_fam size: size];
+                }
+            }
+        }
+        if font == nil {
+            font = msg_send![class!(NSFont), systemFontOfSize: size];
+        }
+        if font == nil {
+            return (0, 0, 0);
+        }
+        if bold {
+            // NSBoldFontMask = 1 << 1
+            let fm: id = msg_send![class!(NSFontManager), sharedFontManager];
+            let b: id = msg_send![fm, convertFont: font toHaveTrait: 0x02usize];
+            if b != nil {
+                font = b;
+            }
+        }
+        let Ok(ctext) = std::ffi::CString::new(text) else {
+            return (0, 0, 0);
+        };
+        let ns_text: id = msg_send![class!(NSString), alloc];
+        let ns_text: id = msg_send![ns_text, initWithUTF8String: ctext.as_ptr()];
+        if ns_text == nil {
+            return (0, 0, 0);
+        }
+        let attrs: id = msg_send![
+            class!(NSDictionary),
+            dictionaryWithObject: font
+            forKey: NSFontAttributeName
+        ];
+        let attr: id = msg_send![class!(NSAttributedString), alloc];
+        let attr: id = msg_send![attr, initWithString: ns_text attributes: attrs];
+        if attr == nil {
+            return (0, 0, 0);
+        }
+        let sz: cocoa::foundation::NSSize = msg_send![attr, size];
+        (1, sz.height.round() as i32, sz.width.round() as i32)
+    }
 }
 
 // ---------------- 按键状态 ----------------

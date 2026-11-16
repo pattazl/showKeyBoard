@@ -1030,27 +1030,34 @@ impl UiManager {
                 applied: None,
             });
         }
-        let font = self.ensure_font(&ui.ctrl_text_font.clone());
+        // 字体与 Ctrl 状态窗一致（含符号字体回退）
+        let font = {
+            let base = self.ensure_font(&ui.ctrl_text_font.clone());
+            self.resolve_font(&base, &path)
+        };
         let win = self.appwin.as_mut().unwrap();
         win.last_text = path.clone();
         let (br, bg_, bb) = ui.ctrl_bgcolor;
         let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
+        let (tr, tg, tb) = ui.ctrl_text_color;
         win.comp.set_label(path.as_str().into());
         win.comp.set_bg_color(bg_col);
-        win.comp.set_txt_color(Color::from_argb_u8(ui.ctrl_opacity as u8, ui.gui_text_color.0, ui.gui_text_color.1, ui.gui_text_color.2));
+        win.comp
+            .set_txt_color(Color::from_argb_u8(ui.ctrl_opacity as u8, tr, tg, tb));
         win.comp.set_edge_color(bg_col);
         win.comp.set_show_edge(ui.gui_edge);
         win.comp.set_font_name(font.as_str().into());
-        win.comp.set_font_size(ui.ctrl_text_size.max(12));
-        win.comp.set_font_weight(400);
+        win.comp.set_font_size(ui.ctrl_text_size);
+        win.comp.set_font_weight(if ui.ctrl_text_bold { 700 } else { 400 });
         // AHK 的 activeAppShow 用 ToolTip 显示：坐标与尺寸都是**物理像素**，不随 DPI 缩放。
         let scale = Self::scale_at_pos(ui.active_app_show_x, ui.active_app_show_y);
         win.comp.set_corner_radius(ui.ctrl_radius as f32 / scale);
-        // 宽度按内容自适应：单行实测文本宽度（物理像素）；macOS 无 GDI 测量，按字符宽度估算
-        let font_size = ui.ctrl_text_size.max(12);
+        // 宽度按内容自适应：单行实测文本宽度（物理像素）。
+        // 加粗必须与 set_font_weight 一致，否则测量偏窄 → Text 会 elide 省略尾部
+        let font_size = ui.ctrl_text_size.max(1);
         let font_px = (font_size as f32 * scale).round().max(1.0) as i32;
         let (_lines, _line_h, measured) =
-            crate::winutil::measure_text(&path, &font, font_px, false, 0);
+            crate::winutil::measure_text(&path, &font, font_px, ui.ctrl_text_bold, 0);
         let text_w = if measured > 0 {
             measured
         } else {
@@ -1060,27 +1067,15 @@ impl UiManager {
                 .sum();
             (units * font_px as f32).round() as i32
         };
-        // 上限 = 所在显示器右边界 - 窗口 x - 余量；超宽路径由 Text 的 elide 截断
-        let max_w = {
-            let mons = MONITORS.with(|m| m.borrow().clone());
-            let mon = mons
-                .iter()
-                .copied()
-                .find(|r| {
-                    ui.active_app_show_x >= r.0
-                        && ui.active_app_show_x < r.2
-                        && ui.active_app_show_y >= r.1
-                        && ui.active_app_show_y < r.3
-                })
-                .or_else(|| mons.first().copied());
-            match mon {
-                Some((_ml, _mt, mr, _mb)) => (mr - ui.active_app_show_x - 16).max(200),
-                None => 1920,
-            }
+        // 宽度完全按内容自适应：不再按显示器边界截断，长路径允许窗口超出屏幕，
+        // 保证文本不会被 elide 省略。12px 物理边距 + 2% 余量吸收不同引擎的字宽差异
+        let w_phys = (text_w + (12.0 * scale).round() as i32 + text_w / 50).max(200);
+        // 高度与 Ctrl 状态窗一致：配置了 ctrlHeigth 用它，否则按字号自动
+        let h_phys = if ui.ctrl_height != 0 {
+            (ui.ctrl_height as f32 * scale).round().max(1.0) as i32
+        } else {
+            (font_size as f32 * scale * 1.8).round().max(1.0) as i32
         };
-        // Text 左右共 12px 物理边距；内容不足 200 时保持最小宽度
-        let w_phys = (text_w + (12.0 * scale).round() as i32).clamp(200, max_w);
-        let h_phys = (font_size as f32 * scale * 1.8).round().max(1.0) as i32;
         win.comp.set_o_width(w_phys as f32 / scale);
         win.comp.set_o_height(h_phys as f32 / scale);
         let px = ui.active_app_show_x;
