@@ -474,19 +474,99 @@ fn unzip_to_dbs(zip_path: &Path, dbs_dir: &Path) -> Result<(), String> {
 #[cfg(windows)]
 fn spawn_command(command: &str, cwd: &Path) {
     use std::os::windows::process::CommandExt;
-    let _ = std::process::Command::new("cmd")
-        .args(["/C", command])
+    let mut cmd = std::process::Command::new("cmd");
+    cmd.args(["/C", command])
         .current_dir(cwd)
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
-        .spawn();
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    run_and_log(cmd);
 }
 
+/// macOS 没有 Windows 的文件关联语义：`shareDbExec` 直接写一个非可执行文档
+/// （如 `~/Documents/ShowKeyBoard/BatchRun.ffs_batch`）时，`sh -c` 会以
+/// 126(Permission denied) 失败。这种情况下改用 `open`，等价于 AHK `Run` / 双击。
 #[cfg(not(windows))]
 fn spawn_command(command: &str, cwd: &Path) {
-    let _ = std::process::Command::new("/bin/sh")
-        .args(["-c", command])
-        .current_dir(cwd)
-        .spawn();
+    let mut cmd = match associated_open_target(command) {
+        Some(path) => {
+            info!("autoShare exec: 非可执行文件，改用 open {:?}", path);
+            let mut c = std::process::Command::new("/usr/bin/open");
+            c.arg(path);
+            c
+        }
+        None => {
+            let mut c = std::process::Command::new("/bin/sh");
+            c.args(["-c", command]);
+            c
+        }
+    };
+    cmd.current_dir(cwd)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    run_and_log(cmd);
+}
+
+/// 后台等待子进程，非 0 退出码或输出写日志（Node doExec 同样会打印 error / exit code）
+fn run_and_log(mut cmd: std::process::Command) {
+    match cmd.spawn() {
+        Ok(mut child) => {
+            std::thread::spawn(move || match child.wait_with_output() {
+                Ok(out) if !out.status.success() => warn!(
+                    "autoShare exec 退出码 {:?}: {}",
+                    out.status.code(),
+                    String::from_utf8_lossy(&out.stderr).trim()
+                ),
+                Ok(out) => {
+                    let s = String::from_utf8_lossy(&out.stdout);
+                    if !s.trim().is_empty() {
+                        info!("autoShare exec 输出: {}", s.trim());
+                    }
+                }
+                Err(e) => warn!("autoShare exec 等待失败: {}", e),
+            });
+        }
+        Err(e) => warn!("autoShare exec 启动失败: {}", e),
+    }
+}
+
+/// `shareDbExec` 是单个已存在且不可执行的文件路径时返回其展开后的绝对路径。
+/// 带参数/管道的命令行、可执行文件都返回 None，仍走 `sh -c`。
+#[cfg(not(windows))]
+fn associated_open_target(command: &str) -> Option<String> {
+    let command = command.trim();
+    if command.is_empty()
+        || command
+            .chars()
+            .any(|c| matches!(c, ' ' | '\t' | ';' | '&' | '|' | '<' | '>' | '"' | '\'' | '(' | ')' | '$' | '`'))
+    {
+        return None;
+    }
+    let expanded = match command.strip_prefix("~/") {
+        Some(rest) => Path::new(&std::env::var_os("HOME")?)
+            .join(rest)
+            .to_string_lossy()
+            .to_string(),
+        None => command.to_string(),
+    };
+    let p = Path::new(&expanded);
+    if !p.is_file() {
+        return None;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let exec = p
+            .metadata()
+            .map(|m| m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false);
+        if exec {
+            return None;
+        }
+    }
+    Some(expanded)
 }
 
 // ============== 4. autoBackup（Node.js common.js autoBackup） ==============
