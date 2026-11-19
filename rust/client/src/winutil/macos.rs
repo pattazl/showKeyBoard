@@ -266,6 +266,35 @@ pub fn foreground_proc_path() -> String {
     }
 }
 
+/// 前台进程可执行文件名（如 `Safari`），供 monitorProc / activeWindowProc 匹配。
+///
+/// 每次按键都调用，因此按 pid 缓存上一次结果：同一前台应用连续输入时
+/// 不再重复 proc_pidpath。仅缓存一条，前台切换即失效。
+pub fn foreground_proc_name() -> String {
+    use std::sync::Mutex;
+    static CACHE: Mutex<Option<(u32, String)>> = Mutex::new(None);
+
+    let pid = foreground_pid();
+    if pid == 0 {
+        return String::new();
+    }
+    {
+        let guard = CACHE.lock().unwrap();
+        if let Some((p, name)) = &*guard {
+            if *p == pid {
+                return name.clone();
+            }
+        }
+    }
+    let path = process_path_by_pid(pid);
+    let name = std::path::Path::new(&path)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    *CACHE.lock().unwrap() = Some((pid, name.clone()));
+    name
+}
+
 /// macOS 没有 ES_PASSWORD 样式，密码框检测不适用（hideInWinPwd 在 macOS 下不生效）
 pub fn focus_is_password() -> bool {
     false

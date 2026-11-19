@@ -289,6 +289,45 @@ pub fn process_path_by_pid(pid: u32) -> String {
     }
 }
 
+/// 前台进程可执行文件名（如 `notepad.exe`），供 monitorProc / activeWindowProc 匹配。
+///
+/// 每次按键都调用，因此按 `(hwnd, pid)` 缓存上一次结果：
+/// 同一前台进程连续输入时只剩 GetForegroundWindow + GetWindowThreadProcessId
+/// 两个用户态调用，不再重复 OpenProcess / QueryFullProcessImageNameW。
+/// hwnd 与 pid 双重校验可避免 PID 复用导致误判（仅缓存一条，前台切换即失效）。
+pub fn foreground_proc_name() -> String {
+    use std::sync::Mutex;
+    static CACHE: Mutex<Option<(usize, u32, String)>> = Mutex::new(None);
+
+    unsafe {
+        let hwnd = GetForegroundWindow();
+        if hwnd.is_null() {
+            return String::new();
+        }
+        let mut pid: u32 = 0;
+        GetWindowThreadProcessId(hwnd, &mut pid);
+        if pid == 0 {
+            return String::new();
+        }
+        let key = (hwnd as usize, pid);
+        {
+            let guard = CACHE.lock().unwrap();
+            if let Some((h, p, name)) = &*guard {
+                if (*h, *p) == key {
+                    return name.clone();
+                }
+            }
+        }
+        let path = process_path_by_pid(pid);
+        let name = std::path::Path::new(&path)
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default();
+        *CACHE.lock().unwrap() = Some((key.0, key.1, name.clone()));
+        name
+    }
+}
+
 /// 前台焦点控件是否为密码框（ES_PASSWORD = 0x20）
 pub fn focus_is_password() -> bool {
     unsafe {
