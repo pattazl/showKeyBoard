@@ -23,7 +23,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use crate::stats::Shared;
-use super::{add_modifier, in_skip, is_ctrl_vk, vk_name};
+use super::{add_modifier, in_skip, is_ctrl_vk, is_media_vk, vk_name};
 
 const WH_KEYBOARD_LL: i32 = 13;
 const WH_MOUSE_LL: i32 = 14;
@@ -148,7 +148,10 @@ fn reset_key_repeat(vk: u32) {
 }
 
 fn handle_key(shared: &Arc<Shared>, vk: u32, extended: bool, injected: bool) {
-    if injected {
+    // 注入事件通常是本程序/远程工具合成的按键，需忽略以防重复计数；
+    // 但笔记本 Fn 媒体键由厂商驱动 SendInput 注入（实测 Lenovo 音量键
+    // flags=0x11 带 LLKHF_INJECTED），无自合成场景，故媒体键放行。
+    if injected && !is_media_vk(vk) {
         return;
     }
     let ctx = CTX.get().unwrap();
