@@ -289,6 +289,11 @@ impl Shared {
             major_version: major,
         })
     }
+
+    /// 当前界面语言（读 ini 的 defaultLang）
+    pub fn lang(&self) -> crate::i18n::Lang {
+        crate::i18n::Lang::from_ini(&self.cfg.read().unwrap().default_lang)
+    }
 }
 
 pub fn env_full_version() -> String {

@@ -479,20 +479,13 @@ fn is_accessibility_trusted() -> bool {
 /// 弹框提示授权，返回用户是否选择"去授权"（经 osascript，避免引入 AppKit 绑定依赖）
 /// 注意：AppleScript 字符串里的引号必须用「」，否则会提前闭合导致弹框内容为空
 #[cfg(target_os = "macos")]
-fn prompt_accessibility_dialog() -> bool {
-    let script = concat!(
-        r#"display dialog "#,
-        r#""ShowKeyBoard 需要监控键盘鼠标动作。\n\n"#,
-        r#"当前尚未获得「辅助功能」授权。\n"#,
-        r#"点击「去授权」打开系统设置，勾选本程序后，程序会在 10 秒内自动检测并开始捕获。""#,
-        r#" with title "ShowKeyBoard 需要辅助功能权限""#,
-        r#" buttons {"稍后", "去授权"} default button "去授权" with icon caution"#
-    );
+fn prompt_accessibility_dialog(lang: crate::i18n::Lang) -> bool {
+    let (script, grant_label) = crate::i18n::macos::accessibility_dialog(lang);
     std::process::Command::new("osascript")
         .arg("-e")
         .arg(script)
         .output()
-        .map(|out| String::from_utf8_lossy(&out.stdout).contains("去授权"))
+        .map(|out| String::from_utf8_lossy(&out.stdout).contains(grant_label))
         .unwrap_or(false)
 }
 
@@ -539,7 +532,7 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                             // 确认后打开设置页
                             if !prompted {
                                 prompted = true;
-                                if prompt_accessibility_dialog() {
+                                if prompt_accessibility_dialog(tap_shared.lang()) {
                                     open_accessibility_settings();
                                 }
                             }

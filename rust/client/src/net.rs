@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use crate::i18n;
 use crate::stats::Shared;
 
 const UA: &str = "ShowKeyBoardRust";
@@ -330,7 +331,10 @@ fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
         )
     };
     if !http_path.exists() {
-        return Err(format!("未找到后台服务目录 {}", http_path.display()));
+        return Err(i18n::err_service_dir(
+            shared.lang(),
+            &http_path.display().to_string(),
+        ));
     }
     let script = http_path.join("server.js");
     let exec_raw = exec.trim();
@@ -360,7 +364,10 @@ fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
         .unwrap_or_else(|| exec_raw.to_string());
     let is_node = exec_name.to_lowercase().starts_with("node");
     if is_node && !script.exists() {
-        return Err(format!("未找到后台服务脚本 {}", script.display()));
+        return Err(i18n::err_service_script(
+            shared.lang(),
+            &script.display().to_string(),
+        ));
     }
 
     let pid_file = data_dir.join("kbserver.pid");
@@ -417,7 +424,7 @@ fn start_node_server(shared: &Arc<Shared>) -> Result<(), String> {
         }
         Err(e) => {
             debug_out(&format!("start node server failed: {}", e));
-            Err(format!("启动 {} 失败：{}", exec_name, e))
+            Err(i18n::err_spawn(shared.lang(), &exec_name, &e.to_string()))
         }
     }
 }
@@ -434,14 +441,11 @@ fn check_server(shared: &Arc<Shared>) -> Result<(), String> {
         Ok(body) => {
             shared.server_state.store(0, Ordering::Relaxed);
             let brief: String = body.trim().chars().take(60).collect();
-            Err(format!(
-                "服务返回异常响应：{}",
-                if brief.is_empty() { "<空>" } else { &brief }
-            ))
+            Err(i18n::err_bad_response(shared.lang(), &brief))
         }
         Err(e) => {
             shared.server_state.store(0, Ordering::Relaxed);
-            Err(format!("无法连接 {}：{}", url, e))
+            Err(i18n::err_connect(shared.lang(), &url, &e.to_string()))
         }
     }
 }
@@ -462,7 +466,7 @@ fn wait_server(shared: &Arc<Shared>, attempts: u32) -> Result<(), String> {
             push_status(
                 shared,
                 STATUS_STICKY,
-                format!("正在连接后台服务…（第 {} 次）", i + 2),
+                i18n::status_connecting_attempt(shared.lang(), (i + 2) as u32),
             );
             std::thread::sleep(Duration::from_millis(500));
         }
@@ -521,7 +525,7 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                     // 重启/完全重启过程中不要自动拉起后端（完全重启是先关服务再重启自己）
                     let restarting = shared.restart_mode.load(Ordering::Relaxed) != 0;
                     if check_server(&shared).is_ok() {
-                        push_status(&shared, STATUS_TEMP, "后台服务已连接");
+                        push_status(&shared, STATUS_TEMP, i18n::status_connected(shared.lang()));
                         send_pc_info(&shared, 0);
                         check_count = 0;
                         started_server = true;
@@ -529,28 +533,32 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         check_count += 1;
                         if never_started && !started_server && !restarting {
                             started_server = true;
-                            push_status(&shared, STATUS_STICKY, "正在启动后台服务…");
+                            push_status(&shared, STATUS_STICKY, i18n::status_starting(shared.lang()));
                             match start_node_server(&shared) {
                                 Ok(()) => {
                                     // 启动后立即重试连接，界面持续反馈进度/异常
-                                    push_status(&shared, STATUS_STICKY, "后台服务已启动，正在连接…");
+                                    push_status(
+                                        &shared,
+                                        STATUS_STICKY,
+                                        i18n::status_started_connecting(shared.lang()),
+                                    );
                                     match wait_server(&shared, 20) {
                                         Ok(()) => {
-                                            push_status(&shared, STATUS_TEMP, "后台服务已连接");
+                                            push_status(&shared, STATUS_TEMP, i18n::status_connected(shared.lang()));
                                             send_pc_info(&shared, 0);
                                             check_count = 0;
                                         }
                                         Err(e) => push_status(
                                             &shared,
                                             STATUS_STICKY,
-                                            format!("后台服务连接失败：{}", e),
+                                            i18n::status_connect_failed(shared.lang(), &e),
                                         ),
                                     }
                                 }
                                 Err(e) => push_status(
                                     &shared,
                                     STATUS_STICKY,
-                                    format!("后台服务启动失败：{}", e),
+                                    i18n::status_start_failed(shared.lang(), &e),
                                 ),
                             }
                         }
@@ -579,7 +587,11 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                         let max_fail = shared.cfg.read().unwrap().max_count_of_connect_fail;
                         if fail_count >= max_fail {
                             shared.server_state.store(-1, Ordering::Relaxed);
-                            push_status(&shared, STATUS_STICKY, "后台服务连接中断，正在重连…");
+                            push_status(
+                                &shared,
+                                STATUS_STICKY,
+                                i18n::status_lost_reconnecting(shared.lang()),
+                            );
                             check_count = 0;
                             started_server = false;
                         }

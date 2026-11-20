@@ -7,6 +7,7 @@ use std::time::Duration;
 use tray_icon::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem};
 use tray_icon::{TrayIcon, TrayIconBuilder};
 
+use crate::i18n;
 use crate::stats::Shared;
 
 /// 编译期嵌入托盘图标（对应 AHK 的 res\keyboard.ico）
@@ -200,26 +201,16 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
     std::thread::Builder::new()
         .name("tray".into())
         .spawn(move || unsafe {
-            let (lang_en, need_show, hotkey, only_web) = {
+            let (lang, need_show, hotkey, only_web) = {
                 let c = shared.cfg.read().unwrap();
                 (
-                    c.default_lang == "en-US",
+                    i18n::Lang::from_ini(&c.default_lang),
                     c.need_show_key,
                     c.hotkey4_show.clone(),
                     c.ui.show_key_only_web,
                 )
             };
-            let (t_set, t_stat, t_show, t_startup, t_restart, t_restart_all, t_exit) = if lang_en {
-                (
-                    "Setting", "Statistics", "Show/Hide Key", "Auto Start",
-                    "Reset Client", "Full Reset", "Exit",
-                )
-            } else {
-                (
-                    "参数设置", "数据统计", "按键显示", "开机启动",
-                    "重启程序", "完全重启", "退出程序",
-                )
-            };
+            let t = i18n::menu_texts(lang);
             // 按键显示 + 热键标记（对应 AHK showOnlyWebTxt / L_menu_4show）
             let mark = if only_web {
                 format!("Web {}", hotkey.trim())
@@ -227,24 +218,24 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                 hotkey.trim().to_string()
             };
             let show_label = if mark.is_empty() {
-                t_show.to_string()
+                t.show_key.to_string()
             } else {
-                format!("{} {}", t_show, mark)
+                format!("{} {}", t.show_key, mark)
             };
             let tip = format!("ShowKeyBoard v{}", crate::stats::env_full_version());
 
             let menu = Menu::new();
             let mut startup_on = startup_checked();
-            let mi_startup = CheckMenuItem::with_id(ID_STARTUP, t_startup, true, startup_on, None);
-            let mi_restart = MenuItem::with_id(ID_RESTART, t_restart, true, None);
-            let mi_restart_all = MenuItem::with_id(ID_RESTART_ALL, t_restart_all, true, None);
-            let mi_settings = MenuItem::with_id(ID_SETTINGS, t_set, true, None);
-            let mi_stat = MenuItem::with_id(ID_STAT, t_stat, true, None);
+            let mi_startup = CheckMenuItem::with_id(ID_STARTUP, t.auto_start, true, startup_on, None);
+            let mi_restart = MenuItem::with_id(ID_RESTART, t.restart, true, None);
+            let mi_restart_all = MenuItem::with_id(ID_RESTART_ALL, t.restart_all, true, None);
+            let mi_settings = MenuItem::with_id(ID_SETTINGS, t.settings, true, None);
+            let mi_stat = MenuItem::with_id(ID_STAT, t.statistics, true, None);
             let mi_show = CheckMenuItem::with_id(ID_SHOW, show_label, true, need_show, None);
             let sep1 = PredefinedMenuItem::separator();
             let sep2 = PredefinedMenuItem::separator();
             let sep3 = PredefinedMenuItem::separator();
-            let mi_exit = MenuItem::with_id(ID_EXIT, t_exit, true, None);
+            let mi_exit = MenuItem::with_id(ID_EXIT, t.exit, true, None);
             let _ = menu.append(&mi_startup);
             let _ = menu.append(&sep1);
             let _ = menu.append(&mi_restart);
@@ -297,11 +288,7 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                     let c = shared.cfg.read().unwrap();
                     (crate::stats::env_full_version(), c.hotkey4_show.clone())
                 };
-                let text = if hotkey.is_empty() {
-                    format!("ShowKeyBoard v{} 已启动", ver)
-                } else {
-                    format!("ShowKeyBoard v{} 已启动，热键 {} 显示/隐藏", ver, hotkey)
-                };
+                let text = i18n::balloon_started(lang, &ver, &hotkey);
                 if balloon_show(owner, "ShowKeyBoard", &text) {
                     balloon_at = Some(std::time::Instant::now());
                 }
