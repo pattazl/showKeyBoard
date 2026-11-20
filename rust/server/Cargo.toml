@@ -1,6 +1,6 @@
 [package]
 name = "showkeyboard_server"
-version = "2.1.0"
+version = "2.3.0"
 edition = "2021"
 description = "ShowKeyBoard HTTP and WebSocket server"
 
@@ -8,11 +8,9 @@ description = "ShowKeyBoard HTTP and WebSocket server"
 # Web framework
 axum = { version = "0.7", features = ["ws", "multipart"] }
 tokio = { version = "1", features = ["full"] }
-tower = "0.4"
 tower-http = { version = "0.5", features = ["fs", "cors"] }
 
 # WebSocket
-tokio-tungstenite = "0.21"
 futures-util = "0.3"
 
 # Serialization
@@ -24,7 +22,6 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.0", features = ["v4"] }
 zip = "2.1"
 log = "0.4"
 env_logger = "0.11"

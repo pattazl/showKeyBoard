@@ -129,6 +129,11 @@ impl Ini {
     pub fn get(&self, section: &str, key: &str) -> Option<&str> {
         self.map.get(section)?.get(key).map(|s| s.as_str())
     }
+
+    /// 由解析好的节/键/值构建（用于 WS 下发的配置，不读磁盘）
+    pub fn from_map(map: HashMap<String, HashMap<String, String>>) -> Ini {
+        Ini { map }
+    }
 }
 
 fn split_pipe(s: &str) -> Vec<String> {
@@ -328,6 +333,38 @@ impl Config {
             }
         }
 
+        Self::from_sources(user_ini, work, ini_path, dir)
+    }
+
+    /// 用 WS 下发的配置（`{"common":{...},"dialog":{...}}`）重建内存配置，不读配置文件。
+    /// 失败（路径异常）时返回 None，调用方可回退为读文件。
+    pub fn from_ws(config: &serde_json::Value) -> Option<Config> {
+        let mut sections: HashMap<String, HashMap<String, String>> = HashMap::new();
+        for name in ["common", "dialog"] {
+            let Some(obj) = config.get(name).and_then(|v| v.as_object()) else {
+                continue;
+            };
+            let entry = sections.entry(name.to_string()).or_default();
+            for (k, v) in obj {
+                let val = match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                entry.insert(k.clone(), val);
+            }
+        }
+        if sections.is_empty() {
+            return None;
+        }
+        let dir = data_dir();
+        let ini_path = dir.join("showKeyBoard.ini");
+        let work = std::env::current_dir().ok()?;
+        Some(Self::from_sources(Ini::from_map(sections), work, ini_path, dir))
+    }
+
+    /// 由 ini 内容构建配置（不读配置文件本身）。
+    /// `work` 为程序目录，`dir` 为用户数据目录，`ini_path` 仅作为字段记录。
+    fn from_sources(user_ini: Ini, work: PathBuf, ini_path: PathBuf, dir: PathBuf) -> Config {
         let http_dist_path = Self::desc_read(&user_ini, &None, "common", "httpDistPath", "\\httpdist\\dist\\");
         let mut http_path = resolve_http_path(&work, &http_dist_path, true);
         if !http_path.exists() {

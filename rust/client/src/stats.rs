@@ -249,7 +249,6 @@ pub struct Shared {
     pub exit: AtomicBool,
     /// 重启模式：0 正常退出，1 重启程序（保留后台服务），2 完全重启（先退出后台服务）
     pub restart_mode: AtomicI32,
-    pub ws_reload: AtomicBool,   // 收到 IniMonitor
     pub pcinfo_dirty: AtomicI32, // SendPCInfo flag（0 不发，否则发送对应 flag）
     pub show_key_generation: AtomicU64,
     pub version: String,
@@ -282,7 +281,6 @@ impl Shared {
             server_state: AtomicI32::new(-1),
             exit: AtomicBool::new(false),
             restart_mode: AtomicI32::new(0),
-            ws_reload: AtomicBool::new(false),
             pcinfo_dirty: AtomicI32::new(0),
             show_key_generation: AtomicU64::new(0),
             version: full,

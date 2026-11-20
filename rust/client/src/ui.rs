@@ -32,6 +32,8 @@ struct CtrlWin {
     comp: CtrlOverlay,
     title: String,
     last_text: String,
+    /// 尺寸生效时的配置版本：配置变化（如 ctrlWidth 改 0）后即使文本没变也要重新应用
+    cfg_gen: u64,
     /// 位置/尺寸是否已按物理像素成功应用（窗口刚创建时 winit 窗口尚未就绪，需要下一轮重试）
     positioned: bool,
     /// 已生效的目标 frame（物理像素）：macOS 上重复提交会在 AppKit 里触发
@@ -800,7 +802,10 @@ impl UiManager {
     fn update_ctrl(&mut self) {
         // 每 ~60ms 调用一次：只 clone UiParams（远小于整个 Config），
         // 避免持 cfg 读锁时调用 &mut self 方法的借用冲突。
-        let ui = self.shared.cfg.read().unwrap().ui.clone();
+        let (ui, cfg_gen) = {
+            let c = self.shared.cfg.read().unwrap();
+            (c.ui.clone(), c.generation)
+        };
         if !ui.ctrl_state {
             if let Some(c) = &mut self.ctrl {
                 c.comp.hide().ok();
@@ -848,11 +853,12 @@ impl UiManager {
             }
         }
         let txt = crate::winutil::strip_variation_selectors(txt.trim());
-        // 避免刷新闪烁（位置尚未成功应用时也要继续尝试）
+        // 避免刷新闪烁（位置尚未成功应用时也要继续尝试）；
+        // 配置版本变化时必须重新应用，否则 ctrlWidth 改动后文本不变会一直沿用旧尺寸
         if self
             .ctrl
             .as_ref()
-            .map(|c| c.last_text == txt && c.positioned)
+            .map(|c| c.last_text == txt && c.positioned && c.cfg_gen == cfg_gen)
             .unwrap_or(false)
         {
             return;
@@ -877,6 +883,7 @@ impl UiManager {
                 comp,
                 title,
                 last_text: String::new(),
+                cfg_gen: 0,
                 positioned: false,
                 applied: None,
             });
@@ -888,6 +895,7 @@ impl UiManager {
         let click_through = ui.gui_trans;
         let win = self.ctrl.as_mut().unwrap();
         win.last_text = txt.clone();
+        win.cfg_gen = cfg_gen;
         let (br, bg_, bb) = ui.ctrl_bgcolor;
         let (tr, tg, tb) = ui.ctrl_text_color;
         let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
@@ -921,8 +929,10 @@ impl UiManager {
                     .sum();
                 (units * font_px as f32).round() as i32
             };
-            // 12px 物理边距 + 2% 余量吸收不同引擎的字宽差异
-            (text_w + (12.0 * scale).round() as i32 + text_w / 50).max(200)
+            // 12px 物理边距 + 2% 余量吸收不同引擎的字宽差异；
+            // 只保留很小的下限，避免短文本（如 "Ctrl"）被固定的 200px 下限撑宽
+            (text_w + (12.0 * scale).round() as i32 + text_w / 50)
+                .max((16.0 * scale).round() as i32)
         };
         let h_phys = if ui.ctrl_height != 0 {
             (ui.ctrl_height as f32 * scale).round().max(1.0) as i32
@@ -1061,6 +1071,7 @@ impl UiManager {
                 comp,
                 title,
                 last_text: String::new(),
+                cfg_gen: 0,
                 positioned: false,
                 applied: None,
             });
