@@ -230,7 +230,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro18 }}
               <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.guiWidth" :min="1" :max="65535" />
+                <n-input-number v-model:value="allConfig.dialog.guiWidth" :min="0" :max="65535" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro189 }}<div class="intro">{{ contentText.intro190 }}</div>
@@ -357,7 +357,7 @@
             </n-list-item>
             <n-list-item>{{ contentText.intro18 }}
               <template #suffix>
-                <n-input-number v-model:value="allConfig.dialog.ctrlWidth" :min="1" :max="65535" />
+                <n-input-number v-model:value="allConfig.dialog.ctrlWidth" :min="0" :max="65535" />
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro19 }}<div class="intro">{{ contentText.intro20 }}</div>
