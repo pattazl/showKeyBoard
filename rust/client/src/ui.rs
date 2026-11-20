@@ -415,7 +415,23 @@ impl UiManager {
         let size_k = if ui.gui_dpiscale { 1.0 } else { scale };
         // Slint 的 font-size 是逻辑像素，GDI 测量需要物理像素
         let font_px = ((ui.gui_text_size as f32) * scale).round().max(1.0) as i32;
-        let pw = ((ui.gui_width as f32) * size_k).round().max(1.0) as i32;
+        let pw = if ui.gui_width > 0 {
+            ((ui.gui_width as f32) * size_k).round().max(1.0) as i32
+        } else {
+            // guiWidth=0：宽度自适应单行文本（与主动应用路径窗同一测量方式）
+            let (_, _, measured) =
+                crate::winutil::measure_text(&merged, font, font_px, ui.gui_text_bold, 0);
+            let text_w = if measured > 0 {
+                measured
+            } else {
+                let units: f32 = merged
+                    .chars()
+                    .map(|c| if (c as u32) > 0x2E7F { 1.0 } else { 0.55 })
+                    .sum();
+                (units * font_px as f32).round() as i32
+            };
+            (text_w + (12.0 * scale).round() as i32 + text_w / 50).max(40)
+        };
         // Text 左右各 4px 逻辑边距
         let usable_w = (pw as f32 - 8.0 * scale).round().max(40.0) as i32;
         let ph = if ui.gui_height > 0 {
@@ -888,7 +904,26 @@ impl UiManager {
         // 尺寸上，Gui 内部控件坐标会自动按 DPI 缩放 → 配置尺寸是**逻辑像素**，
         // 因此物理尺寸 = 配置 × scale；Slint 逻辑属性 = 物理尺寸 / scale。
         let scale = Self::scale_at_pos(ui.ctrl_x, ui.ctrl_y);
-        let w_phys = (ui.ctrl_width as f32 * scale).round().max(1.0) as i32;
+        let w_phys = if ui.ctrl_width > 0 {
+            (ui.ctrl_width as f32 * scale).round().max(1.0) as i32
+        } else {
+            // ctrlWidth=0：宽度按 Ctrl 状态文本自适应（与主动应用路径窗同一测量方式）。
+            // 加粗必须与 set_font_weight 一致，否则测量偏窄 → Text 会 elide 省略尾部
+            let font_px = ((ui.ctrl_text_size as f32) * scale).round().max(1.0) as i32;
+            let (_lines, _line_h, measured) =
+                crate::winutil::measure_text(&txt, &font, font_px, ui.ctrl_text_bold, 0);
+            let text_w = if measured > 0 {
+                measured
+            } else {
+                let units: f32 = txt
+                    .chars()
+                    .map(|c| if (c as u32) > 0x2E7F { 1.0 } else { 0.55 })
+                    .sum();
+                (units * font_px as f32).round() as i32
+            };
+            // 12px 物理边距 + 2% 余量吸收不同引擎的字宽差异
+            (text_w + (12.0 * scale).round() as i32 + text_w / 50).max(200)
+        };
         let h_phys = if ui.ctrl_height != 0 {
             (ui.ctrl_height as f32 * scale).round().max(1.0) as i32
         } else {

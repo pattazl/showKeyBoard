@@ -29,7 +29,7 @@ pub(crate) fn vk_name(vk: u32, extended: bool) -> String {
         0x1B => "Escape", 0x20 => "Space", 0x21 => "PgUp", 0x22 => "PgDn",
         0x23 => "End", 0x24 => "Home", 0x25 => "Left", 0x26 => "Up",
         0x27 => "Right", 0x28 => "Down", 0x2C => "PrintScreen", 0x2D => "Insert",
-        0x2E => "Delete", 0x5B => "LWin", 0x5C => "RWin", 0x5D => "AppsKey",
+        0x2E => "Delete", 0x2F => "Help", 0x5B => "LWin", 0x5C => "RWin", 0x5D => "AppsKey",
         0x5F => "Sleep",
         0x60 => "Numpad0", 0x61 => "Numpad1", 0x62 => "Numpad2", 0x63 => "Numpad3",
         0x64 => "Numpad4", 0x65 => "Numpad5", 0x66 => "Numpad6", 0x67 => "Numpad7",
@@ -45,6 +45,17 @@ pub(crate) fn vk_name(vk: u32, extended: bool) -> String {
         0xB0 => "MediaNext", 0xB1 => "MediaPrev", 0xB2 => "MediaStop",
         0xB3 => "MediaPlayPause", 0xB4 => "LaunchMail", 0xB5 => "LaunchMedia",
         0xB6 => "LaunchApp1", 0xB7 => "LaunchApp2",
+        // macOS 媒体/设备控制键（NX_SYSDEFINED 专有，Windows 无对应 VK）
+        0xE002 => "BrightnessUp", 0xE003 => "BrightnessDown",
+        0xE006 => "Power",
+        0xE00B => "ContrastUp", 0xE00C => "ContrastDown",
+        0xE00D => "LaunchPanel", 0xE00E => "Eject", 0xE00F => "VideoMirror",
+        0xE013 => "MediaFastForward", 0xE014 => "MediaRewind",
+        0xE015 => "IlluminationUp", 0xE016 => "IlluminationDown",
+        0xE017 => "IlluminationToggle",
+        // macOS 功能键顶排的 Apple 专有键
+        0xE100 => "Dictation", 0xE101 => "Spotlight", 0xE102 => "DoNotDisturb",
+        0xE103 => "MissionControl",
         // OEM 键：AHK GetKeyName 返回的是未按 Shift 的基础字符（; 而不是 :）
         0xBA => ";", 0xBB => "=", 0xBC => ",", 0xBD => "-", 0xBE => ".", 0xBF => "/",
         0xC0 => "`", 0xDB => "[", 0xDC => "\\", 0xDD => "]", 0xDE => "'",

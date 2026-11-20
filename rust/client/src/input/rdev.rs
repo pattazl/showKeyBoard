@@ -17,4 +17,5 @@ mod types;
 
 pub use macos::last_scroll_kind;
 pub use macos::listen;
+pub use macos::MEDIA_BASE;
 pub use types::{Button, Event, EventType, Key};

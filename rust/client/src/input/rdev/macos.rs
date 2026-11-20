@@ -6,7 +6,7 @@
 #![allow(non_upper_case_globals, improper_ctypes, improper_ctypes_definitions)]
 
 use super::keycodes::key_from_code;
-use super::types::{Button, Event, EventType, ListenError};
+use super::types::{Button, Event, EventType, Key, ListenError};
 use cocoa::base::{id, nil};
 use cocoa::foundation::NSAutoreleasePool;
 use core_graphics::event::{
@@ -16,6 +16,13 @@ use std::convert::TryInto;
 use std::os::raw::c_void;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::SystemTime;
+
+/// NX_SYSDEFINED（媒体键/设备控制键）：CGEventType 枚举里没有这个值，按原始数字识别
+const NX_SYSDEFINED: u32 = 14;
+/// NX_SUBTYPE_AUX_CONTROL_BUTTONS：媒体键事件的 subtype
+const NX_SUBTYPE_AUX_CONTROL_BUTTONS: i16 = 8;
+/// 媒体键在 Key::Unknown 里的编码基数（真实 CG keycode ≤ 127，不会冲突）
+pub const MEDIA_BASE: u32 = 0x2000;
 
 /// 滚动事件来源（convert 里同步记录，on_event 同线程紧随其后读取，值准确）：
 /// 0 = 真鼠标滚轮（一格一条消息）；1 = 触控板主动滚动；2 = 触控板惯性滚动。
@@ -66,7 +73,9 @@ pub const kCGEventMaskForAllEvents: u64 = (1 << CGEventType::LeftMouseDown as u6
     + (1 << CGEventType::KeyDown as u64)
     + (1 << CGEventType::KeyUp as u64)
     + (1 << CGEventType::FlagsChanged as u64)
-    + (1 << CGEventType::ScrollWheel as u64);
+    + (1 << CGEventType::ScrollWheel as u64)
+    // 媒体键 / 设备控制键（音量、播放、亮度、键盘背光、Mission Control 等）
+    + (1u64 << NX_SYSDEFINED as u64);
 
 #[link(name = "Cocoa", kind = "framework")]
 extern "C" {
@@ -112,12 +121,55 @@ unsafe extern "C" fn raw_callback(
     cg_event: CGEventRef,
     _user_info: *mut c_void,
 ) -> CGEventRef {
+    // NX_SYSDEFINED 不在 CGEventType 枚举里，先按原始值分流，避免对非法枚举值做匹配
+    if _type as u32 == NX_SYSDEFINED {
+        if let Some(event) = convert_sysdefined(&cg_event) {
+            if let Some(callback) = take_callback() {
+                callback(event);
+            }
+        }
+        return cg_event;
+    }
     if let Some(event) = convert(_type, &cg_event) {
         if let Some(callback) = take_callback() {
             callback(event);
         }
     }
     cg_event
+}
+
+/// NX_SYSDEFINED -> 媒体键/设备控制键事件
+/// data1 布局：高 16 位为 NX_KEYTYPE_*，第 8-15 位为 0x0A(按下)/0x0B(抬起)
+unsafe fn convert_sysdefined(cg_event: &CGEvent) -> Option<Event> {
+    use objc::{class, msg_send, sel, sel_impl};
+    let _pool = NSAutoreleasePool::new(nil);
+    // CGEvent 是 core-foundation 0.9 的透明包装（内部就是裸指针），
+    // 与本 crate 引入的 0.10 TCFType trait 不匹配，直接取出裸指针
+    let raw: id = std::mem::transmute_copy(cg_event);
+    if raw == nil {
+        return None;
+    }
+    let ns_event: id = msg_send![class!(NSEvent), eventWithCGEvent: raw];
+    if ns_event == nil {
+        return None;
+    }
+    let subtype: i16 = msg_send![ns_event, subtype];
+    if subtype != NX_SUBTYPE_AUX_CONTROL_BUTTONS {
+        return None;
+    }
+    let data1: i64 = msg_send![ns_event, data1];
+    let code = ((data1 & 0xFFFF_0000) >> 16) as u32;
+    let down = ((data1 & 0x0000_FF00) >> 8) as u32 == 0x0A;
+    let key = Key::Unknown(MEDIA_BASE + code);
+    Some(Event {
+        event_type: if down {
+            EventType::KeyPress(key)
+        } else {
+            EventType::KeyRelease(key)
+        },
+        time: SystemTime::now(),
+        name: None,
+    })
 }
 
 /// CGEvent -> rdev Event（含补丁：不再调用 TIS 转换 `name`）

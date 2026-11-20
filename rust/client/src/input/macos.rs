@@ -31,6 +31,12 @@ enum Ev {
 
 /// rdev Key -> (VK, extended)。extended 仅用于区分主键盘 Enter 与小键盘 Enter
 fn key_to_vk(key: Key) -> Option<(u32, bool)> {
+    // 媒体键/设备控制键：tap 里编码为 Key::Unknown(MEDIA_BASE + NX_KEYTYPE_*)
+    if let Key::Unknown(code) = key {
+        if code >= super::rdev::MEDIA_BASE {
+            return media_key_to_vk(code - super::rdev::MEDIA_BASE);
+        }
+    }
     let pair = match key {
         Key::Alt => (0xA4, false),
         Key::AltGr => (0xA5, false),
@@ -140,9 +146,38 @@ fn key_to_vk(key: Key) -> Option<(u32, bool)> {
         // kVK_NumLock = 71, kVK_ScrollLock = 107
         Key::Unknown(71) => (0x90, false),
         Key::Unknown(107) => (0x91, false),
+        // 功能键顶排的 Apple 专有键（带 Fn 标志、无 Windows 对应 VK）
+        Key::Unknown(177) => (0xE101, false), // 搜索 / Spotlight（F4）
+        Key::Unknown(176) => (0xE100, false), // 听写 / Dictation（F5）
+        Key::Unknown(178) => (0xE102, false), // 免打扰 / Do Not Disturb（F6）
+        Key::Unknown(160) => (0xE103, false), // 调度中心 / Mission Control（F3）
         _ => return None,
     };
     Some(pair)
+}
+
+/// NX_KEYTYPE_* -> VK。能用 Windows 同款 VK 的（音量/播放/上下方向/锁定键）复用
+/// 同名映射；亮度、背光、电源、Mission Control 等 macOS 专有键用 0xE000 扩展段。
+fn media_key_to_vk(code: u32) -> Option<(u32, bool)> {
+    let vk = match code {
+        0 => 0xAF,  // SOUND_UP
+        1 => 0xAE,  // SOUND_DOWN
+        4 => 0x14,  // CAPS_LOCK
+        5 => 0x2F,  // HELP
+        7 => 0xAD,  // MUTE
+        8 => 0x26,  // UP_ARROW
+        9 => 0x28,  // DOWN_ARROW
+        10 => 0x90, // NUM_LOCK
+        16 => 0xB3, // PLAY
+        17 => 0xB0, // NEXT
+        18 => 0xB1, // PREVIOUS
+        // 亮度/电源/对比度/LaunchPanel(Mission Control)/Eject/镜像/快进快退/键盘背光
+        other @ (2 | 3 | 6 | 11 | 12 | 13 | 14 | 15 | 19 | 20 | 21 | 22 | 23) => {
+            0xE000 + other
+        }
+        _ => return None,
+    };
+    Some((vk, false))
 }
 
 fn button_name(btn: Button) -> Option<&'static str> {
@@ -442,14 +477,14 @@ fn is_accessibility_trusted() -> bool {
 }
 
 /// 弹框提示授权，返回用户是否选择"去授权"（经 osascript，避免引入 AppKit 绑定依赖）
+/// 注意：AppleScript 字符串里的引号必须用「」，否则会提前闭合导致弹框内容为空
 #[cfg(target_os = "macos")]
 fn prompt_accessibility_dialog() -> bool {
     let script = concat!(
         r#"display dialog "#,
-        r#""ShowKeyBoard 需要监控键盘鼠标动作。"#,
-        r#"\n\n当前尚未获得"辅助功能"授权，"#,
-        r#"点击"去授权"打开设置页，添加并勾选本程序后，"#,
-        r#"键鼠捕获会自动开始。""#,
+        r#""ShowKeyBoard 需要监控键盘鼠标动作。\n\n"#,
+        r#"当前尚未获得「辅助功能」授权。\n"#,
+        r#"点击「去授权」打开系统设置，勾选本程序后，程序会在 10 秒内自动检测并开始捕获。""#,
         r#" with title "ShowKeyBoard 需要辅助功能权限""#,
         r#" buttons {"稍后", "去授权"} default button "去授权" with icon caution"#
     );
@@ -488,7 +523,8 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
             std::thread::Builder::new()
                 .name("input-tap".into())
                 .spawn(move || {
-                    let mut hinted = false;
+                    // 未授权提示只弹一次，避免每次等待超时都重复打扰
+                    let mut prompted = false;
                     loop {
                         if is_accessibility_trusted() {
                             match listen(on_event) {
@@ -499,17 +535,26 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                                 }
                             }
                         } else {
-                            // 未授权：浮窗常驻提示 + 弹框引导，跳转设置页；授权后自动开始捕获
-                            if !hinted {
-                                hinted = true;
-                                let _ = tap_shared.ui_tx.send(format!(
-                                    "{}键盘鼠标捕获失败：请在 系统设置 → 隐私与安全性 → 辅助功能 中允许本程序",
-                                    crate::net::STATUS_STICKY
-                                ));
+                            // 初次检测到未授权就立即弹系统对话框引导（不再先静默等待），
+                            // 确认后打开设置页
+                            if !prompted {
+                                prompted = true;
+                                if prompt_accessibility_dialog() {
+                                    open_accessibility_settings();
+                                }
                             }
-                            if prompt_accessibility_dialog() {
-                                open_accessibility_settings();
+                            // 确认后 10 秒内持续检测：用户在设置里勾选授权后立即开始捕获
+                            let deadline = Instant::now() + Duration::from_secs(10);
+                            while !is_accessibility_trusted()
+                                && !tap_shared.exit.load(Ordering::Relaxed)
+                                && Instant::now() < deadline
+                            {
+                                std::thread::sleep(Duration::from_millis(500));
                             }
+                            if tap_shared.exit.load(Ordering::Relaxed) {
+                                break;
+                            }
+                            // 10 秒内未完成授权：静默等待（不再重复弹框），授权后自动开始
                             while !is_accessibility_trusted()
                                 && !tap_shared.exit.load(Ordering::Relaxed)
                             {
