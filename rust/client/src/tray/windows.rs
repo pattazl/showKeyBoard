@@ -355,12 +355,14 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                                 cfg.need_show_key = !cfg.need_show_key;
                                 (cfg.need_show_key, cfg.ini_path.clone())
                             };
+                            let value = if new_state { "1" } else { "0" };
                             crate::config::write_ini_value(
                                 &ini_path,
                                 "common",
                                 "needShowKey",
-                                if new_state { "1" } else { "0" },
+                                value,
                             );
+                            crate::net::notify_server_config("common", "needShowKey", value);
                             shared.show_key_generation.fetch_add(1, Ordering::Relaxed);
                         }
                         ID_EXIT => {

@@ -32,7 +32,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref,reactive,computed ,watch, onMounted, toRef} from 'vue';
+import { defineComponent, ref,reactive,computed ,watch, onMounted, onUnmounted, toRef} from 'vue';
 import { NLayout, NConfigProvider, GlobalThemeOverrides, zhCN,MenuInst } from 'naive-ui';
 import PageHead from './PageHead.vue';
 import { useRouter } from 'vue-router'
@@ -41,7 +41,7 @@ import content from '../content.js';
 import {setOpt} from '../leftmenu';
 // import { useAustinStore } from '../App.vue'
 import { useMessage } from 'naive-ui';
-import { deepCopy,ajax,str2Type
+import { deepCopy,ajax,str2Type, openWS, closeWS
   ,fingerKeyMap,mouseKeyMap,updateFingerMap,updateMouseMap,
  } from '@/common.ts'
 import { useAustinStore } from '@/App.vue'
@@ -88,6 +88,9 @@ export default defineComponent({
         } catch (error) {
           loading.destroy()
           message.error(content[lang.value].intro85)
+          // getPara 失败时 data 仍是初始空对象，继续访问 data.config.common 会抛
+          // "Cannot read properties of undefined" 导致整个页面白屏，故直接返回。
+          return
         }
         // 对配置文件中 data.config 的数字字符串转换为数字
         str2Type(data.config.common, 0)
@@ -160,6 +163,40 @@ export default defineComponent({
 			})
 		}
     loadParaCore();
+    // 全局监听服务端广播的配置变更（客户端托盘/热键改动 needShowKey 等）。
+    // 必须放在常驻的 ServerPage，而不是设置页：设置页只在挂载期间监听，
+    // 停留在其他页面时到达的广播会丢失，切回设置页读到的仍是旧值。
+    const onConfigUpdate = (e: Event) => {
+      const cfg = <any>(e as CustomEvent).detail;
+      const target = <any>store.data?.config;
+      // 尚未完成 getPara 时忽略：挂载流程本身会读取最新 ini
+      if (!cfg || target == null) {
+        return;
+      }
+      ;['common', 'dialog'].forEach(sec => {
+        const src = cfg[sec];
+        if (src && target[sec]) {
+          Object.assign(target[sec], src);
+          str2Type(target[sec], 0); // 与 getPara 一致：字符串 → 数字/布尔
+        }
+      });
+      // 同步 preData，避免「重置」后回退到旧值
+      const pre = <any>store.preData?.config;
+      if (pre) {
+        ;['common', 'dialog'].forEach(sec => {
+          if (cfg[sec] && pre[sec]) {
+            Object.assign(pre[sec], cfg[sec]);
+            str2Type(pre[sec], 0);
+          }
+        });
+      }
+    };
+    openWS();
+    window.addEventListener('skb-config-update', onConfigUpdate);
+    onUnmounted(() => {
+      window.removeEventListener('skb-config-update', onConfigUpdate);
+      closeWS();
+    });
      //watch(() => store.myTheme, (newValue, oldValue) => {
      //  console.log('属性发生变化', newValue, oldValue);
      //});

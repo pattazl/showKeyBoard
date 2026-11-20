@@ -793,6 +793,8 @@ export default defineComponent({
       //console.log(IPlinks)
     }
     loadPara();
+    // 配置变更的 WS 监听已上移到常驻的 ServerPage（组件卸载期间也不会漏收），
+    // 它直接更新 store.data.config，本页 allConfig 引用同一对象即可自动刷新。
     // 要监听的UI属性列表
     let watchedProps = ['guiWidth', 'guiHeigth', 'guiBgcolor', 'guiBgTrans', 'guiOpacity',
       'guiTextFont', 'guiTextSize', 'guiTextWeight', 'guiTextColor', 'guiLife', 'guiInterval',

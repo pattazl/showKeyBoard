@@ -84,8 +84,13 @@ function splitArr(str) {
 }
 
 let socket = null
+let wsCallbacks = [] // 统计数据回调（Today 等页面）
+let wsRefs = 0       // 引用计数：多个页面共用一个连接
 
-function setWS(callback) {
+function ensureSocket() {
+  if (socket != null) {
+    return
+  }
   // 创建WebSocket对象并连接服务器
   socket = new WebSocket('ws://' + getHost());
 
@@ -100,19 +105,55 @@ function setWS(callback) {
   // 监听服务器发送的消息事件
   socket.onmessage = (event) => {
     const message = event.data;
-    //console.log('Received message:', message);
-    callback(message)
+    // 配置同步消息：客户端本地改配置后由服务端广播，单独派发事件，
+    // 不能混入统计数据回调，否则会被当作 dataBody 解析
+    if (typeof message === 'string' && message.indexOf('{"') === 0) {
+      try {
+        const msg = JSON.parse(message)
+        if (msg && msg.type === 'ConfigUpdate') {
+          window.dispatchEvent(new CustomEvent('skb-config-update', { detail: msg.config }))
+          return
+        }
+      } catch (e) {
+        // 非 JSON，按普通数据消息处理
+      }
+    }
+    wsCallbacks.forEach(cb => cb(message))
   };
 
   // 监听连接关闭事件
   socket.onclose = () => {
     console.log('Disconnected from WebSocket server');
+    socket = null
   };
 }
-function closeWS() {
-  if (socket != null) {
+
+function setWS(callback) {
+  wsRefs++
+  if (typeof callback === 'function') {
+    wsCallbacks.push(callback)
+  }
+  ensureSocket()
+}
+
+// 只保活连接（用于监听配置同步事件，不消费统计数据）
+function openWS() {
+  wsRefs++
+  ensureSocket()
+}
+
+function closeWS(callback = null) {
+  if (typeof callback === 'function') {
+    const i = wsCallbacks.indexOf(callback)
+    if (i > -1) {
+      wsCallbacks.splice(i, 1)
+    }
+  }
+  wsRefs = Math.max(0, wsRefs - 1)
+  if (wsRefs === 0 && socket != null) {
     socket.close()
     socket = null
+    wsCallbacks = []
   }
 }
 // 从数组中删除指定数据 , key 可能是数组或字符串
@@ -770,8 +811,8 @@ function updateMouseMap(config: any) {
   }
 }
 export {
-  deepCopy, ajax, splitArr, str2Type, setWS, arrRemove, getHistory, getServer,
-  getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name, closeWS,
+  deepCopy, ajax, splitArr, str2Type, setWS, openWS, closeWS, arrRemove, getHistory, getServer,
+  getKeyDesc, showLeftKey, railStyle, showAppChart, appPath2Name,
   dateFormat, timeFormat, addExtListener, getDbs, setDbSel, minute2Hour, exportToText,
   showFinger, fingerOption, setLangContent, updateFingerMap, updateMouseMap,
   defaultFingerKeyNames, defaultMouseKeyNames, fingerKeyMap, mouseKeyMap,defaultFingerKeyMap, defaultMouseKeyMap

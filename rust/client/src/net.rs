@@ -10,6 +10,24 @@ use serde_json::{json, Value};
 use crate::i18n;
 use crate::stats::Shared;
 
+/// 客户端 → 服务端 配置变更通道（WS 连接建立时由 ws 线程创建）
+static CFG_TX: std::sync::OnceLock<crossbeam_channel::Sender<String>> = std::sync::OnceLock::new();
+
+/// 客户端本地修改配置（写 ini 之后）通过 WS 通知服务端，
+/// 服务端据此合并落盘，保证两端配置一致。
+pub fn notify_server_config(section: &str, key: &str, value: &str) {
+    let Some(tx) = CFG_TX.get() else { return };
+    let mut kv = serde_json::Map::new();
+    kv.insert(key.to_string(), Value::String(value.to_string()));
+    let mut sections = serde_json::Map::new();
+    sections.insert(section.to_string(), Value::Object(kv));
+    let msg = json!({
+        "type": "ConfigUpdate",
+        "config": Value::Object(sections),
+    });
+    let _ = tx.try_send(msg.to_string());
+}
+
 const UA: &str = "ShowKeyBoardRust";
 
 #[cfg(windows)]
@@ -507,11 +525,6 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
                     break;
                 }
 
-                // IniMonitor 热重载
-                if shared.ws_reload.swap(false, Ordering::Relaxed) {
-                    reload_config(&shared);
-                }
-
                 // PCInfo 请求
                 let pc_flag = shared.pcinfo_dirty.swap(0, Ordering::Relaxed);
                 if pc_flag != 0 && is_server_ok(&shared) {
@@ -604,15 +617,18 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
         .expect("spawn net thread")
 }
 
-/// 配置热重载（IniMonitor(1)）：重新读取 ini，并同步钩子参数
-fn reload_config(shared: &Arc<Shared>) {
+/// 应用一份新配置：替换内存配置并让钩子参数立即生效。
+/// 配置文件由发起变更的一端负责落盘，这里只更新内存。
+fn apply_config(shared: &Arc<Shared>, mut new_cfg: crate::config::Config) {
     let mut cfg = shared.cfg.write().unwrap();
-    let mut new_cfg = crate::config::Config::load();
-    // needShowKey 以 ini 为准：热键/托盘切换已即时写回 ini，因此这里无需保留内存旧值，
-    // 否则 Web 设置界面修改 needShowKey 后不会生效（表现为两端不同步）。
+    let show_changed = cfg.need_show_key != new_cfg.need_show_key;
     new_cfg.generation = cfg.generation + 1;
     *cfg = new_cfg;
     drop(cfg);
+    if show_changed {
+        // 通知托盘同步「按键显示」勾选状态（Web 端改动 needShowKey 后菜单不再残留旧状态）
+        shared.show_key_generation.fetch_add(1, Ordering::Relaxed);
+    }
     crate::input::refresh_hook_params();
 }
 
@@ -622,6 +638,9 @@ pub fn start_ws(
     shared: Arc<Shared>,
     ws_rx: crossbeam_channel::Receiver<String>,
 ) -> std::thread::JoinHandle<()> {
+    // 配置变更通道：本地改了配置 → WS 发给服务端（两端配置保持一致）
+    let (cfg_tx, cfg_rx) = crossbeam_channel::unbounded::<String>();
+    let _ = CFG_TX.set(cfg_tx);
     std::thread::Builder::new()
         .name("ws".into())
         .spawn(move || loop {
@@ -666,10 +685,30 @@ pub fn start_ws(
                         if !link_ok {
                             break;
                         }
+                        // 本地配置变更：同步给服务端
+                        while let Ok(msg) = cfg_rx.try_recv() {
+                            debug_out(&format!("WS send {}", msg));
+                            if ws.send(Message::Text(msg)).is_err() {
+                                link_ok = false;
+                                break;
+                            }
+                        }
+                        if !link_ok {
+                            break;
+                        }
                         match ws.read() {
                             Ok(Message::Text(text)) => {
-                                if text.trim() == "IniMonitor" {
-                                    shared.ws_reload.store(true, Ordering::Relaxed);
+                                // 服务端下发配置内容：直接重建配置，不读文件
+                                if let Ok(v) = serde_json::from_str::<Value>(text.trim()) {
+                                    if v.get("type").and_then(|x| x.as_str())
+                                        == Some("IniMonitor")
+                                    {
+                                        if let Some(new_cfg) =
+                                            v.get("config").and_then(crate::config::Config::from_ws)
+                                        {
+                                            apply_config(&shared, new_cfg);
+                                        }
+                                    }
                                 }
                             }
                             Ok(Message::Ping(_)) => {}

@@ -262,15 +262,83 @@ pub async fn set_para(
         }
     }
 
-    // 4. Broadcast "IniMonitor" to ahkClient clients (matches Node.js WebSocket notification)
+    // 4. Broadcast config to ahkClient via WebSocket
     if is_update {
-        info!("Config/keyList changed, broadcasting IniMonitor to ahkClient");
-        let _ = ws_tx.send((AHK_CLIENT_FLAG.to_string(), "IniMonitor".to_string()));
+        info!("Config/keyList changed, broadcasting to ahkClient");
+        let cfg = AppConfig::load_with_override(&desc_ini_path, &user_ini_path);
+        let payload = serde_json::json!({
+            "type": "IniMonitor",
+            "config": {
+                "common": cfg.common,
+                "dialog": cfg.dialog,
+            },
+        })
+        .to_string();
+        let _ = ws_tx.send((AHK_CLIENT_FLAG.to_string(), payload));
     }
 
     Json(serde_json::json!({
         "code": 200
     }))
+}
+
+/// 客户端本地修改配置后经 WS 上报（如托盘/热键切换 needShowKey）：
+/// 合并进用户 ini，保证服务端读到的配置与客户端一致。
+pub async fn apply_client_config(state: &AppState, value: &serde_json::Value) {
+    let (desc_ini_path, user_ini_path) = {
+        let sg = state.read().await;
+        (sg.desc_ini_path.clone(), sg.user_ini_path.clone())
+    };
+    let Some(config) = value.get("config") else {
+        return;
+    };
+    if !config.is_object() {
+        return;
+    }
+    // 合并进用户 ini：保证服务端 getPara 读到的值与客户端一致。
+    // 注意：客户端上报前通常已自行写盘（write_ini_value），因此此处读到的 ini
+    // 多数已是新值，touched 为 false；但即便如此也必须向下广播，校正 Web 端
+    // 内存态——否则设置页开关永远不会跟随客户端本地的变化。
+    let mut cfg = AppConfig::load_with_override(&desc_ini_path, &user_ini_path);
+    let mut touched = false;
+    for (section, is_common) in [("common", true), ("dialog", false)] {
+        let Some(obj) = config.get(section).and_then(|v| v.as_object()) else {
+            continue;
+        };
+        for (k, v) in obj {
+            let val = v.as_str().unwrap_or("").to_string();
+            let slot = if is_common {
+                if k == "serverPort" {
+                    if let Ok(port) = val.parse() {
+                        cfg.port = port;
+                    }
+                }
+                cfg.common.entry(k.clone()).or_default()
+            } else {
+                cfg.dialog.entry(k.clone()).or_default()
+            };
+            if *slot != val {
+                *slot = val.clone();
+                touched = true;
+            }
+        }
+    }
+    if touched {
+        let _ = cfg.save(&user_ini_path);
+        info!("client config update merged into {:?}", user_ini_path);
+    }
+    // 广播客户端上报的变更给 Web 页面：设置页据此实时同步开关等控件。
+    // 直接用上报的 config（而非仅变化项），即使 ini 已是新值，Web 内存态也需校正。
+    let payload = serde_json::json!({
+        "type": "ConfigUpdate",
+        "config": config,
+    })
+    .to_string();
+    let ws_tx = {
+        let sg = state.read().await;
+        sg.ws_tx.clone()
+    };
+    let _ = ws_tx.send((WEB_CLIENT_FLAG.to_string(), payload));
 }
 
 /// Matches Node.js exitFun: saves last data (saveLastData → insertDataFun),

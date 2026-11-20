@@ -147,6 +147,15 @@ async fn handle_client_payload(
             return false;
         }
     } else if *client_type == AHK_CLIENT_FLAG {
+        // 客户端本地配置变更（JSON）：合并落盘，不能让 UI 显示端把它当按键文本
+        if token.starts_with('{') {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(token) {
+                if v.get("type").and_then(|x| x.as_str()) == Some("ConfigUpdate") {
+                    crate::handlers::apply_client_config(state, &v).await;
+                    return true;
+                }
+            }
+        }
         // 按键消息需要发送给全部的显示接收端（node: 遍历 clients, clientType == ahkKeyShow）
         let _ = ws_tx.send((AHK_KEY_SHOW_FLAG.to_string(), payload));
     }
