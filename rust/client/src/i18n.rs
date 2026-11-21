@@ -86,8 +86,8 @@ pub mod macos {
                 concat!(
                     r#"display dialog "#,
                     r#""ShowKeyBoard needs to monitor keyboard and mouse activity.\n\n"#,
-                    r#""Accessibility" permission has not been granted yet.\n"#,
-                    r#"Click "Grant Access" to open System Settings. After enabling this app, "#
+                    r#""Accessibility permission has not been granted yet.\n"#,
+                    r#"Click 'Grant Access' to open System Settings. After enabling this app, "#,
                     r#"capturing starts automatically within 10 seconds.""#,
                     r#" with title "ShowKeyBoard Needs Accessibility Permission""#,
                     r#" buttons {"Later", "Grant Access"} default button "Grant Access" with icon caution"#

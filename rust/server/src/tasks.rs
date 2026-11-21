@@ -512,7 +512,7 @@ fn spawn_command(command: &str, cwd: &Path) {
 /// 后台等待子进程，非 0 退出码或输出写日志（Node doExec 同样会打印 error / exit code）
 fn run_and_log(mut cmd: std::process::Command) {
     match cmd.spawn() {
-        Ok(child) => {
+        Ok(mut child) => {
             std::thread::spawn(move || match child.wait_with_output() {
                 Ok(out) if !out.status.success() => warn!(
                     "autoShare exec 退出码 {:?}: {}",
