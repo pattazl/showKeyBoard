@@ -15,7 +15,6 @@ const EMBEDDED_ICON: &[u8] = include_bytes!("../../../res/keyboard.ico");
 
 const ID_STARTUP: &str = "skb.startup";
 const ID_RESTART: &str = "skb.restart";
-const ID_RESTART_ALL: &str = "skb.restart_all";
 const ID_SETTINGS: &str = "skb.settings";
 const ID_STAT: &str = "skb.stat";
 const ID_SHOW: &str = "skb.show";
@@ -228,7 +227,6 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
             let mut startup_on = startup_checked();
             let mi_startup = CheckMenuItem::with_id(ID_STARTUP, t.auto_start, true, startup_on, None);
             let mi_restart = MenuItem::with_id(ID_RESTART, t.restart, true, None);
-            let mi_restart_all = MenuItem::with_id(ID_RESTART_ALL, t.restart_all, true, None);
             let mi_settings = MenuItem::with_id(ID_SETTINGS, t.settings, true, None);
             let mi_stat = MenuItem::with_id(ID_STAT, t.statistics, true, None);
             let mi_show = CheckMenuItem::with_id(ID_SHOW, show_label, true, need_show, None);
@@ -239,7 +237,6 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
             let _ = menu.append(&mi_startup);
             let _ = menu.append(&sep1);
             let _ = menu.append(&mi_restart);
-            let _ = menu.append(&mi_restart_all);
             let _ = menu.append(&sep2);
             let _ = menu.append(&mi_show);
             let _ = menu.append(&mi_settings);
@@ -326,17 +323,8 @@ pub fn start(shared: Arc<Shared>, owner: isize) -> std::thread::JoinHandle<()> {
                             mi_startup.set_checked(startup_on);
                         }
                         ID_RESTART => {
-                            // 重启程序：只重启客户端，后台服务不退出
-                            shared.restart_mode.store(1, Ordering::Relaxed);
-                            shared.exit.store(true, Ordering::Relaxed);
-                            let _ = slint::quit_event_loop();
-                        }
-                        ID_RESTART_ALL => {
-                            // 完全重启：先同步关闭后台服务（/exit 不生效则按 pid 强制结束并等待端口下线），
-                            // 再退出客户端；主线程 join 本托盘线程后才拉起新实例，
-                            // 新实例检测不到服务，会重新启动后端。
-                            shared.restart_mode.store(2, Ordering::Relaxed);
-                            crate::net::shutdown_server(&shared);
+                            // 重启程序：重启整个客户端进程（内嵌服务端随进程一起重启）
+                            shared.restart.store(true, Ordering::Relaxed);
                             shared.exit.store(true, Ordering::Relaxed);
                             let _ = slint::quit_event_loop();
                         }

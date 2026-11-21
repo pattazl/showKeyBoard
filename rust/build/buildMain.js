@@ -68,21 +68,15 @@ function packWindows() {
     // 1. 检查 publish 目录，不存在则创建
     ensureDir(publishDir)
 
-    // 2. 编译 client/server 的 release 产物，并替换到 release 目录
+    // 2. 编译 client 的 release 产物并替换到 release 目录
+    //    （合并后服务端已内嵌进客户端进程，不再单独编译/拷贝 showkeyboard_server）
     if (!skipCargo) {
         let res = myExec('cargo build --release', 'client release', false, clientDir)
-        if (!res) return
-        res = myExec('cargo build --release', 'server release', false, serverDir)
         if (!res) return
 
         res = copyFile(
             path.join(clientDir, 'target', 'release', 'showkeyboard_client.exe'),
             path.join(releaseDir, 'showkeyboard_client.exe')
-        )
-        if (!res) return
-        res = copyFile(
-            path.join(serverDir, 'target', 'release', 'showkeyboard_server.exe'),
-            path.join(distDir, 'showkeyboard_server.exe')
         )
         if (!res) return
     }
@@ -132,13 +126,11 @@ function packMacDmg() {
     ensureDir(publishDir)
 
     // 1.（可选）编译 release 产物并替换到 release 目录
+    //    （合并后服务端已内嵌进客户端进程，不再单独编译/拷贝 showkeyboard_server）
     if (!skipCargo) {
         if (!myExec('cargo build --release', 'client release', false, clientDir)) return
-        if (!myExec('cargo build --release', 'server release', false, serverDir)) return
         if (!copyFile(path.join(clientDir, 'target', 'release', 'showkeyboard_client'),
             path.join(releaseDir, 'showkeyboard_client'))) return
-        if (!copyFile(path.join(serverDir, 'target', 'release', 'showkeyboard_server'),
-            path.join(distDir, 'showkeyboard_server'))) return
     }
 
     if (!fs.existsSync(path.join(releaseDir, 'showkeyboard_client'))) {
@@ -178,8 +170,6 @@ function packMacDmg() {
             fs.rmSync(path.join(macosDir, d), { recursive: true, force: true });
         }
         chmodX(path.join(macosDir, 'showkeyboard_client'));
-        const serverBin = path.join(macosDir, 'httpdist', 'dist', 'showkeyboard_server');
-        if (fs.existsSync(serverBin)) chmodX(serverBin);
 
         // 5. 图标：ico -> png -> iconset(10 档尺寸) -> icns
         console.log('转换图标:', iconIco);

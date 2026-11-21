@@ -1,6 +1,6 @@
 [package]
 name = "showkeyboard_client"
-version = "2.3.0"
+version = "2.4.0"
 edition = "2021"
 description = "ShowKeyBoard client rewritten in Rust (Slint UI)"
 build = "build.rs"
@@ -20,12 +20,23 @@ slint = { version = "1.18", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ureq = { version = "2", default-features = false, features = ["json", "native-tls"] }
-tungstenite = { version = "0.24", default-features = false, features = ["handshake", "native-tls"] }
 encoding_rs = "0.8"
 regex = "1"
 crossbeam-channel = "0.5"
 tray-icon = "0.24"
+
+# 内嵌 HTTP/WS 服务端（原 showkeyboard_server 功能迁入客户端进程）
+axum = { version = "0.7", features = ["ws", "multipart"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+futures-util = "0.3"
+rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+zip = "2.1"
+log = "0.4"
+env_logger = "0.11"
+local-ip-address = "0.6"
+hostname = "0.4"
 
 [build-dependencies]
 slint-build = "1.8"

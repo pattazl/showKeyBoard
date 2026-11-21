@@ -3,7 +3,7 @@
 //! - 全局键鼠捕获（合并 hook/getKeyInput，无 WM_COPYDATA）
 //! - 手柄（XInput / joyGetPosEx）
 //! - 分钟统计 / 按键统计 / 历史记录
-//! - HTTP + WebSocket 与后台通讯（/data /version /sendPCInfo /exit，IniMonitor 热重载）
+//! - 内嵌 HTTP/WS 服务端（同进程，原 showkeyboard_server 迁入）：进程内调用替代外发 HTTP/WS
 //! - Slint 浮窗 UI（渐隐、自定义字体背景、位置方向、多屏）
 //! - 托盘菜单、hotkey4Show 热键、单实例、kb.pid、lastRecord.json、自动版本号
 //!
@@ -18,6 +18,7 @@ mod icon;
 mod input;
 mod joy;
 mod net;
+mod server;
 mod stats;
 mod tray;
 mod ui;
@@ -96,12 +97,28 @@ fn main() {
     // 轮询线程：鼠标距离 + 手柄 + 分钟刷新
     let poll_thread = joy::start(shared.clone());
 
-    // 网络线程
+    // 启动内嵌 HTTP/WS 服务端（同进程）：先建好服务端→客户端的配置通道，
+    // 服务端在 set_para 变更配置后通过它推送给客户端（替代原 WS IniMonitor）。
+    let (cfg_tx, cfg_rx) = crossbeam_channel::unbounded::<serde_json::Value>();
+    match server::start(cfg_tx) {
+        Ok(port) => {
+            // 端口冲突重试时，把实际绑定端口同步回客户端配置，
+            // 保证托盘打开 Setting/Today 等 URL 指向正确端口。
+            let mut c = shared.cfg.write().unwrap();
+            if c.server_port != port {
+                c.server_port = port;
+            }
+        }
+        Err(e) => eprintln!("embedded server start failed: {}", e),
+    }
+
+    // 网络线程：进程内上报 /data 与 /sendPCInfo（原 HTTP 调用）
     let net_thread = net::start(shared.clone());
-    let ws_thread = net::start_ws(shared.clone(), ws_rx);
+    // Bridge 线程：实时按键文本广播给 ahkKeyShow + 应用服务端推送的配置
+    let bridge_thread = net::start_bridge(shared.clone(), ws_rx, cfg_rx);
 
     // 跨夜自动重启（对应 AHK 的 SetTimer(Reload, ShutDownLeft())）：
-    // 每天本地 0:00:05 触发一次“重启程序”，与托盘 ID_RESTART 行为一致（只重启客户端，后台服务不退出）。
+    // 每天本地 0:00:05 触发一次“重启程序”，与托盘 ID_RESTART 行为一致（重启整个客户端进程）。
     // 这里只置标志位，由 UI 定时器在主线程退出事件循环，避免跨线程操作事件循环。
     // 线程为游离线程（不 join）：正常退出时它可能还在 sleep，进程结束时随主线程一起结束。
     let _midnight_thread = {
@@ -118,7 +135,7 @@ fn main() {
                     let secs = if &now[..8] != start_date.as_str() {
                         // 日期已变即已跨夜；等到 0:00:05 之后才重启（对应 AHK 的 +5 秒余量）
                         if &now[8..] >= "000005" {
-                            shared.restart_mode.store(1, Ordering::Relaxed);
+                            shared.restart.store(true, Ordering::Relaxed);
                             shared.exit.store(true, Ordering::Relaxed);
                             return;
                         }
@@ -157,12 +174,12 @@ fn main() {
     let _ = hook_thread.join();
     let _ = poll_thread.join();
     let _ = net_thread.join();
-    let _ = ws_thread.join();
+    let _ = bridge_thread.join();
     #[cfg(windows)]
     let _ = tray_thread.join();
 
-    // 重启（托盘菜单）：释放单实例互斥后拉起新进程
-    if shared.restart_mode.load(Ordering::Relaxed) != 0 {
+    // 重启（托盘菜单 / 跨夜）：释放单实例互斥后拉起新进程
+    if shared.restart.load(Ordering::Relaxed) {
         config::release_single_instance();
         if let Ok(exe) = std::env::current_exe() {
             let _ = std::process::Command::new(exe).spawn();
@@ -203,8 +220,6 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
         let _ = std::fs::write(last_path, body);
     }
 
-    // 3) 通知后台退出：重启程序时保留后台服务；完全重启已由托盘菜单先行通知
-    if shared.restart_mode.load(Ordering::Relaxed) == 0 {
-        net::send_exit(shared);
-    }
+    // 3) 退出前让内嵌服务端把内存 preData 落库（服务端与客户端同进程，退出即一起结束）
+    server::save_last_data();
 }
