@@ -32,22 +32,13 @@ struct CtrlWin {
     comp: CtrlOverlay,
     title: String,
     last_text: String,
+    /// 尺寸生效时的配置版本：配置变化（如 ctrlWidth 改 0）后即使文本没变也要重新应用
+    cfg_gen: u64,
     /// 位置/尺寸是否已按物理像素成功应用（窗口刚创建时 winit 窗口尚未就绪，需要下一轮重试）
     positioned: bool,
     /// 已生效的目标 frame（物理像素）：macOS 上重复提交会在 AppKit 里触发
     /// styleMask 重算并让窗口瞬时偏移，所以目标不变时不再重复设置
     applied: Option<(i32, i32, u32, u32)>,
-}
-
-/// 连接状态提示窗：复用按键浮窗组件与空闲窗口池，显示后台服务启动/连接过程与异常。
-/// 由 net 线程通过 UI 文本管道推送 `\u{1}`（常驻）/ `\u{2}`（短暂后渐隐）前缀的消息驱动。
-struct StatusWin {
-    comp: KeyOverlay,
-    title: String,
-    /// 自动渐隐时间点（None 表示常驻，直到下一条状态把它替换/自己结束）
-    hide_at: Option<Instant>,
-    /// 渐隐开始时间
-    fade_start: Option<Instant>,
 }
 
 /// 回收待复用的浮窗（窗口/GL 画布复用，避免每次新建造成内存膨胀）
@@ -57,7 +48,7 @@ struct IdleWin {
 }
 
 /// 浮窗窗口池上限（启动时预热并永久复用）。
-/// 池窗口（含状态浮窗）最多 16 个；另加控制键窗 + 应用路径窗，总窗口数 ≤ 16+2。
+/// 池窗口最多 16 个；另加控制键窗 + 应用路径窗，总窗口数 ≤ 16+2。
 /// 运行期不再新建 HWND —— 窗口数恒定，内存不随按键增长，也不会出现任务栏按钮。
 const PREWARM_WINDOWS: usize = 16;
 /// 空闲池上限（与窗口总数一致）
@@ -75,7 +66,6 @@ pub struct UiManager {
     prewarm: Vec<IdleWin>,
     ctrl: Option<CtrlWin>,
     appwin: Option<CtrlWin>,
-    status: Option<StatusWin>,
     keymap: KeyMapping,
     generation: u64,
     next_id: usize,
@@ -107,7 +97,6 @@ impl UiManager {
             prewarm: Vec::new(),
             ctrl: None,
             appwin: None,
-            status: None,
             keymap,
             generation: 0,
             next_id: 0,
@@ -266,7 +255,6 @@ impl UiManager {
         if new_text.is_empty() {
             return;
         }
-        // 服务端与客户端同进程：ws_tx 始终可用，直接投递（有界通道满时丢弃）
         let ws_text = if need_new {
             new_text.to_string()
         } else {
@@ -278,15 +266,6 @@ impl UiManager {
     /// ShowTxt 主流程
     fn show_txt(&mut self, token: &str) {
         if token.is_empty() {
-            return;
-        }
-        // net 线程推送的后台服务状态：\u{1} 常驻（连接中/异常），\u{2} 短暂显示后渐隐
-        if let Some(rest) = token.strip_prefix('\u{1}') {
-            self.show_status(rest, true);
-            return;
-        }
-        if let Some(rest) = token.strip_prefix('\u{2}') {
-            self.show_status(rest, false);
             return;
         }
         // show_txt 调用频率低于 push_txt（仅需显示的按键才走到这里），
@@ -539,83 +518,6 @@ impl UiManager {
         });
     }
 
-    /// 显示后台服务连接状态：复用空闲浮窗（不新增 HWND），sticky=true 时常驻到状态变化
-    fn show_status(&mut self, text: &str, sticky: bool) {
-        // 非热路径（仅连接状态变化时调用），clone Config 以满足
-        // overlay_font/apply_overlay_layout 的 &Config 签名。
-        let cfg = self.shared.cfg.read().unwrap().clone();
-        if self.status.is_none() {
-            let (comp, title) = if let Some(w) = self.idle.pop() {
-                (w.comp, w.title)
-            } else {
-                let id = self.next_id;
-                self.next_id += 1;
-                let comp = KeyOverlay::new().expect("create StatusOverlay");
-                let title = format!("SKBOverlay{}", id);
-                comp.set_overlay_id(title.as_str().into());
-                (comp, title)
-            };
-            self.status = Some(StatusWin {
-                comp,
-                title,
-                hide_at: None,
-                fade_start: None,
-            });
-        }
-        let font = self.overlay_font(&cfg, text);
-        let win = self.status.as_mut().unwrap();
-        win.hide_at = if sticky {
-            None
-        } else {
-            Some(Instant::now() + Duration::from_millis(2000))
-        };
-        win.fade_start = None;
-        win.comp.set_fade(1.0);
-        let _ = Self::apply_overlay_layout(&cfg, &win.comp, text, &font);
-        crate::winutil::apply_overlay_styles(&win.comp.window(), &win.title, cfg.ui.gui_trans);
-    }
-
-    /// 状态浮窗生命周期：到点渐隐，结束后归还空闲窗口池
-    fn tick_status(&mut self, fade_ms: u64) {
-        let now = Instant::now();
-        let mut finished = false;
-        if let Some(s) = self.status.as_mut() {
-            if let Some(t) = s.hide_at {
-                if now >= t {
-                    s.hide_at = None;
-                    s.fade_start = Some(now);
-                }
-            }
-            if let Some(start) = s.fade_start {
-                let progress = if fade_ms == 0 {
-                    1.0
-                } else {
-                    now.duration_since(start).as_millis() as f32 / fade_ms as f32
-                };
-                if progress >= 1.0 {
-                    s.comp.set_fade(0.0);
-                    s.comp.set_label("".into());
-                    s.comp
-                        .window()
-                        .set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
-                    finished = true;
-                } else {
-                    s.comp.set_fade(1.0 - progress);
-                }
-            }
-        }
-        if finished {
-            if let Some(s) = self.status.take() {
-                if self.idle.len() < IDLE_KEEP {
-                    self.idle.push(IdleWin {
-                        comp: s.comp,
-                        title: s.title,
-                    });
-                }
-            }
-        }
-    }
-
     /// ReLayOut：把之前的窗口依次往排布方向移动
     fn relayout(&mut self, cfg: &Config) {
         let ui = &cfg.ui;
@@ -773,8 +675,8 @@ impl UiManager {
             self.prewarm = pending;
             return;
         }
-        // 2) 一次性把剩余窗口全部 show 出来（状态浮窗占用的窗口也计入总数）
-        let total = self.idle.len() + self.overlays.len() + usize::from(self.status.is_some());
+        // 2) 一次性把剩余窗口全部 show 出来
+        let total = self.idle.len() + self.overlays.len();
         if total < target {
             for _ in total..target {
                 let id = self.next_id;
@@ -797,7 +699,10 @@ impl UiManager {
     fn update_ctrl(&mut self) {
         // 每 ~60ms 调用一次：只 clone UiParams（远小于整个 Config），
         // 避免持 cfg 读锁时调用 &mut self 方法的借用冲突。
-        let ui = self.shared.cfg.read().unwrap().ui.clone();
+        let (ui, cfg_gen) = {
+            let c = self.shared.cfg.read().unwrap();
+            (c.ui.clone(), c.generation)
+        };
         if !ui.ctrl_state {
             if let Some(c) = &mut self.ctrl {
                 c.comp.hide().ok();
@@ -845,11 +750,12 @@ impl UiManager {
             }
         }
         let txt = crate::winutil::strip_variation_selectors(txt.trim());
-        // 避免刷新闪烁（位置尚未成功应用时也要继续尝试）
+        // 避免刷新闪烁（位置尚未成功应用时也要继续尝试）；
+        // 配置版本变化时必须重新应用，否则 ctrlWidth 改动后文本不变会一直沿用旧尺寸
         if self
             .ctrl
             .as_ref()
-            .map(|c| c.last_text == txt && c.positioned)
+            .map(|c| c.last_text == txt && c.positioned && c.cfg_gen == cfg_gen)
             .unwrap_or(false)
         {
             return;
@@ -874,6 +780,7 @@ impl UiManager {
                 comp,
                 title,
                 last_text: String::new(),
+                cfg_gen: 0,
                 positioned: false,
                 applied: None,
             });
@@ -885,6 +792,7 @@ impl UiManager {
         let click_through = ui.gui_trans;
         let win = self.ctrl.as_mut().unwrap();
         win.last_text = txt.clone();
+        win.cfg_gen = cfg_gen;
         let (br, bg_, bb) = ui.ctrl_bgcolor;
         let (tr, tg, tb) = ui.ctrl_text_color;
         let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
@@ -918,8 +826,10 @@ impl UiManager {
                     .sum();
                 (units * font_px as f32).round() as i32
             };
-            // 12px 物理边距 + 2% 余量吸收不同引擎的字宽差异
-            (text_w + (12.0 * scale).round() as i32 + text_w / 50).max(200)
+            // 12px 物理边距 + 2% 余量吸收不同引擎的字宽差异；
+            // 只保留很小的下限，避免短文本（如 "Ctrl"）被固定的 200px 下限撑宽
+            (text_w + (12.0 * scale).round() as i32 + text_w / 50)
+                .max((16.0 * scale).round() as i32)
         };
         let h_phys = if ui.ctrl_height != 0 {
             (ui.ctrl_height as f32 * scale).round().max(1.0) as i32
@@ -1058,6 +968,7 @@ impl UiManager {
                 comp,
                 title,
                 last_text: String::new(),
+                cfg_gen: 0,
                 positioned: false,
                 applied: None,
             });
@@ -1184,9 +1095,6 @@ impl UiManager {
         if let Some(c) = &mut self.appwin {
             crate::winutil::apply_overlay_styles(&c.comp.window(), &c.title, true);
         }
-        if let Some(s) = &self.status {
-            crate::winutil::apply_overlay_styles(&s.comp.window(), &s.title, click_through);
-        }
     }
 }
 
@@ -1245,9 +1153,6 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
                     c.comp.hide().ok();
                 }
                 manager.appwin = None;
-                if let Some(s) = manager.status.take() {
-                    s.comp.hide().ok();
-                }
             }
 
             // 消费显示队列（CallShow）
@@ -1256,8 +1161,6 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
             }
 
             manager.tick_overlays();
-            let fade_ms = shared_ref.cfg.read().unwrap().ui.gui_fade_ms;
-            manager.tick_status(fade_ms);
             if tick_count % 3 == 0 || manager.needs_pos_retry() {
                 // ~60ms 刷新控制键状态（AHK 为 50ms）；首次定位未成功时每 tick 重试
                 manager.update_ctrl();
