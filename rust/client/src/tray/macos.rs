@@ -92,7 +92,18 @@ fn startup_set(enable: bool) {
 }
 
 fn startup_checked() -> bool {
-    launch_agent_path().map(|p| p.exists()).unwrap_or(false)
+    let Some(path) = launch_agent_path() else { return false };
+    if !path.exists() {
+        return false;
+    }
+    // 主程序改名后，迁移仍指向旧文件名的 LaunchAgent。
+    if std::fs::read_to_string(&path)
+        .map(|s| s.contains("showkeyboard_client"))
+        .unwrap_or(false)
+    {
+        startup_set(true);
+    }
+    true
 }
 
 // ---------------- 托盘 ----------------

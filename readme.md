@@ -71,7 +71,7 @@ User directory\ShowKeyBoard\
 
 #### Windows system
 
-Running showkeyboard_client.exe directly will automatically call the server showkeyboard_server.exe
+Launch showkeyboard.exe
 
 #### MacOS system
 1. Direct drag installation
@@ -169,7 +169,7 @@ ConfigFile ---|R/W|Client
 
 1. `KeyList.txt` in the root directory saves key characters directory. `showKeyBoard.ini` saves the client configuration , move to user directory 
 2. `httpdist/dist/records.db` saves the statistical information of the keys and the related configuration information of the statistics, move to user directory 
-3. `showkeyboard_server.exe` is used to start the backend `http/websocket` service
+3. `showkeyboard.exe` provides both front-end key display and back-end `http/websocket` services
 
 ## Secondary Development
 

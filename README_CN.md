@@ -71,7 +71,7 @@
 
 #### Windows系统
 
-直接运行showkeyboard_client.exe 会自动调用 服务端为 showkeyboard_server.exe
+直接运行showkeyboard.exe 
 
 #### MacOS系统
 
@@ -169,7 +169,7 @@ ConfigFile ---|R/W|Client
 
 1. 根目录下的 `KeyList.txt` 键盘映射关系，`showKeyBoard.ini` 是客户端配置信息，此文件已经迁移到用户目录
 2. 目录 `httpdist/dist/records.db` 文件保存按键的统计信息和统计的相关配置信息，此文件已经迁移到用户目录
-3. 文件 `httpdist/dist/showkeyboard_server.exe` 用于启动后端 `http/websocket` 服务
+3. 文件 `showkeyboard.exe` 同时提供前端按键展示和后端 `http/websocket` 服务
 
 ## 二次开发
 

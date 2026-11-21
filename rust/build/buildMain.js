@@ -1,5 +1,5 @@
 // 根据 rust/client/Cargo.toml 的主版本号更新 .nsi，编译 release 产物并打包安装包与便携版（Windows）
-// macOS 平台：将 build/release 目录打包为 DMG（入口程序 showkeyboard_client，图标 res/keyboard.ico）
+// macOS 平台：将 build/release 目录打包为 DMG（入口程序 showkeyboard，图标 res/keyboard.ico）
 // 此文件从 rust 目录运行 npm run build / npm run pack 调用：
 //   npm run build            编译模式：先 cargo build --release 并替换产物，再打包
 //   npm run pack  (--pack)   打包模式：跳过 cargo 编译，直接用 build/release 现有文件打包
@@ -75,11 +75,13 @@ function packWindows() {
         if (!res) return
 
         res = copyFile(
-            path.join(clientDir, 'target', 'release', 'showkeyboard_client.exe'),
-            path.join(releaseDir, 'showkeyboard_client.exe')
+            path.join(clientDir, 'target', 'release', 'showkeyboard.exe'),
+            path.join(releaseDir, 'showkeyboard.exe')
         )
         if (!res) return
     }
+    // 避免旧文件名被打入安装包或便携版
+    fs.rmSync(path.join(releaseDir, 'showkeyboard_client.exe'), { force: true });
 
     // 读取文件和替换版本
     // !define PRODUCT_VERSION "v2.0"
@@ -129,12 +131,14 @@ function packMacDmg() {
     //    （合并后服务端已内嵌进客户端进程，不再单独编译/拷贝 showkeyboard_server）
     if (!skipCargo) {
         if (!myExec('cargo build --release', 'client release', false, clientDir)) return
-        if (!copyFile(path.join(clientDir, 'target', 'release', 'showkeyboard_client'),
-            path.join(releaseDir, 'showkeyboard_client'))) return
+        if (!copyFile(path.join(clientDir, 'target', 'release', 'showkeyboard'),
+            path.join(releaseDir, 'showkeyboard'))) return
     }
+    // 避免旧文件名被打入 app bundle
+    fs.rmSync(path.join(releaseDir, 'showkeyboard_client'), { force: true });
 
-    if (!fs.existsSync(path.join(releaseDir, 'showkeyboard_client'))) {
-        console.log('入口程序不存在:', path.join(releaseDir, 'showkeyboard_client'));
+    if (!fs.existsSync(path.join(releaseDir, 'showkeyboard'))) {
+        console.log('入口程序不存在:', path.join(releaseDir, 'showkeyboard'));
         return
     }
     if (!fs.existsSync(iconIco)) {
@@ -169,7 +173,7 @@ function packMacDmg() {
         for (const d of ['dbs', 'backup', 'share', 'uploads', 'httpdist/dist/dbs', 'httpdist/dist/uploads']) {
             fs.rmSync(path.join(macosDir, d), { recursive: true, force: true });
         }
-        chmodX(path.join(macosDir, 'showkeyboard_client'));
+        chmodX(path.join(macosDir, 'showkeyboard'));
 
         // 5. 图标：ico -> png -> iconset(10 档尺寸) -> icns
         console.log('转换图标:', iconIco);
@@ -186,7 +190,7 @@ function packMacDmg() {
     <key>CFBundleIdentifier</key><string>com.pattazl.showkeyboard</string>
     <key>CFBundleVersion</key><string>${version}</string>
     <key>CFBundleShortVersionString</key><string>${version}</string>
-    <key>CFBundleExecutable</key><string>showkeyboard_client</string>
+    <key>CFBundleExecutable</key><string>showkeyboard</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>

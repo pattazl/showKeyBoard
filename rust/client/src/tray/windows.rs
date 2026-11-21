@@ -187,9 +187,18 @@ fn startup_set(enable: bool) {
 /// 开机启动是否已启用：Run 键中记录的命令行包含当前 exe；
 /// 兼容识别旧版本写在“启动”文件夹的 ShowKeyBoard.lnk。
 fn startup_checked() -> bool {
-    let exe = current_exe_path().to_string_lossy().to_lowercase();
+    let current = current_exe_path();
+    let exe = current.to_string_lossy().to_lowercase();
     if let Some(cmd) = startup_command() {
-        if !exe.is_empty() && cmd.to_lowercase().contains(&exe) {
+        let cmd_lower = cmd.to_lowercase();
+        if !exe.is_empty() && cmd_lower.contains(&exe) {
+            return true;
+        }
+        // 主程序改名后，迁移仍指向旧文件名的开机启动命令。
+        let legacy = current.with_file_name("showkeyboard_client.exe");
+        let legacy = legacy.to_string_lossy().to_lowercase();
+        if !legacy.is_empty() && cmd_lower.contains(&legacy) {
+            startup_set(true);
             return true;
         }
     }

@@ -98,7 +98,7 @@ fn main() {
     let poll_thread = joy::start(shared.clone());
 
     // 启动内嵌 HTTP/WS 服务端（同进程）：先建好服务端→客户端的配置通道，
-    // 服务端在 set_para 变更配置后通过它推送给客户端（替代原 WS IniMonitor）。
+    // 服务端在 set_para 变更配置后通过它推送给客户端。
     let (cfg_tx, cfg_rx) = crossbeam_channel::unbounded::<serde_json::Value>();
     match server::start(cfg_tx) {
         Ok(port) => {

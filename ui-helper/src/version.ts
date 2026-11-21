@@ -3,8 +3,8 @@
 */
 // 对于发布版 YYMMDD 和 verNo 会在Webpack中自动替换为真实的日期和版本序号,如下格式不能随便改，参考vue.config.js的代码
 const replaceYYMMDD = '261121';
-const replaceVerNo = '0';
-const mainVersion = ' v2.3';
+const replaceVerNo = '1';
+const mainVersion = ' v2.4';
 const strVersion = mainVersion+'.'+replaceYYMMDD+'.'+replaceVerNo;   // 可以支持旧版浏览器
 //export default strVersion
 export {strVersion};

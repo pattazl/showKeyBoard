@@ -133,8 +133,8 @@ fn build_version_info(ver: &BuildVersion) -> Vec<u8> {
         ("CompanyName", company.to_string()),
         ("FileDescription", file_desc.to_string()),
         ("FileVersion", ver.full.clone()),
-        ("InternalName", "showkeyboard_client".to_string()),
-        ("OriginalFilename", "showkeyboard_client.exe".to_string()),
+        ("InternalName", "showkeyboard".to_string()),
+        ("OriginalFilename", "showkeyboard.exe".to_string()),
         ("ProductName", product.to_string()),
         ("ProductVersion", ver.full.clone()),
     ];
@@ -331,7 +331,7 @@ fn gen_version() -> BuildVersion {
     println!("cargo:rerun-if-changed=build_no.txt");
     println!("cargo:rerun-if-env-changed=BUILD_COUNT");
     println!(
-        "cargo:warning=showkeyboard_client version: {} (profile={})",
+        "cargo:warning=showkeyboard version: {} (profile={})",
         full_version, profile
     );
 

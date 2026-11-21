@@ -180,7 +180,7 @@ fn apply_config(shared: &Arc<Shared>, mut new_cfg: crate::config::Config) {
 
 /// Bridge 线程（替代原 WS 客户端线程）：
 /// - 把 UI 产生的实时按键文本进程内广播给 ahkKeyShow 显示端（原 WS 发送文本帧）；
-/// - 接收服务端进程内推送的配置（原 IniMonitor），应用到客户端内存配置。
+/// - 接收服务端进程内推送的配置，应用到客户端内存配置。
 pub fn start_bridge(
     shared: Arc<Shared>,
     ws_rx: crossbeam_channel::Receiver<String>,
@@ -208,7 +208,7 @@ pub fn start_bridge(
                     Err(_) => break,
                 }
 
-                // 服务端 → 客户端 配置推送（合并后替代 WS IniMonitor 下发）
+                // 服务端 → 客户端 配置推送
                 while let Ok(map) = cfg_rx.try_recv() {
                     if let Some(new_cfg) = crate::config::Config::from_ws(&map) {
                         apply_config(&shared, new_cfg);
