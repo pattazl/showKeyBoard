@@ -155,7 +155,7 @@ graph LR
 Client -->|Post/Launch|Server ---|WebSocket/Post/Get|Web
 Server ---|WebSocket|Client
 Server ---|R/W|ConfigFile
-ConfigFile -->|Reload|Client
+ConfigFile ---|R/W|Client
 ```
 
 ## Compile Instructions
