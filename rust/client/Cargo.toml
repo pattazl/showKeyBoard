@@ -27,14 +27,19 @@ tray-icon = "0.24"
 
 # 内嵌 HTTP/WS 服务端（原 showkeyboard_server 功能迁入客户端进程）
 axum = { version = "0.7", features = ["ws", "multipart"] }
-tokio = { version = "1", features = ["full"] }
+# 只启用实际用到的 tokio 能力（full 会额外引入 process/signal/io-std 等）
+tokio = { version = "1", features = [
+    "rt", "rt-multi-thread", "macros", "net", "time", "sync", "fs", "io-util",
+] }
 tower-http = { version = "0.5", features = ["fs", "cors"] }
 futures-util = "0.3"
 rusqlite = { version = "0.31", features = ["bundled"] }
-chrono = { version = "0.4", features = ["serde"] }
-zip = "2.1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# 仅读写 Deflate 压缩的 zip（默认特性会引入 bzip2/lzma/zstd 等整套压缩库）
+zip = { version = "2.1", default-features = false, features = ["deflate"] }
 log = "0.4"
-env_logger = "0.11"
+# 日志输出到 stderr/文件，无需彩色与正则过滤
+env_logger = { version = "0.11", default-features = false, features = ["humantime"] }
 local-ip-address = "0.6"
 hostname = "0.4"
 
@@ -72,7 +77,11 @@ core-graphics = "0.24"
 libc = "0.2"
 
 [profile.release]
+# 以体积优先：体积优化、单代码单元、省略栈回溯（panic 直接 abort）
+opt-level = "z"
 lto = true
+codegen-units = 1
+panic = "abort"
 strip = true
 
 [lints.rust]
