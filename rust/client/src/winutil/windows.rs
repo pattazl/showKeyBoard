@@ -3,7 +3,7 @@
 use std::mem;
 use std::time::{Duration, Instant};
 
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, RECT, SYSTEMTIME};
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND, POINT, RECT, SYSTEMTIME};
 use windows_sys::Win32::Graphics::Gdi::{
     EnumDisplayMonitors, GetMonitorInfoW, MONITORINFO, MONITORINFOEXW, HDC, HMONITOR, TEXTMETRICW,
 };
@@ -72,13 +72,11 @@ pub fn virtual_screen() -> (i32, i32, i32, i32) {
 }
 
 pub fn cursor_pos() -> Option<(i32, i32)> {
-    let (mut x, y) = (0i32, 0i32);
-    unsafe {
-        if GetCursorPos(&mut x as *mut i32 as *mut _) != 0 {
-            Some((x, y))
-        } else {
-            None
-        }
+    let mut point = POINT { x: 0, y: 0 };
+    if unsafe { GetCursorPos(&mut point) } != 0 {
+        Some((point.x, point.y))
+    } else {
+        None
     }
 }
 
