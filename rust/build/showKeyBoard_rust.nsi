@@ -3,7 +3,7 @@
 
 ; 安装程序初始定义常量
 !define PRODUCT_NAME $(ToolLang)
-!define PRODUCT_VERSION "v2.4"
+!define PRODUCT_VERSION "v2.5"
 !define /date DATESTR "%y%m%d"
 !define ExeName "showkeyboard.exe"
 !define RegName "showKeyBoard.exe"

@@ -4890,7 +4890,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "showkeyboard"
-version = "2.4.0"
+version = "2.5.0"
 dependencies = [
  "axum",
  "chrono",
