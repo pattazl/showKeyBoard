@@ -84,6 +84,9 @@ pub struct UiManager {
     ws_last_tick: Option<Instant>,
     /// 上次刷新显示器列表的时间（每 5 秒检查一次布局变化）
     last_monitor_check: Instant,
+    /// 待确认的新显示器布局：显示配置切换会连续产生多次变化，
+    /// 同一布局连续两次检测到才重建窗口，避免切换过程中反复销毁/创建原生窗口
+    pending_mons: Option<Vec<crate::winutil::Rect>>,
 }
 
 impl UiManager {
@@ -108,6 +111,7 @@ impl UiManager {
             ws_last_texts: Vec::new(),
             ws_last_tick: None,
             last_monitor_check: Instant::now(),
+            pending_mons: None,
         }
     }
 
@@ -629,15 +633,27 @@ impl UiManager {
         if now.duration_since(self.last_monitor_check) >= Duration::from_secs(5) {
             self.last_monitor_check = now;
             let new_mons = crate::winutil::monitors();
-            let changed = MONITORS.with(|m| *m.borrow() != new_mons);
-            if changed {
-                MONITORS.with(|m| *m.borrow_mut() = new_mons);
-                for ov in self.overlays.iter_mut() {
-                    ov.comp.hide().ok();
+            // 切换分辨率/显示器时系统可能短暂返回空列表或中间态：
+            // 空列表保持现状，其它变化需连续两次检测一致后才真正重建，
+            // 避免在显示配置仍在变化的过程中反复销毁/创建原生窗口。
+            if !new_mons.is_empty() {
+                let changed = MONITORS.with(|m| *m.borrow() != new_mons);
+                if changed {
+                    if self.pending_mons.as_ref() == Some(&new_mons) {
+                        self.pending_mons = None;
+                        MONITORS.with(|m| *m.borrow_mut() = new_mons);
+                        for ov in self.overlays.iter_mut() {
+                            ov.comp.hide().ok();
+                        }
+                        self.overlays.clear();
+                        self.idle.clear();
+                        self.prewarm.clear();
+                    } else {
+                        self.pending_mons = Some(new_mons);
+                    }
+                } else {
+                    self.pending_mons = None;
                 }
-                self.overlays.clear();
-                self.idle.clear();
-                self.prewarm.clear();
             }
         }
         self.prewarm_step(gui_trans, target);

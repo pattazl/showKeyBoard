@@ -20,7 +20,7 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, GetFocus
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, FindWindowW, GetClassNameW, GetCursorPos,
     GetForegroundWindow, GetSystemMetrics, GetWindowTextW, GetWindowLongPtrW, GetWindowRect,
-    GetWindowThreadProcessId, RegisterClassW, SetWindowLongPtrW, SetWindowPos,
+    GetWindowThreadProcessId, IsWindow, RegisterClassW, SetWindowLongPtrW, SetWindowPos,
     WNDCLASSW, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
     SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, GWL_EXSTYLE, GWLP_HWNDPARENT, GWL_STYLE,
     SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOZORDER, SWP_NOSIZE,
@@ -493,12 +493,30 @@ pub fn owner_hwnd() -> HWND {
 
 /// 按窗口标题设置浮窗样式（对应 AHK：+ToolWindow +Owner +AlwaysOnTop，可选点击穿透）。
 /// 同时清除 WS_EX_APPWINDOW 并设置 owner，确保任务栏 / Alt-Tab 中不可见。
-/// `_win` 供 macOS 实现使用（winit 窗口 API），Windows 通过标题查找 HWND。
-pub fn apply_overlay_styles(_win: &slint::Window, title: &str, click_through: bool) -> bool {
+/// `win` 用于直接取 winit 的原生 HWND；取不到时才回退到按标题查找。
+pub fn apply_overlay_styles(win: &slint::Window, title: &str, click_through: bool) -> bool {
+    // 优先直接取 winit 的 HWND：显示器切换/DPI 变化期间按标题查找可能命中
+    // 正在重建的窗口，或短暂拿到即将销毁的句柄。
+    let mut hwnd: HWND = std::ptr::null_mut();
+    {
+        use slint::winit_030::WinitWindowAccessor;
+        win.with_winit_window(|ww| {
+            use slint::winit_030::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+            if let Ok(handle) = ww.window_handle() {
+                if let RawWindowHandle::Win32(w) = handle.as_raw() {
+                    hwnd = w.hwnd.get() as HWND;
+                }
+            }
+        });
+    }
     unsafe {
-        let wname = wide(title);
-        let hwnd = FindWindowW(std::ptr::null(), wname.as_ptr());
         if hwnd.is_null() {
+            // 兜底：窗口句柄尚未创建时按标题查找
+            let wname = wide(title);
+            hwnd = FindWindowW(std::ptr::null(), wname.as_ptr());
+        }
+        // 句柄可能刚被 winit 销毁/重建：无效时放弃本轮，下一帧重试
+        if hwnd.is_null() || IsWindow(hwnd) == 0 {
             return false;
         }
         let cur = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as usize;
