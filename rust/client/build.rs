@@ -21,6 +21,7 @@ struct BuildVersion {
     pkg: String,
     full: String,
     count: i64,
+    yymmdd: String,
 }
 
 /// 把托盘图标（res/keyboard.ico）与版本信息写入 exe 资源。
@@ -101,16 +102,22 @@ fn build_version_info(ver: &BuildVersion) -> Vec<u8> {
     let parts: Vec<&str> = ver.pkg.split('.').collect();
     let major = parts.first().and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
     let minor = parts.get(1).and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
-    let patch = parts.get(2).and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
+    // 第三段取 YYMMDD 的后 4 位（如 261122 -> 1122）：VS_FIXEDFILEINFO 字段是 u16
+    let build_date = ver
+        .yymmdd
+        .get(ver.yymmdd.len().saturating_sub(4)..)
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(0);
     let build = ver.count.max(0).min(u16::MAX as i64) as u16;
 
+    // 数值部分为 主.次.日期后4位.序号；完整版本号由字符串 FileVersion 展示。
     let mut fixed = Vec::with_capacity(52);
     fixed.extend_from_slice(&0xFEEF04BDu32.to_le_bytes()); // dwSignature
     fixed.extend_from_slice(&0x0001_0000u32.to_le_bytes()); // dwStrucVersion
     fixed.extend_from_slice(&((major as u32) << 16 | minor as u32).to_le_bytes());
-    fixed.extend_from_slice(&((patch as u32) << 16 | build as u32).to_le_bytes());
+    fixed.extend_from_slice(&((build_date as u32) << 16 | build as u32).to_le_bytes());
     fixed.extend_from_slice(&((major as u32) << 16 | minor as u32).to_le_bytes());
-    fixed.extend_from_slice(&((patch as u32) << 16 | build as u32).to_le_bytes());
+    fixed.extend_from_slice(&((build_date as u32) << 16 | build as u32).to_le_bytes());
     fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileFlagsMask
     fixed.extend_from_slice(&0u32.to_le_bytes()); // dwFileFlags
     fixed.extend_from_slice(&0x0004_0000u32.to_le_bytes()); // dwFileOS = VOS_NT_WINDOWS32
@@ -321,7 +328,13 @@ fn gen_version() -> BuildVersion {
         let _ = fs::write(&state_file, format!("{} {}", yymmdd, count));
     }
 
-    let full_version = format!("{}.{}.{}", pkg_version, yymmdd, count);
+    // 版本号格式：主.次.YYMMDD.当日构建序号（如 2.4.261122.1）
+    let base: String = pkg_version
+        .split('.')
+        .take(2)
+        .collect::<Vec<_>>()
+        .join(".");
+    let full_version = format!("{}.{}.{}", base, yymmdd, count);
     println!("cargo:rustc-env=FULL_VERSION={}", full_version);
     println!("cargo:rustc-env=BUILD_YYMMDD={}", yymmdd);
     println!("cargo:rustc-env=BUILD_COUNT={}", count);
@@ -339,5 +352,6 @@ fn gen_version() -> BuildVersion {
         pkg: pkg_version,
         full: full_version,
         count,
+        yymmdd,
     }
 }

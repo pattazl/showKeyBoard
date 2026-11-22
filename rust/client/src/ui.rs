@@ -302,12 +302,10 @@ impl UiManager {
             let mut texts = Vec::new();
             texts.push(display.clone());
             self.create_overlay(&cfg, texts, now);
-        } else {
+        } else if let Some(last) = self.overlays.last_mut() {
             // 复用最后一个窗口
-            if let Some(last) = self.overlays.last_mut() {
-                last.texts.push(display.clone());
-                last.tick = now;
-            }
+            last.texts.push(display.clone());
+            last.tick = now;
         }
 
         // 更新最后一个窗口的文本与位置
@@ -355,12 +353,15 @@ impl UiManager {
         let last_idx = len - 1;
         let merged = Self::merged_text(cfg, &self.overlays[last_idx].texts);
         let font = self.overlay_font(cfg, &merged);
-        let ov = &mut self.overlays[last_idx];
-        let (x, y, pw, ph) = Self::apply_overlay_layout(cfg, &ov.comp, &merged, &font);
-        ov.x = x;
-        ov.y = y;
-        ov.w = pw;
-        ov.h = ph;
+        {
+            let ov = &mut self.overlays[last_idx];
+            let (x, y, pw, ph) = Self::apply_overlay_layout(cfg, &ov.comp, &merged, &font);
+            ov.x = x;
+            ov.y = y;
+            ov.w = pw;
+            ov.h = ph;
+        }
+        let ov = &self.overlays[last_idx];
         let title = ov.title.clone();
         crate::winutil::apply_overlay_styles(&ov.comp.window(), &title, cfg.ui.gui_trans);
     }
@@ -1121,6 +1122,16 @@ thread_local! {
     /// 启动时的显示器快照（不变），用于判断布局是否"恢复"回启动时的状态
     static MONITORS_SNAPSHOT: std::cell::RefCell<Vec<crate::winutil::Rect>> =
         const { std::cell::RefCell::new(Vec::new()) };
+    /// 定时器回调是否正在执行：Windows 下窗口操作会同步派发消息，
+    /// 若中途再次触发定时器会造成 &mut 别名（UB），这里直接跳过重入
+    static IN_TICK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+struct TickGuard;
+impl Drop for TickGuard {
+    fn drop(&mut self) {
+        IN_TICK.with(|f| f.set(false));
+    }
 }
 
 /// 在 Slint 事件循环中运行 UI（阻塞，直到退出）
@@ -1138,6 +1149,12 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
         slint::TimerMode::Repeated,
         Duration::from_millis(20),
         move || {
+            // 窗口操作在 Windows 上会同步派发消息，可能在本回调未返回时再次触发定时器；
+            // 重入会让同一 &mut UiManager 出现别名（UB），这里直接跳过本次
+            if IN_TICK.with(|f| f.replace(true)) {
+                return;
+            }
+            let _tick_guard = TickGuard;
             tick_count += 1;
             // macOS：winit 在事件循环启动时会把激活策略重置为 Regular（Dock 出现图标），
             // 前 3 秒内持续纠正为 Accessory（20ms/次，代价可忽略）

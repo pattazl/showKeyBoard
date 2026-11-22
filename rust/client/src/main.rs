@@ -13,6 +13,7 @@
 #![allow(dead_code)]
 
 mod config;
+mod crashlog;
 mod i18n;
 mod icon;
 mod input;
@@ -35,6 +36,9 @@ fn main() {
     if let Some(dir) = &exe_dir {
         let _ = std::env::set_current_dir(dir);
     }
+
+    // 崩溃现场记录：异常码/故障地址/寄存器/栈返回地址写入数据目录 crash.log
+    crashlog::install();
 
     // macOS：切为 Accessory（菜单栏应用），Dock/任务栏不显示程序图标，
     // 与 Windows 侧 windows_subsystem="windows"（GUI 子系统，无任务栏按钮）对齐；
