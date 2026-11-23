@@ -122,7 +122,7 @@ fn notify_started(shared: &Arc<Shared>) {
             c.hotkey4_show.clone(),
         )
     };
-    let text = i18n::balloon_started(lang, crate::stats::env_full_version(), &hotkey);
+    let text = i18n::balloon_started(lang, &crate::stats::env_full_version(), &hotkey);
     post_notification("ShowKeyBoard", &text);
 }
 
