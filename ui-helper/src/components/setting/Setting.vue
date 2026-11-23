@@ -86,6 +86,7 @@
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro11 }}
+              <div class="intro">{{ contentText.intro15 }}</div>
               <template #suffix>
                 <n-input-number v-model:value="allConfig.common.serverPort" :min="80" :max="65535" />
               </template>
@@ -105,7 +106,6 @@
               <div class="intro">{{ contentText.keyIntro }}</div>
               <template #suffix>
                 <n-input v-model:value="allConfig.common.hotkey4Show" type="text" :placeholder="contentText.intro16" />
-                <div class="intro">{{ contentText.intro15 }}</div>
               </template>
             </n-list-item>
             <n-list-item>{{ contentText.intro131 }}
