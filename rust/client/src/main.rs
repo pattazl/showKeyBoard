@@ -29,6 +29,8 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 fn main() {
+    // 由“重启程序”拉起的子进程带 --restart：端口沿用原值，不做顺延
+    let restarted = std::env::args().any(|a| a == "--restart");
     // 工作目录切换到 exe 所在目录（与 AHK A_ScriptDir / A_WorkingDir 一致）
     let exe_dir = std::env::current_exe()
         .ok()
@@ -104,7 +106,7 @@ fn main() {
     // 启动内嵌 HTTP/WS 服务端（同进程）：先建好服务端→客户端的配置通道，
     // 服务端在 set_para 变更配置后通过它推送给客户端。
     let (cfg_tx, cfg_rx) = crossbeam_channel::unbounded::<serde_json::Value>();
-    match server::start(cfg_tx) {
+    match server::start(cfg_tx, !restarted) {
         Ok(port) => {
             // 端口冲突重试时，把实际绑定端口同步回客户端配置，
             // 保证托盘打开 Setting/Today 等 URL 指向正确端口。
@@ -113,7 +115,13 @@ fn main() {
                 c.server_port = port;
             }
         }
-        Err(e) => eprintln!("embedded server start failed: {}", e),
+        Err(e) => {
+            eprintln!("embedded server start failed: {}", e);
+            // 端口连续顺延仍无法绑定：GUI 程序无控制台，用系统模态框告知用户
+            // （与 AHK 版一致：仅提示，客户端本体继续运行）
+            let lang = i18n::Lang::from_ini(&shared.cfg.read().unwrap().default_lang);
+            winutil::show_error_dialog("ShowKeyBoard", &i18n::server_start_failed(lang, &e));
+        }
     }
 
     // 网络线程：进程内上报 /data 与 /sendPCInfo（原 HTTP 调用）
@@ -162,12 +170,12 @@ fn main() {
     // UI 主循环（阻塞）
     ui::run(shared.clone(), rx);
 
-    // 兜底看门狗：任何线程卡在系统调用上时，5 秒后强制退出，避免进程残留
-    // （正常情况下各线程都能在毫秒级退出，看门狗不会触发）
+    // 兜底看门狗：任何线程卡在系统调用上时，10 秒后强制退出，避免进程残留
+    // （正常情况下各线程都能在毫秒级退出；重启前还要等待服务端释放端口，故留足余量）
     let _ = std::thread::Builder::new()
         .name("exit-watchdog".into())
         .spawn(|| {
-            std::thread::sleep(std::time::Duration::from_secs(5));
+            std::thread::sleep(std::time::Duration::from_secs(10));
             std::process::exit(0);
         });
 
@@ -182,11 +190,15 @@ fn main() {
     #[cfg(windows)]
     let _ = tray_thread.join();
 
+    // 重启/退出前先优雅关闭内嵌 HTTP/WS 服务并等待监听端口释放。
+    // 否则新进程启动时旧监听仍占用端口，绑定失败会顺延到下一个端口（端口漂移）。
+    server::shutdown();
+
     // 重启（托盘菜单 / 跨夜）：释放单实例互斥后拉起新进程
     if shared.restart.load(Ordering::Relaxed) {
         config::release_single_instance();
         if let Ok(exe) = std::env::current_exe() {
-            let _ = std::process::Command::new(exe).spawn();
+            let _ = std::process::Command::new(exe).arg("--restart").spawn();
         }
     }
 }

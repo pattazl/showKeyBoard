@@ -106,6 +106,53 @@ fn startup_checked() -> bool {
     true
 }
 
+// ---------------- 启动通知 ----------------
+
+/// 启动气泡提示（needTraytip）：macOS 用本地通知展示与 Windows 气泡等价的内容。
+/// 必须在主线程调用（UI 定时器内首次创建托盘时），NSUserNotificationCenter
+/// 属于 Foundation，已随 cocoa 链接，无需额外框架或授权代码。
+fn notify_started(shared: &Arc<Shared>) {
+    if !shared.cfg.read().unwrap().need_traytip {
+        return;
+    }
+    let (lang, hotkey) = {
+        let c = shared.cfg.read().unwrap();
+        (
+            i18n::Lang::from_ini(&c.default_lang),
+            c.hotkey4_show.clone(),
+        )
+    };
+    let text = i18n::balloon_started(lang, crate::stats::env_full_version(), &hotkey);
+    post_notification("ShowKeyBoard", &text);
+}
+
+fn post_notification(title: &str, text: &str) {
+    use cocoa::base::{id, nil};
+    use cocoa::foundation::NSString;
+    use objc::{class, msg_send, sel, sel_impl};
+
+    unsafe {
+        let center: id =
+            msg_send![class!(NSUserNotificationCenter), defaultUserNotificationCenter];
+        if center == nil {
+            return;
+        }
+        let note: id = msg_send![class!(NSUserNotification), alloc];
+        if note == nil {
+            return;
+        }
+        let note: id = msg_send![note, init];
+        let title: id = NSString::alloc(nil).init_str(title);
+        let body: id = NSString::alloc(nil).init_str(text);
+        let _: () = msg_send![note, setTitle: title];
+        let _: () = msg_send![note, setInformativeText: body];
+        let _: () = msg_send![center, deliverNotification: note];
+        let _: () = msg_send![note, release];
+        let _: () = msg_send![title, release];
+        let _: () = msg_send![body, release];
+    }
+}
+
 // ---------------- 托盘 ----------------
 
 fn create(shared: &Arc<Shared>) -> Option<TrayState> {
@@ -191,7 +238,11 @@ pub fn poll(shared: &Arc<Shared>) {
     STATE.with(|cell| {
         if cell.borrow().is_none() {
             match create(shared) {
-                Some(st) => *cell.borrow_mut() = Some(st),
+                Some(st) => {
+                    *cell.borrow_mut() = Some(st);
+                    // 托盘就绪后发启动通知（needTraytip）
+                    notify_started(shared);
+                }
                 // 托盘创建失败（例如没有 GUI 会话）时下帧再试
                 None => return,
             }

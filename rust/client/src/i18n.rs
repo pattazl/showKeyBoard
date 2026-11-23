@@ -75,6 +75,17 @@ pub fn balloon_started(lang: Lang, ver: &str, hotkey: &str) -> String {
     }
 }
 
+/// 内嵌服务启动失败（端口连续顺延仍无法绑定）
+pub fn server_start_failed(lang: Lang, detail: &str) -> String {
+    match lang {
+        Lang::En => format!(
+            "Failed to start local server. The port may be already in use.\n\n{}",
+            detail
+        ),
+        Lang::Zh => format!("无法启动本地服务，端口可能被占用。\n\n{}", detail),
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub mod macos {
     use super::Lang;

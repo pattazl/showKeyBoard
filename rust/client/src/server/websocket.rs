@@ -29,16 +29,24 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
     // "" = web client (matches Node.js: ws.clientType = '')
     let mut client_type = String::new();
 
-    let ws_tx = {
+    let (ws_tx, shutdown) = {
         let s = state.read().await;
-        s.ws_tx.clone()
+        (s.ws_tx.clone(), s.shutdown_notify.clone())
     };
     let mut rx = ws_tx.subscribe();
+    // 退出/重启时主动关闭长连接，否则 graceful shutdown 会一直等待它们
+    let notified = shutdown.notified();
+    tokio::pin!(notified);
 
     info!("WebSocket connection established");
 
     loop {
         tokio::select! {
+            _ = &mut notified => {
+                info!("WebSocket closing for server shutdown: {}", client_type);
+                let _ = socket.send(Message::Close(None)).await;
+                break;
+            }
             // Incoming WebSocket message from client
             msg_result = socket.recv() => {
                 match msg_result {

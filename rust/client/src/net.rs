@@ -168,6 +168,8 @@ pub fn start(shared: Arc<Shared>) -> std::thread::JoinHandle<()> {
 fn apply_config(shared: &Arc<Shared>, mut new_cfg: crate::config::Config) {
     let mut cfg = shared.cfg.write().unwrap();
     let show_changed = cfg.need_show_key != new_cfg.need_show_key;
+    // serverPort 变更后原监听端口已失效，需要重启进程按新端口重新绑定
+    let port_changed = cfg.server_port != new_cfg.server_port;
     new_cfg.generation = cfg.generation + 1;
     *cfg = new_cfg;
     drop(cfg);
@@ -176,6 +178,17 @@ fn apply_config(shared: &Arc<Shared>, mut new_cfg: crate::config::Config) {
         shared.show_key_generation.fetch_add(1, Ordering::Relaxed);
     }
     crate::input::refresh_hook_params();
+    if port_changed {
+        // 稍等片刻再退出：确保 setPara 的响应已写回浏览器，页面不会误报保存失败
+        let shared = shared.clone();
+        let _ = std::thread::Builder::new()
+            .name("skb-port-restart".into())
+            .spawn(move || {
+                std::thread::sleep(Duration::from_millis(500));
+                shared.restart.store(true, Ordering::Relaxed);
+                shared.exit.store(true, Ordering::Relaxed);
+            });
+    }
 }
 
 /// Bridge 线程（替代原 WS 客户端线程）：

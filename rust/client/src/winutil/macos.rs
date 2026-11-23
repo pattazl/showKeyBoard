@@ -943,3 +943,24 @@ impl ProcPathCache {
         self.path.clone()
     }
 }
+
+/// GUI 程序没有控制台，启动失败等需立即告知用户的错误用系统模态框提示。
+/// 启动阶段早于 Slint 初始化，先确保 NSApplication 已创建。
+pub fn show_error_dialog(title: &str, text: &str) {
+    use cocoa::foundation::NSString;
+    unsafe {
+        let _: id = msg_send![class!(NSApplication), sharedApplication];
+        let alert: id = msg_send![class!(NSAlert), new];
+        if alert == nil {
+            return;
+        }
+        let t: id = NSString::alloc(nil).init_str(title);
+        let b: id = NSString::alloc(nil).init_str(text);
+        let _: () = msg_send![alert, setMessageText: t];
+        let _: () = msg_send![alert, setInformativeText: b];
+        let _: () = msg_send![alert, runModal];
+        let _: () = msg_send![alert, release];
+        let _: () = msg_send![t, release];
+        let _: () = msg_send![b, release];
+    }
+}

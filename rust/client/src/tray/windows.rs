@@ -41,7 +41,8 @@ fn fill_wstr<const N: usize>(dst: &mut [u16; N], s: &str) {
 /// 启动托盘气泡提示（needTraytip）：临时挂一个带 NIF_INFO 的托盘图标并显示气泡
 unsafe fn balloon_show(hwnd: isize, title: &str, text: &str) -> bool {
     use windows_sys::Win32::UI::Shell::{
-        Shell_NotifyIconW, NIF_ICON, NIF_INFO, NIF_TIP, NIIF_INFO, NIM_ADD, NOTIFYICONDATAW,
+        Shell_NotifyIconW, NIF_ICON, NIF_INFO, NIF_TIP, NIIF_INFO, NIM_ADD, NIM_MODIFY,
+        NIM_SETVERSION, NOTIFYICONDATAW, NOTIFYICON_VERSION_4,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{LoadIconW, IDI_APPLICATION};
 
@@ -49,13 +50,27 @@ unsafe fn balloon_show(hwnd: isize, title: &str, text: &str) -> bool {
     nid.cbSize = std::mem::size_of::<NOTIFYICONDATAW>() as u32;
     nid.hWnd = hwnd as _;
     nid.uID = BALLOON_UID;
-    nid.uFlags = NIF_INFO | NIF_ICON | NIF_TIP;
     nid.hIcon = LoadIconW(std::ptr::null_mut(), IDI_APPLICATION);
     fill_wstr(&mut nid.szTip, "ShowKeyBoard");
+    // 第一步只注册图标：NIF_INFO 仅在 NIM_MODIFY 时有效，
+    // 直接在 NIM_ADD 里带气泡文本不会弹出提示。
+    nid.uFlags = NIF_ICON | NIF_TIP;
+    if Shell_NotifyIconW(NIM_ADD, &nid) == 0 {
+        return false;
+    }
+    nid.Anonymous.uVersion = NOTIFYICON_VERSION_4;
+    Shell_NotifyIconW(NIM_SETVERSION, &nid);
+    // 第二步更新为气泡提示
     fill_wstr(&mut nid.szInfoTitle, title);
     fill_wstr(&mut nid.szInfo, text);
     nid.dwInfoFlags = NIIF_INFO;
-    Shell_NotifyIconW(NIM_ADD, &nid) != 0
+    nid.uFlags = NIF_INFO;
+    if Shell_NotifyIconW(NIM_MODIFY, &nid) == 0 {
+        // 失败时移除临时图标，避免托盘残留
+        balloon_remove(hwnd);
+        return false;
+    }
+    true
 }
 
 /// 移除气泡用的临时托盘图标

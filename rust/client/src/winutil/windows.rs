@@ -685,3 +685,21 @@ impl ProcPathCache {
         self.path.clone()
     }
 }
+
+/// GUI 程序没有控制台，启动失败等需立即告知用户的错误用系统模态框提示。
+pub fn show_error_dialog(title: &str, text: &str) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
+    let wide = |s: &str| -> Vec<u16> {
+        s.encode_utf16().chain(std::iter::once(0)).collect()
+    };
+    let title = wide(title);
+    let text = wide(text);
+    unsafe {
+        MessageBoxW(
+            std::ptr::null_mut(),
+            text.as_ptr(),
+            title.as_ptr(),
+            MB_OK | MB_ICONERROR,
+        );
+    }
+}

@@ -54,6 +54,10 @@ pub struct ServerHandle {
     pub state: AppState,
     pub handle: tokio::runtime::Handle,
     pub ws_tx: broadcast::Sender<(String, String)>,
+    /// 优雅关闭信号（axum serve + WebSocket 长连接同时订阅）
+    pub shutdown_notify: Arc<Notify>,
+    /// 服务线程句柄：关闭时 join，确保监听端口已释放
+    pub serve_thread: std::sync::Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
 static HANDLE: std::sync::OnceLock<ServerHandle> = std::sync::OnceLock::new();
@@ -64,9 +68,12 @@ fn handle() -> Option<&'static ServerHandle> {
 
 /// 启动内嵌服务端：同步完成 配置加载 / DB 初始化 / 端口绑定（含重试），
 /// 随后在后台线程运行 tokio runtime（axum + 后台任务）。
+/// `allow_port_fallback`：端口被占用时是否顺延尝试下一个端口。
+/// 正常启动为 true；由“重启程序”拉起的子进程为 false（端口必须沿用原值）。
 /// 返回最终绑定的端口。`client_config_tx` 用于服务端→客户端的配置推送。
 pub fn start(
     client_config_tx: crossbeam_channel::Sender<serde_json::Value>,
+    allow_port_fallback: bool,
 ) -> Result<u16, String> {
     if HANDLE.get().is_some() {
         return Err("server already started".to_string());
@@ -159,7 +166,9 @@ pub fn start(
 
     // 端口绑定（含重试）在调用线程 block_on 完成，保证 start 返回时服务已就绪
     let (listener, port) = runtime.block_on(async {
-        const MAX_PORT_RETRIES: u16 = 5;
+        // 正常启动：端口被占用时顺延 +1，最多再试 5 次；全部失败由调用方弹框报错。
+        // 重启（allow_port_fallback=false）只用原端口，避免端口漂移。
+        let max_port_attempts: u16 = if allow_port_fallback { 6 } else { 1 };
         let initial_port = config.port;
         let mut port = initial_port;
         let listener = loop {
@@ -168,7 +177,7 @@ pub fn start(
                 Ok(l) => break l,
                 Err(e) => {
                     let attempts = port - initial_port + 1;
-                    if attempts >= MAX_PORT_RETRIES {
+                    if attempts >= max_port_attempts {
                         return Err(format!(
                             "bind port {}..{} failed: {}",
                             initial_port, port, e
@@ -241,6 +250,8 @@ pub fn start(
         state: shared_state.clone(),
         handle: runtime.handle().clone(),
         ws_tx,
+        shutdown_notify: shutdown_notify.clone(),
+        serve_thread: std::sync::Mutex::new(None),
     };
     HANDLE
         .set(server_handle)
@@ -248,7 +259,7 @@ pub fn start(
 
     // 后台线程持有 runtime，跑 axum + 后台任务
     let serve_state = shared_state.clone();
-    std::thread::Builder::new()
+    let serve_thread = std::thread::Builder::new()
         .name("skb-server".into())
         .spawn(move || {
             runtime.block_on(async move {
@@ -267,6 +278,9 @@ pub fn start(
             });
         })
         .map_err(|e| e.to_string())?;
+    if let Some(h) = handle() {
+        *h.serve_thread.lock().unwrap() = Some(serve_thread);
+    }
 
     info!("ShowKeyBoard embedded server listening on http://127.0.0.1:{}", port);
     Ok(port)
@@ -355,6 +369,28 @@ pub fn broadcast_key_show(text: String) {
 pub fn save_last_data() {
     let Some(h) = handle() else { return };
     let _ = h.handle.block_on(handlers::save_last_data(&h.state));
+}
+
+/// 优雅关闭内嵌 HTTP/WS 服务，并等待服务线程结束（监听端口随之释放）。
+/// Windows 上若旧进程仍持有监听就拉起新进程，新进程绑定失败会顺延 +1 端口，
+/// 表现为每次重启端口都变化，因此重启前必须先调用本函数。
+pub fn shutdown() {
+    let Some(h) = handle() else { return };
+    h.shutdown_notify.notify_waiters();
+    let Some(join) = h.serve_thread.lock().unwrap().take() else {
+        return;
+    };
+    // 有界等待：正常情况长连接会立即关闭；极端情况下最多等 3 秒，避免卡死退出
+    let (tx, rx) = std::sync::mpsc::channel();
+    let waiter = std::thread::Builder::new()
+        .name("skb-server-join".into())
+        .spawn(move || {
+            let _ = join.join();
+            let _ = tx.send(());
+        });
+    if waiter.is_ok() {
+        let _ = rx.recv_timeout(std::time::Duration::from_secs(3));
+    }
 }
 
 // ============== 路径 / 迁移辅助（原 server main.rs） ==============

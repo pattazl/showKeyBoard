@@ -348,7 +348,8 @@ pub async fn exit_server(State(state): State<AppState>) -> impl IntoResponse {
     save_last_data(&state).await;
 
     // Trigger graceful shutdown (matches Node.js: wss.close() + server.close() + process.exit)
-    state.read().await.shutdown_notify.notify_one();
+    // notify_waiters：服务本身与 WebSocket 长连接都在等待此信号
+    state.read().await.shutdown_notify.notify_waiters();
 
     info!("Shutdown signal sent, server is shutting down...");
     Json(serde_json::json!({
