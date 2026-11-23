@@ -132,11 +132,6 @@
                 <n-input-number v-model:value="allConfig.common.autoSave2Db" :min="10" :max="7200" />
               </template>
             </n-list-item>
-            <n-list-item>{{ contentText.intro138 }}
-              <template #suffix>
-                <n-switch :round="false" v-model:value="allConfig.common.showHttpDebug" />
-              </template>
-            </n-list-item>
             <n-list-item>{{ contentText.intro140 }}
               <div class="intro">{{ contentText.intro141 }}</div>
               <template #suffix>

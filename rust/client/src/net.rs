@@ -40,9 +40,8 @@ fn debug_out(_msg: &str) {
     //unsafe { OutputDebugStringW(wide.as_ptr()) }
 }
 
-/// macOS 没有 DebugView：输出到 stderr（showHttpDebug 开启时已重定向到
-/// ~/Documents/ShowKeyBoard/debug.log 并由 Terminal tail -f 展示；
-/// 关闭时 stderr 已被 silence_stdio 丢弃）
+/// macOS 没有 DebugView：输出到 stderr（GUI 应用已在启动时通过
+/// silence_stdio 丢弃标准输出，因此不会再显示）
 #[cfg(target_os = "macos")]
 fn debug_out(msg: &str) {
     eprintln!("AHK-{}", msg);
