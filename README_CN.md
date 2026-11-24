@@ -57,6 +57,7 @@
 
 用户资料全部迁移到，其中 用户目录windows = %USERPROFILE%\Documents\ [文档] ， MacOs= ~/Documents [文稿]
 
+```powershell
 用户目录\ShowKeyBoard\
 ├── records.db          ←  主统计库
 ├── showKeyBoard.ini  ←  主配置文件
@@ -68,6 +69,9 @@
 ├── backup\    ← 本地资料备份库，重启会自动备份，定时清理
 ├── share\  ← 其他终端的备份库，会自动转换到dbs中供访问
 └── uploads\    ← 用户上传的目录
+```
+
+
 
 #### Windows系统
 

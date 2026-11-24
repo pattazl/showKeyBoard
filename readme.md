@@ -56,7 +56,10 @@ Follow the prompts to select during installation, such as whether to keep the co
 ### Rust version
 
 >This version starts with 2.xx
+
 All user data has been migrated to the following locations: For Windows, the user directory is %USERPROFILE%\Documents\ [Documents]; for MacOS, it is ~/Documents [Documents]
+
+```powershell
 User directory\ShowKeyBoard\
 ├─ records.db ← Main statistical database
 ├─ showKeyBoard.ini ← Main configuration file
@@ -68,6 +71,9 @@ User directory\ShowKeyBoard\
 ├─ backup\ ← Local data backup repository; automatic backup upon restart, scheduled cleanup
 ├─ share\ ← Backup repository of other terminals, which will be automatically converted to dbs for access
 └── uploads\ ← directory for user uploads
+```
+
+
 
 #### Windows system
 
