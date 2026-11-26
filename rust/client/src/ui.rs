@@ -478,6 +478,12 @@ impl UiManager {
         comp.window()
             .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
         comp.show().ok();
+        // 关键：Slint 的 show() 会把 pending_redraw 置为 false（winit 后端
+        // set_visibility 里执行），而池里的窗口此前已 show 过、原生窗口保持可见，
+        // 再次 show 不会触发任何重绘。此时窗口上残留的还是它被淡出时的全透明旧帧，
+        // 于是出现“位置留出来了，但内容空白”。这里显式补一次重绘请求，
+        // 保证复用的池窗口按新文本/尺寸重新呈现。
+        comp.window().request_redraw();
         #[cfg(not(windows))]
         Self::set_native_frame(comp, x, y, pw, ph, scale, Some((ml, mt, mr, mb)));
         (x, y, pw, ph)
