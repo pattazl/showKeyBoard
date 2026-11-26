@@ -303,7 +303,12 @@ impl UiManager {
             texts.push(display.clone());
             self.create_overlay(&cfg, texts, now);
         } else if let Some(last) = self.overlays.last_mut() {
-            // 复用最后一个窗口
+            // 复用最后一个窗口：先中止可能已开始的渐隐并恢复不透明。
+            // 休眠/待机唤醒后窗口可能停在渐隐进度上，只更新文本不重置透明度，
+            // 新按键就会以"透明度 0"的状态显示出来。
+            last.fading = false;
+            last.fade_start = None;
+            last.comp.set_fade(1.0);
             last.texts.push(display.clone());
             last.tick = now;
         }
@@ -363,6 +368,9 @@ impl UiManager {
         }
         let ov = &self.overlays[last_idx];
         let title = ov.title.clone();
+        // 显示时显式恢复为不透明：池窗口可能带着上次淡出的 0 透明度被复用，
+        // 或停留在休眠前的渐隐进度上，这里统一把窗口恢复正常透明度
+        ov.comp.set_fade(1.0);
         crate::winutil::apply_overlay_styles(&ov.comp.window(), &title, cfg.ui.gui_trans);
     }
 
