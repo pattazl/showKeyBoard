@@ -701,9 +701,3 @@ pub fn data_dir() -> PathBuf {
     let _ = std::fs::create_dir_all(&dir);
     dir
 }
-
-/// 写 PID 文件（kb.pid），getKeyInput 兼容保留
-pub fn write_pid_file(dir: &Path) {
-    let pid_file = dir.join("kb.pid");
-    let _ = std::fs::write(pid_file, std::process::id().to_string());
-}

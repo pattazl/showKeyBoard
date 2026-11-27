@@ -5,7 +5,7 @@
 //! - 分钟统计 / 按键统计 / 历史记录
 //! - 内嵌 HTTP/WS 服务端（同进程，原 showkeyboard_server 迁入）：进程内调用替代外发 HTTP/WS
 //! - Slint 浮窗 UI（渐隐、自定义字体背景、位置方向、多屏）
-//! - 托盘菜单、hotkey4Show 热键、单实例、kb.pid、lastRecord.json、自动版本号
+//! - 托盘菜单、hotkey4Show 热键、单实例、自动版本号
 //!
 //! 跨平台：Windows（Win32 钩子 / XInput / Win32 托盘）与 macOS（CGEventTap / gilrs / NSStatusItem）。
 // 与 AHK 编译版一致：GUI 子系统，无控制台窗口（否则任务栏会出现控制台按钮）
@@ -53,7 +53,6 @@ fn main() {
         // 已有实例运行，直接退出
         return;
     }
-    config::write_pid_file(&config::data_dir());
 
     // 一个永不显示的 owner 窗口：托盘气泡提示（needTraytip）需要 hwnd 作为回调接收方
     #[cfg(windows)]
@@ -176,7 +175,7 @@ fn main() {
     }
 }
 
-/// 对应 AHK ExitFunc：保存 needShowKey、写出 lastRecord.json、通知服务端退出
+/// 对应 AHK ExitFunc：保存 needShowKey、把最后一条分钟数据落库
 fn exit_cleanup(shared: &Arc<stats::Shared>) {
     let cfg = shared.cfg.read().unwrap().clone();
 
@@ -188,25 +187,20 @@ fn exit_cleanup(shared: &Arc<stats::Shared>) {
         config::write_ini_value(&cfg.ini_path, "common", "needShowKey", current);
     }
 
-    // 2) 若存在 kbserver.pid，写出 lastRecord.json（后端重启后优先载入）
-    let pid_path = cfg.data_dir.join("kbserver.pid");
-    if pid_path.exists() {
-        // 最后一条分钟数据转差值并标注 LastFlag（与 AHK 一致）
-        {
-            let mut stats = shared.stats.lock().unwrap();
-            let g_mouse = stats.global_mouse_count;
-            let g_key = stats.global_key_count;
-            let g_dist = stats.mouse_distance;
-            if let Some(last) = stats.minute_recs.last_mut() {
-                last.mouse_count = g_mouse - last.mouse_count;
-                last.key_count = g_key - last.key_count;
-                last.distance = g_dist - last.distance;
-                last.last_flag = Some(1);
-            }
+    // 2) 最后一条分钟数据转差值并标注 LastFlag（与 AHK 一致），
+    //    随后由 save_last_data 直接落库。client 与 server 已同进程，
+    //    不再需要 lastRecord.json 这种"后端重启后载入"的中间文件。
+    {
+        let mut stats = shared.stats.lock().unwrap();
+        let g_mouse = stats.global_mouse_count;
+        let g_key = stats.global_key_count;
+        let g_dist = stats.mouse_distance;
+        if let Some(last) = stats.minute_recs.last_mut() {
+            last.mouse_count = g_mouse - last.mouse_count;
+            last.key_count = g_key - last.key_count;
+            last.distance = g_dist - last.distance;
+            last.last_flag = Some(1);
         }
-        let body = net::build_data_body(shared).to_string();
-        let last_path = cfg.data_dir.join("lastRecord.json");
-        let _ = std::fs::write(last_path, body);
     }
 
     // 3) 退出前让内嵌服务端把内存 preData 落库（服务端与客户端同进程，退出即一起结束）

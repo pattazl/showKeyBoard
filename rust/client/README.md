@@ -14,9 +14,9 @@ showKeyBoard.ahk 的 Rust 全量重写。
 | showKeyBoard.ini / showKeyBoard.desc.ini（DescRead、GBK） | `config.rs`，含 KeyList.txt 映射 |
 | HTTP /version /data /sendPCInfo /exit，断线重连、拉起 node 服务 | `net.rs`（ureq） |
 | Web 配置双向同步 / 实时按键文本推送 | `net.rs` 进程内调用 + 内嵌服务端广播 |
-| 浮窗：渐隐(guiFadeMs)、圆角(guiRadius)、自定义字体/背景/透明度、TL/TR/BL/BR、多屏、合并 ×N | `ui.rs` + `ui/app.slint`（Slint） |
+| 浮窗：渐隐(guiFadeMs)、圆角(guiRadius)、自定义字体/背景/透明度、TL/TR/BL/BR、多屏、合并 ×N | `ui.rs` + `ui/win.rs` / `ui/mac.rs`（原生窗口） |
 | Ctrl 键状态窗、activeAppShow 路径窗 | `ui.rs` |
-| 托盘菜单、hotkey4Show 热键、单实例、kb.pid、lastRecord.json、退出 /exit | `tray.rs` / `main.rs` |
+| 托盘菜单、hotkey4Show 热键、单实例、退出 /exit | `tray.rs` / `main.rs` |
 | 版本号 `主版本.YYMMDD.当日序号` | `build.rs`（`cargo build --release` 自动递增） |
 
 ## 构建与运行
@@ -30,7 +30,7 @@ cargo build --release
 - `showKeyBoard.ini`（必须）
 - `KeyList.txt`（按键显示名映射）
 - `ShowKeyBoard.ico`（可选，托盘图标）
-- `httpDistPath` 指向 node 后台 dist 目录（用于拉起 server.js 与 lastRecord.json）
+- `httpDistPath` 指向 node 后台 dist 目录（用于拉起 server.js）
 
 ## 版本号规则
 

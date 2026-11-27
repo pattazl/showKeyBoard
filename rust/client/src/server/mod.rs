@@ -211,9 +211,6 @@ pub fn start(
     }
     let key_list_path = key_list_path.to_string_lossy().to_string();
 
-    let pid_file = data_dir.join("kbserver.pid");
-    let _ = std::fs::write(&pid_file, std::process::id().to_string());
-
     let network_ip: Vec<String> = match local_ip_address::list_afinet_netifas() {
         Ok(interfaces) => interfaces
             .iter()

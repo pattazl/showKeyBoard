@@ -432,19 +432,14 @@ async fn insert_miniute_fun(state: &AppState, db_path: &str, records: &mut serde
 }
 
 /// Matches Node.js insertDataFun(records):
-/// 1. write updateTime → updateTime.txt, delete the field
+/// 1. 去掉 updateTime 字段（只用于 /uploadData 广播，不写 events 表）
 /// 2. insertMiniuteFun(records)
 /// 3. insertData(records) → events table
 async fn insert_data_fun(state: &AppState, db_path: &str, records: &mut serde_json::Value) {
-    if let Some(update_time) = records.get("updateTime").and_then(|v| v.as_str()).map(String::from) {
-        let data_dir = {
-            let sg = state.read().await;
-            sg.data_dir.clone()
-        };
-        let _ = std::fs::write(std::path::Path::new(&data_dir).join("updateTime.txt"), &update_time);
-        if let Some(obj) = records.as_object_mut() {
-            obj.remove("updateTime");
-        }
+    // AHK/node 版把 updateTime 写到 updateTime.txt 供重启后恢复；现在 client 与
+    // server 同进程、更新时间由内存 preData 与数据库承载，该文件不再需要
+    if let Some(obj) = records.as_object_mut() {
+        obj.remove("updateTime");
     }
     insert_miniute_fun(state, db_path, records).await;
     if let Err(e) = db::insert_key_records(db_path, records) {
