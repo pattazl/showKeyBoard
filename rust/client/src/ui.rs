@@ -1,5 +1,6 @@
-﻿//! Slint UI：按键浮窗（渐隐 / 圆角 / 自定义字体背景 / 多屏 / 方向排列）+ 控制键状态窗。
+﻿//! 原生浮窗 UI：按键浮窗（渐隐 / 圆角 / 自定义字体背景 / 多屏 / 方向排列）+ 控制键状态窗。
 //! 对应 AHK dialog.ahk 的 ShowTxt / CreateGui / FadeUI / ReLayOut / ShowCtrlState。
+//! 平台实现：Windows 见 ui/win.rs，macOS 见 ui/mac.rs。
 #![allow(dead_code)]
 use std::collections::HashSet;
 use std::sync::atomic::Ordering;
@@ -510,7 +511,7 @@ impl UiManager {
                 #[cfg(not(windows))]
                 {
                     let scale = Self::scale_at_pos(nx, ny);
-                    Self::set_native_frame(&o.comp, nx, ny, ow, oh, scale, None);
+                    nat::set_native_frame(&o.comp, nx, ny, ow, oh, scale, false);
                 }
             }
             px = nx;
