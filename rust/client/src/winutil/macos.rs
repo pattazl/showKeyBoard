@@ -857,18 +857,6 @@ pub fn lock_key_event(vk: i32, is_down: bool) {
 
 // ---------------- 窗口样式 ----------------
 
-/// macOS 浮窗样式：置顶 + 可选鼠标穿透。
-/// 不抢焦点由 winit/NSWindow 的非激活浮层行为保证（不设置 owner/任务栏概念）。
-pub fn apply_overlay_styles(win: &slint::Window, _title: &str, click_through: bool) -> bool {
-    use slint::winit_030::winit::window::WindowLevel;
-    use slint::winit_030::WinitWindowAccessor;
-    win.with_winit_window(|w| {
-        let _ = w.set_cursor_hittest(!click_through);
-        w.set_window_level(WindowLevel::AlwaysOnTop);
-    })
-    .is_some()
-}
-
 pub fn open_url(url: &str) {
     let _ = std::process::Command::new("open").arg(url).spawn();
 }

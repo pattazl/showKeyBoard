@@ -2,22 +2,10 @@
 name = "showkeyboard"
 version = "2.6.0"
 edition = "2021"
-description = "ShowKeyBoard client rewritten in Rust (Slint UI)"
+description = "ShowKeyBoard client rewritten in Rust (native UI)"
 build = "build.rs"
 
 [dependencies]
-# 关闭默认特性：不需要 accessibility(无障碍树)/system-tray(内置托盘)/compat-1-2，
-# 可显著降低常驻内存与二进制体积；保留 renderer-software 便于用
-# SLINT_BACKEND=winit-software 做对比测试
-slint = { version = "1.18", default-features = false, features = [
-    "std",
-    "backend-winit",
-    "renderer-femtovg",
-    "renderer-software",
-    "compat-1-2",
-    # 允许在创建窗口前调整 winit WindowAttributes（隐藏任务栏按钮 / 设置 owner）
-    "unstable-winit-030",
-] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 encoding_rs = "0.8"
@@ -42,9 +30,6 @@ log = "0.4"
 env_logger = { version = "0.11", default-features = false, features = ["humantime"] }
 local-ip-address = "0.6"
 hostname = "0.4"
-
-[build-dependencies]
-slint-build = "1.8"
 
 [target.'cfg(windows)'.dependencies]
 libloading = "0.8"

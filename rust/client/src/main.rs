@@ -55,33 +55,11 @@ fn main() {
     }
     config::write_pid_file(&config::data_dir());
 
-    // 在创建任何窗口之前指定 winit 窗口属性：popup 方式（带 owner + 不显示在任务栏），
-    // 这样启动时预热的多个窗口不会在任务栏冒出多个按钮。
-    // 该 owner 窗口同时用于托盘气泡提示（needTraytip）。
-    // macOS 没有 owner/taskbar 概念，窗口层级与鼠标穿透由 winutil 在运行时设置。
+    // 一个永不显示的 owner 窗口：托盘气泡提示（needTraytip）需要 hwnd 作为回调接收方
     #[cfg(windows)]
     let owner_hwnd = winutil::owner_hwnd() as isize;
     #[cfg(not(windows))]
     let _owner_hwnd: isize = 0;
-    {
-        // 保留 SLINT_BACKEND=winit-software 的调试入口
-        let name = match std::env::var("SLINT_BACKEND") {
-            Ok(v) if v.contains("winit") => v,
-            _ => "winit".to_string(),
-        };
-        let selector = slint::BackendSelector::new().backend_name(name);
-        #[cfg(windows)]
-        let selector = selector.with_winit_window_attributes_hook(move |attributes| {
-            use slint::winit_030::winit::platform::windows::WindowAttributesExtWindows;
-            // with_active(false)：首次 show() 走 ShowWindow(SW_SHOWNOACTIVATE)，
-            // 所有浮窗（含控制键状态窗）即使置顶也绝不抢占前台焦点。
-            attributes
-                .with_skip_taskbar(true)
-                .with_owner_window(owner_hwnd)
-                .with_active(false)
-        });
-        let _ = selector.select();
-    }
 
     let cfg = config::Config::load();
     // macOS：GUI 应用无控制台输出，与 Windows 子系统对齐

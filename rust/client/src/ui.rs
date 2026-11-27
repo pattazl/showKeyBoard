@@ -1,4 +1,4 @@
-//! Slint UI：按键浮窗（渐隐 / 圆角 / 自定义字体背景 / 多屏 / 方向排列）+ 控制键状态窗。
+﻿//! Slint UI：按键浮窗（渐隐 / 圆角 / 自定义字体背景 / 多屏 / 方向排列）+ 控制键状态窗。
 //! 对应 AHK dialog.ahk 的 ShowTxt / CreateGui / FadeUI / ReLayOut / ShowCtrlState。
 #![allow(dead_code)]
 use std::collections::HashSet;
@@ -7,16 +7,36 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::Receiver;
-use slint::{Color, PhysicalPosition, PhysicalSize, WindowSize};
-
-slint::include_modules!();
 
 use crate::config::{Config, KeyMapping};
 use crate::stats::Shared;
 
+#[cfg(windows)]
+mod win;
+#[cfg(target_os = "macos")]
+mod mac;
+#[cfg(windows)]
+use win as nat;
+#[cfg(target_os = "macos")]
+use mac as nat;
+
+/// 浮窗颜色（RGBA，与配置里的颜色参数一致）
+#[derive(Clone, Copy, Default)]
+pub struct Color {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
+}
+
+impl Color {
+    pub fn from_argb_u8(a: u8, r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b, a }
+    }
+}
+
 struct Overlay {
-    comp: KeyOverlay,
-    title: String,
+    comp: nat::PopupWindow,
     texts: Vec<String>,
     tick: Instant,
     x: i32,
@@ -29,41 +49,21 @@ struct Overlay {
 }
 
 struct CtrlWin {
-    comp: CtrlOverlay,
-    title: String,
+    comp: nat::PopupWindow,
     last_text: String,
     /// 尺寸生效时的配置版本：配置变化（如 ctrlWidth 改 0）后即使文本没变也要重新应用
     cfg_gen: u64,
-    /// 位置/尺寸是否已按物理像素成功应用（窗口刚创建时 winit 窗口尚未就绪，需要下一轮重试）
+    /// 位置/尺寸是否已成功应用
     positioned: bool,
-    /// 已生效的目标 frame（物理像素）：macOS 上重复提交会在 AppKit 里触发
-    /// styleMask 重算并让窗口瞬时偏移，所以目标不变时不再重复设置
+    /// 已生效的目标 frame（物理像素）：macOS 上重复提交会触发 AppKit 重算 frame，
+    /// 所以目标不变时不再重复设置
     applied: Option<(i32, i32, u32, u32)>,
 }
-
-/// 回收待复用的浮窗（窗口/GL 画布复用，避免每次新建造成内存膨胀）
-struct IdleWin {
-    comp: KeyOverlay,
-    title: String,
-}
-
-/// 浮窗窗口池上限（启动时预热并永久复用）。
-/// 池窗口最多 16 个；另加控制键窗 + 应用路径窗，总窗口数 ≤ 16+2。
-/// 运行期不再新建 HWND —— 窗口数恒定，内存不随按键增长，也不会出现任务栏按钮。
-const PREWARM_WINDOWS: usize = 16;
-/// 空闲池上限（与窗口总数一致）
-const IDLE_KEEP: usize = PREWARM_WINDOWS;
-/// 空闲时把窗口挪到这个屏幕外坐标（不 hide，避免 winit 重写扩展样式）
-const OFFSCREEN_X: i32 = -32000;
-const OFFSCREEN_Y: i32 = -32000;
 
 pub struct UiManager {
     shared: Arc<Shared>,
     rx: Receiver<String>,
     overlays: Vec<Overlay>,
-    idle: Vec<IdleWin>,
-    /// 正在预热（已 show 但还需补样式）的窗口
-    prewarm: Vec<IdleWin>,
     ctrl: Option<CtrlWin>,
     appwin: Option<CtrlWin>,
     keymap: KeyMapping,
@@ -96,8 +96,6 @@ impl UiManager {
             shared,
             rx,
             overlays: Vec::new(),
-            idle: Vec::new(),
-            prewarm: Vec::new(),
             ctrl: None,
             appwin: None,
             keymap,
@@ -319,25 +317,15 @@ impl UiManager {
     }
 
     fn create_overlay(&mut self, _cfg: &Config, texts: Vec<String>, tick: Instant) {
-        // 窗口总数恒定：优先用空闲池，池空则回收最旧的叠层。
-        // 这样运行期不再新建 HWND，既不涨内存，也不会在任务栏闪出按钮。
-        let (comp, title) = if let Some(w) = self.idle.pop() {
-            (w.comp, w.title)
-        } else if !self.overlays.is_empty() {
-            let old = self.overlays.remove(0);
-            (old.comp, old.title)
-        } else {
-            let id = self.next_id;
-            self.next_id += 1;
-            let comp = KeyOverlay::new().expect("create KeyOverlay");
-            let title = format!("SKBOverlay{}", id);
-            comp.set_overlay_id(title.as_str().into());
-            (comp, title)
+        // 原生窗口按需创建、淡出后销毁，不做预设窗口池
+        let id = self.next_id;
+        self.next_id += 1;
+        let Some(comp) = nat::PopupWindow::new(id) else {
+            return;
         };
         comp.set_fade(1.0);
         self.overlays.push(Overlay {
             comp,
-            title,
             texts,
             tick,
             x: 0,
@@ -367,11 +355,9 @@ impl UiManager {
             ov.h = ph;
         }
         let ov = &self.overlays[last_idx];
-        let title = ov.title.clone();
-        // 显示时显式恢复为不透明：池窗口可能带着上次淡出的 0 透明度被复用，
-        // 或停留在休眠前的渐隐进度上，这里统一把窗口恢复正常透明度
+        // 显示时显式恢复为不透明，避免休眠唤醒后沿用旧的渐隐透明度
         ov.comp.set_fade(1.0);
-        crate::winutil::apply_overlay_styles(&ov.comp.window(), &title, cfg.ui.gui_trans);
+        ov.comp.apply_styles(cfg.ui.gui_trans);
     }
 
     /// 浮窗字体：配置字体无法显示 🖰/🖱、⎇/⇧ 等符号时回退到 Segoe UI Symbol
@@ -383,7 +369,7 @@ impl UiManager {
     /// 给浮窗套用文本/颜色/尺寸并定位（按键浮窗与连接状态浮窗共用）
     fn apply_overlay_layout(
         cfg: &Config,
-        comp: &KeyOverlay,
+        comp: &nat::PopupWindow,
         text: &str,
         font: &str,
     ) -> (i32, i32, i32, i32) {
@@ -452,22 +438,20 @@ impl UiManager {
         }
 
         let edge_color = Color::from_argb_u8(ui.gui_opacity as u8, br, bg_, bb);
-        comp.set_label(merged.as_str().into());
+        comp.set_label(merged.as_str());
         comp.set_bg_color(bg);
         comp.set_txt_color(tc);
         comp.set_edge_color(edge_color);
         comp.set_show_edge(ui.gui_edge);
-        comp.set_font_name(font.into());
+        comp.set_font_name(font);
         comp.set_font_size(ui.gui_text_size);
         comp.set_font_weight(if ui.gui_text_bold { 700 } else { 400 });
+        comp.set_scale(scale);
         comp.set_corner_radius(if ui.gui_dpiscale {
             ui.gui_radius as f32 / scale
         } else {
             ui.gui_radius as f32
         });
-        // Slint 尺寸属性是逻辑像素：物理尺寸 / 显示器缩放
-        comp.set_o_width(pw as f32 / scale);
-        comp.set_o_height(ph as f32 / scale);
         // macOS：顶部锚定（TL/TR）时 Y 与 ctrlY 一致，从菜单栏下方的可视区顶部算偏移。
         // 这里直接换算成绝对物理坐标，后续窗口依次排布（relayout）才能从正确位置开始。
         #[cfg(not(windows))]
@@ -478,63 +462,9 @@ impl UiManager {
                 scale as f64,
             );
         }
-        // Windows：保持原实现（Slint Physical 接口）
-        // macOS：Slint 的 set_size(Physical) 会先按窗口 scale_factor（屏外窗口退化为
-        // 1.0）转 Logical，再被 winit 按真实 scale 乘回去，导致尺寸翻倍；
-        // 因此 show 后再走原生 AppKit 一次性校正位置与尺寸（无歧义换算）
-        comp.window().set_position(PhysicalPosition::new(x, y));
-        comp.window()
-            .set_size(WindowSize::Physical(PhysicalSize::new(pw as u32, ph as u32)));
-        comp.show().ok();
-        // 关键：Slint 的 show() 会把 pending_redraw 置为 false（winit 后端
-        // set_visibility 里执行），而池里的窗口此前已 show 过、原生窗口保持可见，
-        // 再次 show 不会触发任何重绘。此时窗口上残留的还是它被淡出时的全透明旧帧，
-        // 于是出现“位置留出来了，但内容空白”。这里显式补一次重绘请求，
-        // 保证复用的池窗口按新文本/尺寸重新呈现。
-        comp.window().request_redraw();
-        #[cfg(not(windows))]
-        Self::set_native_frame(comp, x, y, pw, ph, scale, Some((ml, mt, mr, mb)));
+        comp.set_frame(x, y, pw as u32, ph as u32, scale, false);
+        comp.show();
         (x, y, pw, ph)
-    }
-
-    /// macOS：用原生 AppKit 设置浮窗 frame（物理像素，绝对坐标）。
-    /// 不用 winit 的 set_outer_position：它按窗口当前 frame 高度换算 Y，
-    /// 且会被 AppKit 的 visibleFrame 夹紧，尺寸/位置变化时顶部会偏移。
-    #[cfg(not(windows))]
-    fn set_native_frame(
-        comp: &KeyOverlay,
-        x: i32,
-        y: i32,
-        w: i32,
-        h: i32,
-        scale: f32,
-        monitor: Option<(i32, i32, i32, i32)>,
-    ) {
-        use slint::winit_030::WinitWindowAccessor;
-        comp.window().with_winit_window(|ww| {
-            use slint::winit_030::winit::raw_window_handle::{
-                HasWindowHandle, RawWindowHandle,
-            };
-            let Ok(handle) = ww.window_handle() else {
-                return;
-            };
-            let RawWindowHandle::AppKit(appkit) = handle.as_raw() else {
-                return;
-            };
-            let view = appkit.ns_view.as_ptr();
-            crate::winutil::install_borderless_mask_guard(view);
-            ww.set_decorations(false);
-            crate::winutil::set_window_frame_physical(
-                view,
-                x,
-                y,
-                w as u32,
-                h as u32,
-                scale as f64,
-                false,
-                monitor,
-            );
-        });
     }
 
     /// ReLayOut：把之前的窗口依次往排布方向移动
@@ -575,7 +505,7 @@ impl UiManager {
                 o.x = nx;
                 o.y = ny;
                 #[cfg(windows)]
-                o.comp.window().set_position(PhysicalPosition::new(nx, ny));
+                o.comp.set_position(nx, ny);
                 // macOS：绝对坐标 + 原生 setFrame，避免 winit 按当前高度换算导致顶部偏移
                 #[cfg(not(windows))]
                 {
@@ -594,10 +524,10 @@ impl UiManager {
     fn tick_overlays(&mut self) {
         // 每 20ms 调用一次：只提取需要的原始值，不持有 cfg 读锁，
         // 也不 clone 整个 Config（避免持续堆分配碎片）。
-        let (gui_life, gui_fade_ms, gui_trans, target) = {
+        let (gui_life, gui_fade_ms) = {
             let cfg = self.shared.cfg.read().unwrap();
             let ui = &cfg.ui;
-            (ui.gui_life, ui.gui_fade_ms, ui.gui_trans, Self::pool_target(ui))
+            (ui.gui_life, ui.gui_fade_ms)
         };
         let now = Instant::now();
         for ov in self.overlays.iter_mut() {
@@ -613,11 +543,7 @@ impl UiManager {
                     now.duration_since(start).as_millis() as f32 / gui_fade_ms as f32
                 };
                 if progress >= 1.0 {
-                    // 不 hide（hide/show 会让 winit 重写扩展样式并在任务栏闪出按钮），
-                    // 只把窗口移出屏幕并置为全透明
                     ov.comp.set_fade(0.0);
-                    ov.comp.set_label("".into());
-                    ov.comp.window().set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
                     ov.fade_start = None;
                     ov.done = true;
                 } else {
@@ -625,23 +551,9 @@ impl UiManager {
                 }
             }
         }
-        // 移除完成的窗口（isFade == 2），并把它们放进空闲池复用
+        // 淡出完成的窗口直接从列表移除，Drop 时销毁原生窗口
         if self.overlays.iter().any(|ov| ov.done) {
-            let mut finished = Vec::new();
-            let mut keep = Vec::with_capacity(self.overlays.len());
-            for ov in self.overlays.drain(..) {
-                if ov.done {
-                    finished.push(ov);
-                } else {
-                    keep.push(ov);
-                }
-            }
-            self.overlays = keep;
-            for ov in finished {
-                if self.idle.len() < IDLE_KEEP {
-                    self.idle.push(IdleWin { comp: ov.comp, title: ov.title });
-                }
-            }
+            self.overlays.retain(|ov| !ov.done);
         }
         // 每 5 秒刷新显示器列表；布局变化（热插拔/分辨率/扩展模式）时重建所有浮窗，
         // 避免窗口停留在已消失的屏幕坐标上不可见。ctrl/appwin 由 update_* 自动重定位。
@@ -657,71 +569,14 @@ impl UiManager {
                     if self.pending_mons.as_ref() == Some(&new_mons) {
                         self.pending_mons = None;
                         MONITORS.with(|m| *m.borrow_mut() = new_mons);
-                        for ov in self.overlays.iter_mut() {
-                            ov.comp.hide().ok();
-                        }
+                        // 窗口位置依赖旧布局：全部丢弃，下一次按键按新布局重建
                         self.overlays.clear();
-                        self.idle.clear();
-                        self.prewarm.clear();
                     } else {
                         self.pending_mons = Some(new_mons);
                     }
                 } else {
                     self.pending_mons = None;
                 }
-            }
-        }
-        self.prewarm_step(gui_trans, target);
-    }
-
-    /// 窗口池大小：按 guiLife/guiInterval 的并发量估算（2~16），
-    /// 既不会因为窗口太少而提前挤掉旧浮窗，也不会白白占内存
-    fn pool_target(ui: &crate::config::UiParams) -> usize {
-        let interval = ui.gui_interval.max(100);
-        let life = ui.gui_life + ui.gui_fade_ms;
-        let n = (life / interval) as usize + 1;
-        n.clamp(2, PREWARM_WINDOWS)
-    }
-
-    /// 预热空闲窗口：先以离屏、全透明的方式 show 出来，等系统真正创建窗口后
-    /// 补上 +ToolWindow/+Owner 样式，然后一直保持"可见但透明且移出屏幕"的状态。
-    /// 关键点：之后只在屏幕内/外移动位置，不再 hide/show——winit 每次切换可见性都会
-    /// 用自身 flags 重写 WS_EX_STYLE（把 WS_EX_APPWINDOW 加回来），那会让任务栏闪出按钮。
-    /// 所有窗口在同一次 show（同一轮事件循环）里创建：任务栏只会闪一次，
-    /// 而不是逐个窗口各闪一次。
-    fn prewarm_step(&mut self, click_through: bool, target: usize) {
-        // 1) 给已 show 的预热窗口补样式；成功后进入空闲池
-        if !self.prewarm.is_empty() {
-            let mut pending = Vec::new();
-            for w in self.prewarm.drain(..) {
-                if crate::winutil::apply_overlay_styles(&w.comp.window(), &w.title, click_through) {
-                    w.comp.set_fade(0.0);
-                    w.comp.window().set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
-                    self.idle.push(w);
-                } else {
-                    // 窗口句柄还没建好（事件循环延迟创建），下一轮再试
-                    pending.push(w);
-                }
-            }
-            self.prewarm = pending;
-            return;
-        }
-        // 2) 一次性把剩余窗口全部 show 出来
-        let total = self.idle.len() + self.overlays.len();
-        if total < target {
-            for _ in total..target {
-                let id = self.next_id;
-                self.next_id += 1;
-                let comp = KeyOverlay::new().expect("create KeyOverlay");
-                let title = format!("SKBOverlay{}", id);
-                comp.set_overlay_id(title.as_str().into());
-                comp.set_fade(0.0);
-                comp.set_o_width(1.0);
-                comp.set_o_height(1.0);
-                comp.window().set_position(PhysicalPosition::new(OFFSCREEN_X, OFFSCREEN_Y));
-                comp.window().set_size(WindowSize::Physical(PhysicalSize::new(1, 1)));
-                comp.show().ok();
-                self.prewarm.push(IdleWin { comp, title });
             }
         }
     }
@@ -736,7 +591,7 @@ impl UiManager {
         };
         if !ui.ctrl_state {
             if let Some(c) = &mut self.ctrl {
-                c.comp.hide().ok();
+                c.comp.hide();
                 c.applied = None;
             }
             return;
@@ -797,19 +652,19 @@ impl UiManager {
         if txt.is_empty() {
             if let Some(c) = &mut self.ctrl {
                 c.last_text.clear();
-                c.comp.hide().ok();
+                c.comp.hide();
                 // 清掉已应用的位置：下次显示同一组按键时仍需重新 show/定位
                 c.applied = None;
             }
             return;
         }
         if self.ctrl.is_none() {
-            let comp = CtrlOverlay::new().expect("create CtrlOverlay");
-            let title = "SKBCtrlState".to_string();
-            comp.set_overlay_id(title.as_str().into());
+            let Some(comp) = nat::PopupWindow::new(self.next_id) else {
+                return;
+            };
+            self.next_id += 1;
             self.ctrl = Some(CtrlWin {
                 comp,
-                title,
                 last_text: String::new(),
                 cfg_gen: 0,
                 positioned: false,
@@ -827,12 +682,12 @@ impl UiManager {
         let (br, bg_, bb) = ui.ctrl_bgcolor;
         let (tr, tg, tb) = ui.ctrl_text_color;
         let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
-        win.comp.set_label(txt.as_str().into());
+        win.comp.set_label(txt.as_str());
         win.comp.set_bg_color(bg_col);
         win.comp.set_txt_color(Color::from_argb_u8(ui.ctrl_opacity as u8, tr, tg, tb));
         win.comp.set_edge_color(bg_col);
         win.comp.set_show_edge(ui.gui_edge);
-        win.comp.set_font_name(font.as_str().into());
+        win.comp.set_font_name(font.as_str());
         win.comp.set_font_size(ui.ctrl_text_size);
         win.comp.set_font_weight(if ui.ctrl_text_bold { 700 } else { 400 });
         // 控制键状态窗：配置里 ctrl_X/ctrl_Y 是屏幕物理像素（与 activeAppShow 一致）。
@@ -867,106 +722,16 @@ impl UiManager {
         } else {
             (ui.ctrl_text_size as f32 * scale * 1.8).round().max(1.0) as i32
         };
+        win.comp.set_scale(scale);
         win.comp.set_corner_radius(ui.ctrl_radius as f32 / scale);
-        win.comp.set_o_width(w_phys as f32 / scale);
-        win.comp.set_o_height(h_phys as f32 / scale);
         // 位置直接用配置物理像素（与 activeAppShow 统一）
         let px = ui.ctrl_x;
         let py = ui.ctrl_y;
-        #[cfg(windows)]
-        {
-            win.comp.window().set_position(PhysicalPosition::new(px, py));
-            win.comp
-                .window()
-                .set_size(WindowSize::Physical(PhysicalSize::new(
-                    w_phys as u32,
-                    h_phys as u32,
-                )));
-            win.comp.show().ok();
-            win.positioned = true;
-        }
-        // macOS：目标 frame 未变化时不再重复提交（重复提交会触发 AppKit 重算 styleMask，
-        // 表现为窗口瞬时下移）。屏外窗口 scale_factor 会退化为 1.0，定位走原生 AppKit。
-        #[cfg(not(windows))]
-        {
-            let target = (px, py, w_phys as u32, h_phys as u32);
-            if win.applied != Some(target) {
-                win.comp
-                    .window()
-                    .set_size(WindowSize::Physical(PhysicalSize::new(
-                        w_phys as u32,
-                        h_phys as u32,
-                    )));
-                win.comp.show().ok();
-                win.positioned = Self::fix_macos_overlay_frame(
-                    &win.comp.window(),
-                    px,
-                    py,
-                    w_phys as u32,
-                    h_phys as u32,
-                    scale,
-                    // Ctrl 状态窗：ctrlY 从菜单栏下方的可视区域顶部算偏移
-                    true,
-                );
-                if win.positioned {
-                    win.applied = Some(target);
-                } else {
-                    // 窗口句柄还没创建（winit 在事件循环里延迟创建）：先隐藏，
-                    // 否则会以系统默认位置（屏幕居中）闪一帧，表现为“先偏下再跳上去”。
-                    // 下一次 tick 窗口已就绪，定位成功后再显示。
-                    win.comp.hide().ok();
-                }
-            }
-        }
-        let title = win.title.clone();
-        crate::winutil::apply_overlay_styles(&win.comp.window(), &title, click_through);
-    }
-
-    /// macOS：修正浮窗 frame，返回是否真正应用成功（窗口句柄未就绪时返回 false 由调用方重试）。
-    ///
-    /// 定位前先 `set_decorations(false)`，并给窗口类装上 styleMask 守卫
-    /// （见 `winutil::install_borderless_mask_guard`）。
-    /// 否则 winit 每次处理 `Resized` 都会临时把窗口改成带标题栏，
-    /// AppKit 重算 frame 后内容整体下移一个标题栏高度，表现为“先偏下再跳回”。
-    #[cfg(not(windows))]
-    fn fix_macos_overlay_frame(
-        window: &slint::Window,
-        x: i32,
-        y: i32,
-        w: u32,
-        h: u32,
-        scale: f32,
-        y_from_visible_top: bool,
-    ) -> bool {
-        use slint::winit_030::WinitWindowAccessor;
-        window
-            .with_winit_window(|ww| {
-                use slint::winit_030::winit::raw_window_handle::{
-                    HasWindowHandle, RawWindowHandle,
-                };
-                let Ok(handle) = ww.window_handle() else {
-                    return false;
-                };
-                let RawWindowHandle::AppKit(appkit) = handle.as_raw() else {
-                    return false;
-                };
-                let view = appkit.ns_view.as_ptr();
-                crate::winutil::install_borderless_mask_guard(view);
-                ww.set_decorations(false);
-                // 尺寸与位置一次提交，避免中间态被 AppKit 重算
-                crate::winutil::set_window_frame_physical(
-                    view,
-                    x,
-                    y,
-                    w,
-                    h,
-                    scale as f64,
-                    y_from_visible_top,
-                    None,
-                );
-                true
-            })
-            .unwrap_or(false)
+        // ctrlY 从菜单栏下方的可视区域顶部算偏移（macOS 原生层处理；Windows 忽略）
+        win.comp.set_frame(px, py, w_phys as u32, h_phys as u32, scale, true);
+        win.comp.show();
+        win.positioned = true;
+        win.comp.apply_styles(click_through);
     }
 
     /// activeAppShow：显示当前激活应用路径
@@ -975,7 +740,7 @@ impl UiManager {
         let ui = self.shared.cfg.read().unwrap().ui.clone();
         if !ui.active_app_show {
             if let Some(c) = &mut self.appwin {
-                c.comp.hide().ok();
+                c.comp.hide();
                 c.applied = None;
             }
             return;
@@ -992,12 +757,12 @@ impl UiManager {
         // macOS 下首帧定位会按旧高度做坐标翻转（顶部偏移）；每 500ms 重新应用一次
         // 位置/尺寸即可收敛（与 ctrl 窗一致，开销可忽略）。
         if self.appwin.is_none() {
-            let comp = CtrlOverlay::new().expect("create AppPathOverlay");
-            let title = "SKBAppPath".to_string();
-            comp.set_overlay_id(title.as_str().into());
+            let Some(comp) = nat::PopupWindow::new(self.next_id) else {
+                return;
+            };
+            self.next_id += 1;
             self.appwin = Some(CtrlWin {
                 comp,
-                title,
                 last_text: String::new(),
                 cfg_gen: 0,
                 positioned: false,
@@ -1014,17 +779,18 @@ impl UiManager {
         let (br, bg_, bb) = ui.ctrl_bgcolor;
         let bg_col = Color::from_argb_u8(ui.ctrl_opacity as u8, br, bg_, bb);
         let (tr, tg, tb) = ui.ctrl_text_color;
-        win.comp.set_label(path.as_str().into());
+        win.comp.set_label(path.as_str());
         win.comp.set_bg_color(bg_col);
         win.comp
             .set_txt_color(Color::from_argb_u8(ui.ctrl_opacity as u8, tr, tg, tb));
         win.comp.set_edge_color(bg_col);
         win.comp.set_show_edge(ui.gui_edge);
-        win.comp.set_font_name(font.as_str().into());
+        win.comp.set_font_name(font.as_str());
         win.comp.set_font_size(ui.ctrl_text_size);
         win.comp.set_font_weight(if ui.ctrl_text_bold { 700 } else { 400 });
         // AHK 的 activeAppShow 用 ToolTip 显示：坐标与尺寸都是**物理像素**，不随 DPI 缩放。
         let scale = Self::scale_at_pos(ui.active_app_show_x, ui.active_app_show_y);
+        win.comp.set_scale(scale);
         win.comp.set_corner_radius(ui.ctrl_radius as f32 / scale);
         // 宽度按内容自适应：单行实测文本宽度（物理像素）。
         // 加粗必须与 set_font_weight 一致，否则测量偏窄 → Text 会 elide 省略尾部
@@ -1050,55 +816,12 @@ impl UiManager {
         } else {
             (font_size as f32 * scale * 1.8).round().max(1.0) as i32
         };
-        win.comp.set_o_width(w_phys as f32 / scale);
-        win.comp.set_o_height(h_phys as f32 / scale);
         let px = ui.active_app_show_x;
         let py = ui.active_app_show_y;
-        #[cfg(windows)]
-        {
-            win.comp.window().set_position(PhysicalPosition::new(px, py));
-            win.comp
-                .window()
-                .set_size(WindowSize::Physical(PhysicalSize::new(
-                    w_phys as u32,
-                    h_phys as u32,
-                )));
-            win.comp.show().ok();
-            win.positioned = true;
-        }
-        // macOS：目标 frame 未变化时不再重复提交（重复提交会触发 AppKit 重算 styleMask，
-        // 表现为窗口瞬时下移）。屏外窗口 scale_factor 会退化为 1.0，定位走原生 AppKit。
-        #[cfg(not(windows))]
-        {
-            let target = (px, py, w_phys as u32, h_phys as u32);
-            if win.applied != Some(target) {
-                win.comp
-                    .window()
-                    .set_size(WindowSize::Physical(PhysicalSize::new(
-                        w_phys as u32,
-                        h_phys as u32,
-                    )));
-                win.comp.show().ok();
-                win.positioned = Self::fix_macos_overlay_frame(
-                    &win.comp.window(),
-                    px,
-                    py,
-                    w_phys as u32,
-                    h_phys as u32,
-                    scale,
-                    // 应用路径窗：与 Ctrl 状态窗一致，X 绝对、Y 从菜单栏下方算偏移
-                    true,
-                );
-                if win.positioned {
-                    win.applied = Some(target);
-                } else {
-                    // 窗口句柄尚未创建：先隐藏，避免以系统默认位置闪一帧
-                    win.comp.hide().ok();
-                }
-            }
-        }
-        let title = win.title.clone();
-        crate::winutil::apply_overlay_styles(&win.comp.window(), &title, true);
+        // 与 Ctrl 状态窗一致：X 绝对坐标，Y 从菜单栏下方可视区顶部算偏移（macOS 原生层处理）
+        win.comp.set_frame(px, py, w_phys as u32, h_phys as u32, scale, true);
+        win.comp.show();
+        win.positioned = true;
     }
 
     /// 两个浮窗首次显示时窗口句柄可能尚未创建（定位失败会先隐藏），
@@ -1108,23 +831,19 @@ impl UiManager {
             || self.appwin.as_ref().is_some_and(|w| !w.positioned)
     }
 
-    /// 复查窗口样式（不可激活 / 点击穿透 / 工具窗口 / owner）。
-    /// winit 在 show()、窗口属性变化时会按自身 WindowFlags 整体重写 GWL_EXSTYLE，
-    /// 把这里加的 WS_EX_NOACTIVATE / WS_EX_TRANSPARENT 抹掉，于是窗口会抢焦点、
-    /// 挡住鼠标点击（表现为"影响输入"）。因此每帧都复查一次：
-    /// apply_overlay_styles 内部先比较当前样式，已就位时直接返回，不会闪烁。
+    /// 复查窗口样式（不可激活 / 点击穿透 / 工具窗口）。
+    /// winit 时代窗口属性会被事件循环重写；原生化后样式由我们自己创建，
+    /// 这里保留每帧复查，成本极低，可兜住外部工具/系统对扩展样式的修改。
     fn apply_styles(&mut self) {
         let click_through = self.shared.cfg.read().unwrap().ui.gui_trans;
         for ov in self.overlays.iter_mut() {
-            crate::winutil::apply_overlay_styles(&ov.comp.window(), &ov.title, click_through);
+            ov.comp.apply_styles(click_through);
         }
-        // 控制键窗常驻可见（只是移到屏幕外），文本为空时同样必须套样式，
-        // 否则它会在任务栏留下一个按钮
         if let Some(c) = &mut self.ctrl {
-            crate::winutil::apply_overlay_styles(&c.comp.window(), &c.title, click_through);
+            c.comp.apply_styles(click_through);
         }
         if let Some(c) = &mut self.appwin {
-            crate::winutil::apply_overlay_styles(&c.comp.window(), &c.title, true);
+            c.comp.apply_styles(true);
         }
     }
 }
@@ -1148,80 +867,68 @@ impl Drop for TickGuard {
     }
 }
 
-/// 在 Slint 事件循环中运行 UI（阻塞，直到退出）
+/// 运行 UI 主循环（阻塞，直到退出）
 pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
+    // 原生窗口需要显式声明 DPI 感知（原 Slint/winit 在启动时设置）
+    #[cfg(windows)]
+    crate::winutil::set_dpi_aware();
     // 预加载显示器信息，并保存启动快照（用于判断布局是否恢复）
     let mons = crate::winutil::monitors();
     MONITORS.with(|m| *m.borrow_mut() = mons.clone());
     MONITORS_SNAPSHOT.with(|m| *m.borrow_mut() = mons);
 
     let mut manager = UiManager::new(shared.clone(), rx);
-
-    let timer = slint::Timer::default();
     let mut tick_count = 0u64;
-    timer.start(
-        slint::TimerMode::Repeated,
-        Duration::from_millis(20),
-        move || {
-            // 窗口操作在 Windows 上会同步派发消息，可能在本回调未返回时再次触发定时器；
-            // 重入会让同一 &mut UiManager 出现别名（UB），这里直接跳过本次
-            if IN_TICK.with(|f| f.replace(true)) {
-                return;
+    let tick = move || {
+        // 窗口操作在 Windows 上会同步派发消息，可能在本回调未返回时再次触发定时器；
+        // 重入会让同一 &mut UiManager 出现别名（UB），这里直接跳过本次
+        if IN_TICK.with(|f| f.replace(true)) {
+            return;
+        }
+        let _tick_guard = TickGuard;
+        tick_count += 1;
+        if shared.exit.load(Ordering::Relaxed) {
+            nat::request_exit();
+            return;
+        }
+        // 配置热重载：generation 变化时刷新窗口参数
+        let gen = shared.cfg.read().unwrap().generation;
+        if gen != manager.generation {
+            manager.generation = gen;
+            // 旧窗口直接销毁（Drop 会关闭原生窗口），下一次按键按新配置重建
+            manager.overlays.clear();
+            if let Some(c) = &mut manager.ctrl {
+                c.comp.hide();
             }
-            let _tick_guard = TickGuard;
-            tick_count += 1;
-            // macOS：winit 在事件循环启动时会把激活策略重置为 Regular（Dock 出现图标），
-            // 前 3 秒内持续纠正为 Accessory（20ms/次，代价可忽略）
-            #[cfg(target_os = "macos")]
-            if tick_count <= 150 {
-                crate::winutil::set_dock_hidden();
+            manager.ctrl = None;
+            if let Some(c) = &mut manager.appwin {
+                c.comp.hide();
             }
-            let shared_ref = shared.clone();
-            if shared_ref.exit.load(Ordering::Relaxed) {
-                slint::quit_event_loop().ok();
-                return;
-            }
-            // 配置热重载：generation 变化时刷新窗口参数
-            let gen = shared_ref.cfg.read().unwrap().generation;
-            if gen != manager.generation {
-                manager.generation = gen;
-                // 清理旧窗口，让新配置生效
-                for ov in manager.overlays.iter_mut() {
-                    ov.comp.hide().ok();
-                }
-                manager.overlays.clear();
-                manager.idle.clear();
-                manager.prewarm.clear();
-                if let Some(c) = &mut manager.ctrl {
-                    c.comp.hide().ok();
-                }
-                manager.ctrl = None;
-                if let Some(c) = &mut manager.appwin {
-                    c.comp.hide().ok();
-                }
-                manager.appwin = None;
-            }
+            manager.appwin = None;
+        }
 
-            // 消费显示队列（CallShow）
-            while let Ok(token) = manager.rx.try_recv() {
-                manager.show_txt(&token);
-            }
+        // 消费显示队列（CallShow）
+        while let Ok(token) = manager.rx.try_recv() {
+            manager.show_txt(&token);
+        }
 
-            manager.tick_overlays();
-            if tick_count % 3 == 0 || manager.needs_pos_retry() {
-                // ~60ms 刷新控制键状态（AHK 为 50ms）；首次定位未成功时每 tick 重试
-                manager.update_ctrl();
-                manager.update_app_path();
-            }
-            // winit 会在 show()/属性变更后重写 ex-style，逐帧复查（内部已就位即返回）
-            manager.apply_styles();
-            // macOS 托盘（NSStatusItem）必须在主线程、事件循环启动后创建并轮询菜单；
-            // Windows 为 no-op（托盘在自己线程的消息循环里）
-            crate::tray::poll(&shared_ref);
-        },
-    );
+        manager.tick_overlays();
+        if tick_count % 3 == 0 || manager.needs_pos_retry() {
+            // ~60ms 刷新控制键状态（AHK 为 50ms）
+            manager.update_ctrl();
+            manager.update_app_path();
+        }
+        // 逐帧复查窗口扩展样式（内部未变化时不做系统调用）
+        manager.apply_styles();
+        // macOS 托盘（NSStatusItem）必须在主线程、事件循环启动后创建并轮询菜单；
+        // Windows 为 no-op（托盘在自己线程的消息循环里）
+        crate::tray::poll(&shared);
+    };
 
-    // 注意：不能用 run_event_loop()——winit 后端在最后一个窗口隐藏后会退出事件循环，
-    // 导致所有弹框渐隐后新弹框永远无法出现；until_quit 保持循环运行直到显式退出
-    slint::run_event_loop_until_quit().expect("slint event loop");
+    nat::run_loop(Box::new(tick));
+}
+
+/// 请求退出 UI 主循环（托盘菜单使用）。
+pub fn request_exit() {
+    nat::request_exit();
 }

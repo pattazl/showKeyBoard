@@ -11,7 +11,6 @@ use std::fs;
 use std::path::PathBuf;
 
 fn main() {
-    slint_build::compile("ui/app.slint").expect("Slint compile failed");
     let ver = gen_version();
     embed_windows_resources(&ver);
 }
@@ -338,7 +337,6 @@ fn gen_version() -> BuildVersion {
     println!("cargo:rustc-env=FULL_VERSION={}", full_version);
     println!("cargo:rustc-env=BUILD_YYMMDD={}", yymmdd);
     println!("cargo:rustc-env=BUILD_COUNT={}", count);
-    println!("cargo:rerun-if-changed=ui/");
     println!("cargo:rerun-if-changed=src/");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=build_no.txt");

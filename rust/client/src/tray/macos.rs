@@ -269,7 +269,7 @@ pub fn poll(shared: &Arc<Shared>) {
                     // 重启程序：重启整个客户端进程（内嵌服务端随进程一起重启）
                     shared.restart.store(true, Ordering::Relaxed);
                     shared.exit.store(true, Ordering::Relaxed);
-                    let _ = slint::quit_event_loop();
+                    crate::ui::request_exit();
                 }
                 ID_SETTINGS => {
                     let url = format!("{}/Setting", shared.cfg.read().unwrap().server_url());
@@ -294,7 +294,7 @@ pub fn poll(shared: &Arc<Shared>) {
                 }
                 ID_EXIT => {
                     shared.exit.store(true, Ordering::Relaxed);
-                    let _ = slint::quit_event_loop();
+                    crate::ui::request_exit();
                 }
                 _ => {}
             }

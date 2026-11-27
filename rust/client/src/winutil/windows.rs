@@ -450,6 +450,21 @@ unsafe extern "system" fn owner_wndproc(hwnd: HWND, msg: u32, wparam: usize, lpa
     unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
 }
 
+/// 声明进程 DPI 感知（原 Slint/winit 会做，改为原生窗口后需自行声明）。
+/// 不声明的话系统会对窗口坐标/尺寸做虚拟化缩放，浮窗在高 DPI 屏上会偏小/错位。
+pub fn set_dpi_aware() {
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| unsafe {
+        #[link(name = "user32")]
+        extern "system" {
+            fn SetProcessDpiAwarenessContext(ctx: isize) -> i32;
+        }
+        // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4；旧系统失败则回退到系统默认
+        let _ = SetProcessDpiAwarenessContext(-4);
+    });
+}
+
 /// 创建（惰性）一个永不显示的 owner 窗口：被它拥有的窗口不会出现在任务栏 / Alt-Tab
 pub fn owner_hwnd() -> HWND {
     OWNER_HWND.with(|c| {
@@ -487,74 +502,6 @@ pub fn owner_hwnd() -> HWND {
             h
         }
     })
-}
-
-/// 按窗口标题设置浮窗样式（对应 AHK：+ToolWindow +Owner +AlwaysOnTop，可选点击穿透）。
-/// 同时清除 WS_EX_APPWINDOW 并设置 owner，确保任务栏 / Alt-Tab 中不可见。
-/// `win` 用于直接取 winit 的原生 HWND；取不到时才回退到按标题查找。
-pub fn apply_overlay_styles(win: &slint::Window, title: &str, click_through: bool) -> bool {
-    // 优先直接取 winit 的 HWND：显示器切换/DPI 变化期间按标题查找可能命中
-    // 正在重建的窗口，或短暂拿到即将销毁的句柄。
-    let mut hwnd: HWND = std::ptr::null_mut();
-    {
-        use slint::winit_030::WinitWindowAccessor;
-        win.with_winit_window(|ww| {
-            use slint::winit_030::winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
-            if let Ok(handle) = ww.window_handle() {
-                if let RawWindowHandle::Win32(w) = handle.as_raw() {
-                    hwnd = w.hwnd.get() as HWND;
-                }
-            }
-        });
-    }
-    unsafe {
-        if hwnd.is_null() {
-            // 兜底：窗口句柄尚未创建时按标题查找
-            let wname = wide(title);
-            hwnd = FindWindowW(std::ptr::null(), wname.as_ptr());
-        }
-        // 句柄可能刚被 winit 销毁/重建：无效时放弃本轮，下一帧重试
-        if hwnd.is_null() || IsWindow(hwnd) == 0 {
-            return false;
-        }
-        let cur = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as usize;
-        let mut style = cur & !WS_EX_APPWINDOW_USIZE;
-        style |= WS_EX_NOACTIVATE_USIZE | WS_EX_TOOLWINDOW_USIZE;
-        if click_through {
-            // 关键：点击穿透必须 WS_EX_TRANSPARENT + WS_EX_LAYERED 组合，
-            // 单独的 WS_EX_TRANSPARENT 只影响同线程窗口的命中测试，对其它进程无效。
-            // 与 winit 官方 set_cursor_hittest(false) 的实现一致（window_state.rs）。
-            style |= WS_EX_TRANSPARENT_USIZE | WS_EX_LAYERED_USIZE;
-        } else {
-            style &= !(WS_EX_TRANSPARENT_USIZE | WS_EX_LAYERED_USIZE);
-        }
-        let owner = owner_hwnd();
-        let owner_ok = owner.is_null()
-            || GetWindowLongPtrW(hwnd, GWLP_HWNDPARENT) as isize == owner as isize;
-        // 已就位则跳过：避免每轮都 SetWindowPos 造成重绘闪烁
-        if style == cur && owner_ok {
-            return true;
-        }
-        // 只有 owner / 工具窗口这类"结构性"变更才需要 SWP_FRAMECHANGED，
-        // 单纯恢复 WS_EX_TRANSPARENT（点击穿透）直接写样式即可，避免额外重绘
-        let structural = ((cur ^ style) & (WS_EX_TOOLWINDOW_USIZE | WS_EX_APPWINDOW_USIZE)) != 0
-            || !owner_ok;
-        if style != cur {
-            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style as isize);
-        }
-        if !owner_ok {
-            SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, owner as isize);
-        }
-        if structural {
-            SetWindowPos(
-                hwnd,
-                std::ptr::null_mut(),
-                0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
-            );
-        }
-        true
-    }
 }
 
 /// 文本是否包含需要符号字体（Segoe UI Symbol）才能显示的字符。
