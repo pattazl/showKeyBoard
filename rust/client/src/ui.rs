@@ -54,11 +54,6 @@ struct CtrlWin {
     last_text: String,
     /// 尺寸生效时的配置版本：配置变化（如 ctrlWidth 改 0）后即使文本没变也要重新应用
     cfg_gen: u64,
-    /// 位置/尺寸是否已成功应用
-    positioned: bool,
-    /// 已生效的目标 frame（物理像素）：macOS 上重复提交会触发 AppKit 重算 frame，
-    /// 所以目标不变时不再重复设置
-    applied: Option<(i32, i32, u32, u32)>,
 }
 
 pub struct UiManager {
@@ -593,7 +588,6 @@ impl UiManager {
         if !ui.ctrl_state {
             if let Some(c) = &mut self.ctrl {
                 c.comp.hide();
-                c.applied = None;
             }
             return;
         }
@@ -637,25 +631,20 @@ impl UiManager {
             }
         }
         let txt = crate::winutil::strip_variation_selectors(txt.trim());
-        // 避免刷新闪烁（位置尚未成功应用时也要继续尝试）；
-        // 配置版本变化时必须重新应用，否则 ctrlWidth 改动后文本不变会一直沿用旧尺寸
+        // 避免刷新闪烁：文本与配置版本都没变时不重复应用
         if self
             .ctrl
             .as_ref()
-            .map(|c| c.last_text == txt && c.positioned && c.cfg_gen == cfg_gen)
+            .map(|c| c.last_text == txt && c.cfg_gen == cfg_gen)
             .unwrap_or(false)
         {
             return;
         }
-        // 没有按下的控制键：直接隐藏（AHK 也是 hide）。
-        // 这里不能像浮窗那样移到屏幕外——窗口在屏外时 scale_factor 会退化为 1.0，
-        // 导致后续按显示器 DPI 计算的尺寸/位置全部被缩小。
+        // 没有按下的控制键：直接隐藏（AHK 也是 hide）
         if txt.is_empty() {
             if let Some(c) = &mut self.ctrl {
                 c.last_text.clear();
                 c.comp.hide();
-                // 清掉已应用的位置：下次显示同一组按键时仍需重新 show/定位
-                c.applied = None;
             }
             return;
         }
@@ -668,8 +657,6 @@ impl UiManager {
                 comp,
                 last_text: String::new(),
                 cfg_gen: 0,
-                positioned: false,
-                applied: None,
             });
         }
         let font = {
@@ -731,7 +718,6 @@ impl UiManager {
         // ctrlY 从菜单栏下方的可视区域顶部算偏移（macOS 原生层处理；Windows 忽略）
         win.comp.set_frame(px, py, w_phys as u32, h_phys as u32, scale, true);
         win.comp.show();
-        win.positioned = true;
         win.comp.apply_styles(click_through);
     }
 
@@ -742,21 +728,16 @@ impl UiManager {
         if !ui.active_app_show {
             if let Some(c) = &mut self.appwin {
                 c.comp.hide();
-                c.applied = None;
             }
             return;
         }
-        // 窗口尚未完成首次定位时不做 500ms 节流，保证下一 tick 立刻重试
-        let need_pos = self.appwin.as_ref().is_some_and(|w| !w.positioned);
-        if !need_pos && self.last_app_check.elapsed() < Duration::from_millis(500) {
+        if self.last_app_check.elapsed() < Duration::from_millis(500) {
             return;
         }
         self.last_app_check = Instant::now();
         let path = crate::winutil::foreground_proc_path();
         self.last_app_path = path.clone();
-        // 注意：不要因为文本未变就跳过定位。窗口刚创建时 frame 尺寸还是默认值，
-        // macOS 下首帧定位会按旧高度做坐标翻转（顶部偏移）；每 500ms 重新应用一次
-        // 位置/尺寸即可收敛（与 ctrl 窗一致，开销可忽略）。
+        // 不要因为文本未变就跳过定位：尺寸会随路径长度变化，需要每 500ms 重新应用一次
         if self.appwin.is_none() {
             let Some(comp) = nat::PopupWindow::new(self.next_id) else {
                 return;
@@ -766,8 +747,6 @@ impl UiManager {
                 comp,
                 last_text: String::new(),
                 cfg_gen: 0,
-                positioned: false,
-                applied: None,
             });
         }
         // 字体与 Ctrl 状态窗一致（含符号字体回退）
@@ -822,14 +801,6 @@ impl UiManager {
         // 与 Ctrl 状态窗一致：X 绝对坐标，Y 从菜单栏下方可视区顶部算偏移（macOS 原生层处理）
         win.comp.set_frame(px, py, w_phys as u32, h_phys as u32, scale, true);
         win.comp.show();
-        win.positioned = true;
-    }
-
-    /// 两个浮窗首次显示时窗口句柄可能尚未创建（定位失败会先隐藏），
-    /// 此时需要每 tick 重试，而不是等 60ms 的常规刷新周期。
-    fn needs_pos_retry(&self) -> bool {
-        self.ctrl.as_ref().is_some_and(|w| !w.positioned)
-            || self.appwin.as_ref().is_some_and(|w| !w.positioned)
     }
 
     /// 复查窗口样式（不可激活 / 点击穿透 / 工具窗口）。
@@ -914,7 +885,7 @@ pub fn run(shared: Arc<Shared>, rx: Receiver<String>) {
         }
 
         manager.tick_overlays();
-        if tick_count % 3 == 0 || manager.needs_pos_retry() {
+        if tick_count % 3 == 0 {
             // ~60ms 刷新控制键状态（AHK 为 50ms）
             manager.update_ctrl();
             manager.update_app_path();

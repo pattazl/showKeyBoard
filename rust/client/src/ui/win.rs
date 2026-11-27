@@ -13,7 +13,7 @@ use windows_sys::Win32::Graphics::Gdi::{
     DrawTextW, EndPaint, FillRect, GetStockObject, InvalidateRect, RoundRect, SelectObject,
     SetBkMode, SetTextColor, SetWindowRgn, UpdateWindow, CLIP_DEFAULT_PRECIS, DEFAULT_CHARSET,
     DEFAULT_PITCH, DT_NOPREFIX, DT_WORDBREAK, FF_DONTCARE, HGDIOBJ, NULL_BRUSH,
-    OUT_DEFAULT_PRECIS, PAINTSTRUCT, PS_NULL, PS_SOLID, TRANSPARENT,
+    OUT_DEFAULT_PRECIS, PAINTSTRUCT, PS_SOLID, TRANSPARENT,
 };
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -450,6 +450,8 @@ fn register_popup_class() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| unsafe {
         let hinst = GetModuleHandleW(std::ptr::null());
+        // 类名必须活过 RegisterClassW：不能用临时 Vec 的指针（悬垂）
+        let class_name = wide(CLASS_NAME);
         let wc = WNDCLASSW {
             style: 0,
             lpfnWndProc: Some(popup_wndproc),
@@ -460,7 +462,7 @@ fn register_popup_class() {
             hCursor: std::ptr::null_mut(),
             hbrBackground: std::ptr::null_mut(),
             lpszMenuName: std::ptr::null(),
-            lpszClassName: wide(CLASS_NAME).as_ptr(),
+            lpszClassName: class_name.as_ptr(),
         };
         RegisterClassW(&wc);
     });
@@ -497,6 +499,8 @@ unsafe extern "system" fn loop_wndproc(
 pub fn run_loop(tick: Box<dyn FnMut()>) {
     unsafe {
         let hinst = GetModuleHandleW(std::ptr::null());
+        // 类名/窗口名必须活过注册与创建调用，不能用临时 Vec 的指针
+        let class_name = wide(LOOP_CLASS);
         let wc = WNDCLASSW {
             style: 0,
             lpfnWndProc: Some(loop_wndproc),
@@ -507,13 +511,13 @@ pub fn run_loop(tick: Box<dyn FnMut()>) {
             hCursor: std::ptr::null_mut(),
             hbrBackground: std::ptr::null_mut(),
             lpszMenuName: std::ptr::null(),
-            lpszClassName: wide(LOOP_CLASS).as_ptr(),
+            lpszClassName: class_name.as_ptr(),
         };
         RegisterClassW(&wc);
         let hwnd = CreateWindowExW(
             0,
-            wide(LOOP_CLASS).as_ptr(),
-            wide(LOOP_CLASS).as_ptr(),
+            class_name.as_ptr(),
+            class_name.as_ptr(),
             0,
             0,
             0,

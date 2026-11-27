@@ -1,4 +1,4 @@
-//! macOS 系统工具实现：CoreGraphics / CoreFoundation / libproc。
+﻿//! macOS 系统工具实现：CoreGraphics / CoreFoundation / libproc。
 //! 与 `windows.rs` 保持相同的对外接口，供 config / stats / ui / net 共用。
 #![allow(dead_code)]
 use std::ffi::c_void;
@@ -524,70 +524,6 @@ pub fn set_window_frame_physical(
     }
 }
 
-/// 给浮窗窗口类安装 `setStyleMask:` 守卫：永远去掉 Titled 位。
-///
-/// winit 在每次收到 `Resized` 事件后都会调用 `window_state_event()` →
-/// `winit::Window::is_maximized()` → macOS 的 `is_zoomed()`；后者为了查询 zoom 状态
-/// 会临时把 styleMask 改成 Titled|Resizable，再还原成原 mask。AppKit 在加/去标题栏时
-/// 会重算 frame（保持内容左上角），还原后内容整体下移一个标题栏高度，
-/// 于是浮窗“先偏下、随后被下一次定位拉回正常”。
-/// 覆盖 `setStyleMask:` 后临时标题栏不再出现，frame 也就不会被重算。
-///
-/// 只在本进程的 Slint/winit 窗口类上添加方法（不是改写 NSWindow），
-/// 因此不影响系统面板/对话框。
-pub fn install_borderless_mask_guard(ns_view: *mut c_void) {
-    use objc::runtime::{
-        class_addMethod, class_getInstanceMethod, method_getImplementation,
-        method_setImplementation, object_getClass, Class, Imp, Method, Object, Sel,
-    };
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-
-    /// NSWindowStyleMaskTitled
-    const NS_WINDOW_STYLE_MASK_TITLED: usize = 1;
-
-    static INSTALLED: AtomicBool = AtomicBool::new(false);
-    static ORIG: AtomicUsize = AtomicUsize::new(0);
-
-    if INSTALLED.load(Ordering::SeqCst) || ns_view.is_null() {
-        return;
-    }
-
-    unsafe extern "C" fn hook_style_mask(this: *mut Object, cmd: Sel, mask: usize) {
-        let imp = ORIG.load(Ordering::SeqCst);
-        if imp == 0 {
-            return;
-        }
-        let f: unsafe extern "C" fn(*mut Object, Sel, usize) = std::mem::transmute(imp);
-        f(this, cmd, mask & !NS_WINDOW_STYLE_MASK_TITLED);
-    }
-
-    unsafe {
-        let view = ns_view as id;
-        let win: id = msg_send![view, window];
-        if win == nil {
-            return;
-        }
-        let cls = object_getClass(win as *const Object) as *mut Class;
-        if cls.is_null() {
-            return;
-        }
-        let sel = Sel::register("setStyleMask:");
-        let existing = class_getInstanceMethod(cls as *const Class, sel);
-        if existing.is_null() {
-            return;
-        }
-        let orig: Imp = method_getImplementation(existing as *mut Method);
-        ORIG.store(orig as usize, Ordering::SeqCst);
-        let hook: Imp = std::mem::transmute(hook_style_mask as *const () as usize);
-        let added = class_addMethod(cls, sel, hook, c"v@:Q".as_ptr());
-        if !added {
-            // 该窗口类自己就实现了 setStyleMask:（不是从 NSWindow 继承），
-            // 直接替换它的实现，作用范围仍只限本进程的浮窗。
-            method_setImplementation(existing as *mut Method, hook);
-        }
-        INSTALLED.store(true, Ordering::SeqCst);
-    }
-}
 
 /// 关闭标准输出/错误（重定向到 /dev/null）：GUI 应用无控制台，
 /// 与 Windows 的 windows_subsystem="windows" 对齐。
@@ -731,7 +667,7 @@ pub fn measure_text(
         return (0, 0, 0);
     }
     unsafe {
-        let _pool = cocoa::foundation::NSAutoreleasePool::new(nil);
+        let pool: id = cocoa::foundation::NSAutoreleasePool::new(nil);
         let size = font_px as f64;
         let mut font: id = nil;
         if !family.is_empty() {
@@ -740,6 +676,8 @@ pub fn measure_text(
                 let ns_fam: id = msg_send![ns_fam, initWithUTF8String: cfam.as_ptr()];
                 if ns_fam != nil {
                     font = msg_send![class!(NSFont), fontWithName: ns_fam size: size];
+                    // fontWithName 不持有 NSString，用完释放我们持有的引用
+                    let _: () = msg_send![ns_fam, release];
                 }
             }
         }
@@ -747,6 +685,7 @@ pub fn measure_text(
             font = msg_send![class!(NSFont), systemFontOfSize: size];
         }
         if font == nil {
+            let _: () = msg_send![pool, release];
             return (0, 0, 0);
         }
         if bold {
@@ -763,6 +702,7 @@ pub fn measure_text(
         let ns_text: id = msg_send![class!(NSString), alloc];
         let ns_text: id = msg_send![ns_text, initWithUTF8String: ctext.as_ptr()];
         if ns_text == nil {
+            let _: () = msg_send![pool, release];
             return (0, 0, 0);
         }
         let attrs: id = msg_send![
@@ -773,9 +713,15 @@ pub fn measure_text(
         let attr: id = msg_send![class!(NSAttributedString), alloc];
         let attr: id = msg_send![attr, initWithString: ns_text attributes: attrs];
         if attr == nil {
+            let _: () = msg_send![ns_text, release];
+            let _: () = msg_send![pool, release];
             return (0, 0, 0);
         }
         let sz: cocoa::foundation::NSSize = msg_send![attr, size];
+        let _: () = msg_send![attr, release];
+        let _: () = msg_send![ns_text, release];
+        // drain 自动释放池：ns_fam/attrs 等 autorelease 对象在此统一回收
+        let _: () = msg_send![pool, release];
         (1, sz.height.round() as i32, sz.width.round() as i32)
     }
 }

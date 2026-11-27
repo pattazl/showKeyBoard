@@ -18,12 +18,11 @@ use windows_sys::Win32::System::Threading::{
 };
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, GetFocus, GetKeyState};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, FindWindowW, GetClassNameW, GetCursorPos,
+    CreateWindowExW, DefWindowProcW, GetClassNameW, GetCursorPos,
     GetForegroundWindow, GetSystemMetrics, GetWindowTextW, GetWindowLongPtrW, GetWindowRect,
-    GetWindowThreadProcessId, IsWindow, RegisterClassW, SetWindowLongPtrW, SetWindowPos,
+    GetWindowThreadProcessId, RegisterClassW,
     WNDCLASSW, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
-    SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, GWL_EXSTYLE, GWLP_HWNDPARENT, GWL_STYLE,
-    SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOZORDER, SWP_NOSIZE,
+    SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, GWL_STYLE,
 };
 
 pub type Rect = (i32, i32, i32, i32); // left, top, right, bottom

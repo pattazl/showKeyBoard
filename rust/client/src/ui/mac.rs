@@ -375,14 +375,17 @@ impl PopupWindow {
 impl Drop for PopupWindow {
     fn drop(&mut self) {
         let key = self.view as usize;
+        // 先移除绘制状态，再销毁窗口：状态表以裸 view 指针为键，
+        // 若先 release 再移除，销毁过程中该地址可能被系统复用给新视图，
+        // 移除就会误删新窗口的状态（内容丢失/串图）
+        VIEW_STATES.with(|m| {
+            m.borrow_mut().remove(&key);
+        });
         unsafe {
             let _: () = msg_send![self.win, orderOut: nil];
             let _: () = msg_send![self.win, close];
             let _: () = msg_send![self.win, release];
         }
-        VIEW_STATES.with(|m| {
-            m.borrow_mut().remove(&key);
-        });
     }
 }
 
